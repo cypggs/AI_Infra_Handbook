@@ -6,10 +6,10 @@
 
 - [vLLM](/04-llmops/vllm/)：开源高性能 LLM 推理引擎
 - [SGLang](/04-llmops/sglang/)：面向 LLM Program 的推理引擎，强调 RadixAttention 与结构化生成
+- [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 高性能编译型 LLM 推理引擎
 
 ## 计划中主题
 
-- TensorRT-LLM
 - Triton Inference Server
 - LLM Gateway
 

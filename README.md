@@ -89,6 +89,7 @@ pnpm docs:preview
 
 - [vLLM 详解](docs/04-llmops/vllm/) — 覆盖 V1 引擎、PagedAttention、Continuous Batching、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 
 ## 内容更新说明
 

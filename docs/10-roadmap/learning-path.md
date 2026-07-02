@@ -30,8 +30,8 @@
 - 模型服务与推理优化
 - **vLLM（已上线）**
 - **SGLang（已上线）**
-- TensorRT-LLM / SGLang / Triton
-- LLM Gateway 与推理网关
+- **TensorRT-LLM（已上线）**
+- Triton Inference Server / LLM Gateway
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
@@ -58,10 +58,11 @@
 
 1. [vLLM](/04-llmops/vllm/) — 理解 LLM 推理的核心挑战
 2. [SGLang](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
-3. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
-4. Ray — 理解分布式 AI 计算
-5. OpenTelemetry — 理解 AI 系统可观测性
-6. MCP / Agent Runtime — 理解 Agent 时代的基础设施
+3. [TensorRT-LLM](/04-llmops/tensorrt-llm/) — 理解 NVIDIA 编译型推理引擎与生产部署
+4. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
+5. Ray — 理解分布式 AI 计算
+6. OpenTelemetry — 理解 AI 系统可观测性
+7. MCP / Agent Runtime — 理解 Agent 时代的基础设施
 
 ## 面试准备
 
