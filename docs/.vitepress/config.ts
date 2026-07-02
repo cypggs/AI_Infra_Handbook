@@ -40,6 +40,7 @@ export default withMermaid(
           items: [
             { text: 'Agent Runtime', link: '/05-agent/agent-runtime/' },
             { text: 'Memory', link: '/05-agent/memory/' },
+            { text: 'Multi-Agent', link: '/05-agent/multi-agent/' },
           ],
         },
       ],

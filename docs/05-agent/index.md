@@ -6,6 +6,7 @@
 
 - [Agent Runtime](/05-agent/agent-runtime/)：AI Agent 的执行容器，负责 ReAct 循环、工具调用、记忆、状态、护栏与可观测
 - [Memory](/05-agent/memory/)：AI Agent 的记忆系统，负责工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索与多会话持久化
+- [Multi-Agent](/05-agent/multi-agent/)：多 Agent 协作系统，负责角色定义、消息通信、协调调度、共享黑板与团队可观测
 
 ## 计划中主题
 
@@ -13,7 +14,6 @@
 - Planning
 - Tool Use
 - Reflection
-- Multi-Agent
 - Agent OS
 
 ## 一句话理解

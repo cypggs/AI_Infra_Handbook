@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-agent-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of a Multi-Agent system: agents, message bus, blackboard, skills, coordinator, and observer"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["multi_agent_mini*"]
+
+[project.scripts]
+multi-agent-demo = "multi_agent_mini.demo:run_demo"

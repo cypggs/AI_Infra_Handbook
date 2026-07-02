@@ -24,7 +24,7 @@
 | MCP（后续主题） | 工具发现与调用协议 | Runtime 可通过 function calling 直接调用工具，也可按需接入 MCP |
 | [Memory](/05-agent/memory/) | 长期记忆与上下文管理 | Runtime 负责在循环中读写 Memory，具体存储/检索/持久化由 Memory 主题负责 |
 | Planning（后续主题） | 任务分解与重规划 | Runtime 内嵌轻量 Planner，复杂规划留给后续主题 |
-| Multi-Agent（后续主题） | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，多 Agent 在后续主题展开 |
+| [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
 
 ## 本章结构
 
