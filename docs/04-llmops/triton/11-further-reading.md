@@ -49,6 +49,7 @@
 - [vLLM 详解](/04-llmops/vllm/) — LLM 推理引擎，可作为 Triton vLLM backend。
 - [SGLang 详解](/04-llmops/sglang/) — LLM Program 执行引擎。
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/) — NVIDIA 编译型 LLM 推理引擎，可作为 Triton TensorRT-LLM backend。
+- [LLM Gateway 详解](/04-llmops/llm-gateway/) — 位于 Triton 前的统一接入层，处理认证、限流、路由与多租户。
 
 ## 推荐学习路径
 

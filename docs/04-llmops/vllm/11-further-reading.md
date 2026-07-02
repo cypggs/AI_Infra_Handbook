@@ -37,6 +37,10 @@
 ## 相关章节
 
 - [LLMOps 概述](/04-llmops/)
+- [SGLang 详解](/04-llmops/sglang/)
+- [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)
+- [Triton Inference Server 详解](/04-llmops/triton/)
+- [LLM Gateway 详解](/04-llmops/llm-gateway/)
 - [学习路线](/10-roadmap/learning-path)
 - [面试指南](/10-roadmap/interview-guide)
 

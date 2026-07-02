@@ -62,6 +62,8 @@
 
 - [vLLM 详解](/04-llmops/vllm/) — 理解 PagedAttention 与 Continuous Batching
 - [SGLang 详解](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
+- [Triton Inference Server 详解](/04-llmops/triton/) — 多框架推理服务入口，可承载 TensorRT-LLM backend
+- [LLM Gateway 详解](/04-llmops/llm-gateway/) — 统一接入层，可把 TensorRT-LLM 作为上游 Provider
 
 ## 社区与 benchmark
 

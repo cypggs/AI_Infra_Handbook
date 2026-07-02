@@ -32,7 +32,7 @@
 - **SGLang（已上线）**
 - **TensorRT-LLM（已上线）**
 - **Triton Inference Server（已上线）**
-- LLM Gateway
+- **LLM Gateway（已上线）**
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
@@ -63,7 +63,8 @@
 4. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
 5. Ray — 理解分布式 AI 计算
 6. OpenTelemetry — 理解 AI 系统可观测性
-7. MCP / Agent Runtime — 理解 Agent 时代的基础设施
+7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
+8. MCP / Agent Runtime — 理解 Agent 时代的基础设施
 
 ## 面试准备
 
