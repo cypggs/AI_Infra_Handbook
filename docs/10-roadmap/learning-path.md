@@ -29,6 +29,7 @@
 - Kubeflow / Ray / MLflow
 - 模型服务与推理优化
 - **vLLM（已上线）**
+- **SGLang（已上线）**
 - TensorRT-LLM / SGLang / Triton
 - LLM Gateway 与推理网关
 
@@ -56,10 +57,11 @@
 如果你时间有限，建议按以下优先级：
 
 1. [vLLM](/04-llmops/vllm/) — 理解 LLM 推理的核心挑战
-2. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
-3. Ray — 理解分布式 AI 计算
-4. OpenTelemetry — 理解 AI 系统可观测性
-5. MCP / Agent Runtime — 理解 Agent 时代的基础设施
+2. [SGLang](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
+3. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
+4. Ray — 理解分布式 AI 计算
+5. OpenTelemetry — 理解 AI 系统可观测性
+6. MCP / Agent Runtime — 理解 Agent 时代的基础设施
 
 ## 面试准备
 

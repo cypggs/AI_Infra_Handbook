@@ -1,0 +1,18 @@
+[project]
+name = "sglang-mini"
+version = "0.1.0"
+description = "A teaching implementation of SGLang core ideas: RadixAttention and structured generation."
+requires-python = ">=3.9"
+dependencies = [
+    "torch",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

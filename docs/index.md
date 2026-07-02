@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: vLLM 详解
       link: /04-llmops/vllm/
+    - theme: alt
+      text: SGLang 详解
+      link: /04-llmops/sglang/
 
 features:
   - icon: 📚
@@ -41,6 +44,7 @@ features:
 
 - [x] 项目骨架与 VitePress 初始化
 - [x] vLLM 主题（LLM 推理引擎）
+- [x] SGLang 主题（LLM Program / RadixAttention / 结构化生成）
 - [ ] 更多主题持续建设中……
 
 ## 如何阅读

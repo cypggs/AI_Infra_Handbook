@@ -26,8 +26,11 @@ export default withMermaid(
         { text: '阅读指南', link: '/guide' },
         { text: '学习路线', link: '/10-roadmap/learning-path' },
         {
-          text: 'vLLM',
-          link: '/04-llmops/vllm/',
+          text: 'LLMOps',
+          items: [
+            { text: 'vLLM', link: '/04-llmops/vllm/' },
+            { text: 'SGLang', link: '/04-llmops/sglang/' },
+          ],
         },
       ],
 

@@ -88,11 +88,13 @@ pnpm docs:preview
 ## 已上线主题
 
 - [vLLM 详解](docs/04-llmops/vllm/) — 覆盖 V1 引擎、PagedAttention、Continuous Batching、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 
 ## 内容更新说明
 
 - 本手册优先引用官方文档、论文、源码与生产实践，避免依赖过时第三方内容。
 - vLLM 主题已基于 2026 年中主分支（默认 V1 引擎）进行更新。
+- SGLang 主题已基于 2026 年 7 月 v0.5.14 进行更新。
 
 ## 贡献
 

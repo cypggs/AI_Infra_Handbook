@@ -19,7 +19,7 @@
 
 如果你已经工作一段时间，可以直接跳到感兴趣的主题：
 
-- 想了解 LLM 推理引擎：从 [vLLM](/04-llmops/vllm/) 开始
+- 想了解 LLM 推理引擎：从 [vLLM](/04-llmops/vllm/) 或 [SGLang](/04-llmops/sglang/) 开始
 - 想了解 Agent 协议：[MCP](/05-agent/)（建设中）
 - 想了解 AI 可观测性：[OpenTelemetry](/07-ai-sre/)（建设中）
 
