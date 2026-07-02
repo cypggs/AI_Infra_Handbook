@@ -153,6 +153,8 @@ result = registry.invoke("calculator", {"expr": "1+1"})
 - `Summarizer`：上下文过长时压缩早期对话。
 - `LongTermMemory`：跨会话记忆（可插拔向量 DB）。
 
+详细实现参见 [Agent Memory 主题](/05-agent/memory/)。
+
 接口示例：
 
 ```python

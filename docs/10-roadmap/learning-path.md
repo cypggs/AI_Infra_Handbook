@@ -39,8 +39,8 @@
 目标：理解大模型应用的基础设施需求。
 
 - **Agent Runtime（已上线）**
-- MCP
-- Memory、Planning、Tool Use
+- **Memory（已上线）**
+- MCP、Planning、Tool Use
 - Embedding、Retriever、Hybrid Search
 - GraphRAG 与评估体系
 
@@ -66,7 +66,8 @@
 6. OpenTelemetry — 理解 AI 系统可观测性
 7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
-9. MCP / Memory / Planning — 理解 Agent 协议、记忆与规划
+9. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
+10. MCP / Planning — 理解 Agent 协议与规划
 
 ## 面试准备
 

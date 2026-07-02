@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-memory-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of an Agent Memory system: working, short-term, long-term, episodic, procedural memory with vector retrieval"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_memory_mini*"]
+
+[project.scripts]
+agent-memory-demo = "agent_memory_mini.demo:run_demo"

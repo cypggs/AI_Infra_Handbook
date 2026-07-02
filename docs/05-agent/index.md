@@ -5,11 +5,11 @@
 ## 已上线主题
 
 - [Agent Runtime](/05-agent/agent-runtime/)：AI Agent 的执行容器，负责 ReAct 循环、工具调用、记忆、状态、护栏与可观测
+- [Memory](/05-agent/memory/)：AI Agent 的记忆系统，负责工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索与多会话持久化
 
 ## 计划中主题
 
 - MCP（Model Context Protocol）
-- Memory
 - Planning
 - Tool Use
 - Reflection
