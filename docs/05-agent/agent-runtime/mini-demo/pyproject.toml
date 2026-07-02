@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-runtime-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of an Agent Runtime: ReAct loop, tools, memory, state, guardrails, observability, recovery"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_runtime_mini*"]
+
+[project.scripts]
+agent-runtime-demo = "agent_runtime_mini.demo:run_demo"

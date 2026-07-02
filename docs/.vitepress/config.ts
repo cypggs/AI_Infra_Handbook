@@ -35,6 +35,12 @@ export default withMermaid(
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
           ],
         },
+        {
+          text: 'Agent',
+          items: [
+            { text: 'Agent Runtime', link: '/05-agent/agent-runtime/' },
+          ],
+        },
       ],
 
       sidebar,

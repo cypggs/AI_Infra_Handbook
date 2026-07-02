@@ -2,10 +2,13 @@
 
 本章节覆盖 AI Agent 的协议、运行时、记忆、规划与多智能体系统。
 
+## 已上线主题
+
+- [Agent Runtime](/05-agent/agent-runtime/)：AI Agent 的执行容器，负责 ReAct 循环、工具调用、记忆、状态、护栏与可观测
+
 ## 计划中主题
 
 - MCP（Model Context Protocol）
-- Agent Runtime
 - Memory
 - Planning
 - Tool Use
@@ -17,4 +20,4 @@
 
 > Agent 是大模型与外部世界交互的容器，基础设施要解决的是安全、可观测、可扩展地运行 Agent。
 
-本章节正在建设中，敬请期待。
+本章节正在持续建设中，欢迎通过 GitHub 提交 Issue 与 PR。

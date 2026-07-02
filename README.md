@@ -58,7 +58,7 @@ docs/
 ├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow
 ├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
-├── 05-agent/           # MCP、Agent Runtime、Memory、Planning、Multi-Agent
+├── 05-agent/           # Agent Runtime、MCP、Memory、Planning、Multi-Agent
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
 ├── 08-security/        # IAM、Secrets、Zero Trust、合规
@@ -92,6 +92,7 @@ pnpm docs:preview
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [Triton Inference Server 详解](docs/04-llmops/triton/) — 覆盖多框架推理服务、Model Repository、Backend 抽象、Dynamic/Sequence/Ensemble 调度、BLS、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [LLM Gateway 详解](docs/04-llmops/llm-gateway/) — 覆盖访问控制与抽象层、Provider 抽象、统一 OpenAI-compatible API、路由、负载均衡、限流、重试降级、认证、请求/响应转换、成本追踪、可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [Agent Runtime 详解](docs/05-agent/agent-runtime/) — 覆盖 ReAct 循环、工具注册与 function calling、记忆、状态机、护栏、可观测、恢复、与 LLM Gateway 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 
 ## 内容更新说明
 

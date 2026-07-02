@@ -27,6 +27,9 @@ hero:
     - theme: alt
       text: LLM Gateway 详解
       link: /04-llmops/llm-gateway/
+    - theme: alt
+      text: Agent Runtime 详解
+      link: /05-agent/agent-runtime/
 
 features:
   - icon: 📚
@@ -57,13 +60,14 @@ features:
 - [x] TensorRT-LLM 主题（NVIDIA 编译型 LLM 推理引擎）
 - [x] Triton Inference Server 主题（多框架推理服务软件）
 - [x] LLM Gateway 主题（访问控制与抽象层）
+- [x] Agent Runtime 主题（AI Agent 执行容器）
 - [ ] 更多主题持续建设中……
 
 ## 如何阅读
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/) 或 [LLM Gateway 详解](/04-llmops/llm-gateway/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/) 或 [Agent Runtime 详解](/05-agent/agent-runtime/)。
 
 ## 贡献
 

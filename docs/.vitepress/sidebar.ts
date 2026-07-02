@@ -123,7 +123,27 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '05. Agent',
     collapsed: false,
-    items: [{ text: '概述', link: '/05-agent/' }],
+    items: [
+      { text: '概述', link: '/05-agent/' },
+      {
+        text: 'Agent Runtime',
+        collapsed: false,
+        items: [
+          { text: '总览', link: '/05-agent/agent-runtime/' },
+          { text: '1. 背景', link: '/05-agent/agent-runtime/01-background' },
+          { text: '2. 核心思想', link: '/05-agent/agent-runtime/02-core-ideas' },
+          { text: '3. 架构设计', link: '/05-agent/agent-runtime/03-architecture' },
+          { text: '4. Runtime 工作流程', link: '/05-agent/agent-runtime/04-runtime-workflow' },
+          { text: '5. 核心模块', link: '/05-agent/agent-runtime/05-core-modules' },
+          { text: '6. 源码分析', link: '/05-agent/agent-runtime/06-source-analysis' },
+          { text: '7. 工程实践', link: '/05-agent/agent-runtime/07-mini-demo' },
+          { text: '8. 企业生产实践', link: '/05-agent/agent-runtime/08-production-practice' },
+          { text: '9. 最佳实践', link: '/05-agent/agent-runtime/09-best-practices' },
+          { text: '10. 面试题', link: '/05-agent/agent-runtime/10-interview-questions' },
+          { text: '11. 延伸阅读', link: '/05-agent/agent-runtime/11-further-reading' },
+        ],
+      },
+    ],
   },
   {
     text: '06. RAG',

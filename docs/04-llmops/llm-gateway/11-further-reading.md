@@ -35,6 +35,7 @@
 
 ## 相关主题
 
+- [Agent Runtime 详解](/05-agent/agent-runtime/) — Agent 的执行容器，常与 LLM Gateway 组合使用以统一接入多模型。
 - [vLLM 详解](/04-llmops/vllm/) — LLM 推理引擎，可作为 Gateway 上游。
 - [SGLang 详解](/04-llmops/sglang/) — LLM Program 执行引擎，可作为 Gateway 上游。
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/) — NVIDIA 编译型推理引擎，可作为 Gateway 上游。
