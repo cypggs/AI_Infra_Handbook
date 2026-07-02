@@ -30,7 +30,7 @@ flowchart LR
 | 单 Agent + Tools | 模型可调用外部工具，但仍是单角色 | Function Calling Agent |
 | 单 Agent + ReAct + Memory | 多轮循环、可读写记忆 | LangGraph Agent、OpenAI Agents SDK |
 | Multi-Agent 协作 | 多角色分工、消息通信、共享状态 | AutoGen、CrewAI、MetaGPT |
-| 自动编排 + 群体反思 | Agent 动态组队、自我评估、共识聚合 | 研究前沿 |
+| 自动编排 + [群体反思](/05-agent/reflection/) | Agent 动态组队、自我评估、共识聚合 | 研究前沿 |
 
 ## 3. 典型场景
 

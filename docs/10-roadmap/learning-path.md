@@ -41,6 +41,7 @@
 - **Agent Runtime（已上线）**
 - **Memory（已上线）**
 - **Multi-Agent（已上线）**
+- **Reflection（已上线）**
 - MCP、Planning、Tool Use
 - Embedding、Retriever、Hybrid Search
 - GraphRAG 与评估体系
@@ -69,7 +70,8 @@
 8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
 9. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
 10. [Multi-Agent](/05-agent/multi-agent/) — 理解多 Agent 协作、角色定义与协调调度
-11. MCP / Planning — 理解 Agent 协议与规划
+11. [Reflection](/05-agent/reflection/) — 理解 Agent 自我反思、批判与质量提升闭环
+12. MCP / Planning — 理解 Agent 协议与规划
 
 ## 面试准备
 

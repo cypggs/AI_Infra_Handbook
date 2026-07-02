@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reflection-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of a Reflection agent loop: generator, critic, evaluator, workspace, observer, and revision loop"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["reflection_mini*"]
+
+[project.scripts]
+reflection-demo = "reflection_mini.demo:run_demo"

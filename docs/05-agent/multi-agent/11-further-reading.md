@@ -29,6 +29,7 @@
 
 - [Agent Runtime](/05-agent/agent-runtime/) — Multi-Agent 中每个 Agent 的执行容器。
 - [Agent Memory](/05-agent/memory/) — Multi-Agent 共享或隔离的长期记忆与 Blackboard 持久化。
+- [Agent Reflection](/05-agent/reflection/) — 群体反思与自我纠错是 Multi-Agent 系统的重要能力。
 - LLM Gateway（后续主题）— Multi-Agent 调用多模型的统一入口。
 - Planning（后续主题）— Coordinator 做任务拆分与重规划的核心能力。
 - MCP（后续主题）— Agent 能力发现与调用协议。

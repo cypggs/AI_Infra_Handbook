@@ -58,7 +58,7 @@ docs/
 ├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow
 ├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
-├── 05-agent/           # Agent Runtime、Memory、MCP、Planning、Multi-Agent
+├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
 ├── 08-security/        # IAM、Secrets、Zero Trust、合规
@@ -95,6 +95,7 @@ pnpm docs:preview
 - [Agent Runtime 详解](docs/05-agent/agent-runtime/) — 覆盖 ReAct 循环、工具注册与 function calling、记忆、状态机、护栏、可观测、恢复、与 LLM Gateway 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Memory 详解](docs/05-agent/memory/) — 覆盖 Agent 记忆系统、工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索、存储后端、与 Agent Runtime 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Multi-Agent 详解](docs/05-agent/multi-agent/) — 覆盖多 Agent 协作、角色定义、消息通信、协调调度、共享黑板、团队可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [Reflection 详解](docs/05-agent/reflection/) — 覆盖 Agent 自我反思与纠错、生成—批判—评估—修订闭环、Generator/Critic/Evaluator/Revision Controller/Workspace/Observer、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

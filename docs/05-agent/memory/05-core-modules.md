@@ -133,7 +133,7 @@ class EpisodicMemory:
 
 生产要点：
 
-- 每个 episode 应包含“目标-动作-结果-反思”四元组。
+- 每个 episode 应包含“目标-动作-结果-反思”四元组；其中反思由 [Agent Reflection](/05-agent/reflection/) 生成。
 - 失败 episode 同样有价值，可帮助 Agent 避免重复犯错。
 - 检索结果应标注成功率，供 Planner 参考。
 

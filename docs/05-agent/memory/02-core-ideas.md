@@ -68,7 +68,7 @@ flowchart TB
 - 上次用户让 Agent 写周报，最后采用了 Markdown 模板 A。
 - 某次数据分析任务因为 SQL 写错导致超时，正确写法是 X。
 
-情景记忆让 Agent 能“从经验中学习”，Planner 和 Runtime 都可以检索它。
+情景记忆让 Agent 能“从经验中学习”，Planner 和 Runtime 都可以检索它；Reflection 系统则负责产出这些“反思”并写入情景记忆。
 
 ### Procedural Memory（程序性记忆）
 
