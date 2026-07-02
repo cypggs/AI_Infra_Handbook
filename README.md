@@ -57,7 +57,7 @@ docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU、分布式系统
 ├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow
-├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton、LLM Gateway
+├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
 ├── 05-agent/           # MCP、Agent Runtime、Memory、Planning、Multi-Agent
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
@@ -90,6 +90,7 @@ pnpm docs:preview
 - [vLLM 详解](docs/04-llmops/vllm/) — 覆盖 V1 引擎、PagedAttention、Continuous Batching、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [Triton Inference Server 详解](docs/04-llmops/triton/) — 覆盖多框架推理服务、Model Repository、Backend 抽象、Dynamic/Sequence/Ensemble 调度、BLS、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 
 ## 内容更新说明
 

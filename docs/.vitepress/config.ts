@@ -31,6 +31,7 @@ export default withMermaid(
             { text: 'vLLM', link: '/04-llmops/vllm/' },
             { text: 'SGLang', link: '/04-llmops/sglang/' },
             { text: 'TensorRT-LLM', link: '/04-llmops/tensorrt-llm/' },
+            { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
           ],
         },
       ],

@@ -31,7 +31,8 @@
 - **vLLM（已上线）**
 - **SGLang（已上线）**
 - **TensorRT-LLM（已上线）**
-- Triton Inference Server / LLM Gateway
+- **Triton Inference Server（已上线）**
+- LLM Gateway
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
