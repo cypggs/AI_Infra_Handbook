@@ -1,0 +1,58 @@
+---
+layout: home
+
+hero:
+  name: "AI Infra Handbook"
+  text: "AI 基础设施工程师手册"
+  tagline: 从 Kubernetes 到 LLMOps，系统构建生产级 AI 基础设施知识体系
+  actions:
+    - theme: brand
+      text: 开始阅读
+      link: /guide
+    - theme: alt
+      text: 学习路线
+      link: /10-roadmap/learning-path
+    - theme: alt
+      text: vLLM 详解
+      link: /04-llmops/vllm/
+
+features:
+  - icon: 📚
+    title: 系统化
+    details: 覆盖基础、云原生、AI 平台、LLMOps、Agent、RAG、AI SRE、安全、案例、路线十大模块。
+  - icon: 🔧
+    title: 工程化
+    details: 每个主题都包含源码分析、Mini Demo、生产实践、最佳实践与面试题，强调可落地。
+  - icon: 🌐
+    title: 开源协作
+    details: 采用 CC-BY-SA-4.0 协议，欢迎提交 PR、Issue 与改进建议，长期维护。
+  - icon: 🧠
+    title: 面向实践
+    details: 不翻译文档，不堆砌 API，而是讲透设计思想、工程实现与真实踩坑经验。
+---
+
+## 一句话理解
+
+> **AI Infra Handbook 不是教程合集，而是一本面向 AI 基础设施工程师的长期维护的工程手册。**
+
+它帮助一名已经具备 Kubernetes / Linux 基础的工程师，成长为能够设计和构建 AI 基础设施的平台工程师、LLMOps Engineer 或 AI SRE。
+
+## 当前进度
+
+- [x] 项目骨架与 VitePress 初始化
+- [x] vLLM 主题（LLM 推理引擎）
+- [ ] 更多主题持续建设中……
+
+## 如何阅读
+
+1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
+2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)。
+
+## 贡献
+
+欢迎通过 GitHub 提交 Issue 和 PR。所有内容采用 CC-BY-SA-4.0 协议授权。
+
+## License
+
+[CC-BY-SA-4.0](https://creativecommons.org/licenses/by-sa/4.0/)

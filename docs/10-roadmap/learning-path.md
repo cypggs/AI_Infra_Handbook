@@ -1,0 +1,66 @@
+# 学习路线
+
+本路线面向已经具备 Kubernetes / Linux 基础，希望成长为 AI Infrastructure 工程师的读者。
+
+## 阶段一：夯实基础（4~8 周）
+
+目标：建立 AI 基础设施所需的底层知识。
+
+- Linux 系统调优与性能分析
+- 计算机网络（TCP/IP、RDMA、NCCL 网络拓扑）
+- 存储系统（本地存储、对象存储、并行文件系统）
+- GPU 架构与 CUDA 基础
+- 分布式系统基础（一致性、容错、通信）
+
+## 阶段二：掌握云原生（4~6 周）
+
+目标：能够在 Kubernetes 上构建和运维平台。
+
+- Docker 与容器运行时
+- Kubernetes 核心资源与调度
+- Helm 与 Operator
+- CRI、CNI、CSI
+- GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
+
+## 阶段三：AI 平台与 LLMOps（6~10 周）
+
+目标：理解模型训练、推理、服务的完整链路。
+
+- Kubeflow / Ray / MLflow
+- 模型服务与推理优化
+- **vLLM（已上线）**
+- TensorRT-LLM / SGLang / Triton
+- LLM Gateway 与推理网关
+
+## 阶段四：Agent 与 RAG（4~6 周）
+
+目标：理解大模型应用的基础设施需求。
+
+- MCP、Agent Runtime
+- Memory、Planning、Tool Use
+- Embedding、Retriever、Hybrid Search
+- GraphRAG 与评估体系
+
+## 阶段五：AI SRE 与安全（持续）
+
+目标：让 AI 系统在生产环境中稳定、安全、可观测。
+
+- OpenTelemetry 与可观测性
+- SLO / Error Budget
+- AIOps 与事件响应
+- IAM、Secrets、Zero Trust
+- 合规（SOC2、HIPAA、GDPR）
+
+## 推荐学习顺序
+
+如果你时间有限，建议按以下优先级：
+
+1. [vLLM](/04-llmops/vllm/) — 理解 LLM 推理的核心挑战
+2. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
+3. Ray — 理解分布式 AI 计算
+4. OpenTelemetry — 理解 AI 系统可观测性
+5. MCP / Agent Runtime — 理解 Agent 时代的基础设施
+
+## 面试准备
+
+参考 [面试指南](/10-roadmap/interview-guide)。

@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python demo artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+dist/
+build/
+
+# Vercel
+.vercel
+
+# Claude Code local settings / skill secrets
+.claude/settings.json
+.claude/skills/**/.env
+.claude/skills/fullstack-deploy/
