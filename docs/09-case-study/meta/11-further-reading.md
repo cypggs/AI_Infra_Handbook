@@ -64,6 +64,7 @@
 - [安全详解](/08-security/) — Llama Guard 2 / Prompt Guard / CyberSecEval 2 / Code Shield / GOAT 红队，开放权重安全治理。
 - [OpenAI 案例研究](/09-case-study/openai/) — 对照"闭源规模"与"开放权重 + 硬件协同设计"。
 - [Anthropic 案例研究](/09-case-study/anthropic/) — 对照"闭源对齐"与"开放发布 + 自研硅"。
+- [Google 案例研究](/09-case-study/google/) — 对照"开放软件栈 + 闭源 TPU 硅 + JAX/GSPMD"与"开放权重 + OCP 硬件 + PyTorch"；NSDI'24 双路径恢复 vs Meta 的 SDC 治理。
 
 ## 学习路径建议
 

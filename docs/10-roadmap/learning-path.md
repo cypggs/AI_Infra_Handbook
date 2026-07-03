@@ -69,7 +69,8 @@
 - **[OpenAI 案例研究](/09-case-study/openai/)（已上线）** — 训练/推理基础设施、模型安全与对齐、产品化工程经验
 - **[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）** — 宪法对齐/RLAIF、机制可解释性、Trainium/Colossus 异构算力、prompt caching 与 RSP/ASL 治理
 - **[Meta 案例研究](/09-case-study/meta/)（已上线）** — 开放权重、OCP 硬件协同设计（Grand Teton/Catalina/MTIA）、RoCE/InfiniBand 双网络织物、SDC 治理与 >95% 有效训练时间、Llama Stack
-- Cursor、Perplexity、Google 等持续建设中
+- **[Google 案例研究](/09-case-study/google/)（已上线）** — TPU 自研硅（MXU/SparseCore/3D-torus/OCS）、NSDI'24 双路径恢复（99.98% 可用率）、GSPMD/Pathways 自动并行、Falcon 硬件传输、开放软件栈（JAX/XLA/MaxText）+ 闭源硬件
+- Cursor、Perplexity 等持续建设中
 
 ## 推荐学习顺序
 
@@ -96,6 +97,7 @@
 19. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
 20. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
 21. [Meta 案例研究](/09-case-study/meta/) — 通过 Meta 理解开放权重、硬件协同设计、双网络织物、同步训练可靠性（SDC 治理/>95% 有效训练时间）与 MTIA 自研硅
+22. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
 
 ## 面试准备
 

@@ -58,6 +58,7 @@
 | OpenAI 案例研究 | /09-case-study/openai/ | 大规模 LLM 服务的可观测性、SLO 与事件响应经验。 |
 | Anthropic 案例研究 | /09-case-study/anthropic/ | run-rate $30B 增长冲击可靠性的容量治理；prompt cache 命中率作为 SLO。 |
 | Meta 案例研究 | /09-case-study/meta/ | 同步训练可靠性工程标杆：SDC 三件套检测、~50x 中断下降、>95% 有效训练时间、故障→checkpoint→auto-restart 闭环。 |
+| Google 案例研究 | /09-case-study/google/ | 超大规模同步训练可用率标杆：NSDI'24 healthd + preflight 四层检测、reconfigure/reroute 双路径恢复、99.98% 可用率、OCS 把主机可用率要求从 99.9% 降到 99%。 |
 
 ## 推荐学习路径
 

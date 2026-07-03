@@ -34,6 +34,7 @@
 - 想了解 OpenAI 基础设施案例：[OpenAI 案例研究](/09-case-study/openai/)（已上线）
 - 想了解 Anthropic 基础设施案例：[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）
 - 想了解 Meta 基础设施案例：[Meta 案例研究](/09-case-study/meta/)（已上线）
+- 想了解 Google 基础设施案例：[Google 案例研究](/09-case-study/google/)（已上线）
 
 ### 3. 每个主题的结构
 
