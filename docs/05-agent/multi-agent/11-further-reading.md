@@ -32,8 +32,7 @@
 - [Agent Reflection](/05-agent/reflection/) — 群体反思与自我纠错是 Multi-Agent 系统的重要能力。
 - [MCP](/05-agent/mcp/) — Agent 能力发现与调用协议，Multi-Agent 角色可借此发现彼此能力。
 - LLM Gateway（后续主题）— Multi-Agent 调用多模型的统一入口。
-- Planning（后续主题）— Coordinator 做任务拆分与重规划的核心能力。
-- MCP（后续主题）— Agent 能力发现与调用协议。
+- [Planning 详解](/05-agent/planning/) — Coordinator 做任务拆分与重规划的核心能力。
 - RAG（后续主题）— 多个 Agent 可共享的外部知识检索能力。
 
 ## 推荐学习路径

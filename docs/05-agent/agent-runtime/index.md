@@ -23,7 +23,7 @@
 | **Agent Runtime** | 如何安全、可观测、可扩展地执行 Agent 任务 | 承上启下，把模型能力转化为任务执行能力 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Runtime 可通过 function calling 直接调用工具，也可按需接入 [MCP](/05-agent/mcp/) 实现标准化能力发现 |
 | [Memory](/05-agent/memory/) | 长期记忆与上下文管理 | Runtime 负责在循环中读写 Memory，具体存储/检索/持久化由 Memory 主题负责 |
-| Planning（后续主题） | 任务分解与重规划 | Runtime 内嵌轻量 Planner，复杂规划留给后续主题 |
+| [Planning](/05-agent/planning/) | 任务分解与重规划 | Runtime 内嵌轻量 Planner，复杂规划由 Planning 主题负责 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
 
 ## 本章结构

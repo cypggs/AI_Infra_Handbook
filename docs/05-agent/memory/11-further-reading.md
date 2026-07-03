@@ -50,7 +50,7 @@
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — Agent Runtime 通常通过 Gateway 调用模型，记忆系统也可通过 Gateway 调用 embedding 模型。
 - [vLLM 详解](/04-llmops/vllm/) — 可作为 Agent Runtime 的上游推理引擎。
 - [RAG 主题](/05-agent/)（后续主题）— 外部知识检索，与 Memory 同源但数据不同。
-- [Planning 主题](/05-agent/)（后续主题）— Planner 可以利用 Episodic Memory 中的经验生成更优计划。
+- [Planning 详解](/05-agent/planning/) — Planner 可以利用 Episodic Memory 中的经验生成更优计划。
 - [Multi-Agent 主题](/05-agent/multi-agent/) — 共享或隔离的长期记忆池是多 Agent 协作的基础。
 - [Reflection 主题](/05-agent/reflection/) — Reflection 系统产出 critique、score 与改进经验，是 Episodic Memory 的重要输入。
 - [MCP 主题](/05-agent/mcp/) — Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 [MCP](/05-agent/mcp/) 调用。

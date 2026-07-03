@@ -43,7 +43,8 @@
 - **Multi-Agent（已上线）**
 - **Reflection（已上线）**
 - **[MCP](/05-agent/mcp/)（已上线）**
-- Planning、Tool Use
+- **[Planning](/05-agent/planning/)（已上线）**
+- Tool Use
 - Embedding、Retriever、Hybrid Search
 - GraphRAG 与评估体系
 
@@ -73,7 +74,8 @@
 10. [Multi-Agent](/05-agent/multi-agent/) — 理解多 Agent 协作、角色定义与协调调度
 11. [Reflection](/05-agent/reflection/) — 理解 Agent 自我反思、批判与质量提升闭环
 12. [MCP](/05-agent/mcp/) — 理解 Agent 协议、工具发现与跨模型能力复用
-13. Planning — 理解 Agent 规划
+13. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
+14. Tool Use — 理解 Agent 工具调用
 
 ## 面试准备
 

@@ -29,7 +29,7 @@
 | [Agent Runtime](/05-agent/agent-runtime/) | 单 Agent 如何安全、可观测地执行 | Multi-Agent 中的每个 Agent 都运行在 Runtime 之上；Runtime 提供 ReAct、工具、护栏等原子能力 |
 | [Agent Memory](/05-agent/memory/) | 如何保留并利用上下文与经验 | Multi-Agent 共享或隔离的长期记忆是协作基础；Blackboard 也需要 Memory 做持久化 |
 | **Multi-Agent** | 多个 Agent 如何分工协作完成复杂目标 | 承上启下，把单 Agent 能力编排成群体智能 |
-| Planning（后续主题） | 如何分解与重规划任务 | Coordinator 依赖 Planner 做任务拆分与再分配 |
+| [Planning](/05-agent/planning/) | 如何分解与重规划任务 | Coordinator 依赖 Planner 做任务拆分与再分配 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
 

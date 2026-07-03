@@ -97,6 +97,7 @@ pnpm docs:preview
 - [Multi-Agent 详解](docs/05-agent/multi-agent/) — 覆盖多 Agent 协作、角色定义、消息通信、协调调度、共享黑板、团队可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Reflection 详解](docs/05-agent/reflection/) — 覆盖 Agent 自我反思与纠错、生成—批判—评估—修订闭环、Generator/Critic/Evaluator/Revision Controller/Workspace/Observer、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [MCP 详解](docs/05-agent/mcp/) — 覆盖 Model Context Protocol、Host/Client/Server 角色、Tools/Resources/Prompts、JSON-RPC 协议流程、Capability negotiation、Transport（stdio/SSE/HTTP）、官方 SDK 源码、Mini Demo、企业生产实践与面试题（内容更新至 2026-07-03）
+- [Planning 详解](docs/05-agent/planning/) — 覆盖 Agent 规划系统、任务分解范式、计划表示（列表/DAG/树/状态图）、Plan-Execute-Observe-Replan 循环、动态重规划、与 Runtime/Memory/Reflection/Multi-Agent/MCP 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

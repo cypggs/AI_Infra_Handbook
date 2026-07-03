@@ -23,7 +23,7 @@
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 多个 Agent 可共享同一组 MCP Server，通过 Capability 协商避免冲突 |
 | [Reflection](/05-agent/reflection/) | Agent 自我反思与纠错 | Reflection 可调用 MCP Tool/Resource 获取评估数据 |
 | **MCP** | 工具/资源/提示的发现与调用协议 | 承上启下，把外部能力以标准接口暴露给 Agent |
-| Planning（后续主题） | 任务分解与重规划 | Planner 通过 MCP 发现可用能力并生成调用计划 |
+| [Planning](/05-agent/planning/) | 任务分解与重规划 | Planner 通过 MCP 发现可用能力并生成调用计划 |
 | Tool Use（后续主题） | 工具定义与执行细节 | MCP 是 Tool Use 的协议化延伸，关注发现与互操作 |
 
 ## 本章结构
