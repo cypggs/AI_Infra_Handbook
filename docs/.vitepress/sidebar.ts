@@ -274,7 +274,20 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '06. RAG',
     collapsed: false,
-    items: [{ text: '概述', link: '/06-rag/' }],
+    items: [
+      { text: '概述', link: '/06-rag/' },
+      { text: '1. 背景', link: '/06-rag/01-background' },
+      { text: '2. 核心概念', link: '/06-rag/02-core-ideas' },
+      { text: '3. 架构设计', link: '/06-rag/03-architecture' },
+      { text: '4. RAG 流水线', link: '/06-rag/04-rag-pipeline' },
+      { text: '5. 核心模块', link: '/06-rag/05-core-modules' },
+      { text: '6. 源码与生态分析', link: '/06-rag/06-source-analysis' },
+      { text: '7. Mini Demo', link: '/06-rag/07-mini-demo' },
+      { text: '8. 企业生产实践', link: '/06-rag/08-production-practice' },
+      { text: '9. 最佳实践', link: '/06-rag/09-best-practices' },
+      { text: '10. 面试题', link: '/06-rag/10-interview-questions' },
+      { text: '11. 延伸阅读', link: '/06-rag/11-further-reading' },
+    ],
   },
   {
     text: '07. AI SRE',

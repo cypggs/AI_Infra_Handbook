@@ -35,6 +35,7 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Agent OS 管理进程级 Workspace 与状态；Memory 提供跨进程/跨会话的持久化与检索 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 function call 调用；[MCP](/05-agent/mcp/) 是可选协议 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 共享或隔离的长期记忆池是多 Agent 协作的基础；Memory 为 Multi-Agent 提供跨 Agent 上下文 |
+| RAG | /06-rag/ | RAG 检索可视为长期语义记忆读取的一种实现。 |
 
 上表可以概括为一句话：**Agent Runtime 决定“怎么执行”，RAG 决定“读什么外部知识”，Memory 决定“记住什么、忘记什么、回注什么”**。
 

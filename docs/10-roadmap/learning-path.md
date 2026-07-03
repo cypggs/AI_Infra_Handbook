@@ -46,6 +46,7 @@
 - **[Planning](/05-agent/planning/)（已上线）**
 - **[Tool Use](/05-agent/tool-use/)（已上线）**
 - **[Agent OS](/05-agent/agent-os/)（已上线）**
+- **[RAG](/06-rag/)（已上线）**
 - Embedding、Retriever、Hybrid Search
 - GraphRAG 与评估体系
 
@@ -78,7 +79,7 @@
 13. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
 14. [Tool Use](/05-agent/tool-use/) — 理解 Agent 工具调用、Schema、解析、执行与可观测
 15. [Agent OS](/05-agent/agent-os/) — 理解 Agent 运行时操作系统、进程调度、沙箱、Workspace 与多 Agent 治理
-16. RAG — 理解外部知识检索
+16. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
 
 ## 面试准备
 

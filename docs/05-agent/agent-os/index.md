@@ -27,6 +27,7 @@
 | [MCP](/05-agent/mcp/) | 模型上下文协议，Host/Client/Server 之间的能力发现 | MCP Host 是 Agent OS 的“系统调用门面”；OS 负责 Host 层面的能力协商、权限审计与生命周期治理 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作、角色定义与团队协调 | Agent OS 提供 Agent 间 IPC、命名空间与隔离；Multi-Agent 在其之上实现协作协议与团队语义 |
 | [Reflection](/05-agent/reflection/) | Agent 自我反思、评估与改进 | Reflection 产生的新策略/约束会写入 Agent OS 的 Policy Engine，影响后续调度与权限决策 |
+| RAG | /06-rag/ | Agent OS 为 RAG 检索任务提供进程隔离与资源调度。 |
 
 ## 本章结构
 

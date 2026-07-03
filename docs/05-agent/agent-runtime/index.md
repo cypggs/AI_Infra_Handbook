@@ -27,6 +27,7 @@
 | [Tool Use](/05-agent/tool-use/) | 工具定义、调用与执行 | Runtime 调用 Tool Use 层完成工具注册、解析、校验、执行与结果反馈 |
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Runtime 是 Agent OS 的核心执行组件；Agent OS 在 Runtime 之上提供进程管理、调度、沙箱与资源治理 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
+| RAG | /06-rag/ | RAG 把 Retriever 作为工具接入 Runtime 的 ReAct 循环。 |
 
 ## 本章结构
 

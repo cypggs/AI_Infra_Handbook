@@ -48,6 +48,21 @@ export default withMermaid(
             { text: 'Agent OS', link: '/05-agent/agent-os/' },
           ],
         },
+        {
+          text: 'RAG',
+          items: [
+            { text: '概述', link: '/06-rag/' },
+            { text: '1. 背景', link: '/06-rag/01-background' },
+            { text: '2. 核心概念', link: '/06-rag/02-core-ideas' },
+            { text: '3. 架构设计', link: '/06-rag/03-architecture' },
+            { text: '4. RAG 流水线', link: '/06-rag/04-rag-pipeline' },
+            { text: '5. 核心模块', link: '/06-rag/05-core-modules' },
+            { text: '6. 源码与生态分析', link: '/06-rag/06-source-analysis' },
+            { text: '7. Mini Demo', link: '/06-rag/07-mini-demo' },
+            { text: '8. 企业生产实践', link: '/06-rag/08-production-practice' },
+            { text: '9. 最佳实践', link: '/06-rag/09-best-practices' },
+          ],
+        },
       ],
 
       sidebar,

@@ -100,6 +100,7 @@ pnpm docs:preview
 - [Planning 详解](docs/05-agent/planning/) — 覆盖 Agent 规划系统、任务分解范式、计划表示（列表/DAG/树/状态图）、Plan-Execute-Observe-Replan 循环、动态重规划、与 Runtime/Memory/Reflection/Multi-Agent/MCP 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Tool Use 详解](docs/05-agent/tool-use/) — 覆盖 Agent 工具调用、JSON Schema 工具定义、Tool Choice、并行调用、解析/校验/执行/结果格式化、OpenAI/Anthropic/Google/LangGraph/OpenAI Agents SDK/AutoGen/MCP 源码对比、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Agent OS 详解](docs/05-agent/agent-os/) — 覆盖 Agent 运行时操作系统、进程/生命周期、调度、沙箱、Workspace、Capability/权限、Registry、MCP Host 与 A2A IPC、AIOS/Agent libOS/Quine 等源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [RAG 详解](docs/06-rag/) — 覆盖检索增强生成、Chunking、Embedding、Vector Store、Dense/Sparse/Hybrid 检索、RRF、Reranking、GraphRAG、评估体系、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

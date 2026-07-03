@@ -34,6 +34,7 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Multi-Agent 运行在 Agent OS 提供的进程、调度、沙箱与消息总线之上 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
+| RAG | /06-rag/ | RAG 可作为 Multi-Agent 系统中共享的知识检索工具。 |
 
 上表可以概括为一句话：**Agent Runtime 决定“单个 Agent 怎么执行”，Multi-Agent 决定“多个 Agent 怎么协作”，Memory 决定“它们记得什么、共享什么”**。
 

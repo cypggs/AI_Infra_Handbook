@@ -25,6 +25,7 @@
 | [Multi-Agent](/05-agent/multi-agent/) | 能力共享 | 一个 Agent 可以把另一个 Agent 或子服务暴露为工具，实现委托与协作。 |
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Agent OS 为 Tool Use 提供进程、调度、沙箱与资源治理，确保工具调用在受控环境中执行。 |
 | [Reflection](/05-agent/reflection/) | 反思依据 | 模型基于工具返回的客观结果进行自我修正，而不是仅依赖内部先验。 |
+| RAG | /06-rag/ | 检索器本质上是一种返回文档片段的工具。 |
 
 ## 章节导航
 
