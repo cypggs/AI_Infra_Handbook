@@ -5,10 +5,10 @@
 ## 已上线主题
 
 - [OpenAI](/09-case-study/openai/) — 从 GPT 训练集群到 ChatGPT 推理服务的完整基础设施演化
+- [Anthropic](/09-case-study/anthropic/) — 宪法对齐、机制可解释性、Trainium/Colossus 异构算力与 prompt caching 推理工程
 
 ## 计划中主题
 
-- Anthropic
 - Cursor
 - Perplexity
 - Google

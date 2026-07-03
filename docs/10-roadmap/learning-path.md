@@ -67,7 +67,8 @@
 目标：从真实公司的工程实践中提炼可复用的设计原则。
 
 - **[OpenAI 案例研究](/09-case-study/openai/)（已上线）** — 训练/推理基础设施、模型安全与对齐、产品化工程经验
-- Anthropic、Cursor、Perplexity、Google、Meta 等持续建设中
+- **[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）** — 宪法对齐/RLAIF、机制可解释性、Trainium/Colossus 异构算力、prompt caching 与 RSP/ASL 治理
+- Cursor、Perplexity、Google、Meta 等持续建设中
 
 ## 推荐学习顺序
 
@@ -92,6 +93,7 @@
 17. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
 18. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
 19. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
+20. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
 
 ## 面试准备
 

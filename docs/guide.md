@@ -32,6 +32,7 @@
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 - 想了解安全：[安全](/08-security/)（已上线）
 - 想了解 OpenAI 基础设施案例：[OpenAI 案例研究](/09-case-study/openai/)（已上线）
+- 想了解 Anthropic 基础设施案例：[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）
 
 ### 3. 每个主题的结构
 

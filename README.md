@@ -104,6 +104,7 @@ pnpm docs:preview
 - [AI SRE 详解](docs/07-ai-sre/) — 覆盖 AI 系统可观测性、OpenTelemetry GenAI 语义约定、SLI/SLO/Error Budget、Burn Rate 告警、AIOps、事故响应与复盘、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [安全详解](docs/08-security/) — 覆盖 AI 系统安全、IAM/AuthN/AuthZ、Secrets 管理、Zero Trust、Guardrails、合规与隐私治理、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [OpenAI 案例研究详解](docs/09-case-study/openai/) — 覆盖 OpenAI 训练与推理基础设施、Azure AI 超级计算机、H100/H200/InfiniBand、连续批处理与 KV Cache 管理、推测解码与预测输出、流式生成、RLHF 与对齐、Red Teaming/Preparedness Framework/System Cards、Triton/Whisper/CLIP、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [Anthropic 案例研究详解](docs/09-case-study/anthropic/) — 覆盖 Anthropic 异构算力（AWS Trainium Project Rainier >100 万芯片/5GW、SpaceXAI Colossus 22 万 GPU）、Constitutional AI/RLAIF 两阶段对齐、机制可解释性（transformer-circuits/dictionary learning/Circuit Tracing）、prompt caching（prefix hash + 20-block lookback、5m/1h TTL、pre-warm、workspace 隔离）、extended thinking/computer use/Batch API、RSP/ASL 安全治理、源码与可解释性生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 
