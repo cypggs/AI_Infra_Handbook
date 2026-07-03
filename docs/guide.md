@@ -20,6 +20,7 @@
 如果你已经工作一段时间，可以直接跳到感兴趣的主题：
 
 - 想了解 LLM 推理引擎：从 [vLLM](/04-llmops/vllm/)、[SGLang](/04-llmops/sglang/)、[TensorRT-LLM](/04-llmops/tensorrt-llm/)、[Triton Inference Server](/04-llmops/triton/) 或 [LLM Gateway](/04-llmops/llm-gateway/) 开始
+- 想了解容器编排底座：[Kubernetes](/02-cloud-native/kubernetes/)（已上线）
 - 想了解统一分布式 AI 平台：[Ray](/03-ai-platform/ray/)（已上线）
 - 想了解 Agent Runtime：[Agent Runtime](/05-agent/agent-runtime/)（已上线）
 - 想了解 Agent Memory：[Memory](/05-agent/memory/)（已上线）

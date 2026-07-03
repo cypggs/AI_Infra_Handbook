@@ -81,7 +81,7 @@
 | **[vLLM](/04-llmops/vllm/)** | Ray Serve LLM 默认后端 | vLLM 连续批处理、PagedAttention |
 | **[TensorRT-LLM](/04-llmops/tensorrt-llm/)** | 可作为 Ray Serve backend | NVIDIA 推理优化 |
 | **KServe** | 可与 Ray Serve 互补 | K8s 模型服务网关（本手册 LLMOps 篇待补充） |
-| **[Kubernetes](/02-cloud-native/)** | KubeRay 基座 | K8s 调度、Operator 模式 |
+| **[Kubernetes](/02-cloud-native/kubernetes/)** | KubeRay 基座 | K8s 调度框架、Operator 模式、GPU/Gang 调度 |
 | **[Observability](/07-ai-sre/)** | Ray 生产可观测 | Prometheus/Grafana/OpenTelemetry |
 | **[Agent Runtime](/05-agent/agent-runtime/)** | Ray 可用于多 Agent 执行后端 | ReAct、multi-agent 调度 |
 | **[Multi-Agent](/05-agent/multi-agent/)** | Ray 可支撑分布式 Agent 集群 | Agent 通信与协调 |

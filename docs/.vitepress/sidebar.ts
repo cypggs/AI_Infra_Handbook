@@ -16,7 +16,27 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '02. 云原生',
     collapsed: false,
-    items: [{ text: '概述', link: '/02-cloud-native/' }],
+    items: [
+      { text: '概述', link: '/02-cloud-native/' },
+      {
+        text: 'Kubernetes',
+        collapsed: false,
+        items: [
+          { text: '总览', link: '/02-cloud-native/kubernetes/' },
+          { text: '1. 背景', link: '/02-cloud-native/kubernetes/01-background' },
+          { text: '2. 核心思想', link: '/02-cloud-native/kubernetes/02-core-ideas' },
+          { text: '3. 架构设计', link: '/02-cloud-native/kubernetes/03-architecture' },
+          { text: '4. Runtime 工作流程', link: '/02-cloud-native/kubernetes/04-runtime-workflow' },
+          { text: '5. 核心模块', link: '/02-cloud-native/kubernetes/05-core-modules' },
+          { text: '6. 源码分析', link: '/02-cloud-native/kubernetes/06-source-analysis' },
+          { text: '7. 工程实践', link: '/02-cloud-native/kubernetes/07-mini-demo' },
+          { text: '8. 企业生产实践', link: '/02-cloud-native/kubernetes/08-production-practice' },
+          { text: '9. 最佳实践', link: '/02-cloud-native/kubernetes/09-best-practices' },
+          { text: '10. 面试题', link: '/02-cloud-native/kubernetes/10-interview-questions' },
+          { text: '11. 延伸阅读', link: '/02-cloud-native/kubernetes/11-further-reading' },
+        ],
+      },
+    ],
   },
   {
     text: '03. AI 平台',

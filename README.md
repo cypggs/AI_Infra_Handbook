@@ -87,6 +87,7 @@ pnpm docs:preview
 
 ## 已上线主题
 
+- [Kubernetes 详解](docs/02-cloud-native/kubernetes/) — 覆盖声明式 API、控制循环、调度框架 12 扩展点、CRI/CNI/CSI、Device Plugin + GPU 调度（MIG/MPS/拓扑感知）、Gang 调度（Volcano/scheduler-plugins/v1.36 原生 PodGroup）、Deployment 滚动升级、源码分析、Mini Demo（调度框架 + GPU + 滚动 + Gang，56 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [vLLM 详解](docs/04-llmops/vllm/) — 覆盖 V1 引擎、PagedAttention、Continuous Batching、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）

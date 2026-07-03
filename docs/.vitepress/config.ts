@@ -26,6 +26,24 @@ export default withMermaid(
         { text: '阅读指南', link: '/guide' },
         { text: '学习路线', link: '/10-roadmap/learning-path' },
         {
+          text: '云原生',
+          items: [
+            { text: '概述', link: '/02-cloud-native/' },
+            { text: 'Kubernetes 总览', link: '/02-cloud-native/kubernetes/' },
+            { text: 'K8s 1. 背景', link: '/02-cloud-native/kubernetes/01-background' },
+            { text: 'K8s 2. 核心思想', link: '/02-cloud-native/kubernetes/02-core-ideas' },
+            { text: 'K8s 3. 架构设计', link: '/02-cloud-native/kubernetes/03-architecture' },
+            { text: 'K8s 4. Runtime 工作流程', link: '/02-cloud-native/kubernetes/04-runtime-workflow' },
+            { text: 'K8s 5. 核心模块', link: '/02-cloud-native/kubernetes/05-core-modules' },
+            { text: 'K8s 6. 源码分析', link: '/02-cloud-native/kubernetes/06-source-analysis' },
+            { text: 'K8s 7. 工程实践', link: '/02-cloud-native/kubernetes/07-mini-demo' },
+            { text: 'K8s 8. 企业生产实践', link: '/02-cloud-native/kubernetes/08-production-practice' },
+            { text: 'K8s 9. 最佳实践', link: '/02-cloud-native/kubernetes/09-best-practices' },
+            { text: 'K8s 10. 面试题', link: '/02-cloud-native/kubernetes/10-interview-questions' },
+            { text: 'K8s 11. 延伸阅读', link: '/02-cloud-native/kubernetes/11-further-reading' },
+          ],
+        },
+        {
           text: 'LLMOps',
           items: [
             { text: 'vLLM', link: '/04-llmops/vllm/' },

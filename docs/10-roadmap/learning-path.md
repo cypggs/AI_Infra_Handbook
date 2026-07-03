@@ -16,8 +16,8 @@
 
 目标：能够在 Kubernetes 上构建和运维平台。
 
+- **[Kubernetes（已上线）](/02-cloud-native/kubernetes/)** — 声明式 API、控制循环、调度框架、GPU/Gang 调度、生产实践
 - Docker 与容器运行时
-- Kubernetes 核心资源与调度
 - Helm 与 Operator
 - CRI、CNI、CSI
 - GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
@@ -79,7 +79,7 @@
 1. [vLLM](/04-llmops/vllm/) — 理解 LLM 推理的核心挑战
 2. [SGLang](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
 3. [TensorRT-LLM](/04-llmops/tensorrt-llm/) — 理解 NVIDIA 编译型推理引擎与生产部署
-4. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
+4. **[Kubernetes 与 GPU 调度](/02-cloud-native/kubernetes/)** — 理解 AI 平台的底座
 5. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
 6. OpenTelemetry — 理解 AI 系统可观测性
 7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层

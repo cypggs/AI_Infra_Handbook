@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k8s-mini"
+version = "0.1.0"
+description = "CPU-runnable mini Kubernetes: scheduling framework (Filter/Score/Reserve/Bind), Device Plugin + GPU scheduling, Deployment controller + rolling update, Gang scheduling"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["k8s_mini*"]
+
+[project.scripts]
+k8s-mini-demo = "k8s_mini.demo:run_demo"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
