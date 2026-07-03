@@ -17,7 +17,7 @@
 目标：能够在 Kubernetes 上构建和运维平台。
 
 - **[Kubernetes（已上线）](/02-cloud-native/kubernetes/)** — 声明式 API、控制循环、调度框架、GPU/Gang 调度、生产实践
-- Docker 与容器运行时
+- **[容器运行时（已上线）](/02-cloud-native/container-runtime/)** — K8s 之下的执行层：namespace/cgroup/overlayfs、OCI 标准、containerd/runc 分层、镜像优化与供应链安全、沙箱运行时、惰性拉取
 - Helm 与 Operator
 - CRI、CNI、CSI
 - GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
@@ -80,8 +80,9 @@
 2. [SGLang](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
 3. [TensorRT-LLM](/04-llmops/tensorrt-llm/) — 理解 NVIDIA 编译型推理引擎与生产部署
 4. **[Kubernetes 与 GPU 调度](/02-cloud-native/kubernetes/)** — 理解 AI 平台的底座
-5. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
-6. OpenTelemetry — 理解 AI 系统可观测性
+5. **[容器运行时](/02-cloud-native/container-runtime/)** — 理解 K8s 之下"把镜像变成进程"的那一层
+6. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
+7. OpenTelemetry — 理解 AI 系统可观测性
 7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
 9. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理

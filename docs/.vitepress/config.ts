@@ -44,6 +44,23 @@ export default withMermaid(
           ],
         },
         {
+          text: '容器运行时',
+          items: [
+            { text: '容器运行时 总览', link: '/02-cloud-native/container-runtime/' },
+            { text: 'CR 1. 背景', link: '/02-cloud-native/container-runtime/01-background' },
+            { text: 'CR 2. 核心思想', link: '/02-cloud-native/container-runtime/02-core-ideas' },
+            { text: 'CR 3. 架构设计', link: '/02-cloud-native/container-runtime/03-architecture' },
+            { text: 'CR 4. Runtime 工作流程', link: '/02-cloud-native/container-runtime/04-runtime-workflow' },
+            { text: 'CR 5. 核心模块', link: '/02-cloud-native/container-runtime/05-core-modules' },
+            { text: 'CR 6. 源码分析', link: '/02-cloud-native/container-runtime/06-source-analysis' },
+            { text: 'CR 7. 工程实践', link: '/02-cloud-native/container-runtime/07-mini-demo' },
+            { text: 'CR 8. 企业生产实践', link: '/02-cloud-native/container-runtime/08-production-practice' },
+            { text: 'CR 9. 最佳实践', link: '/02-cloud-native/container-runtime/09-best-practices' },
+            { text: 'CR 10. 面试题', link: '/02-cloud-native/container-runtime/10-interview-questions' },
+            { text: 'CR 11. 延伸阅读', link: '/02-cloud-native/container-runtime/11-further-reading' },
+          ],
+        },
+        {
           text: 'LLMOps',
           items: [
             { text: 'vLLM', link: '/04-llmops/vllm/' },
