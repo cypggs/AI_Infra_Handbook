@@ -1,0 +1,20 @@
+[project]
+name = "helm-mini"
+version = "0.1.0"
+description = "微型 Helm 教学模拟器 —— Chart + Go template 渲染 + values 合并 + Release 生命周期 + 三方合并"
+requires-python = ">=3.9"
+dependencies = []  # 零第三方依赖：YAML 用自带的 yaml_lite 实现
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["helm_mini*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

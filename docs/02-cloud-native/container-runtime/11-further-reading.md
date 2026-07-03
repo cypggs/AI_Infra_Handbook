@@ -168,7 +168,7 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 
 ## 本章小结
 
-容器运行时的学习路径以 **OCI 规范**为最高权威（runtime-spec/image-spec/distribution-spec），辅以 containerd/runc 的官方文档与源码；经典论文（Resource Containers、Solaris Zones）和 Liz Rice 的"从零实现容器"演讲帮你把抽象规范变成"原来就这么几个系统调用"的直观认知；生态工具链（docker/nerdctl/crictl/crane/dive/trivy/cosign/Harbor）覆盖了构建、调试、安全、分发的全流程。对 AI 方向的读者，重点是**镜像优化（多阶段/distroless/分层缓存）+ 大镜像冷启动（stargz/nydus）+ 运行时安全（restricted 基线）+ 沙箱（gVisor/Kata 用于不可信代码）**，并顺着本手册的 Kubernetes、vLLM、Triton、安全、AI SRE 主题看运行时如何被上层使用。最重要的是**动手**——本地跑一遍 Mini Demo、用 dive 拆开一个真实镜像、在 kind 上用 crictl 看一次容器创建，远比读十遍文档有效。容器运行时是"看得见的 K8s 地基"，掌握它，你就拥有了从镜像冷启动一路追到内核 cgroup 的全栈视野。
+容器运行时的学习路径以 **OCI 规范**为最高权威（runtime-spec/image-spec/distribution-spec），辅以 containerd/runc 的官方文档与源码；经典论文（Resource Containers、Solaris Zones）和 Liz Rice 的"从零实现容器"演讲帮你把抽象规范变成"原来就这么几个系统调用"的直观认知；生态工具链（docker/nerdctl/crictl/crane/dive/trivy/cosign/Harbor）覆盖了构建、调试、安全、分发的全流程。对 AI 方向的读者，重点是**镜像优化（多阶段/distroless/分层缓存）+ 大镜像冷启动（stargz/nydus）+ 运行时安全（restricted 基线）+ 沙箱（gVisor/Kata 用于不可信代码）**，并顺着本手册的 Kubernetes、[Helm](../helm/)、vLLM、Triton、安全、AI SRE 主题看运行时如何被上层使用。最重要的是**动手**——本地跑一遍 Mini Demo、用 dive 拆开一个真实镜像、在 kind 上用 crictl 看一次容器创建，远比读十遍文档有效。容器运行时是"看得见的 K8s 地基"，掌握它，你就拥有了从镜像冷启动一路追到内核 cgroup 的全栈视野。
 
 **参考来源**
 

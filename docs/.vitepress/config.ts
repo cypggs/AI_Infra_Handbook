@@ -61,6 +61,23 @@ export default withMermaid(
           ],
         },
         {
+          text: 'Helm',
+          items: [
+            { text: 'Helm 总览', link: '/02-cloud-native/helm/' },
+            { text: 'Helm 1. 背景', link: '/02-cloud-native/helm/01-background' },
+            { text: 'Helm 2. 核心思想', link: '/02-cloud-native/helm/02-core-ideas' },
+            { text: 'Helm 3. 架构设计', link: '/02-cloud-native/helm/03-architecture' },
+            { text: 'Helm 4. Release 工作流程', link: '/02-cloud-native/helm/04-release-workflow' },
+            { text: 'Helm 5. 核心模块', link: '/02-cloud-native/helm/05-core-modules' },
+            { text: 'Helm 6. 源码分析', link: '/02-cloud-native/helm/06-source-analysis' },
+            { text: 'Helm 7. 工程实践', link: '/02-cloud-native/helm/07-mini-demo' },
+            { text: 'Helm 8. 企业生产实践', link: '/02-cloud-native/helm/08-production-practice' },
+            { text: 'Helm 9. 最佳实践', link: '/02-cloud-native/helm/09-best-practices' },
+            { text: 'Helm 10. 面试题', link: '/02-cloud-native/helm/10-interview-questions' },
+            { text: 'Helm 11. 延伸阅读', link: '/02-cloud-native/helm/11-further-reading' },
+          ],
+        },
+        {
           text: 'LLMOps',
           items: [
             { text: 'vLLM', link: '/04-llmops/vllm/' },

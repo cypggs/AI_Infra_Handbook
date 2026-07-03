@@ -31,6 +31,9 @@ hero:
       text: Kubernetes 详解
       link: /02-cloud-native/kubernetes/
     - theme: alt
+      text: Helm 详解
+      link: /02-cloud-native/helm/
+    - theme: alt
       text: Ray 详解
       link: /03-ai-platform/ray/
     - theme: alt
@@ -105,6 +108,7 @@ features:
 - [x] 项目骨架与 VitePress 初始化
 - [x] Kubernetes 主题（容器编排底座、调度框架、GPU/Gang 调度）
 - [x] 容器运行时主题（K8s 之下的执行层：namespace/cgroup/overlayfs、OCI、containerd/runc、镜像供应链安全、沙箱运行时、惰性拉取）
+- [x] Helm 主题（K8s 包管理器：Chart/values/template/Release、Tiller 移除与客户端渲染、三方合并 Patch、OCI、GitOps）
 - [x] vLLM 主题（LLM 推理引擎）
 - [x] SGLang 主题（LLM Program / RadixAttention / 结构化生成）
 - [x] TensorRT-LLM 主题（NVIDIA 编译型 LLM 推理引擎）
@@ -132,7 +136,7 @@ features:
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
 
 ## 贡献
 
