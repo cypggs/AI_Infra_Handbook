@@ -28,6 +28,7 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Runtime 是 Agent OS 的核心执行组件；Agent OS 在 Runtime 之上提供进程管理、调度、沙箱与资源治理 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
 | RAG | /06-rag/ | RAG 把 Retriever 作为工具接入 Runtime 的 ReAct 循环。 |
+| AI SRE | /07-ai-sre/ | AI SRE 为 Runtime 提供 trace、metrics、SLO 与事故响应体系。 |
 
 ## 本章结构
 

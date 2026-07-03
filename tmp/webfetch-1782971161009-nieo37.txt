@@ -1,0 +1,164 @@
+Efficient Memory Management for Large Language
+Model Serving with PagedAttention
+WoosukKwon1,∗ ZhuohanLi1,∗ SiyuanZhuang1 YingSheng1,2 LianminZheng1 CodyHaoYu3
+JosephE.Gonzalez1 HaoZhang4 IonStoica1
+1UCBerkeley 2StanfordUniversity 3IndependentResearcher 4UCSanDiego
+Abstract
+40
+Highthroughputservingoflargelanguagemodels(LLMs)
+requiresbatchingsufficientlymanyrequestsatatime.How-
+30
+ever,existingsystemsstrugglebecausethekey-valuecache KV
+(KV cache) memory for each request is huge and grows Parameters Cache
+(26GB, 65%) (>30%) 20
+andshrinksdynamically.Whenmanagedinefficiently,this
+memorycanbesignificantlywastedbyfragmentationand
+redundantduplication,limitingthebatchsize.Toaddress Others
+thisproblem,weproposePagedAttention,anattentional- NVIDIA A100 40GB
+gorithminspiredbytheclassicalvirtualmemoryandpag-
+ingtechniquesinoperatingsystems.Ontopofit,webuild
+vLLM,anLLMservingsystemthatachieves(1)near-zero
+wasteinKVcachememoryand(2)flexiblesharingofKV
+cache within and across requests to further reduce mem-
+oryusage.OurevaluationsshowthatvLLMimprovesthe
+throughputofpopularLLMsby2-4×withthesamelevel
+of latency compared to the state-of-the-art systems, such
+asFasterTransformerandOrca.Theimprovementismore
+pronouncedwithlongersequences,largermodels,andmore
+complexdecodingalgorithms.vLLM’ssourcecodeispublicly
+availableathttps://github.com/vllm-project/vllm.
+1 Introduction
+Theemergenceoflargelanguagemodels(LLMs)likeGPT[5,
+37]andPaLM[9]haveenablednewapplicationssuchaspro-
+grammingassistants[6,18]anduniversalchatbots[19,35]
+thatarestartingtoprofoundlyimpactourworkanddaily
+routines.Manycloudcompanies[34,44]areracingtopro-
+videtheseapplicationsashostedservices.However,running
+theseapplicationsisveryexpensive,requiringalargenum-
+ber of hardware accelerators such as GPUs. According to
+recentestimates,processinganLLMrequestcanbe10×more
+expensivethanatraditionalkeywordquery[43].Giventhese
+highcosts,increasingthethroughput—andhencereducing
+Permissiontomakedigitalorhardcopiesofpartorallofthisworkfor
+personalorclassroomuseisgrantedwithoutfeeprovidedthatcopiesare
+notmadeordistributedforprofitorcommercialadvantageandthatcopies
+bearthisnoticeandthefullcitationonthefirstpage.Copyrightsforthird-
+partycomponentsofthisworkmustbehonored.Forallotheruses,contact
+theowner/author(s).
+SOSP’23,October23–26,2023,Koblenz,Germany
+©2023Copyrightheldbytheowner/author(s).
+ACMISBN979-8-4007-0229-7/23/10.
+https://doi.org/10.1145/3600006.3613165
+)BG(
+egasu
+yromeM
+Existing systems vLLM
+Parameter size
+1.2k
+0.8k
+0.4k
+0
+0 10 20 30 40
+Batch size (# requests)
+)s/nekot(
+tuphguorhT
+Figure1.Left:MemorylayoutwhenservinganLLMwith
+13B parameters on NVIDIA A100. The parameters (gray)
+persistinGPUmemorythroughoutserving.Thememory
+fortheKVcache(red)is(de)allocatedperservingrequest.
+A small amount of memory (yellow) is used ephemerally
+foractivation.Right:vLLMsmoothsouttherapidgrowth
+curveofKVcachememoryseeninexistingsystems[31,60],
+leadingtoanotableboostinservingthroughput.
+thecostperrequest—ofLLMserving systemsisbecoming
+moreimportant.
+AtthecoreofLLMsliesanautoregressiveTransformer
+model[53].Thismodelgenerateswords(tokens),oneata
+time,basedontheinput(prompt)andtheprevioussequence
+oftheoutput’stokensithasgeneratedsofar.Foreachre-
+quest,thisexpensiveprocessisrepeateduntilthemodelout-
+putsaterminationtoken.Thissequentialgenerationprocess
+makestheworkloadmemory-bound,underutilizingthecom-
+putationpowerofGPUsandlimitingtheservingthroughput.
+Improvingthethroughputispossiblebybatchingmulti-
+plerequeststogether.However,toprocessmanyrequests
+in a batch, the memory space for each request should be
+efficientlymanaged.Forexample,Fig.1(left)illustratesthe
+memorydistributionfora13B-parameterLLMonanNVIDIA
+A100GPUwith40GBRAM.Approximately65%ofthemem-
+oryisallocatedforthemodelweights,whichremainstatic
+duringserving.Closeto30%ofthememoryisusedtostore
+thedynamicstatesoftherequests.ForTransformers,these
+statesconsistofthekeyandvaluetensorsassociatedwiththe
+attentionmechanism,commonlyreferredtoasKVcache[41],
+whichrepresentthecontextfromearliertokenstogener-
+ate new output tokens in sequence. The remaining small
+∗Equalcontribution.
+1
+3202
+peS
+21
+]GL.sc[
+1v08160.9032:viXra
+100
+80
+60
+40
+20
+0
+Orca Orca Orca vLLM
+(Max) (Pow2) (Oracle)
+)%(
+egasu
+ehcac
+VK
+decodingalgorithms, such asparallel sampling andbeam
+Token states Reservation Internal frag. E & x O te t r h n e a r l s frag. search,thatgeneratemultipleoutputsperrequest.Inthese
+scenarios,therequestconsistsofmultiplesequencesthatcan 8.9
+partiallysharetheirKVcache.However,memorysharingis
+41.6 36.6
+notpossibleintheexistingsystemsbecausetheKVcacheof
+57.3 thesequencesisstoredinseparatecontiguousspaces.
+13.6 25.2 96.3 To address the above limitations, we propose PagedAt-
+17.9
+tention, an attention algorithm inspired by the operating
+13.3
+38.2 system’s(OS)solutiontomemoryfragmentationandshar-
+20.4 26.8
+ing:virtualmemorywithpaging.PagedAttentiondividesthe
+request’sKVcacheintoblocks,eachofwhichcancontain
+theattentionkeysandvaluesofafixednumberoftokens.In
+PagedAttention,theblocksfortheKVcachearenotneces-
+Figure2.Averagepercentageofmemorywastesindifferent
+sarilystoredincontiguousspace.Therefore,wecanmanage
+LLMservingsystemsduringtheexperimentin§6.2.
+theKVcacheinamoreflexiblewayasinOS’svirtualmem-
+ory:onecanthinkofblocksaspages,tokensasbytes,and
+percentageofmemoryisusedforotherdata,includingac- requestsasprocesses.Thisdesignalleviatesinternalfrag-
+tivations–theephemeraltensorscreatedwhenevaluating mentation by using relatively small blocks and allocating
+theLLM.Sincethemodelweightsareconstantandtheac- themondemand.Moreover,iteliminatesexternalfragmen-
+tivationsonlyoccupyasmallfractionoftheGPUmemory, tation as all blocks have the same size. Finally, it enables
+thewaytheKVcacheismanagediscriticalindetermining memory sharing at the granularity of a block, across the
+themaximumbatchsize.Whenmanagedinefficiently,the differentsequencesassociatedwiththesamerequestoreven
+KVcachememorycansignificantlylimitthebatchsizeand acrossthedifferentrequests.
+consequentlythethroughputoftheLLM,asillustratedin Inthiswork,webuildvLLM,ahigh-throughputdistributed
+Fig.1(right). LLMservingengineontopofPagedAttentionthatachieves
+Inthispaper,weobservethatexistingLLMservingsys- near-zerowasteinKVcachememory.vLLMusesblock-level
+tems[31,60]fallshortofmanagingtheKVcachememory memorymanagementandpreemptiverequestscheduling
+efficiently.ThisismainlybecausetheystoretheKVcacheof thatareco-designedwithPagedAttention.vLLMsupports
+arequestincontiguousmemoryspace,asmostdeeplearning popularLLMssuchasGPT[5],OPT[62],andLLaMA[52]
+frameworks[33,39]requiretensorstobestoredincontigu- withvaryingsizes,includingtheonesexceedingthememory
+ousmemory.However,unlikethetensorsinthetraditional capacityofasingleGPU.Ourevaluationsonvariousmodels
+deeplearningworkloads,theKVcachehasuniquecharac- andworkloadsshowthatvLLMimprovestheLLMserving
+teristics:itdynamicallygrowsandshrinksovertimeasthe throughput by 2-4× compared to the state-of-the-art sys-
+modelgeneratesnewtokens,anditslifetimeandlengthare tems[31,60],withoutaffectingthemodelaccuracyatall.The
+notknownapriori.Thesecharacteristicsmaketheexisting improvementsaremorepronouncedwithlongersequences,
+systems’approachsignificantlyinefficientintwoways: largermodels,andmorecomplexdecodingalgorithms(§4.3).
+First,theexistingsystems[31,60]sufferfrominternaland Insummary,wemakethefollowingcontributions:
+externalmemoryfragmentation.TostoretheKVcacheof • Weidentifythechallengesinmemoryallocationinserving
+arequestincontiguousspace,theypre-allocate acontigu- LLMsandquantifytheirimpactonservingperformance.
+ouschunkofmemorywiththerequest’smaximumlength • WeproposePagedAttention,anattentionalgorithmthat
+(e.g., 2048 tokens). This can result in severe internal frag- operates on KV cache stored in non-contiguous paged
+mentation, since the request’s actual length can be much memory, which is inspired by the virtual memory and
+shorterthanitsmaximumlength(e.g.,Fig.11).Moreover, paginginOS.
+eveniftheactuallengthisknownapriori,thep

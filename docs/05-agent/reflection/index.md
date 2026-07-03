@@ -36,6 +36,7 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Reflection 结果可触发 Agent OS 的 checkpoint/rollback 或流程升级 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Reflection 可以调用外部验证工具（如编译器、单元测试、检索）获取客观反馈；[MCP](/05-agent/mcp/) 提供标准化工具发现 |
 | RAG | /06-rag/ | Reflection 可基于 RAG 检索结果评估答案忠实度。 |
+| AI SRE | /07-ai-sre/ | AI SRE 为 Reflection 质量评估提供数据与告警。 |
 
 上表可以概括为一句话：**Agent Runtime 决定“怎么执行”，Memory 决定“记住什么”，Reflection 决定“怎么发现错误并改得更好”**。
 

@@ -1,0 +1,754 @@
+Assessment of RAG and Fine-Tuning for Industrial
+Question-Answering-Applications
+JakobSturm1,2,JosefPichlmeier1,3,ChristianBernhard1,MakaKaralashvili1,Johannes
+Klepsch1,GeorgGroh2,AndreLuckow1,3
+1BMWGroup;Munich,Germany
+2TechnicalUniversityofMunich;Munich,Germany
+3LudwigMaximiliansUniversitat;Munich,Germany
+jakob.sturm@bmw.de
+Abstract binationofadvantages;however,italsoincorporatestheas-
+sociateddownsides.
+LargeLanguageModels(LLMs)areincreasinglyemployed While prior research (see Sec. 5) has compared these
+in enterprise question-answering (QA) systems, requiring
+methods,typicallyfindingRAGtobemoreaccurate,robust
+adaptation to domain-specific knowledge. Among the most
+evaluationsinindustrialsettingsarelacking.Moreover,pre-
+prevalent methods for incorporating such knowledge are
+viousstudiesfocuspredominantlyonaccuracy,overlooking
+Retrieval-Augmented Generation (RAG) and fine-tuning
+holisticcost-performancetrade-offs.Inpractice,stakehold-
+(FT). Yet, from a cost–accuracy trade-off perspective, it re-
+mainsunclearwhichapproachbestsuitsindustryscenarios. ersprioritizethesetrade-offs:marginalaccuracygainsrarely
+ThisstudyexaminestheimpactofRAGandFTontwoclosed justifydrasticallyhighercosts,whilebudgetsolutionsarere-
+datasetsspecifictotheautomotiveindustry,assessinganswer jectediftheycompromiseusability.Weaimtocontributeto
+quality and operational costs. We extend the Cost-of-Pass closingthesegaps.
+framework proposed by Erol et al. (2025) to jointly assess Tothisend,weadaptandextendtheCost-of-Passframe-
+outputquality,generationcost,anduserinteractioncost.Our workproposedbyEroletal.(2025),whichincorporatesin-
+findingsrevealthatwhilepremiummodelsperformbestout
+ference cost and performance into a unified expected total
+ofthebox,open-sourcemodelscanachievecomparablequal-
+cost of solved tasks. We extend this framework to include
+itywhenenhancedwithRAG.Overall,RAGemergesasthe
+humaninteractioncosts,suchasverifyingLLMoutputs(see
+mosteffectiveandcost-efficientadaptationmethodforboth
+Sec. 3). This addition provides a more comprehensive and
+closed-andopen-sourcemodels.
+realistic basis for evaluating customization strategies in in-
+dustryscenarios.
+1 Introduction Fromourevaluation,wecanidentifyfourmainfindings:
+RAG’s improved accuracy offsets higher pipeline
+LargeLanguageModels(LLMs)arecriticalbuildingblocks
+costs: Although Retrieval-Augmented Generation is the
+for modern AI systems. They are trained on a vast amount
+mostexpensivearchitecturetooperate,itsextendedCost-of-
+ofpublicdataandshowverystrongcapabilitiesintermsof
+Passislowestbecauseitsubstantiallyreduceshumanlabor.
+languageandknowledge.However,thisstrengthisrestricted
+Premium base models pay off: When using an off-the-
+to the boundaries of the training data. Consequently, many
+shelf (non-adapted) LLM,the higher-priced model delivers
+industryapplicationsrelyingonLLMsunderperformexpec-
+bettercost-efficiencythanacheaperalternative.
+tations(Challapallyetal.2025).Therefore,adaptingLLMs
+Open-sourceparitywithproprietarygiants,whenus-
+toincorporateorganization-specificdomainknowledgeisa
+ingRAG:Fordomain-specificautomotivedata,smallopen-
+keychallengefortheirsuccess(Lingetal.2023).
+source models match the performance of large proprietary
+Retrieval-Augmented Generation (RAG) (Lewis et al.
+modelsonceRAGisapplied.
+2021) and fine-tuning (FT) (e.g. Parthasarathy et al. 2024)
+Poorly planned deployments can backfire: An ill-
+arewidelyusedstrategiesforcustomization.RAGretrieves
+designed setup may cause more cost than having a human
+external data at inference time, augmenting the prompt to
+complete the task manually, nullifying the benefits of au-
+achieve grounded responses. FT refines model parameters
+tomation.
+via supervised training on labeled data. RAG’s focus at
+inference time on relevant knowledge offers great preci-
+2 Datasets
+sion; however, this incurs an overhead at runtime. FTs’
+To evaluate performance in domain-specific contexts, we
+deepintegrationenablesbettergeneralization,butdemands
+utilize two proprietary datasets from the automotive indus-
+ahigherupfrontinvestment.Thus,theirchoicesignificantly
+tryprovidedbytheBMWGroup:CarUserManualandVe-
+affects both cost and quality. A combined RAG+FT ap-
+hicle Quality. These are composed of free-text documents
+proachpromisesthestrongestperformancethroughthecom-
+transformed to synthetic QA pairs. The base data is non-
+Copyright©2026,AssociationfortheAdvancementofArtificial publicandpartiallycontainsconfidentialinformation;there-
+Intelligence(www.aaai.org).Allrightsreserved. fore, we are unable to release the datasets. As this data is
+6202
+yaM
+01
+]LC.sc[
+1v33590.5062:viXra
+largelyunknowntopre-trainedLLMs,itprovidesrobustin- Dataset NumC L L L Odd #Train #Test
+C A Q
+sights into the generalization and adaptation capabilities of Manuals 2168 107 19 15 1% 13936 1417
+models. Quality 3456 393 25 21 16% 10704 2294
+VehicleQualityDataset Table1:DatasetStatistics(Lengthsgivenintokens)
+The Vehicle Quality Dataset encapsulates critical elements
+ofastructuredQualityManagement(QM)process.Thepri-
+mary objectives of such QM processes include identifying, (L ), the average question length (L ), and the average
+C Q
+documenting,andprioritizingdefects,conductingrootcause lengthofthereferenceanswers(L ).
+A
+analysis, implementing corrective actions, and institution- To further characterize the linguistic specificity of each
+alizing best practices to prevent recurrence. QM, based on dataset,weintroduceametrictermedOddness(Odd).This
+issue tracking and resolution, is a fundamental practice in measurecapturesthedegreetowhichthewordingdeviates
+variousdomains,includingmanufacturingandsoftwarede- fromwhatiscommonlyencounteredinthepretrainingcor-
+velopment.TheVehicleQualityDatasetisderivedfromthe pus of an LLM. We operationalize this via an LLM-as-a-
+textualcontentoftheissuetrackingtickets,eachcomprising Judge approach, using GPT-4o to identify words it deems
+aninitialincidentreportandasubsequent,morecomprehen- ”unusual” or ”odd” within a given context. The Oddness
+sive, and holistic problem description. We treat each ticket score is computed as the ratio of the number of identified
+asanindividualchunklateron.Thetextsarecharacterized oddwordstothetotalwordcountofthetext.ThemeanOdd-
+by the use of highly domain-specific terminology, includ- ness per dataset is given in Table 1. The Car User Manual
+ingabbreviations,technicaljargon,andalphanumericiden- dataset,designedforconsumer-levelunderstanding,exhibits
+tifiers such as part numbers and error codes. Due to opera- a low proportion of uncommon words. In contrast, the Ve-
+tionaltimeconstraints,thewritingstyleoftenfavorsbrevity hicle Quality dataset, authored by and for domain experts,
+and structured, bullet-point formats. Consequently, the tex- demonstrates a substantially higher Oddness score, reflect-
+tualdatadepartsfromconventionalnaturallanguage,instead ingitsspecializedlanguage.
+presenting as a semi-structured blend of codes, numerical We partition the dataset into training and test splits and
+data,andshortfactualstatements. reporttherespectiveamountsinTable1.Thetrainingsetis
+usedexclusivelyforFT,whilethetestsetsprovideground-
+CarUserManualDataset truthquestion–answerpairsforallpipelineevaluations.
+The basis of the manuals dataset is PDF files covering
+vehicle-related information and car usage instructions. The 3 ExperimentalSetup
+content is structured into fine-grained sections, which we
+Evaluationscopeandfairness
+utilize as chunks. To unify the multi-modal nature of the
+PDF files, GPT-4o Vision was used to convert the PDFs to A perfectly fair comparison between RAG and FT is diffi-
+text,includingdescriptionsofimagesandicons.Theinfor- cult, as the two approaches incorporate knowledge at dif-
+mation covered in the Car User Manuals text represents a ferent stages. However, utilizing a train–test split provides
+special domain, yet as these manuals are customer-facing, a symmetric evaluation setting: at test time, both systems
+they stick to natural language. Although these manuals are answerpreviouslyunseenquestions,RAG,becauseitisnot
+not freely available, they are publicly accessible to cus- trainedonquestions,andFT,becauseitistrainedonlyonthe
+tomers.Consequently,weassumethatportionsoftheircon- trainingsplit.Asdescribedabove,thetrainingsplitisdrawn
+tentmayhavebeenincludedinLLMpre-training. from exhaustively generated QA pairs, aiming to approxi-
+mate coverage of the underlying corpus knowledge. While
+SyntheticQAPairGeneration this approximation is inherently limited, it reflects realistic
+TheQApairsweregeneratedbyinstructionpromptingGPT- constraints encountered in real-world applications. Conse-
+4o on the text entities, which correspond to the ticket texts quently,FTmustgeneralizefromtrainingtotestquestions,
+inthecaseoftheVehicleQualitydataset,andthesections, whileRAGmustderiveanswersfromrawdocumentchunks.
+in the case of the Car User Manual dataset. Furthermore, Wethereforeconsiderthissetuptoprovideasufficientlyfair
+theLLMwasinstructedtoexhausteachgivencontext.This basisforcomparison.Questionswhoserequiredknowledge
+meansthat,whenpossible,thesamecontextservesastheba- isabsentfromboththetrainingdataandtheretrievalcorpus
+sisformorethanoneQApair.Duetothetechnicalandoften areconsideredoutofscope.
+complex nature of the Vehicle Quality tickets, some gener-
+Pipelines
+ated questions were suboptimal. To address this, we incor-
+poratedaqualityestimationstepintothepromptingprocess. Weevaluatefourlanguagemodelsinouranalysis:GPT-4o,
+AlongsideeachQApair,themodelreturnedaqualityscore GPT-4o-mini, LLaMA3.3-70B, and LLaMA3.2-3B. These
+rangingfromzero(poor)tofour(excellent).OnlyQApairs models represent two major families: proprietary models
+receivingthehighestscorewereretainedforfurtheruse. fromaleadingcommercialvendor(OpenAI)andprominent
+open-sourcemodels(Meta’sLLaMAseries).Theinclusion
+Datasetstatistics
+ofbothlargeandsmallervariantsallowsustoassesstheim-
+Table1reportsbasicstatisticsaboutthedatasets:thenum- pactofmodelsizeonperformance.Eachmodelisevaluated
+ber of chunks (NumC), the average length of each chunk underfourdistinctpipelineconfigurations:
+Base:Themodelisusedwithoutanyadaptation.
+Fine-tuned(FT):Eachmodelisfine-tunedontherespec-
+tivedatasets.GPTmodelsarefine-tunedusingAzureOpe-
+nAI’sfine-tuningAPI,withonetrainingepochtominimize 1e-2
+overfittinganddefaulthyperparameters.LLaMAmodelsare
+fine-tunedlocallyusingLoRA.Weusearankof64,alearn-
+ing rate of 1 · 10−4, a batch size of 32 and two epochs. 1e-3
+All LLaMA models were fine-tuned and deployed in the
+bfloat16format.
+Retrieval-Augmented Generation (RAG): The model 1e-4
+inputissupplementedwithretrievedcontexts:VehicleQual-
+ity tickets or Car User Manual sections. For retrieval, the 1e2 1e3 1e4 1e5 1e2 1e3 1e4 1e5
+proprietary stack uses the text-embedding-ada-002 model, Number of requests
+while the open-source setup uses the bge-small embedding
+model(Xiaoetal.2023).Thenumberofretrievedsamplesis
+settok = 10intheGPTstackandtok = 5intheLLaMA
+stack. These configurations represent a pragmatic compro-
+misebetweenretrievalcoverageandrobustnesstonoiseand
+arebasedonpreliminaryexperiments.
+FT + RAG: This hybrid setup combines the fine-tuned
+modelwithRAG-enhancedinputs.
+Evaluation
+In open-ended text-generation tasks, traditional NLP met-
+rics,suchasROUGEorMETEOR(Lin2004;Banerjeeand
+Lavie2005),correlatelesswithhumanjudgment,sincethey
+are not capable of measuring more involved text qualities
+such as factual correctness, coherence, or relevance (Liu
+et al. 2023). This limitation is particularly pronounced in
+our setting, as the task constitutes a genuinely open-ended
+scenario,whichisreflectedinthecomparativelylongaver-
+ageanswerlengthsobservedacrossbothdatasets(seeTable
+1). It has been shown that LLM-as-a-Judge effectively ad-
+dressesthislimitationandoffersavalidalternativetoexpen-
+sive human evaluation (Chiang and Lee 2023; Zheng et al.
+2023;Zhu,Wang,andWang2023;Liuetal.2023).Asthe
+presenteddatasetsfocusonknowledge-basedQAscenarios,
+we evaluate correctness using LLM-as-a-Judge with GPT-
+4o.
+Cost-of-Pass
+For a holistic analysis, we adopt the Cost-of-Pass concept
+proposed by Erol et al. (2025). This framework allows for
+the unified evaluation of price and quality for LLM-based
+systems. They conceptualize LLMs as stochastic produc-
+ers,meaningthatlower-capabilitymodelsrequiremoresam-
+pling to generate correct outputs. This makes the trade-off
+between quality and cost explicit: a less accurate system
+must be executed more frequently, incurring higher cumu-
+lative cost, to achieve the same result. Thus, the expected
+Cost of Pass (CoP) depends on the expected cost G for a
+singleexecutionoftheLLMpipelineandtheexpectedsuc-
+cess rate S. This process is modeled by Equation 1, where
+therecursionisresolvedasageometricseries:
+G
+CoP =G+CoP ∗(1−S)= (1)
+S
+Toextendthismodel,weproposetwoenhancementsleading
+toEquations2and3:First,weincorporateavalidationcost
+V,representingthehumaneffortrequiredtoassesswhether
+$
+tsoC
+GPT-4o LLaMA3.2-3B
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure1:CostoverRequestsforManualsDataset
+anoutputisacceptableorthesystemneedstobererun.Sec-
+ond,weassumeuserswillnotrerunthesystemindefinitely
+until the correct result appears by chance. Drawing again
+fromEroletal.,weintroducethehumangenerationcostH
+as a fallback, which is incurred if the user gives up on re-
+runningandmanuallytacklesthetask,e.g.,bysearchingfor
+theanswerusingmoretraditional,slowermethods.Wesplit
+the recursive term in Equation 1 into two components: re-
+runningandhumanfallback,proportionallyweightedbythe
+rerunprobabilityR,whichcapturestheuser’swillingnessto
+retry.ThisyieldstherevisedrecursiveEquation(2):
+CoP =G+V +(CoP ∗R+H∗(1−R))(1−S) (2)
+ex ex
+Solvingthisrecursiongivestheclosed-formEquation(3):
+G+V +H(1−R)(1−S)
+CoP = (3) ex 1−R(1−S)
+Note that this extended Cost-of-Pass (CoP ) is equivalent
+ex
+toCoP whentherepetitionrateRisassumedtobeoneand
+thevalidationcostV tobezero.WhilethisextendedCost-
+of-Pass model still has limitations, we believe it more ac-
+curatelyreflectsthecollaborativedynamicsbetweenLLMs
+andhumanusers.
+ThecostestimationsforGarederivedfromAzureOpe-
+nAIpricingfortheGPT-basedmodelstackandfromAWS
+EC2 instance rates for the open-source deployment. Com-
+prehensive cost breakdowns are provided in the Appendix.
+S is set to the correctness rate based on LLM-as-a-judge.
+Weassumeaconservativeestimateofhumanlaborcostsat
+$1perhuman-generatedanswerand$0.10pervalidationin-
+stance. These values are at the lower end of costs for com-
+plex tasks reported by Erol et al. (2025). Additionally, pre-
+liminary analysis indicated that increasing labor costs does
+notaffecttherelativetrendsreportedbelow;therefore,these
+valuesserveasaconsistentillustrativebaseline.
+4 Results
+WhiletheAppendixincludesdetailedinformationonmodel
+accuracy,requestcosts,andextendedCost-of-Pass,thissec-
+tion focuses on selected experiments that best illustrate the
+keyfindings.Allsystemdifferencesdiscussedinthissection
+arestatisticallysignificant(seeAppendixfordetails).
+1.5
+1.23
+1.0
+0.630.59 0.59
+0.5
+0.28 0.22 0.260.24
+0.0
+GPT-4o LLaMA3.2-3B
+Model
+$
+ssaP-fo-tsoC
+dednetxE
+100
+Mode 75 69 70 72
+Base 57
+FT 50
+RAG 34
+RAG+FT 26
+25 24 17
+0
+GPT-4o LLaMA3.3-70B
+Model
+Figure2:ExtendedCost-of-PassforManualsdataset
+As illustrated in Figure 1, the per-request cost for GPT-
+4oisconsistentlyhigherthanthatoftheLLaMA3.2-3B,ir-
+respective of the chosen pipeline configuration: Base, FT,
+RAG, or RAG+FT. This cost discrepancy suggests that
+smallermodelsmayofferacost-effectivealternative.While
+this is intuitive, it is not necessarily obvious, as cloud-
+hosting of open models may incur additional overheads
+comparedtovendor-optimizedsolutions.Thefigurefurther
+demonstrates that RAG-based configurations incur higher
+costs than the Base model, which can be attributed to the
+larger number of input tokens. In the case of FT models,
+the per-request cost depends on overall model utilization,
+asthesubstantialupfrontFTinvestmentmustbeamortized
+overtime.Interestingly,weobservethatFTmodelstendto
+produce shorter responses, which can eventually offset the
+initialinvestmentbyreducingtokenusageperquery.
+Figure 2 reports the CoP results for GPT-4o and
+ex
+LLaMA3.2-3BontheManualsdataset.Weobservethatthe
+Base GPT model demonstrates a lower expected total cost
+comparedtotheLLaMAmodel.Thiscostadvantageispri-
+marilydrivenbyGPT’shigheraccuracyonthedataset.Al-
+though GPT incurs higher inference costs, its superior per-
+formance significantly reduces the need for human valida-
+tionandintervention,ultimatelyloweringtheoverallcumu-
+lativecost.Therefore,weconcludethatinvestinginthepre-
+miummodelwouldpayoffinthisusagescenario.Inspect-
+ingtheeffectofRAGrevealsitsdominatingpositiveimpact.
+The drastically improved accuracy is making up for the
+increased pipeline costs, with the primary benefit being a
+significantreductioninhumaneffort.
+Figure 3 compares accuracy values of GPT-4o and
+LLaMA3.3-70B.Theresultsrevealthat,whilesmalleropen-
+source models encode less prior knowledge, they per-
+form competitively under RAG. The open-source model
+achieves parity in leveraging contextual information from
+unfamiliardomains.
+Finally, we emphasize that suboptimal configurations
+can backfire substantially. As shown in Figure 4, both the
+BaseandFTmodelsarecomparablyexpensiveonthechal-
+lenging Vehicle Quality dataset. Their low accuracy leads
+to increased amounts of repetitions, human validations and
+human interventions. Despite the system’s intended cost-
+ssentcerroC
+rewsnA
+rof
+ycaruccA
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure3:AnswercorrectnessforManualsDataset
+1.5 1.43
+1.37
+1.0
+0.5 0.46 0.39
+0.0
+GPT-4o-mini
+Model
+$
+ssaP-fo-tsoC
+dednetxE
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure4:ExtendedCost-of-PassforVehicleQualitydataset
+saving benefits, this results in higher cumulative expenses
+(e.g.Base:$1.43)comparedtomanualprocessing($1).
+5 RelatedWork
+Multiple studies have investigated whether RAG or FT is
+best suited for injecting knowledge into LLMs (Nguyen
+etal.2024;Lakatosetal.2024;SalemiandZamani2024).
+Ovadiaetal.(2023)haveshownthatRAGconsistentlyout-
+performsunsupervisedFTforbothinandout-of-distribution
+knowledge.Theirstudyexaminesmultipledomains,includ-
+inganatomy,biology,andphysics.Asimilarconclusionhas
+been made by Soudani, Kanoulas, and Hasibi (2024). The
+studyevaluatedtheperformanceofRAGandFTondiffer-
+entsetsofWikipediaarticles,categorizedbythepopularity
+ofthearticles.TheyhaveshownthatwhileFTcanincrease
+performance,RAGissurpassingFTbyasignificantmargin,
+especiallyforlesspopulararticles.Amorenuancedconclu-
+sionhasbeenmadebyBalagueretal.(2024)whoevaluated
+thequestionRAGvsFTforthedomainofagriculturaldata.
+They analyzed both approaches in terms of accuracy, cost,
+and adaptability, showing that while FT improves perfor-
+mance,ahybridapproachcombiningRAGandFTachieves
+the best results. Wu, Wu, and Zou (2024) evaluated the ef-
+ficiency of API-based FT for knowledge infusion, showing
+that commercial FT services struggle to generalize beyond
+trainingexamples.Incomparison,ourworkevaluatesRAG
+andFTonindustrydomaindatasetscoveringreal-worlduse- since the initial fixed costs are distributed across a greater
+cases.Furthermoreourstructuredapproachapplyingtheex- numberofrequests.
+tendedCost-of-Passallowsforamoreholisticanalysis. Preliminary analysis has shown that the lifetime (i.e.,
+whenthesystemisretrainedortheknowledgeisfreshlyem-
+6 Conclusion bedded) has a less pronounced impact compared to other
+factors such as pipeline type, model, and the number of
+This study compares RAG and fine-tuning (FT) for adapt-
+requests per hour. We therefore choose a single value for
+ing LLMs to industrial question answering tasks. We uti-
+all further analysis: a lifetime of seven days. This duration
+lize synthetic datasets derived from real-world automotive
+should be sufficiently flexible for most systems, including
+data,spanningarangefromcustomer-facingtextswithfew
+thosewithhighdemandsforup-to-dateinformation.Bythat
+domain-specific terms to expert-oriented content featuring
+point,costshavelargelystabilizedcomparedtolongerlife-
+technicallanguage.Wearguethatansweraccuracyaloneis
+times.
+insufficientforevaluatingLLMadaptationstrategies.Effec-
+tivecomparisonmustincorporatethegenerationcostandthe
+Factor Model
+requireduserinteractioneffort.Tothisend,weapplyanex-
+GPT-4o GPT-4o-mini
+tended Cost-of-Pass evaluation based on the work of Erol
+Base FT Base FT
+et al. (2025). Experiments show that premium LLMs of-
+PIT 2.75 2.75 0.165 0.165
+fergoodvalueinout-of-the-boxusagecomparedtosmaller
+POT 11 11 0.66 0.66
+open-source models: their higher accuracy offsets the in-
+PFT - 27.5 - 3.3
+creasedinferencecosts.Furthermore,RAGsubstantiallyim-
+PH - 1.7 - 1.7
+proves answer quality and consistently outperforms FT, re-
+ducing the need for human intervention and demonstrat-
+Table2:PricecomponentsfortheusedGPTModels.PIT,
+ingcostefficiencyinknowledge-intensivesettings.Interest-
+POT andPFT givenin$/1mT;PH givenin$/h.
+ingly, while premium models excel in Base configurations,
+theirleaddiminishesunderRAG.Inthissetup,open-source
+The price calculations for the GPT models are based on
+models achieve comparable performance. The cost analy-
+theOpenAIcostcatalog(Microsoft2025).Table2provides
+sis further reveals that LLM-human collaboration can also
+an overview for the LLMs. The selected region is Sweden
+increase total cost depending on pipeline accuracy. To be
+Central;”US/EU–DataZones”areusedforthebasemod-
+cost-effective,thesystemmustreachaperformancethresh-
+els, and ”Regional” for fine-tuning. Normal input mode is
+oldthatreducestheneedforhumaninterventionsufficiently.
+selectedinsteadofcachedinput.Forembeddinggeneration,
+A Appendices OpenAI’s text-embedding-ada-002 model was used, with a
+pricepertoken(PET)of$0.10per1milliontokens.
+PriceAnalysis
+In the context of LLM usage the total costs of one specific Factor Model
+method might not be immediately apparent. Therefore, the LLaMA3.3-70B LLaMA3.2-3B
+next section offers greater transparency into the cost of in- High Low High Low
+dividualrequestsacrossdifferentconfigurationsandscenar- PIT 0.38 6.45 0.1 0.52
+ios. POT 1.07 11.97 0.24 1.1
+Table7providesanoverviewoftheimportantfactorsthat PF 11.86 2.96
+influencethecostperrequestalongwiththeusedabbrevia-
+tions. Table 3: Price components for the used LLaMA Models.
+Intheclassicalscenario,whereonlyabasemodelisused, PIT andPOT givenin$/1mT;PF givenin$.
+the inference costs are determined by processing the input
+andoutputtokens(seeEquation(4)).ForRAGandFT,ad- WeassumethatLLaMA,asanopen-sourcemodel,would
+ditional cost components must be considered. With RAG be operated on dedicated hardware in the cloud. This de-
+(seeEquation(5)),thereisanextraoverheadforgenerating ploymentstrategymitigateshighupfrontcostsandprovides
+embeddingsfromatextcorpusandretrievingrelevantdoc- greater transparency in cost distribution over time. The as-
+uments during inference. Furthermore, as we input the re- sumedhardwareconfigurationisanAWSEC2Linux-based
+trievedcontextintotheLLM,thenumberofinputtokensin- p4d.24xlarge instance, currently priced at USD 23.71569
+creasessignificantly,therebyincreasingtheinferencecosts. perhour.Weselectedthisinstancetypeduetoitsintegration
+The number of training samples and tokens in each sam- of the well-established H100 GPU. It is assumed that fine-
+pledeterminestheinitialtrainingcostforFT.Additionally, tuning each model requires no more than one hour on our
+hourlyservingcostsofthedeployedfine-tunedmodelmight datasets.Thelargemodelutilizesfouroftheeightavailable
+need to be considered, depending on the provided pricing GPUs,whilethesmallmodelrequiresonlyone.Thisconfig-
+schema(seeEquation(6)).WhenRAGisusedincombina- urationallowsforresourcesharingacrosstasksorpotential
+tionwithafine-tunedmodel,therespectivecostfactorsac- use of smaller instances; hence, the effective cost is scaled
+cumulate(seeEquation(7)).Itisimportanttonotethatthe downaccordingly.Thepriceperfinetuningtokenisderived
+costperrequestdecreasesforRAGandfine-tuning(FT)as bydistributingtheestimatedfinetuningpriceoverthetrain-
+morerequestsareservedfromasinglesysteminitialization, ingdataset.Thecostpertokenonself-hostedmachinesde-
+G =(LenQ+LenP)PIT +LenA POT (4)
+Base Base
+NumCLenCPET (cid:0) (cid:1)
+G = +VDB+ KLenC+LenQ+LenP PIT +LenA POT (5)
+RAG NumRL RAG RAG
+NumFTQALenQAPFT PH (cid:0) (cid:1)
+G = + + LenQ+LenP PIT +LenA POT (6)
+FT NumRL NumRH FT FT FT FT
+NumCLenCPET NumFTQALenQAPFT PH
+G = +VDB+ +
+FT+RAG NumRL NumRL NumRH
+(cid:0) (cid:1)
++ KLenC+LenQ+LenP PIT +LenA POT (7)
+RAG FT FT+RAG FT
+Factor Value Model Pipeline Manuals Quality
+K 10(GPT),5(LLaMA) 4o Base 166 52
+LenP 300 4o FT 26 35
+LenP 350 4o RAG 55 55
+RAG
+4o RAG+FT 21 45
+Table 4: Implementation-dependent factors influencing the 4o-mini Base 159 65
+numberoftokensused.Wedefineconstantvaluesacrossuse 4o-mini FT 26 21
+casesandmodels. 4o-mini RAG 59 96
+4o-mini RAG+FT 28 46
+pends on hardware utilization, as hardware expenses rep- Table5:LenAforGPTmodels
+resent fixed costs that must be amortized over the number
+ofservedrequests.However,thenumberofservedrequests Model Pipeline Manuals
+is influenced not only by request volume but also by the
+3.2-3b BASE 207
+system’s capacity for parallel processing. Based on perfor-
+3.2-3b FT 20
+manceevaluations,weestimatethecostwithinarangethat
+3.2-3b RAG 51
+reflects both low- and high-utilization scenarios. The low-
+3.2-3b RAG+FT 22
+utilizationscenarioassumesasteadyloadofsixconcurrent
+3.3-70b BASE 233
+users, whereas the high-utilization scenario assumes oper-
+3.3-70b FT 19
+ation at maximum throughput. A summary of the pricing
+3.3-70b RAG 88
+componentsisprovidedinTable3.
+3.3-70b RAG+FT 22
+We assume the cost of running the vector database and
+performingthesemanticsearchisnegligible,asitdoesnot
+Table6:LenAforllamamodels
+imposesignificantresourcedemands.
+The price per request is significantly influenced by the
+number of tokens used, which is affected by several fac-
+Statisticalrigor
+tors. On one hand, there are factors tied to the use case
+and its data: the number of chunks (NumC), the average Table 8 reports matrices of multiplicity-adjusted p-
+length of each chunk (LenC), the average length of ques- values testing whether systems differ in performance
+tions and questions-answer pairs (LenQ and LenQA). Ta- within each dataset. We use the partially overlap-
+ble1providesanoverviewforourusecases.NumFTQA ping samples z-test (based on the R implementa-
+fortheManualsis13936andforVehiclequality10704.On tion Partiallyoverlapping::Prop.test), which
+the other hand, there are factors that come directly from combinespairedandunpairedobservationswithoutdiscard-
+the pipeline setup: the length of the prompt template used ing data. Each off-diagonal cell is the Holm-adjusted two-
+(LenP and LenP ), and K, the number of retrieved sidedpforthecorrespondingrow–columncontrast;smaller
+RAG
+chunks in RAG. These are summarized in Table 4. The values (e.g., <0.05) indicate evidence of a difference after
+lengthofthegeneratedanswerdependsontheprocessedin- correction, larger values indicate no detectable difference.
+formation,modelcharacteristics,andthepromptused.The Weobservethatsystemsthatexhibitnoticeablydifferentac-
+observedvaluesareshowninTable5.Itisworthnotingthat curaciesaresignificantlydifferent.
+thepromptsuseddidnotimposeanyconstraintsonanswer
+length. References
+Balaguer,A.;Benara,V.;deFreitasCunha,R.L.;deM.Es-
+CompleteResultoverview
+teva˜o Filho, R.; Hendry, T.; Holstein, D.; Marsman, J.;
+Figure5,6and7showtheholisticoverviewoftheresultsof Mecklenburg, N.; Malvar, S.; Nunes, L. O.; Padilha, R.;
+allperformedexperiments. Sharp,M.;Silva,B.;Sharma,S.;Aski,V.;andChandra,R.
+Abbreviation Factor RAG FT Base
+NumC NumberofChunksinVecDB X
+LenC AverageChunklength X
+VDB ExecutioncostofoneIRoperation(theANNsearch) X
+K Amountofretrievedchunks X
+PET PriceperEmbeddedToken X
+PIT PriceperInputtoken = X =
+POT PriceperOutputToken = X =
+PFT PricefortheFine-TuningperToken X
+PF TotalPricefortheFine-Tuning(usedfortheLLaMAmodels) X
+PH PriceforModelHostingperhour X
+NumFTQA NumberofQApairsfortheFine-Tuning X
+LenQA AverageLengthoftheQAs X
+LenP LengthofthePrompttemplate X = =
+LenA LengthofthegeneratedAnswer X X X
+LenQ Lengthofthequestion = = =
+NumRH AmountofRequestsper1hour X
+NumRL AmountofRequestsforthewholesystemLifetime = = =
+Table7:Factorsinfluencingtheperrequestgenerationprice.ThecolumnsRAG,FTandBasetrackwhichfactorisrelevantfor
+whichsetup.AnXmeansthesystemhasanindividualvalueforthecorrespondingfactor.An=meansthesystemhasthesame
+valueforthisfactorastheothersystemsmarkedwithan=.
+2024. RAGvsFine-tuning:Pipelines,Tradeoffs,andaCase Ling, C.; Zhao, X.; Lu, J.; Deng, C.; Zheng, C.; Wang,
+StudyonAgriculture. arXiv:2401.08406. J.; Chowdhury, T.; Li, Y.; Cui, H.; Zhang, X.; Zhao, T.;
+Panalkar,A.;Mehta,D.;Pasquali,S.;Cheng,W.;Wang,H.;
+Banerjee,S.;andLavie,A.2005. METEOR:AnAutomatic
+Liu,Y.;Chen,Z.;Chen,H.;White,C.;Gu,Q.;Pei,J.;Yang,
+Metric for MT Evaluation with Improved Correlation with
+C.;andZhao,L.2023. DomainSpecializationastheKeyto
+Human Judgments. In Goldstein, J.; Lavie, A.; Lin, C.-
+Make Large Language Models Disruptive: A Comprehen-
+Y.; and Voss, C., eds., Proceedings of the ACL Workshop
+siveSurvey. arXiv:2305.18703.
+on Intrinsic and Extrinsic Evaluation Measures for Ma-
+chineTranslationand/orSummarization,65–72.AnnArbor, Liu,Y.;Iter,D.;Xu,Y.;Wang,S.;Xu,R.;andZhu,C.2023.
+Michigan:AssociationforComputationalLinguistics. G-Eval: NLG Evaluation using Gpt-4 with Better Human
+Alignment.InBouamor,H.;Pino,J.;andBali,K.,eds.,Pro-
+Challapally, A.; Pease, C.; Raskar, R.; and Chari, P. 2025.
+ceedings of the 2023 Conference on Empirical Methods in
+TheGenAIDivide. MITNANDA.
+Natural Language Processing, 2511–2522. Singapore: As-
+Chiang, C.-H.; and Lee, H.-y. 2023. Can Large Language
+sociationforComputationalLinguistics.
+Models Be an Alternative to Human Evaluations? In Pro-
+ceedings of the 61st Annual Meeting of the Association Microsoft. 2025. Azure OpenAI Service Pricing De-
+for Computational Linguistics (Volume 1: Long Papers), tails. https://azure.microsoft.com/en-us/pricing/details/
+15607–15631. Toronto, Canada: Association for Computa- cognitive-services/openai-service/.Accessed:21June2025.
+tionalLinguistics. Nguyen, Z.; Annunziata, A.; Luong, V.; Dinh, S.; Le,
+Erol,M.H.;El,B.;Suzgun,M.;Yuksekgonul,M.;andZou, Q.; Ha, A. H.; Le, C.; Phan, H. A.; Raghavan, S.; and
+J.2025. Cost-of-Pass:AnEconomicFrameworkforEvalu- Nguyen, C. 2024. Enhancing Q&A with Domain-Specific
+atingLanguageModels. arXiv:2504.13359. Fine-TuningandIterativeReasoning:AComparativeStudy.
+arXiv:2404.11792.
+Lakatos, R.; Pollner, P.; Hajdu, A.; and Joo, T. 2024. In-
+vestigating the performance of Retrieval-Augmented Gen- Ovadia, O.; Brief, M.; Mishaeli, M.; and Elisha, O. 2023.
+eration and fine-tuning for the development of AI-driven Fine-TuningorRetrieval?ComparingKnowledgeInjection
+knowledge-basedsystems. arXiv:2403.09727. inLLMs. arXiv:2312.05934.
+Lewis, P.; Perez, E.; Piktus, A.; Petroni, F.; Karpukhin, Parthasarathy, V. B.; Zafar, A.; Khan, A.; and Shahid, A.
+V.; Goyal, N.; Ku¨ttler, H.; Lewis, M.; tau Yih, W.; 2024. TheUltimateGuidetoFine-TuningLLMsfromBa-
+Rockta¨schel, T.; Riedel, S.; and Kiela, D. 2021. Retrieval- sicstoBreakthroughs:AnExhaustiveReviewofTechnolo-
+Augmented Generation for Knowledge-Intensive NLP gies,Research,BestPractices,AppliedResearchChallenges
+Tasks. arXiv:2005.11401. andOpportunities. arXiv:2408.13296.
+Lin,C.-Y.2004. ROUGE:APackageforAutomaticEvalu- Salemi, A.; and Zamani, H. 2024. Comparing Retrieval-
+ation of Summaries. In Text Summarization Branches Out, Augmentation and Parameter-Efficient Fine-Tuning for
+74–81. Barcelona, Spain: Association for Computational Privacy-Preserving Personalization of Large Language
+Linguistics. Models. arXiv:2409.09510.
+o4-TPG
+inim-o4-TPG B07-AMaLL B3-AMaLL TFo4-TPG
+TFinim-o4-TPG TFB07-AMaLL TFB3-AMaLL
+GARo4-TPG inim-o4-TPG
+GAR
+B07-AMaLL
+GAR
+B3-AMaLL
+GAR
+o4-TPG
+TF+GAR
+inim-o4-TPG
+TF+GAR
+B07-AMaLL
+TF+GAR
+B3-AMaLL
+TF+GAR
+GPT-4o 0.000 0.000 0.000 0.599 0.387 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+GPT-4o-mini 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+LLaMA-70B 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+LLaMA-3B 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+GPT-4oFT 0.599 0.000 0.000 0.000 1.000 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+GPT-4o-miniFT 0.387 0.000 0.000 0.000 1.000 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+LLaMA-70BFT 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+LLaMA-3BFT 1.000 0.000 0.000 0.000 1.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+GPT-4oRAG 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 1.000 0.000 0.632 0.000 0.215
+GPT-4o-miniRAG 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+LLaMA-70BRAG 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 1.000 0.000 1.000 0.000
+LLaMA-3BRAG 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 1.000 0.000 0.000 0.000 1.000 0.000 0.193
+GPT-4oRAG+FT 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 1.000 0.000 0.000 0.682 0.000
+GPT-4o-miniRAG+FT 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.632 0.000 0.000 1.000 0.000 0.000 1.000
+LLaMA-70BRAG+FT 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 1.000 0.000 0.682 0.000 0.000
+LLaMA-3BRAG+FT 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.215 0.000 0.000 0.193 0.000 1.000 0.000
+o4-TPG
+inim-o4-TPG
+TFo4-TPG
+TFinim-o4-TPG
+GARo4-TPG inim-o4-TPG
+GAR
+o4-TPG
+TF+GAR
+inim-o4-TPG
+TF+GAR
+GPT-4o 0.634 0.014 1.000 0.000 0.000 0.000 0.000
+GPT-4o-mini 0.634 0.000 0.072 0.000 0.000 0.000 0.000
+GPT-4oFT 0.014 0.000 0.193 0.000 0.000 0.000 0.000
+GPT-4o-miniFT 1.000 0.072 0.193 0.000 0.000 0.000 0.000
+GPT-4oRAG 0.000 0.000 0.000 0.000 0.000 0.500 0.000
+GPT-4o-miniRAG 0.000 0.000 0.000 0.000 0.000 0.073 0.000
+GPT-4oRAG+FT 0.000 0.000 0.000 0.000 0.500 0.073 0.000
+GPT-4o-miniRAG+FT 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+Table8:Pairwisematricesofmultiplicity-adjustedp-values(Holm–Bonferroni;controlsFWER)testingwhethersystemsdiffer
+in performance within each dataset (top: Manuals; bottom: Quality). (p-values rounded to three decimals; 0.000 denotes <
+0.0005.)
+1e-2
+1e-3
+1e-4
+1e-2
+1e-3
+1e-4
+1e21e31e41e5 1e21e31e41e5 1e21e31e41e5 1e21e31e41e5
+Number of requests
+$
+tsoC
+GPT-4o GPT-4o-mini LLaMA3.2-3B LLaMA3.3-70B
+Manuals
+Dataset
+Vehicle
+Quality
+Dataset
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure5:Priceperrequest
+100
+75 69 7072
+57 60 58 61
+50 48
+34
+25 24 26 27 26
+18 17
+5
+0
+100
+75
+50 4644
+41
+36
+25
+3 4 2 3
+0
+Full Mini 3B 70B
+Size
+ssentcerroC
+rewsnA
+rof
+ycaruccA
+GPT-4o LLaMA
+Manuals
+Dataset
+Vehicle
+Quality
+Dataset
+Soudani, H.; Kanoulas, E.; and Hasibi, F. 2024. Fine Tun-
+ing vs. Retrieval Augmented Generation for Less Popular
+Knowledge. arXiv:2403.01432.
+Wu, E.; Wu, K.; and Zou, J. 2024. FineTuneBench: How
+welldocommercialfine-tuningAPIsinfuseknowledgeinto
+LLMs? arXiv:2411.05059.
+Xiao, S.; Liu, Z.; Zhang, P.; and Muennighoff, N. 2023.
+C-Pack: Packaged Resources To Advance General Chinese
+Embedding. arXiv:2309.07597.
+Zheng, L.; Chiang, W.-L.; Sheng, Y.; Zhuang, S.; Wu, Z.;
+Zhuang, Y.; Lin, Z.; Li, Z.; Li, D.; Xing, E. P.; Zhang, H.;
+Gonzalez, J. E.; and Stoica, I. 2023. Judging LLM-as-a-
+judge with MT-bench and Chatbot Arena. In Proceedings
+ofthe37thInternationalConferenceonNeuralInformation
+ProcessingSystems,NIPS’23.RedHook,NY,USA:Curran
+AssociatesInc.
+Zhu, L.; Wang, X.; and Wang, X. 2023. JudgeLM:
+Fine-tuned Large Language Models are Scalable Judges.
+arXiv:2310.17631.
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure6:AccuracyestimatedbyLLM-as-a-judgeforallex-
+periments
+1.5
+1.23
+1.0
+0.79
+0.74
+0.63 0.59 0.58 0.59
+0.5 0.48
+0.33
+0.28 0.22 0.26 0.26 0.24 0.22 0.21
+0.0
+1.5 1.43 1.38 1.37
+1.31
+1.0
+0.5 0.46
+0.36 0.39 0.39
+0.0
+GPT-4o GPT-4o-mini LLaMA3.2-3B LLaMA3.3-70B
+Model
+$
+ssaP-fo-tsoC
+dednetxE
+Manuals
+Dataset
+Vehicle
+Quality
+Dataset
+Mode
+Base
+FT
+RAG
+RAG+FT
+Figure7:ExtendedCost-of-Passforallexperiments

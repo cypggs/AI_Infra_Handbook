@@ -27,6 +27,7 @@
 | [Tool Use](/05-agent/tool-use/) | Tool Use 负责单次工具调用的语法与结果解析；Planning 决定何时、为何、以什么参数调用 | Planning 把工具调用作为计划中的原子步骤。 |
 | [Agent OS](/05-agent/agent-os/) | Agent OS 负责任务/进程的调度、沙箱与资源治理；Planning 生成计划后由 Agent OS 调度执行 | Planning 决定“做什么”，Agent OS 决定“以什么进程/资源做”。 |
 | RAG | /06-rag/ | Planning 决定复杂查询的检索顺序与迭代策略。 |
+| AI SRE | /07-ai-sre/ | AI SRE 追踪 Planning 步骤的成功率与耗时。 |
 
 ## 本章结构
 

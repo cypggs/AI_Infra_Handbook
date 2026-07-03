@@ -1,0 +1,110 @@
+ZEBRA: Zero-shot Budgeted Resource Allocation
+for LLM Orchestration
+MayHamri1 InbalTalgam-Cohen1
+1TelAvivUniversity
+{mayhamri8,inbaltalgam}@gmail.com
+Abstract
+Asautonomousagentsincreasinglyexecuteend-to-endtasksunderfixedmonetary
+budgets,thepressingopenquestionshiftsfromwhetherthebudgetisrespected,
+tohowtospenditeffectively. Existingbudget-awaremethodstypicallycontrol
+reasoningstep-by-stepwithinasingleagent,orlearnresourceallocationpolicies
+viaRL.Noneaddresshowtosplitabudgetacrossthecomposingphasesofamulti-
+agentpipelineatinferencetime. WeproposeZEBRA,azero-shotframeworkthat
+reducesmulti-phasebudgetallocationtoacontinuousnonlinearknapsackproblem:
+anLLMcontrollerestimatesper-phaseutilitycurves,andawater-fillingsearch
+ontheLagrangemultiplierreturnstheper-phasesplit. Additiveandmultiplicative
+aggregationsareunifiedunderthesamesolver. Ona150-taskAPPScodingbench-
+mark,bothZEBRAvariantsoutperformLLM-direct(budgetallocationdirectlyby
+anLLM)oneveryaggregatemetric. Atabudgetofα=0.5oftheunconstrained
+spend,ZEBRArecovers94.4%ofunconstrainedquality,versus88.1%forLLM-
+direct. Theadvantageisstatisticallysignificantandtransfersbeyondcoding: ona
+3-phaseHotpotQApipeline,ZEBRAbeatsLLM-directby14.3pp,withallocations
+empiricallyrobusttocurve-estimationnoise. OnHotpotQA,ZEBRAarrivesata
+differentbudgetsplit(near-balanced)comparedtotheAPPSone(skewedtowards
+arefinementphase),showingadaptationtothepipelinestructure. Morebroadly,
+weshowthatlightweightalgorithmicguidanceatinferencetimecanimprovethe
+economicbehaviorofautonomousmulti-agentsystems.
+1 Introduction
+Asagentsincreasinglyexecuteend-to-endtasks,resourceallocationbecomesafirst-classrequire-
+mentforautonomy. Settinglimitsonresourceconsumptioniscrucial–asrecentlydocumented,
+uncontrolledwasteofresourcesemergesinautonomousagenticbehavior[Shapiraetal.,2026]. But
+userswantagentsnotonlytostaywithinlimitsonmoney,tokens,latency,orcompute;theyalsoneed
+theseresourcestobeusedeffectively. E.g.,foragiventask,theoptimalplanningdepth,toolusage,
+andverificationeffortdifferconsiderablyundera$10budgetcomparedwitha$100budget.
+Theneedforeffectivebudgetusageisgrowinginurgencyasagentsystemsbecomemoreexpensive
+andcomplex. OrchestratorslikeLangGraphorGasTown[Yeggeandcontributors,2026],which
+coordinate multiple coding agents, illustrate why economic decision-making is becoming a core
+system capability: the orchestrator must allocate resources judiciously across workers, phases,
+and tools. Platforms such as Replit or Base44 (which autonomously create apps from prompts)
+enforceusagelimitsandbillingcontrolsinabrute-forcemanner[e.g.Base44,2026]. Theydonot
+currentlyprovideacontrollerthatoptimizestheexpectedoutcomequalityunderafixedbudget.Some
+recentworkshavebeguntoframebudgetingasanoptimizationproblem,butmanyoftheseencode
+budgetreasoningthroughtraining-timedynamics(RLcontrollers,knapsackexploration)ratherthan
+inference-timeallocation.
+PublishedasaworkshoppaperatSCALE-ICML2026.
+6202
+yaM
+91
+]GL.sc[
+1v58402.5062:viXra
+Figure1: ZEBRAoverview. Givenaninputtaskandafixedtotalbudget(e.g.,$0.10),ZEBRAadds
+anallocationagentthatpromptsanLLMtoestimateaperformance–budgetcurveforeachworkflow
+phase(Plan,Decompose,Implement,Refine). ZEBRAsolvesacontinuousnonlinearknapsackvia
+water-fillingtoallocatetheglobalbudgetacrossphasesbeforeexecution. Thesharedmulti-phase
+pipelinethenrunsundertheseper-phasebudgetcaps.
+We take a complementary route. ZEBRA (ZEro-shot Budgeted Resource Allocation) adds an
+allocation agent to a multi-agent pipeline that, instead of directly outputting per-phase budgets,
+estimatesphaseutilitycurves(concretely,saturating-exponentialfunctions). Thisresultsinacon-
+tinuousnonlinearknapsackproblem,whichthesystemsolvesviabisectiononthedualLagrange
+multiplier(water-filling). Takentogether,wegetazero-shot,inference-timeallocationmechanism
+withnofine-tuningorRL,allowingbudgetedexecutiontoapproachunconstrainedqualityatmuch
+lowerspend. Westudytwoqualityaggregationformsoverthephases–anadditivefunctionanda
+multiplicativeone(withoffsetcurvesthatstillenablephasestarvation). Despitetheirfundamental
+differenceinhowoverallqualitydependsonper-phasequality,weunifythemultiplicativeobjective
+withtheadditiveoneunderthesamesolverviaalogarithmictransformation.
+We summarize our primary contributions: (i) Method. We develop a zero-shot, inference-time
+controller,whichallocatesafixedbudgetacrosspipelinephases,thequalityofwhichaggregates
+additivelyormultiplicatively. ThisisdonebypromptinganLLMtoestimatephaseutilitycurves,and
+solvingacontinuousnonlinearknapsackproblem–nofine-tuningorRLrequired. (ii)Experiments.
+On a 150-task APPS coding interview benchmark [Hendrycks et al., 2021], and across budget
+regimesα ∈ {0.3,0.5,0.8}, bothZEBRAobjectivesoutperformdirectLLMallocationonevery
+aggregate metric (paired Wilcoxon, BH-adjusted p < 0.01), with gains that scale with budget
+pressureandconcentrateonmediumandhardtasks(Section5.2). Thesameeffectreproduceson
+two additional coding benchmarks: HumanEval [Chen et al., 2021] and CodeContests [Li et al.,
+2022] at α = 0.5 (Section 5.8). Importantly, it also generalizes beyond coding: on the 3-phase
+question-answeringHotpotQApipeline[Yangetal.,2018],ZEBRAbeatsLLM-directby+14.3pp
+NBretention(p=10−4)(Section5.9).ZEBRAalsorecoversanear-balancedallocationthatmatches
+the(herenear-optimal)uniformbaseline–adistinctallocationshapefromthestrongly-skewedsplit
+itlearnsonAPPS.ThisisevidencethatZEBRAadaptsto,ratherthanmemorizes,thetasktype. (iii)
+Implication. Morebroadly,weshowthatlightweightalgorithmicguidance–appliedatinference
+time–canmeaningfullyimprovetheeconomicbehaviorofautonomousmulti-agentsystems.
+2 RelatedWork
+ZEBRA builds on two distinct bodies of prior work. First, cost-aware LLM research, including:
+(i) the AI provider’s cost-saving problem (an inference operator redistributing a shared compute
+2
+poolacrossindependentuserqueries),and(ii)multi-agentcostmanagement(selecting,routing,and
+coordinatingagentsunderabudget). Second,classicresourceallocationtheory,whichprovidesa
+principledframeworkfordistributingafixedbudgetacrosssubprocesseswithconcaveutilitycurves.
+ZEBRAcombinesthesebyapplyingthetheoreticalfoundationtoaproblemthatneitherlinehas
+addressed:allocatingamonetarybudgetbyanorchestratoracrossthephasesofamulti-agentpipeline,
+the outputs of which jointly compose into a single task outcome, without training data or model
+modification. Table3inAppendixAgivesacomparisonofrelatedmethodsalongfouraxes:provider
+vs.orchestratorbudget,discretevs.continuousspendingdecisions,zero-shotornot,anddependency
+ofitemssharingthebudget. Hereweoverviewthemainapproaches.
+Inference-timetokenbudgetallocation. Token-budgetmethodsforindependentuserqueries[Han
+etal.,2025,Brownetal.,2025,Zhaoetal.,2026,Lyuetal.,2025]taketheproviderperspective,
+operateonindependentqueries,andpickdiscreteper-querytokenbudgets;mostrequiretask-specific
+training data or fine-tuning. ZEBRA differs on every axis (Table 3): it is an orchestration-side
+controllerthatsplitsacontinuousmonetarybudgetacrossthedependentphasesofasinglemulti-
+agentpipeline,zero-shot.
+Multi-agentcostmanagementandrouting. Aparallellineofworkreducescostthroughdiscrete
+modelselectionoragentroutingratherthancontinuousbudgetallocation: LLMcascades[Chen
+etal.,2024],RL-trainedper-querymodelselectors[Jinetal.,2025],ILP-basedagentassemblywith
+RL-fixedtopology[Yangetal.,2026],VAE-drivenworkflowsynthesis[Suetal.,2026],enterprise
+pipelinedesign[Kandoganetal.,2025],andupfrontvs.reactiveselection[Amayuelasetal.,2025].
+Ineverycasethedecisionvariableisdiscreteandcombinatorialandthecontrolleristrained.
+Budget-awareagentcontrol. Aconcurrentlinestudiesbudget-awarecontrolatinferencetimeinside
+asingleagent: BATS[Liuetal.,2025]pairsaBudgetTrackerplug-inwithaper-step“digdeepervs.
+pivot”binarydecision;INTENT[Liuetal.,2026]trainsanintention-awarehierarchicalworldmodel
+foronlinetool-callriskcalibration;andBAVT[Lietal.,2026]scalesmulti-hopreasoningvalue-tree
+nodesbytheremaining-resourceratio. Allthreearestep-by-stepcontrollersinsideasinglerunnin

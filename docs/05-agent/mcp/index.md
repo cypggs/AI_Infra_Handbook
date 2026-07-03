@@ -28,6 +28,7 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | MCP Host 是 Agent OS 中负责外部能力接入与安全控制的组件；Agent OS 在 Host 之上做进程/调度/沙箱治理 |
 | Tool Use（后续主题） | 工具定义与执行细节 | MCP 是 Tool Use 的协议化延伸，关注发现与互操作 |
 | RAG | /06-rag/ | Retriever 与知识库可封装为 MCP Server。 |
+| AI SRE | /07-ai-sre/ | AI SRE 观测 MCP Server/Client 的调用延迟与错误。 |
 
 ## 本章结构
 

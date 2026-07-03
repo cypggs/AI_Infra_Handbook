@@ -1,0 +1,145 @@
+Governed MCP: Kernel-Level Tool Governance
+for AI Agents via Logit-Based Safety Primitives
+Daeyeon Son
+Independent Researcher
+Republic of Korea
+sdy1350@gmail.com
+April 2026
+Abstract ecution,shellcommands). TheModelContextProtocol
+(MCP),introducedbyAnthropic[1],hasbecomethede
+AI agents increasingly call external tools (file sys- facto standard for tool calling: a JSON-RPC interface
+tem, network, APIs) through the Model Context Pro- where the agent proposes a tool name and arguments,
+tocol (MCP) [1]. These tool calls are the agent’s and a server executes them.
+syscalls—privileged operations with side effects on
+Tool calls are syscalls. Like syscalls, they cross
+shared state—yet today’s safety enforcement lives en-
+theprivilegeboundarybetweenagent(lesstrusted)and
+tirely in userspace, where a 10-line script can bypass
+host (more trusted), and they carry the same risks: ar-
+it. I propose Governed MCP, a kernel-resident tool gument exfiltration, side effects on shared state, escala-
+governance gateway built on a logit-based safety primi-
+tion. Unlike syscalls, they have no kernel mediation.
+tive (ProbeLogits, companion paper). The gateway in-
+Existing safety infrastructure—NeMo Guardrails [7],
+terposes on every MCP tool call in a 6-layer pipeline:
+AGTschemas[8], AutoGPT-style[9]wrappers—allop-
+schema validation, trust tier check, rate limit, adver-
+erateasPythonlibrariesimportedbytheagentprocess,
+sarial pre-filter, ProbeLogits gate (the load-bearing se- in the same address space and with the same privilege
+mantic check), and constitutional policy match, with a
+as the agent itself. The agent decides whether to call
+Blake3-hashed audit chain.
+them.
+I implement Governed MCP in Anima OS, a bare- The structural problem is not that these libraries are
+metal x86_64 OS in ∼86,000 lines of Rust. The five weak, but that they are libraries: they cannot be the
+non-inference layers add 65.3µs of overhead per call;
+privilege boundary between the agent and the host.
+ProbeLogits adds 65ms (per-token-class semantic deci-
+Listing 1 shows three increasingly subtle ways an agent
+sion)on7BQ4_0. A4-configablationona101-prompt
+(or compromised tool that exfiltrated credentials) can
+MCP-domainbenchmarkshowsthatremovingthePro-
+bypass them, none of which require a vulnerability in
+beLogits layer collapses F1 from 0.773 to 0.327 (∆F1
+the safety library:
+= −0.446)—hand-rule firewalling alone is insufficient.
+These bypasses succeed because Python imports, at-
+All 15 WASM-to-system host functions in the runtime
+tribute writes, and dict mutations all run with the
+route through the gateway (complete mediation of the
+agent’s own privilege. No amount of library-level hard-
+WASMABIsurface;thescopeandcaveatsofthisclaim
+ening (input validation, signed checks, etc.) closes the
+are stated in §4.6); a 10-LoC userspace bypass that de-
+gap, becausethegapisattheprivilege boundary: there
+feats existing guardrail libraries is structurally impossi-
+is no boundary. Any defense the library implements,
+ble against the kernel-resident gate.
+the agent’s process can also undo.
+To my knowledge, no prior system places semantic
+The same critique applies to JavaScript wrappers,
+safetyenforcementbelowtheagent’sprivilegeboundary
+Go middleware, and any other in-process safety layer.
+in an operating system. Governed MCP demonstrates
+Kernel-grade governance requires that the safety check
+that tool-call governance is feasible as an OS primitive,
+live in a privilege domain the agent cannot enter.
+not just an application-layer concern.
+This paper proposes Governed MCP, a kernel-
+resident governance gateway that interposes on every
+1 Introduction MCP tool call. The gateway runs in the OS kernel
+of Anima OS—a bare-metal x86_64 operating system
+AIagentsareincreasinglyautonomous,executingmulti- writteninRustwhoseinferenceengineandsafetyprim-
+stepplansviatoolcalls(filereads,webfetches,codeex- itives are described in a companion paper [6]. Agents
+1
+6202
+rpA
+81
+]RC.sc[
+1v07861.4062:viXra
+design that Listing 1 defeats. The window to define
+Listing 1: Three bypass paths for in-process safety li-
+what a proper kernel-grade MCP gateway should look
+braries. Noneexploitalibrarybug;allrelyontheagent
+like is open now, before deployment patterns harden
+process having the same privilege as the safety library.
+around the current weak architecture.
+1 # (1) Skip the import. The library only runs if the
+2 # agent code chooses to call it.
+3 from openai import OpenAI; from os import system Contributions.
+4 # no ‘from nemo_guardrails import LLMRails‘
+5 client = OpenAI() 1. A 6-layer kernel-resident MCP governance
+6 plan = client.chat.completions.create(...)
+7 system(plan.choices[0].message.content) # pipeline (schema, trust, rate, adversarial pre-
+unguarded filter, ProbeLogits, constitutional) with 65.3µs non-
+8
+9 # (2) Replace the function. Same address space => inference overhead and FAIL-CLOSED semantics: if
+same write the inference engine is unavailable, all tool calls are
+10 # permission to the library’s symbols.
+11 import nemoguardrails denied. To my knowledge, this is the first kernel-
+12 nemoguardrails.LLMRails.generate = lambda self, p: resident MCP gateway with semantic intent classifi-
+p
+13 # now every "guarded" call returns the prompt cation.
+unfiltered
+14 2. Demonstration that the ProbeLogits seman-
+15 # (3) Inject the safety verdict. Many libraries
+return a tic layer is load-bearing: a 4-configuration ab-
+16 # dict; mutate it before the caller checks it. lation on a 101-prompt MCP-domain benchmark
+17 result = guardrails.check(prompt)
+18 result["allowed"] = True shows ∆F1 = −0.446 when the ProbeLogits gate is
+19 # downstream gate sees allowed=True removed (full pipeline F1 = 0.773, no-ProbeLogits
+F1=0.327). Hand-rulefirewallingwithoutsemantic
+understanding is insufficient.
+execute as WASM [2] bytecode in a sandbox above the
+3. Complete mediation of the WASM ABI sur-
+gateway; the only path from the sandbox to a tool call
+face (structural argument + empirical verification):
+is through host functions that the kernel exposes, every
+all15WASM-to-systemhostfunctionsroutethrough
+one of which routes through the gateway. Because the
+agent’s WASM context cannot address the gateway’s the gateway via a single governance_check_host()
+memory and cannot invoke kernel code except through
+entry,thegateway’sMCPentrypointispub(crate)
+(not in the WASM ABI), and a test harness enu-
+the WASM ABI, the agent cannot skip the check by de-
+merates 123 reachable synchronous agent-to-system
+sign: there is no userspace shim to monkey-patch be-
+paths and verifies each increments the gateway
+cause the check is not in userspace.
+counter exactly once. The argument is scoped to
+Thegatewayisstructuredasasix-layerpipeline. The
+the WASM ABI surface (not the entire kernel; out-
+first four layers are syntactic and policy checks: JSON-
+of-scope items are listed in §3).
+RPCschemavalidation,trust-tierwhitelist(whichtools
+may be invoked by which trust class of agent), token- 4. Open-source bare-metal implementation
+bucket rate limit, and an O(n) regex pre-filter for (∼86,000 lines of Rust, AGPL-3.0) demonstrating
+prompt-injection patterns. The fifth layer is the load- that kernel-grade governance is feasible without
+bearing semantic check: a single forward pass through proprietary silicon or hypervisor tricks.
+the loaded inference model that reads “Safe” vs. “Dan-
+gerous” logits at the verbalizer position (the ProbeLog- The remainder of the paper is organized as follows.
+itsprimitive). Thesixthappliesa12-principleconstitu- §2 surveys the MCP protocol and existing safety in-
+tional policy match. Each tool call appends a Blake3- frastructure. §3 fixes the threat model. §4 describes
+hashed audit record. End-to-end overhead on a 7B thegateway’ssix-layerdesignandtheProbeLogitssub-
+Q4_0 model is 65ms per call (dominated by the infer- strate. §5 evaluates the gateway end-to-end. §6 dis-
+encelayer);thefivenon-inferencelayersaddonly65.3µs cusses generalization, limitations, and fu

@@ -1,0 +1,119 @@
+SpecForge: A Flexible and Efficient Open-Source Training Framework for
+Speculative Decoding
+ShengguiLi12 ChaoWang32 YikaiZhu2 YuboWang2 FanYin2 ShuaiShi2 YefeiChen2
+XiaominDong4 QiaolingChen1 JinPan2 JiLi2 LaixinXie2 YinengZhang2 LeiYu3 YonggangWen1
+IvorTsang5 TianweiZhang1
+(cid:135)GitHub: https://github.com/sgl-project/SpecForge
+Abstract counterparts, including LLaMA (??Dubey et al., 2023),
+DeepSeek(DeepSeek-AIetal.,2024;2025),andQwen(Bai
+Large language models (LLMs) incur high in-
+et al., 2023; Qwen et al., 2025; Yang et al., 2025), have
+ferencelatencyduetosequentialautoregressive
+drivensubstantialproductivitygainsacrossawiderangeof
+decoding. Speculative decoding alleviates this
+industries. However,asmodelsizescontinuetoscale,infer-
+bottleneck by using a lightweight draft model
+encelatencyhasemergedasafundamentalbottleneck(Yu&
+to propose multiple tokens for batched verifi-
+Jeong,2022;Recasensetal.,2025). LLMs’autoregressive
+cation. However, its adoption has been lim-
+generationrequiresafullforwardpassthroughbillionsof
+ited by the lack of high-quality draft models
+parameters for each token, resulting in a memory-bound
+and scalable training infrastructure. We intro-
+inference process that significantly increases deployment
+duce SpecForge, an open-source, production-
+costandhindersreal-timeorhigh-throughputapplications.
+oriented framework for training speculative de-
+coding models with full support for EAGLE-3. Speculative decoding has emerged as a promising rem-
+SpecForgeincorporatestarget–draftdecoupling, edy, offering substantial speedups by pairing a small
+hybrid parallelism, optimized training kernels, draft model with a large target model (e.g., the original
+andintegrationwithproduction-gradeinference model)(Leviathanetal.,2022;Chenetal.,2023). Thedraft
+engines, enabling up to 9.9× faster EAGLE-3 modelquicklygeneratesseveralcandidatetokens,andthe
+trainingforQwen3-235B-A22B.Inaddition,we targetmodelthenverifiesmultipletokensinparallelviaa
+releaseSpecBundle,asuiteofproduction-grade singleforwardpass. Thedraftmodelcanbeintheformof
+EAGLE-3draftmodelstrainedwithSpecForge N-Grammodels(Fu etal.,2024), modelsofsmallersize
+for mainstream open-source LLMs. Through a fromthesamemodelfamily(Leviathanetal.,2022;Chen
+systematic study of speculative decoding train- et al., 2023), sub-layers of the same model (Zhang et al.,
+ingrecipes, SpecBundleaddressesthescarcity 2024a; Liu et al., 2024; Xia et al., 2024), and additional
+of high-quality drafts in the community, and autoregressiveadapters(Caietal.,2024;Lietal.,2024b;a;
+our draft models achieve up to 4.48× end-to- Zhang et al., 2024b; Du et al., 2024; Li et al., 2025). If
+endinferencespeeduponSGLang,establishing thedraft’spredictionsarelikelytobecorrectasjudgedby
+SpecForge as a practical foundation for real- the target model, they are accepted; otherwise, the target
+worldspeculativedecodingdeployment. model corrects them. The number of forward passes of
+thetargetmodelisthussignificantlyreduced. Asaresult,
+byeffectivelyleveragingextraparallelcomputationwhen
+1.Introduction available,speculativedecodingcanreduceinferencetime
+substantiallywithoutchangingthedistributionofoutputs.
+Large language models (LLMs) have rapidly become a
+Early demonstrations of speculative decoding (Leviathan
+cornerstone of modern AI systems. Both proprietary
+etal.,2022)showedspeedupsofupto3.4×onlargeTrans-
+models—such as ChatGPT (Achiam et al., 2023), Gem-
+formermodelssuchasT5-XXL(Raffeletal.,2020),while
+ini(?Comanicietal.,2024),andGrok—andopen-source
+provablypreservingoutputfidelity. Subsequentadvances
+1Nanyang Technological University 2SpecForge Team have further improved its efficiency and practicality. No-
+3Meituan 4EigenAI 5A*STAR, Singapore. Correspondence to: tably,theEAGLE-3algorithm(Lietal.,2025)introduces
+TianweiZhang<tianwei.zhang@ntu.edu.sg>.
+a draft model that operates at a hybrid feature level, sub-
+stantiallyincreasingtokenacceptanceratesandachieving
+Preprint.March20,2026.
+1
+6202
+raM
+91
+]GL.sc[
+1v76581.3062:viXra
+SpecForge:AFlexibleandEfficientOpen-SourceTrainingFrameworkforSpeculativeDecoding
+upto4.79×speeduponLLaMA-3.3-70Bwithoutquality scarceandunderdeveloped,leavingsubstantialheadroom
+degradation. EAGLE-3furtherincorporatesdynamictree- forimprovingtheeffectivenessofspeculativedecoding.
+basedgenerationandaTraining-TimeTest(TTT)procedure
+Cause3: Lackofrobusttrainingtools. Constructinga
+thatbettersimulatesmulti-stepdecodingduringdrafttrain-
+high-qualitydraftmodelisinherentlynon-trivial,oftenre-
+ing. Owingtoitsstrongempiricalperformance,EAGLE-3
+quiringarchitecturalcustomizationandtheimplementation
+hasbecomethedefactoindustrialstandardforspeculative
+ofsophisticatedtrainingmechanismssuchasTraining-Time
+decodingandissupportedbymajorinferenceengines,in-
+Test (TTT) (Li et al., 2025). Until recently, practitioners
+cludingopen-sourcesystemssuchasSGLang(Zhengetal.,
+lacked robust tooling to support this process. Most exist-
+2023)andvLLM(Kwonetal.,2023),aswellasproprietary
+ingspeculativedecodingimplementationsremainadhoc,
+platformslikeTensorRT-LLM(trt,2025).
+fragmented,orill-suitedforlarge-scaletraining(eag,2025).
+However,despitethestrongtheoreticalguaranteesandem- Giventhattargetmodelscanrangefromseveralbillionto
+piricalgains,speculativedecodingremainsunderutilizedin overonetrillionparameters,anypracticaltrainingframe-
+practice,especiallyforEAGLE3. Weidentifythreemain workmustbehighlyscalable,efficient,andreliable. The
+causes which hinder the wider application of speculative absence of such infrastructure has substantially hindered
+decodingininference: thecommunity’sabilitytotrainhigh-qualitydraftmodels,
+therebylimitingtheiravailabilityandadoptionacrossreal-
+Cause1: Limitedavailabilityofdraftmodels. Theeffec-
+worldandopen-sourceecosystems.
+tivenessofspeculativedecodingcriticallydependsonthe
+adoptionofawell-traineddraftmodelthatcloselyapproxi- SpecForgeisourattempttofillthesegapsbyadvancing
+matesthepredictionsofthetargetmodel.Suchadraftmodel thepracticaldevelopmentofspeculativedecodinginboth
+isoftenunavailableinpractice.Earlyapproaches(Leviathan researchandindustry. Itisaunified,production-oriented
+etal.,2022)assumetheexistenceofsmallermodelsfromthe frameworkfortrainingdraftmodelsforspeculativedecod-
+samefamilyasthetargetmodel,whichfrequentlydoesnot ing,offeringnativesupportforadvancedalgorithmssuch
+hold. Forexample,KimiK2(Teametal.,2025),a1-trillion- as EAGLE-3, including the complex Training-Time Test
+parameter model, was released without a corresponding (TTT) procedure with tree attention masks and recursive
+smaller variant, rendering this approach infeasible. Even scheduling. WithSpecForge,practitionerscaneasilytrain
+withstate-of-the-artmethodssuchasEAGLE-3,manymain- state-of-the-artdraftmodelsthroughsimpleconfiguration
+streammodels, includingQwen3, lackpubliclyavailable ratherthancustomengineering.
+matchingdraftmodels,significantlyhinderingthepractical
+To ensure that these capabilities operate at scale,
+adoptionofspeculativedecoding.
+SpecForge adopts a hybrid parallelism strategy via
+Cause2: Poorperformanceofopen-sourcedraftmod- target-draft decoupling, which explicitly decouples the
+els. Previouswork(Lietal.,2025;2024b)hasreleaseda targetmodelandthedraftmodel,enablingeachtobepar-
+limitednumberofdraft-modelweightsonHuggingFace,en- allelizedaccordingtoitsdistinctcomputationalcharacter-
+ablingengineersandresearcherstodirectlyintegratethem istics. Inspeculativedecodingtraining,thetargetmodelis
+into inference frameworks such as SGLang, vLLM, and typicallylarge,frozen,andinference-dominated,whilethe
+TensorRT-LLMforacceleration. However,thesepublicly draftmodelislightweightandfrequentlyupdated. Treating
+available drafts are typically trained on relatively small, both models as a single monolithic modules, as done in
+research-orienteddatasets,whichlimitstheirrobustnessand priorimplementation,forcesauniformparallelizationstrat-
+rendersthemunsuitableforproduction-leveldeployment. egythatissuboptimalforboth. SpecForgeinsteadapplies
+inf

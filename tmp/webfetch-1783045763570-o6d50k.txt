@@ -1,0 +1,123 @@
+The OpenHands Software Agent SDK: A
+Composable and Extensible Foundation for
+Production Agents
+Xingyao Wang, Simon Rosenberg, Juan Michelini, Calvin Smith, Hoang Tran, Engel Nyst, Rohit
+Malhotra, Xuhui Zhou, Valerie Chen, Robert Brennan, Graham Neubig
+{xingyao, graham}@openhands.dev
+Agents are now used widely in the process of software development, but building production-ready
+software engineering agents is a complex task. Deploying software agents effectively requires flexibility
+in implementation and experimentation, reliable and secure execution, and interfaces for users to
+interact with agents. In this paper, we present the OpenHands Software Agent SDK, a toolkit
+for implementing software development agents that satisfy these desiderata. This toolkit is a complete
+architectural redesign of the agent components of the popular OpenHands framework for software
+development agents.
+To achieve flexibility, we design a simple interface for implementing agents that requires only a few
+lines of code in the default case, but is easily extensible to more complex full-featured agents with
+features such as custom tools, memory management, and more. For security and reliability, it delivers
+seamless local-to-remote execution portability, integrated REST/WebSocket services. For interaction
+with human users, it can connect directly to a variety of interfaces, such as visual workspaces (VS
+Code, VNC, browser), command-line interfaces, and APIs. Compared with existing SDKs from
+OpenAI, Claude and Google, OpenHands uniquely integrates native sandboxed execution, lifecycle
+control,model-agnosticmulti-LLMrouting,andbuilt-insecurityanalysis. Wevalidatethearchitecture
+empirically: production deployment data shows that V1 substantially reduces system-attributable
+failures over V0 with negligible event-sourcing overhead, and evaluations across multiple models
+and benchmarks demonstrate strong agent performance. Put together, these elements allow the
+OpenHands Software Agent SDK to provide a practical foundation for prototyping, unlocking new
+classes of custom applications, and reliably deploying agents at scale.
+Software Agent SDK: https://github.com/OpenHands/software-agent-sdk
+Benchmarks: https://github.com/OpenHands/benchmarks
+Accepted at MLSys 2026
+1 Introduction
+In software engineering, AI agents have evolved from assistive tools (GitHub, 2021; Cursor Team, 2024) to
+autonomoussystemscapableofhours-longasyncexecutiononcomplextasks(e.g.,Devin(CognitionAI,2024),
+Claude Code (Anthropic, 2025b), OpenHands (Wang et al., 2025)). Reliably deploying autonomous agents in
+production requires system foundations—including durable state management, safe execution in a sandbox,
+andconsistentbehavioracrossenvironmentsrangingfromlocaltocontainerizedclouddeployments—thatwere
+1
+6202
+rpA
+22
+]ES.sc[
+2v09630.1152:viXra
+The OpenHands Software Agent SDK: A Composable and Extensible Foundation for Production Agents
+OpenHands GUI
+ Integrations
+ OpenHands CLI
+
+React Frontend Github App, Gitlab App, ... Command-line interface
+HTTP & WebSocket Create controller OpenHands Applications
+API Server Agent Controller Agent Core
+OpenHands GUI
+ OpenHands CLI
+ Your Custom Client
+
+Agent Hub (Agent Implementations) Command-line interface Command-line interface Automation & workflows
+Conversation Manager WebSession Subscribe
+Condenser LLM Registry Prompts
+Session
+AgentSession Event Stream
+Subscribe Local MCP Implementation op C e o n re h ab a s n tra d ct s io . n s s
+ dk
+ Extends op W en ork h sp a a n ce d Im s p .w lem o e r n k ta s tio p n a s
+ ce
+
+LocalFileStore (CL C I- L s I p R e u c n ifi t c im lo e
+ cal- Local Tool Implementation Agent, LLM, Tool, MCP ... DockerWorkspace, RemoteAPIWorkspace
+S3FileStore (SaaS) execution w/o sandbox)
+Extends Spawns / Connects
+Storage DockerRuntime Action Execution Server
+
+(API Server for action execution)
+KubenetesRuntime
+(via remote API) Starts Tools VSCode MCP openhands.tools
+ openhands.agent_server
+
+Runtime Client
+ Runtime Server
+ Tool Implementations FastA A P P I I : S e R rv E e S r T f o + r A W g e e b n S ts
+ ocket
+(Execute actions into observations) (Sandboxed Container)
+(a) OpenHands V0: Monolithic architecture with tightly OpenHands Software Agent SDK
+coupled components and a mandatory sandboxing model.
+The design assumed all executions occur in a sandbox, (b) OpenHands V1: Modular SDK architecture with
+making later support for local execution workflows (CLI) four decoupled packages. Applications consume software
+cumbersome — requiring special-case handling in the CLI agent SDK; tool and workspace packages extend sdk’s
+runtimeandduplicatedlocalimplementationsofMCPand abstraction with actual implementations; the workspace
+tools. package spawns and connects to agent server.
+Figure 1 Architecture Evolution from OpenHands V0 to V1. V0’s monolithic, sandbox-centric design tightly
+coupled components and required duplicated local implementations. V1 refactors this into a modular SDK with clear
+boundaries, opt-in sandboxing, and reusable agent, tool, and workspace packages. The color of each component in V0
+roughly corresponds to its modular counterpart in V1.
+unnecessary for earlier assistive tools that rely on largely local user-driven workflows. Yet no consensus exists
+on how to architect these foundations: existing SDKs from major providers differ widely in isolation models,
+state management, and deployment assumptions, leaving practitioners without a well-validated reference
+design.
+OpenHands(Wangetal.,2025)demonstratedthatopen-sourcesoftwareagentscanachievebroadadoptionand
+contributions, reaching over 64k GitHub stars and hundreds of contributors in just 18 months (Neubig, 2025).
+As the project scaled, the original monolithic architecture—what we refer to as OpenHands V0—exposed
+growing architectural tensions. The early design was driven by the need for fast prototyping and iteration,
+combining agent logic, evaluation, and applications in a single codebase. Over time, this approach led to
+rigid sandboxing assumptions, sprawling mutable configuration, and tight coupling between research and
+production, eventually making a full architectural redesign unavoidable.
+Guided by these lessons, OpenHands V1 introduces a new architecture grounded in four design principles
+that directly address the limitations of V0:
+• Optional isolation. The agent runs locally by default but can switch to a sandboxed environment when
+additional safety or resource control is required.
+• Stateless by default, one source of truth for state. All components—agents, tools, LLMs, etc—are
+immutableandvalidatedatconstruction,whileasingleconversationstateobjectrecordsallmutablecontext.
+This design ensures reliable recovery of agent sessions.
+• Strict separation of concerns. Theagentcoreisdecoupledfromapplicationssothatdownstreamsystems
+(CLI, Web UI, GitHub App) use it as a shared library rather than duplicating logic.
+• Two-layer composability. Developers can compose independent deployment packages (SDK, Tools,
+Workspace, Server) and extend the SDK safely by adding or replacing typed components such as tools or
+Page 2
+The OpenHands Software Agent SDK: A Composable and Extensible Foundation for Production Agents
+agents.
+Building on these principles, we introduce OpenHands V1, a complete software-agent ecosystem—including
+CLI and GUI applications—built on a shared foundation: the OpenHands Software Agent SDK (Fig. 1b).
+WepresenttheSDKasareference architecture for production agent systems, codifyinglessonsfrom18months
+of open-source development and production deployment into an empirically validated design. The SDK
+defines an event-sourced state model with deterministic replay, an immutable configuration for agents, and
+a typed tool system with MCP integration. Its workspace abstraction enables the same agent to run locally
+for prototyping or remotely in secure, containerized environments with minimal code changes. Unlike prior
+library-only SDKs (Anthropic, 2025a; OpenAI, 2024), OpenHands

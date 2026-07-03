@@ -1,0 +1,175 @@
+Retrieval-Augmented Generation for
+Knowledge-Intensive NLP Tasks
+PatrickLewis†‡,EthanPerez(cid:63),
+AleksandraPiktus†,FabioPetroni†,VladimirKarpukhin†,NamanGoyal†,HeinrichKüttler†,
+MikeLewis†,Wen-tauYih†,TimRocktäschel†‡,SebastianRiedel†‡,DouweKiela†
+†FacebookAIResearch;‡UniversityCollegeLondon;(cid:63)NewYorkUniversity;
+plewis@fb.com
+Abstract
+Largepre-trainedlanguagemodelshavebeenshowntostorefactualknowledge
+intheirparameters,andachievestate-of-the-artresultswhenfine-tunedondown-
+streamNLPtasks. However,theirabilitytoaccessandpreciselymanipulateknowl-
+edgeisstilllimited,andhenceonknowledge-intensivetasks,theirperformance
+lagsbehindtask-specificarchitectures.Additionally,providingprovenancefortheir
+decisionsandupdatingtheirworldknowledgeremainopenresearchproblems. Pre-
+trainedmodelswithadifferentiableaccessmechanismtoexplicitnon-parametric
+memoryhavesofarbeenonlyinvestigatedforextractivedownstreamtasks. We
+exploreageneral-purposefine-tuningrecipeforretrieval-augmentedgeneration
+(RAG)—modelswhichcombinepre-trainedparametricandnon-parametricmem-
+ory for language generation. We introduce RAG models where the parametric
+memoryisapre-trainedseq2seqmodelandthenon-parametricmemoryisadense
+vectorindexofWikipedia,accessedwithapre-trainedneuralretriever. Wecom-
+paretwoRAGformulations,onewhichconditionsonthesameretrievedpassages
+acrossthewholegeneratedsequence,andanotherwhichcanusedifferentpassages
+pertoken. Wefine-tuneandevaluateourmodelsonawiderangeofknowledge-
+intensiveNLPtasksandsetthestateoftheartonthreeopendomainQAtasks,
+outperformingparametricseq2seqmodelsandtask-specificretrieve-and-extract
+architectures. Forlanguagegenerationtasks,wefindthatRAGmodelsgenerate
+morespecific,diverseandfactuallanguagethanastate-of-the-artparametric-only
+seq2seqbaseline.
+1 Introduction
+Pre-trainedneurallanguagemodelshavebeenshowntolearnasubstantialamountofin-depthknowl-
+edgefromdata[47]. Theycandosowithoutanyaccesstoanexternalmemory,asaparameterized
+implicitknowledgebase[51,52]. Whilethisdevelopmentisexciting,suchmodelsdohavedown-
+sides: Theycannoteasilyexpandorrevisetheirmemory,can’tstraightforwardlyprovideinsightinto
+theirpredictions,andmayproduce“hallucinations”[38]. Hybridmodelsthatcombineparametric
+memorywithnon-parametric(i.e.,retrieval-based)memories[20,26,48]canaddresssomeofthese
+issuesbecauseknowledgecanbedirectlyrevisedandexpanded,andaccessedknowledgecanbe
+inspected and interpreted. REALM [20] and ORQA [31], two recently introduced models that
+combinemaskedlanguagemodels[8]withadifferentiableretriever,haveshownpromisingresults,
+1202
+rpA
+21
+]LC.sc[
+4v10411.5002:viXra
+Define "middle ear"(x) The middle ear includes
+End-to-End Backprop through q and p θ the tympanic cavity and
+Question Answering: the three ossicles. (y)
+Question Query
+E
+Q
+nc
+u
+o
+e
+d
+ry
+er
+Retriever p
+η
+Do
+I
+c
+n
+u
+d
+m
+ex
+ent Generator pθ Q
+A
+u
+n
+e
+s
+s
+w
+ti
+e
+o
+r
+n
+G
+A
+e
+n
+n
+s
+e
+w
+ra
+e
+t
+r
+i
+i
+o
+n
+n
+g:
+(Non-Parametric) (Parametric)
+B b a o r r a n c k i n O b H a a m w a a i w i a .( s x) q(x) d(z) z4 supports (y)
+Fact Verification: Fact Query z3 Margin- Fact Verification:
+z2 alize Label Generation
+T C h o e m e D d i y v ( i x n ) e q MIPS z1 p θ T i h s i s d i 1 v 4 i t d h e d c e i n n t t u o r y 3 work
+Jeopardy Question sections: "Inferno",
+Generation: "Purgatorio" &
+Answer Query "Paradiso" (y)
+Question Generation
+Figure1:Overviewofourapproach.Wecombineapre-trainedretriever(QueryEncoder+Document
+Index)withapre-trainedseq2seqmodel(Generator)andfine-tuneend-to-end. Forqueryx,weuse
+MaximumInnerProductSearch(MIPS)tofindthetop-Kdocumentsz . Forfinalpredictiony,we
+i
+treatzasalatentvariableandmarginalizeoverseq2seqpredictionsgivendifferentdocuments.
+buthaveonlyexploredopen-domainextractivequestionanswering. Here,webringhybridparametric
+andnon-parametricmemorytothe“workhorseofNLP,”i.e. sequence-to-sequence(seq2seq)models.
+Weendowpre-trained,parametric-memorygenerationmodelswithanon-parametricmemorythrough
+ageneral-purposefine-tuningapproachwhichwerefertoasretrieval-augmentedgeneration(RAG).
+WebuildRAGmodelswheretheparametricmemoryisapre-trainedseq2seqtransformer,andthe
+non-parametricmemoryisadensevectorindexofWikipedia,accessedwithapre-trainedneural
+retriever. Wecombinethesecomponentsinaprobabilisticmodeltrainedend-to-end(Fig. 1). The
+retriever(DensePassageRetriever[26],henceforthDPR)provideslatentdocumentsconditionedon
+theinput,andtheseq2seqmodel(BART[32])thenconditionsontheselatentdocumentstogetherwith
+theinputtogeneratetheoutput. Wemarginalizethelatentdocumentswithatop-Kapproximation,
+eitheronaper-outputbasis(assumingthesamedocumentisresponsibleforalltokens)oraper-token
+basis(wheredifferentdocumentsareresponsiblefordifferenttokens). LikeT5[51]orBART,RAG
+canbefine-tunedonanyseq2seqtask,wherebyboththegeneratorandretrieverarejointlylearned.
+Therehasbeenextensivepreviousworkproposingarchitecturestoenrichsystemswithnon-parametric
+memorywhicharetrainedfromscratchforspecifictasks, e.g. memorynetworks[64,55], stack-
+augmented networks [25] and memory layers [30]. In contrast, we explore a setting where both
+parametricandnon-parametricmemorycomponentsarepre-trainedandpre-loadedwithextensive
+knowledge. Crucially,byusingpre-trainedaccessmechanisms,theabilitytoaccessknowledgeis
+presentwithoutadditionaltraining.
+Ourresultshighlightthebenefitsofcombiningparametricandnon-parametricmemorywithgenera-
+tionforknowledge-intensivetasks—tasksthathumanscouldnotreasonablybeexpectedtoperform
+withoutaccesstoanexternalknowledgesource. OurRAGmodelsachievestate-of-the-artresults
+onopenNaturalQuestions[29],WebQuestions[3]andCuratedTrec[2]andstronglyoutperform
+recentapproachesthatusespecialisedpre-trainingobjectivesonTriviaQA[24]. Despitethesebeing
+extractivetasks,wefindthatunconstrainedgenerationoutperformspreviousextractiveapproaches.
+Forknowledge-intensivegeneration,weexperimentwithMS-MARCO[1]andJeopardyquestion
+generation, and we find that our models generate responses that are more factual, specific, and
+diversethanaBARTbaseline. ForFEVER[56]factverification,weachieveresultswithin4.3%of
+state-of-the-artpipelinemodelswhichusestrongretrievalsupervision. Finally,wedemonstratethat
+thenon-parametricmemorycanbereplacedtoupdatethemodels’knowledgeastheworldchanges.1
+2 Methods
+WeexploreRAGmodels,whichusetheinputsequencextoretrievetextdocumentszandusethem
+as additional context when generating the target sequence y. As shown in Figure 1, our models
+leveragetwocomponents: (i)aretrieverp (z|x)withparametersη thatreturns(top-Ktruncated)
+η
+distributionsovertextpassagesgivenaqueryxand(ii)ageneratorp (y |x,z,y )parametrized
+θ i 1:i−1
+1Code to run experiments with RAG has been open-sourced as part of the HuggingFace Transform-
+ersLibrary[66]andcanbefoundathttps://github.com/huggingface/transformers/blob/master/
+examples/rag/.AninteractivedemoofRAGmodelscanbefoundathttps://huggingface.co/rag/
+2
+byθthatgeneratesacurrenttokenbasedonacontextofthepreviousi−1tokensy ,theoriginal
+1:i−1
+inputxandaretrievedpassagez.
+Totraintheretrieverandgeneratorend-to-end,wetreattheretrieveddocumentasalatentvariable.
+Weproposetwomodelsthatmarginalizeoverthelatentdocumentsindifferentwaystoproducea
+distributionovergeneratedtext. Inoneapproach,RAG-Sequence,themodelusesthesamedocument
+topredicteachtargettoken. Thesecondapproach,RAG-Token,canpredicteachtargettokenbased
+onadifferentdocument. Inthefollowing,weformallyintroducebothmodelsandthendescribethe
+p andp components,aswellasthetraininganddecodingprocedure.
+η θ
+2.1 Models
+RAG-SequenceModel TheRAG-Sequencemodelusesthesameretrieveddocumenttogenerate
+thecompletesequence. Technically,ittreatstheretrieveddocumentasasinglelatentvariablethat
+ismarginalizedtogettheseq2seqprobabilityp(y|x)viaatop-Kapproximation. Concretely,the
+topKdocumentsareretrievedusingtheretriever,andthegeneratorproducestheoutputsequence
+probabilityforeachdocument,whicharethenmarginalized,
+N
+(cid:88) (cid:88) (cid:89)
+p (y|x) ≈ p (z|x)p (y|x,z) = p (z|x) p (y |x,z,y )
+RAG-Sequence η θ η θ i 1:i−1
+z∈top-k(p(·|x)) z∈top-k(p(·|x)) i
+RAG-TokenModel IntheRAG-To

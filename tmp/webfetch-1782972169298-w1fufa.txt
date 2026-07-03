@@ -1,0 +1,127 @@
+BATCHLLM: OPTIMIZING LARGE BATCHED LLM INFERENCE WITH
+GLOBAL PREFIX SHARING AND THROUGHPUT-ORIENTED TOKEN BATCHING
+ZhenZheng1 XinJi1 TaosongFang12 FanghaoZhou1 ChuanjieLiu1 GangPeng1
+ABSTRACT
+Largelanguagemodels(LLMs)increasinglyplayanimportantroleinawiderangeofinformationprocessing
+andmanagementtasksinindustry. Manyofthesetasksareperformedinlargebatchesorevenoffline,andthe
+performanceindicatorforwhichisthroughput. Thesetasksusuallyshowthecharacteristicofprefixsharing,
+wheredifferentpromptinputcanpartiallyshowthecommonprefix. However,theexistingLLMinferenceengines
+tendtooptimizethestreamingrequestsandshowlimitationsofsupportingthelargebatchedtaskswiththeprefix
+sharingcharacteristic. TheexistingsolutionsusetheLRU-basedcachetoreusetheKVcontextofcommonprefix
+betweenrequests. TheKVcontextthatareabouttobereusedmaybeprematurelyevictedwiththeimplicitcache
+management. Besides,thestreamingorientedsystemsdonotleveragetherequest-batchinformationandcannot
+mixthedecodingtokenswiththeprefillchunkstothebestforthebatchedscenarios,andthusfailstosaturate
+theGPU.WeproposeBatchLLMtoaddresstheaboveproblems. BatchLLMexplicitlyidentifiesthecommon
+prefixesglobally. TherequestssharingthesameprefixwillbescheduledtogethertoreusetheKVcontextthe
+best. BatchLLM reorders the requests and schedules the requests with larger ratio of decoding first to better
+mixthedecodingtokenswiththelatterprefillchunks, andappliesmemory-centrictokenbatchingtoenlarge
+thetoken-batchsizes,whichhelpstoincreasetheGPUutilization. ExtensiveevaluationshowsthatBatchLLM
+outperformsvLLMandSGLangby1.3×to10.8×onasetofmicrobenchmarksandatypicalindustryworkload
+underdifferenthardwareenvironments. Codeisavailableathttps://github.com/microsoft/MixLL
+M/tree/batchllm_vllm_064.
+1 INTRODUCTION Zheng et al., 2023) can flexibly support the execution of
+LLMinferencetasks,especiallywithblockedKVmemory
+Themoderninformationprocessingandmanagementtasks
+management (Kwon et al., 2023) and per-iteration token
+arestartingtoleveragelargelanguagemodels(LLMs)to
+batching (Yu et al., 2022). However, the design of exist-
+achievebetterresults,suchasthesearchengine(Wangetal.,
+ing inference engines tend to optimize streaming online
+2023;Xiongetal.,2024),advertisement(Meguellatietal.,
+servicesandshowlimitationsinthroughput-orientedlarge-
+2024),andrecommendersystems(Zhaoetal.,2024;Kim
+batch processing. 1) Lack of global prefix sharing. The
+etal.,2024).Duetothehugeamountofdatatobeprocessed,
+state-of-the-art(SOTA)LLMinferenceenginessupportto
+many of these LLM tasks are performed in large batches
+cachetheKVcontextwithLRUpolicytoenableprefixshar-
+or even offline (e.g., offline ranking), for which the most
+ingbetweenprompts.However,fromaglobalperspectiveof
+important performance indicator is throughput. Besides,
+largebatches,anLRU-basedcachemayprematurelyevict
+differentinput(prompts)ofthesetaskscanpartiallyshare
+KVcontextsthatareabouttobereusedandretainunused
+thesameprefix(e.g.,thesamewebdocumentinthesearch
+KVcontextsforalongtime,causingunnecessaryrecalcula-
+enginetasks). GiventhehighcostofLLMinference,how
+tion. 2)Suboptimaltokenbatchingforthroughput-oriented
+toservethesetasksefficientlyisacriticalproblemforthe
+andprefix-sharedtasks. ThecurrentLLMinferenceengines
+informationprocessingsystems.
+scheduledifferentrequestsindependentlyanddonotcluster
+The recent LLM inference engines (Kwon et al., 2023; therequestswithcommonprefixtogethertoschedule.Itcan
+extendthelifetimeofthecommonprefixandthusincrease
+1Microsoft 2Chinese Information Processing Laboratory, thememoryusage,andmayprematurelyevictKVcontexts
+ISCAS, UCAS. Work was done when Taosong Fang was
+thatareabouttobereusedasdiscussedabove. Besides,they
+interned at Microsoft. Correspondence to: Zhen Zheng
+usuallyscheduletherequestsinthefirst-come-first-serve
+<zhengzhen@microsoft.com>.
+or similar order to guarantee the fairness and latency of
+Proceedingsofthe9thMLSysConference(IndustryTrack),Belle- the streaming requests. The requests with larger ratio of
+vue,WA,USA,2026.Copyright2026bytheauthor(s). decodingstepsmaybescheduledtoolatetobeabletomix
+6202
+rpA
+22
+]LC.sc[
+3v49530.2142:viXra
+BatchLLM:OptimizingLargeBatchedLLMInferencewithGlobalPrefixSharingandThroughput-orientedTokenBatching
+withtheprefillchunkstoincreasethehardwareutilization. 2023;Xiongetal.,2024)insearchengineasanexample,
+Theyapplythemixofprefillanddecodingtokenstogether whichistogeneratethesnippetofthewebdocument(web
+according to the threshold of token number and request content)inthesearchresultpageaccordingtobothdocu-
+number. This limits the number of decoding tokens that mentanduserquery. Anexamplepromptinindustry(Wang
+canbebatchedandkeepstheGPUsfromsaturatingforthe etal.,2023)is: generateashortsnippetbasedonthegiven
+iterationsdominatedbydecodingtokens. Document to answer the given Query. Document: <...>
+Query: <...>. DuetothatitishardtomeettheSLOwhen
+In this work, we introduce BatchLLM, the holistic opti-
+performingthemassiveLLMinferencesonline,acommon
+mizationforthethroughput-orientedlarge-batchLLMinfer-
+practiceistorunthesnippetgenerationtaskofflineforthe
+encewithglobalprefixpreprocessing,andprefix-awareand
+high-frequencywebdocumentsandqueries,andretrievethe
+throughput-oriented token batching. The basic insight is
+offlineresultsduringonlineservingwhenthecorresponding
+basedonthefactthat,thepromptcharacteristicsareknown
+document-querypairoccurs.
+aheadbeforeprocessingthelargebatch. Comparedtothe
+implicitLRUcachethatcannotretaintheKVcontextfor ManyoftheLLM-basedinformationprocessingandman-
+reuseaccurately,thecommonprefixesbetweenpromptscan agementtasksshowthecharacteristicofthesharedprefix
+beidentifiedexplicitlyandcanbereusedexplicitly. Besides, between the prompts of different requests, which comes
+thelengthdistributionofthepromptsisknownaheadand fromthenaturethatdifferenttaskscanperformonthesame
+the main performance target is throughput, which allows content(e.g.,webdocument). Takethesearchenginetask
+theinferenceenginetoreordertherequestsandformlarger asanexample,itmayextractdifferentinformationfromthe
+token-batches1. Itmakesthefollowingcontributions: samewebdocumentsothatthedocumentcanbeashared
+prefix in the prompt. Specifically, as for the snippet gen-
+▶ It pioneers the LLM inference optimization for the
+eration task, given that it is to extract the snippet of the
+throughputorientedlargebatchedprefix-sharedscenarios
+document-querypair,adocumentcanbethecommonprefix
+withtheinsightofusingglobalinformationofthebatch,for
+fordifferentqueries. Therearemanyotherindustrytasks
+theincreasinglyimportantLLM-basedinformationprocess-
+thatfallintotheofflineprocessingmodewithacommon
+ingandmanagement.
+prefix. Theveryimportantofflinerankingtasksforsearch
+▶ It designs the ahead-of-time prefix identification and andrecommendationcanusethepromptof"pleaseevaluate
+enlargement method to achieve effective prefix reusing therelevanceofthedocumentforthequery,Query: <...>,
+in global view, and proposes the requests reordering and Document: <...>",whereeachquerycorrespondstomany
+memory-centrictokenbatchingmethodtoincreasetheper- documents and can be the common prefix. The Ads title
+iterationGPUutilization. rewrite task in industry can use the prompt of "given the
+QueryandtheLandingPageinfo,pleaserefinetheoldtitle
+▶ It presents BatchLLM implementation building upon
+‘xxx’togetabetteradtitle. LandingPage: <...>,Query:
+vLLM. BatchLLM achieves end-to-end performance im-
+<...>",wherethelandingpagecanbethecommonprefix
+provementof1.3×to10.8×thanvLLMandSGLangfor
+andthecomputationisusuallythroughputcritical. Theof-
+thebenchmarksandanindustryworkloadunderdifferent
+flinelabelingandscoringtasksinindustrycanhavelong
+hardwareenvironments.
+systempromptandfewshotexamples,whichcanalsobe
+thecommonprefixintheprompt.
+2 OPPORTUNITIES
+Thesharedprefixcanbemanagedinmultiplelevels. For
+2.1 EmergingIndustryScenarios example, the first level prefix can be the global system
+informationandinstructions,andthesecondlevelcanbe
+LLM has been increasingly used in a broad range of in-
+thewebdocume

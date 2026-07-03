@@ -1,0 +1,99 @@
+SLM FINETUNING FOR NATURAL LANGUAGE TO DOMAIN SPECIFIC CODE
+GENERATION IN PRODUCTION
+RenjiniR.Nair1 DamianK.Kowalczyk1 MarcoGaudesi1 ChhayaMethani1
+ABSTRACT
+Many applications today use LLMs for code generation, however, production systems have strict latency re-
+quirements that can be hard to meet with large models. Small language models (SLMs), with a few billion
+parameters,areresource-efficient,butmightsufferfromlimitedreasoning,hallucinationsorpoorretentionof
+longercontext. Theyare50-foldsmallerthanLLMs,butthesmallersizecanresultinbrittleoutputsandalower
+performanceceiling,havingretainedlessknowledgeandcontext. Fine-tuningimprovesaccuracyforspecific
+tasksbyembeddingdomainknowledgedirectlyintomodelweights,reducingrelianceonruntimecontext. We
+hadpreviouslyimplementedabaselineNL-to-Codegenerationapproachusingaretrieval-augmentedgeneration
+(RAG)pipelinethatdynamicallyselectedfew-shotexamplestoembedDSLcontextfortheLLM.Inthecurrent
+study,weevaluateSLMsforgeneratingthisDSLfromnaturallanguagebyfine-tuningvariantsofMistraland
+other SLMs on a dataset of NL-code pairs, aiming to improve upon the baseline. Our results show that the
+fine-tuned models achieve better performance and latency for test data sets than the larger models. The best
+performingSLMcouldbedirectlyaugmentedbyfinetuningwithminimalamountsofvariousclassesofharmful
+data,enablingittobeResponsibleAIcompliant. Wealsopresentanexperimentwherewefurtherfine-tuned
+thetrainedSLMforcustomer-specificscenarioswithoutgeneralperformancedegradation,whichwouldhelpto
+resolvecustomerspecificissuesthatcanariseinproductionsystems. Forawell-roundedstudy,weperformed
+loadtesting, followedbydeploymenttoproduction, confirmingoptimalperformanceintermsoflatencyand
+quality. Ourfindingsshowthattask-specificfinetuningwithSLMsprovidesanefficient,faster,cost-effectiveand
+adaptivealternativetoLLMsfordomainspecificlanguage(DSL)generation.
+1 INTRODUCTION Inshort,LLMsarepowerfulgeneralists,whileSLMsare
+efficientspecialists.
+The landscape of natural language processing (NLP) is
+rapidlyevolvingwithadvancesinlargelanguagemodels TomitigateaccuracylimitationsofSLMs, fine-tuningon
+(LLMs)andthegrowingutilityofsmalllanguagemodels domain-specificdatasetshasemergedasaneffectivestrat-
+(SLMs). LLMs,withbillionsofparameters,havedemon- egy(Bietal.,2024;Minetal.,2022;Yuetal.,2022;Bappy
+strated strong generalization across tasks such as open- et al., 2025). By adapting model weights to reflect task-
+endedgeneration,multi-hopreasoning,andfew-shotlearn- relevant structure and language, fine-tuning can substan-
+ing(Brownetal.,2020;Chowdheryetal.,2022). However, tiallyimproveaccuracyandoutputconsistency(Xuetal.,
+LLMspresentconsiderablechallengesintermsofcompu- 2023). Parameter-efficientfinetuning(PEFT)approaches
+tationalcost,inferencelatency,modelinterpretability,and suchasLow-RankAdaptation(LoRA)andQLoRAenable
+deploymentconstraints,especiallyinsecurityandprivacy thisadaptationwithoutretrainingtheentiremodel,reduc-
+sensitiveorresource-constrainedsettings(Chenetal.,2025; ing both memory and storage overhead (Hu et al., 2021).
+Staab et al., 2024). Small Language Models (SLMs), by Thesemethodsintroducetrainablelow-rankmatriceswithin
+contrast,offeramorelightweightandtractablealternative, existingtransformerlayers,makingitfeasibletodeploycus-
+particularly well-suited for task-specific or edge applica- tomizedmodelsonconsumer-gradehardware. Inthispaper,
+tions(Zhangetal.,2023). WhilethereducedsizeofSLMs wefine-tuneSLMsusingPEFTw/LoRAforastructured
+enablesfasterinferenceandeasierdeployment,italsolimits taskwithstabledomainboundaries. Comparedtoretrieval-
+theirinternalknowledgeandreasoningdepth,oftenresult- augmentedgeneration(RAG)withLLMs,whichrequires
+ing in brittle performance, increased hallucinations, and maintainingexternaldocumentstoresandaddsinference
+sensitivitytopromptformulation(Subramanianetal.,2025; latency,finetuningallowstoreducethecontextnecessary
+Yuanetal.,2023;Wee&Baghdadi,2024;Minetal.,2023). perrequest,andconsequently,prefill-relatedlatencyimpact
+(Lewisetal.,2020). RAGremainsusefulfordynamicor
+Preprint.ApreprintversionofthisworkisavailableatarXiv.
+6202
+rpA
+01
+]GL.sc[
+1v25990.4062:viXra
+broad-knowledgeapplicationsbutrequiresmaintainingex- evant for various tasks. Moreover, the sheer volume and
+ternaldatabases,dealingwithretrievalqualityissues,and naminginconsistencyacrossAPIsintroduceambiguitythat
+handlinglargercontextlengthsduringinference(Liuetal., standardfine-tunedmodelsstruggletoresolve.
+2023). Incontrast,afine-tunedSLMdirectlyencodestask-
+Our current production system helps users create these
+specificknowledge,reducingprefill-stageoverheadatrun-
+DSLflowsfromnaturallanguage,poweredbyaRetrieval
+timeandsimplifyingsystemarchitecture.Additionally,tech-
+Augmented Generation (RAG) based GPT4 model (Bas-
+niquessuchasstructuredpromptdesign,datasetcuration,
+samzadeh&Methani,2024),wheretheusertypesinnatural
+andreal-timevalidationcheckpointsfurtherenhancetask
+language (NL) queries, and the model returns a flow in
+alignment and generalization (Dettmers et al., 2023). As
+DSL. We observed that the RAG model very frequently
+NLP systems mature, balancing model size, adaptability
+incurredlatencyoverheadsfromretrievalandlong-context
+andoperationalefficiencyremainsakeyareaoffocus.
+processing, which is unsuitable for latency-sensitive pro-
+In this paper, we have use workflow automation as the ductionenvironments. Wealsofoundthatthehandlingof
+contexttoevaluatetheutilityoffinetunedmodelsinNatu- conditionallogicandnestedAPIusagewereinconsistent
+ralLanguagetoDomainSpecificLanguage(DSL)genera- andincorrectwiththismethod,whichnegativelyimpacts
+tion. DSLsarespecializedprogramminglanguagestailored parsingoftheflowanddegradesquality. Sincefinetuning
+for particular applications, such as SQL, or formats like improves pattern learning for specific tasks, we reasoned
+JSON/YAMLusedforAPIorchestration. Inthiswork,we thatcomplicatedflowlogicmightbelearnedbetterbyfine-
+addresstheproblemofgeneratingaDSLinalow-codeplat- tunedmodels. Inthisstudy,wehaveevaluatedtheutilityof
+form designed for building automation workflows across smalllanguagemodelsforfinetuningtheNL2DSLmodel,
+thousandsofweb-scaleAPIs. Theseworkflowsenableau- using theGPT4-RAGmodel asbaseline. Both RAGand
+tomationofcustomerscenarioslikecreatinghelpdeskticket finetunedmodelswerepoweredbyanexample/trainingdata
+routing,invoiceprocessing,employeesurveysorintegrating setof68,000NLandDSLpairs,andevaluatedforperfor-
+sales leads from forms and emails etc. The DSL in this manceusing1000(F2NL1K)instancetestsets. Thebulk
+case, expresses API calls as functions and encodes their ofthetrainingandinferencedataweregeneratedbyGPT4
+sequencingalongwithconditionallogicforexecution. For (explained in the Data Generation section 2.1 in Experi-
+instance,whenamakerwantstoautomateaflowwherein ments)usingsampledProductionflowsandstaticfewshot
+weatherdetailsforalocationissenteverydaytoaspecific examples,inaDSLtoNLapproach. Thesedatafollowthe
+emailid,theflowwouldneedtocalltheweatherAPItoget distributionoftheProductionconnector(API)operations.
+theweatherfollowedbytheAPIforsendinganemail. A
+Next,webuiltResponsibleAIcompliancedirectlyintothe
+representativeflowinDSLforthispurposeisshownbelow.
+modelbyaddingnefariousdatatotraining,andtestedRAI
+NL query: Send me an email with the weather forecast robustnessusingmultipleclassesofharmfuldata. While
+everyday. FlowinDSL:triggerOutputs=awaitcommon- buildinghorizontalmodelscateringtothousandsoftenants,
+Trigger.Recurrence( "frequency": "Day", "interval": 1, afrequentscenarioiswhenthetenantwouldprefertoper-
+"timeZone": "EasternStandardTime"); sonalizefeaturestoprioritizetheirproductsorservices. To
+outputs_shared_msnweather_TodaysForecast = cater to such scenarios, it is essential for the underlying
+shared_msnweather.TodaysForecast( "units": "Impe- model to be easily adaptable, in this case to API prefer-
+rial","location": "Seattle"); ences,whilemaintainingperformanceforthegenericAPIs.
+outputs_shared_

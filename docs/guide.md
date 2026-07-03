@@ -29,7 +29,7 @@
 - 想了解 Agent Tool Use：[Tool Use](/05-agent/tool-use/)（已上线）
 - 想了解 Agent OS：[Agent OS](/05-agent/agent-os/)（已上线）
 - 想了解 RAG：[RAG](/06-rag/)（已上线）
-- 想了解 AI 可观测性：[OpenTelemetry](/07-ai-sre/)（建设中）
+- 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 
 ### 3. 每个主题的结构
 

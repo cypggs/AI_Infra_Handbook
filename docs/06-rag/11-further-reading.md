@@ -84,6 +84,7 @@
 | Planning | /05-agent/planning/ | 复杂查询需要先规划再多次检索。 |
 | Tool Use | /05-agent/tool-use/ | 检索器是一种返回文档的工具。 |
 | Agent OS | /05-agent/agent-os/ | 为 RAG 任务提供进程与资源隔离。 |
+| AI SRE | /07-ai-sre/ | 为 RAG 服务提供可观测性、SLO 与事故响应保障。 |
 
 ## 推荐学习路径
 

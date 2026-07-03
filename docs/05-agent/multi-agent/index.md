@@ -35,6 +35,7 @@
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
 | RAG | /06-rag/ | RAG 可作为 Multi-Agent 系统中共享的知识检索工具。 |
+| AI SRE | /07-ai-sre/ | AI SRE 监控多 Agent 协作的 trace 与团队级 SLO。 |
 
 上表可以概括为一句话：**Agent Runtime 决定“单个 Agent 怎么执行”，Multi-Agent 决定“多个 Agent 怎么协作”，Memory 决定“它们记得什么、共享什么”**。
 

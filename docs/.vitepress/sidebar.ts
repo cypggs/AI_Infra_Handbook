@@ -292,7 +292,20 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '07. AI SRE',
     collapsed: false,
-    items: [{ text: '概述', link: '/07-ai-sre/' }],
+    items: [
+      { text: '概述', link: '/07-ai-sre/' },
+      { text: '1. 背景', link: '/07-ai-sre/01-background' },
+      { text: '2. 核心概念', link: '/07-ai-sre/02-core-ideas' },
+      { text: '3. 架构设计', link: '/07-ai-sre/03-architecture' },
+      { text: '4. AI SRE 工作流程', link: '/07-ai-sre/04-ai-sre-workflow' },
+      { text: '5. 核心模块', link: '/07-ai-sre/05-core-modules' },
+      { text: '6. 源码与生态分析', link: '/07-ai-sre/06-source-analysis' },
+      { text: '7. Mini Demo', link: '/07-ai-sre/07-mini-demo' },
+      { text: '8. 企业生产实践', link: '/07-ai-sre/08-production-practice' },
+      { text: '9. 最佳实践', link: '/07-ai-sre/09-best-practices' },
+      { text: '10. 面试题', link: '/07-ai-sre/10-interview-questions' },
+      { text: '11. 延伸阅读', link: '/07-ai-sre/11-further-reading' },
+    ],
   },
   {
     text: '08. 安全',

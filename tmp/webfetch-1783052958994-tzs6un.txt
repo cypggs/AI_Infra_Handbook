@@ -1,0 +1,100 @@
+LLM as OS (llmao), Agents as Apps: Envisioning
+AIOS, Agents and the AIOS-Agent Ecosystem
+YingqiangGe YujieRen WenyueHua
+RutgersUniversity RutgersUniversity RutgersUniversity
+ShuyuanXu JuntaoTan YongfengZhang∗
+RutgersUniversity RutgersUniversity RutgersUniversity
+Agent Applications
+AIOS SDK
+(in natural language)
+AIOS
+OS
+OS SDK
+(in programming language)
+Applications
+Figure1: OS-APPecosystemvs. AIOS-Agentecosystem.
+Abstract
+ThispaperenvisionsarevolutionaryAIOS-Agentecosystem,whereLargeLan-
+guageModel(LLM)servesasthe(Artificial)IntelligentOperatingSystem(IOS,or
+AIOS)–anoperatingsystem“withsoul”. Uponthisfoundation,adiverserangeof
+LLM-basedAIAgentApplications(Agents,orAAPs)aredeveloped,enrichingthe
+AIOS-AgentecosystemandsignalingaparadigmshiftfromthetraditionalOS-APP
+ecosystem. WeenvisionthatLLM’simpact willnotbelimitedto theAIappli-
+cationlevel,instead,itwillinturnrevolutionizethedesignandimplementation
+∗AuthorAffiliation:DepartmentofComputerScience,RutgersUniversity,NewBrunswick,NJ,08854,US;
+AuthorEmails:{yingqiang.ge,yujie.ren,wenyue.hua,shuyuan.xu,juntao.tan,yongfeng.zhang}@rutgers.edu
+3202
+ceD
+6
+]SO.sc[
+1v51830.2132:viXra
+ofcomputersystem,architecture,software,andprogramminglanguage,featured
+by several main concepts: LLM as OS (system-level), Agents as Applications
+(application-level),NaturalLanguageasProgrammingInterface(user-level),and
+ToolsasDevices/Libraries(hardware/middleware-level).
+Inthispaper,webeginbyintroducingthearchitectureandhistoricalevolutionof
+traditionalOperatingSystems(OS).Thenweformalizeaconceptualframework
+for AIOS through “LLM as OS (LLMAO),” drawing analogies between AIOS
+componentsandtraditionalOSelements: LLMislikenedtoOSkernel,context
+windowtomemory,externalstoragetofilesystem,hardwaretoolstoperipheralde-
+vices,softwaretoolstoprogramminglibraries,anduserpromptstousercommands.
+Subsequently, we introduce the new AIOS-Agent Ecosystem, where users and
+developerscaneasilyprogramAgentApplications(AAPs)usingnaturallanguage,
+democratizing the development of and the access to computer software, which
+is different from the traditional OS-APP ecosystem, where desktop or mobile
+applications(APPs)havetobeprogrammedbywell-trainedsoftwaredevelopers
+usingprofessionalprogramminglanguages. Followingthis,weexplorethediverse
+scope of Agent Applications. These agents can autonomously perform diverse
+tasks,showcasingintelligenttask-solvingabilityinvariousscenarios. Wedelve
+intobothsingleagentsystemsandmulti-agentsystems,aswellashuman-agent
+interaction. Lastly,wepositthattheAIOS-Agentecosystemcangaininvaluable
+insights from the development trajectory of the traditional OS-APP ecosystem.
+Drawingontheseinsights,weproposeastrategicroadmapfortheevolutionofthe
+AIOS-Agentecosystem. Thisroadmapisdesignedtoguidethefutureresearchand
+development,suggestingsystematicprogressesofAIOSanditsAgentapplications.
+Contents
+1 Introduction 4
+2 AligningLLMandOS 6
+2.1 OSandConnectionswithLLM . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2.1.1 Kernel . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2.1.2 UserInterface . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.1.3 OperatingSystemEcosystem . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.1.4 EvolutionHistoryofOperatingSystems . . . . . . . . . . . . . . . . . . . 9
+2.2 LLMAO,AIOSandAIAgents . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2.1 LLMasOS(system-level) . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2.2 AgentsasApplications(application-level) . . . . . . . . . . . . . . . . . . 10
+2.2.3 NaturalLanguageasProgrammingInterface(user-level) . . . . . . . . . . 10
+2.2.4 ToolsasDevices/Libraries(hardware/middleware-level) . . . . . . . . . . 11
+2.3 DevelopmentofOSandAIOSAligned . . . . . . . . . . . . . . . . . . . . . . . 11
+3 ArchitectureofAIOS 12
+3.1 LLM(asAIOSKernel) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+3.1.1 ReasoningandPlanning . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3.1.2 Self-Improving . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+3.2 ContextWindow(asMemory) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+3.3 ExternalStorage(asFiles) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+2
+3.3.1 DataFormats . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.3.2 DataRetrievalMethods . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+3.4 Tools(asDevices/Libraries) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+3.4.1 ToolCategories . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+3.4.2 Tool-DriverandTool-API . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4 AIOS-AgentEcosystem 18
+4.1 AgentsasApplications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+4.2 NaturalLanguageProgrammingforAgents . . . . . . . . . . . . . . . . . . . . . 19
+4.3 TheEcosystem . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5 LLMAOinPractice: AIAgents 20
+5.1 SingleAgentApplications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5.1.1 PhysicalEnvironment . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+5.1.2 Virtual/DigitalEnvironment . . . . . . . . . . . . . . . . . . . . . . . . . 21
+5.2 Multi-AgentApplications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.2.1 CollaborativeInteraction . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.2.2 AdversarialInteraction . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+5.3 Human-AgentApplications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+6 OS-inspiredFutureDirections 23
+6.1 ResourceManagement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+6.1.1 MemoryManagement . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+6.1.2 ToolManagement. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+6.2 Communication . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+6.3 Security . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+7 Conclusions 26
+3

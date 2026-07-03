@@ -46,6 +46,7 @@
 | Tool Use | MCP 是 Tool Use 的协议化延伸，提供标准化能力发现与调用 | [Tool Use 总览](/05-agent/tool-use/) |
 | Agent OS | MCP Host 是 Agent OS 中负责外部能力接入与安全控制的组件 | [Agent OS 总览](/05-agent/agent-os/) |
 | RAG | /06-rag/ | Retriever 与知识库可封装为 MCP Server。 |
+| AI SRE | /07-ai-sre/ | AI SRE 观测 MCP Server/Client 的调用延迟与错误。 |
 
 ## 推荐学习路径
 

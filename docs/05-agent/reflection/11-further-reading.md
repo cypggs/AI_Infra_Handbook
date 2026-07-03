@@ -41,6 +41,7 @@
 | Tool Use（后续主题） | 工具结果可作为 Reflection 的外部反馈 | 敬请期待 |
 | [MCP](/05-agent/mcp/) | Reflection 可调用外部验证工具；[MCP](/05-agent/mcp/) 提供标准化工具发现 | [阅读](/05-agent/mcp/) |
 | RAG | /06-rag/ | Reflection 可基于 RAG 检索结果评估答案忠实度。 |
+| AI SRE | /07-ai-sre/ | AI SRE 为 Reflection 质量评估提供数据与告警。 |
 
 ## 推荐学习路径
 
