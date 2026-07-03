@@ -53,6 +53,7 @@
 - [vLLM 详解](/04-llmops/vllm/) — 可作为 Agent Runtime 的上游推理引擎。
 - [SGLang 详解](/04-llmops/sglang/) — 结构化生成与 LLM Program 执行引擎。
 - [Triton Inference Server 详解](/04-llmops/triton/) — 多框架推理服务入口。
+- [Ray 详解](/03-ai-platform/ray/) — 分布式 Python 计算框架，可作为大规模 Agent 部署的执行底座（actor 池、Serve、Data）。
 
 ## 推荐学习路径
 

@@ -21,7 +21,27 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '03. AI 平台',
     collapsed: false,
-    items: [{ text: '概述', link: '/03-ai-platform/' }],
+    items: [
+      { text: '概述', link: '/03-ai-platform/' },
+      {
+        text: 'Ray',
+        collapsed: false,
+        items: [
+          { text: '总览', link: '/03-ai-platform/ray/' },
+          { text: '1. 背景', link: '/03-ai-platform/ray/01-background' },
+          { text: '2. 核心思想', link: '/03-ai-platform/ray/02-core-ideas' },
+          { text: '3. 架构设计', link: '/03-ai-platform/ray/03-architecture' },
+          { text: '4. 执行模型', link: '/03-ai-platform/ray/04-execution-model' },
+          { text: '5. 核心模块', link: '/03-ai-platform/ray/05-core-modules' },
+          { text: '6. 源码分析', link: '/03-ai-platform/ray/06-source-analysis' },
+          { text: '7. Mini Demo', link: '/03-ai-platform/ray/07-mini-demo' },
+          { text: '8. 企业生产实践', link: '/03-ai-platform/ray/08-production-practice' },
+          { text: '9. 最佳实践', link: '/03-ai-platform/ray/09-best-practices' },
+          { text: '10. 面试题', link: '/03-ai-platform/ray/10-interview-questions' },
+          { text: '11. 延伸阅读', link: '/03-ai-platform/ray/11-further-reading' },
+        ],
+      },
+    ],
   },
   {
     text: '04. LLMOps',

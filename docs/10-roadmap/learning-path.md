@@ -26,9 +26,9 @@
 
 目标：理解模型训练、推理、服务的完整链路。
 
-- Kubeflow / Ray / MLflow
+- **[Ray](/03-ai-platform/ray/)（已上线）** / MLflow
 - 模型服务与推理优化
-- **vLLM（已上线）**
+- **[vLLM（已上线）](/04-llmops/vllm/)**
 - **SGLang（已上线）**
 - **TensorRT-LLM（已上线）**
 - **Triton Inference Server（已上线）**
@@ -80,7 +80,7 @@
 2. [SGLang](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
 3. [TensorRT-LLM](/04-llmops/tensorrt-llm/) — 理解 NVIDIA 编译型推理引擎与生产部署
 4. Kubernetes 与 GPU 调度 — 理解 AI 平台的底座
-5. Ray — 理解分布式 AI 计算
+5. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
 6. OpenTelemetry — 理解 AI 系统可观测性
 7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环

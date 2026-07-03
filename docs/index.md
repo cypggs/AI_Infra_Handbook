@@ -28,6 +28,9 @@ hero:
       text: LLM Gateway 详解
       link: /04-llmops/llm-gateway/
     - theme: alt
+      text: Ray 详解
+      link: /03-ai-platform/ray/
+    - theme: alt
       text: Agent Runtime 详解
       link: /05-agent/agent-runtime/
     - theme: alt
@@ -102,6 +105,7 @@ features:
 - [x] TensorRT-LLM 主题（NVIDIA 编译型 LLM 推理引擎）
 - [x] Triton Inference Server 主题（多框架推理服务软件）
 - [x] LLM Gateway 主题（访问控制与抽象层）
+- [x] Ray 主题（统一分布式 AI 计算框架）
 - [x] Agent Runtime 主题（AI Agent 执行容器）
 - [x] Memory 主题（AI Agent 记忆系统）
 - [x] Multi-Agent 主题（多 Agent 协作系统）
@@ -123,7 +127,7 @@ features:
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
 
 ## 贡献
 

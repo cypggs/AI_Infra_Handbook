@@ -92,6 +92,7 @@ pnpm docs:preview
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [Triton Inference Server 详解](docs/04-llmops/triton/) — 覆盖多框架推理服务、Model Repository、Backend 抽象、Dynamic/Sequence/Ensemble 调度、BLS、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [LLM Gateway 详解](docs/04-llmops/llm-gateway/) — 覆盖访问控制与抽象层、Provider 抽象、统一 OpenAI-compatible API、路由、负载均衡、限流、重试降级、认证、请求/响应转换、成本追踪、可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [Ray 详解](docs/03-ai-platform/ray/) — 覆盖 Ray Core tasks/actors/objects、所有权模型、spillback 调度、Plasma 对象存储、引用计数、lineage 重建、Ray Serve/Train/Data/Tune/RLlib/KubeRay、源码与生态分析、Mini Demo（ownership + hybrid 调度 + object store spilling + lineage 重建 + autoscaler，25 测试）、生产实践与面试题（内容更新至 2026-07-03）
 - [Agent Runtime 详解](docs/05-agent/agent-runtime/) — 覆盖 ReAct 循环、工具注册与 function calling、记忆、状态机、护栏、可观测、恢复、与 LLM Gateway 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Memory 详解](docs/05-agent/memory/) — 覆盖 Agent 记忆系统、工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索、存储后端、与 Agent Runtime 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Multi-Agent 详解](docs/05-agent/multi-agent/) — 覆盖多 Agent 协作、角色定义、消息通信、协调调度、共享黑板、团队可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）

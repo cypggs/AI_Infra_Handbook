@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ray-mini"
+version = "0.1.0"
+description = "Mini deterministic simulator of Ray core mechanisms (ownership, scheduling, object store, lineage, autoscaling) for the AI Infra Handbook."
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+ray-mini-demo = "ray_mini.demo:main"
+
+[tool.setuptools.packages.find]
+include = ["ray_mini*"]

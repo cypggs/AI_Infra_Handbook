@@ -36,6 +36,24 @@ export default withMermaid(
           ],
         },
         {
+          text: 'AI 平台',
+          items: [
+            { text: '概述', link: '/03-ai-platform/' },
+            { text: 'Ray 总览', link: '/03-ai-platform/ray/' },
+            { text: 'Ray 1. 背景', link: '/03-ai-platform/ray/01-background' },
+            { text: 'Ray 2. 核心思想', link: '/03-ai-platform/ray/02-core-ideas' },
+            { text: 'Ray 3. 架构设计', link: '/03-ai-platform/ray/03-architecture' },
+            { text: 'Ray 4. 执行模型', link: '/03-ai-platform/ray/04-execution-model' },
+            { text: 'Ray 5. 核心模块', link: '/03-ai-platform/ray/05-core-modules' },
+            { text: 'Ray 6. 源码分析', link: '/03-ai-platform/ray/06-source-analysis' },
+            { text: 'Ray 7. Mini Demo', link: '/03-ai-platform/ray/07-mini-demo' },
+            { text: 'Ray 8. 企业生产实践', link: '/03-ai-platform/ray/08-production-practice' },
+            { text: 'Ray 9. 最佳实践', link: '/03-ai-platform/ray/09-best-practices' },
+            { text: 'Ray 10. 面试题', link: '/03-ai-platform/ray/10-interview-questions' },
+            { text: 'Ray 11. 延伸阅读', link: '/03-ai-platform/ray/11-further-reading' },
+          ],
+        },
+        {
           text: 'Agent',
           items: [
             { text: 'Agent Runtime', link: '/05-agent/agent-runtime/' },

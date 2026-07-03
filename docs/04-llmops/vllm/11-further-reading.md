@@ -41,6 +41,7 @@
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)
 - [Triton Inference Server 详解](/04-llmops/triton/)
 - [LLM Gateway 详解](/04-llmops/llm-gateway/)
+- [Ray 详解](/03-ai-platform/ray/) — Ray Serve LLM 默认以 vLLM 作为推理后端，了解 Ray 可补充分布式服务与训练视角。
 - [学习路线](/10-roadmap/learning-path)
 - [面试指南](/10-roadmap/interview-guide)
 - [OpenAI 案例研究](/09-case-study/openai/) — 观察 PagedAttention/vLLM 类技术在大规模生产系统中的落地形态。
