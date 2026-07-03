@@ -81,7 +81,7 @@
 - [Reflection](/05-agent/reflection/)：从失败中总结，驱动 Planning 重规划。
 - [Multi-Agent](/05-agent/multi-agent/)：与 Planning 协作，解决“谁来做”。
 - [MCP](/05-agent/mcp/)：为 Planning 提供标准化的外部能力接入。
-- Tool Use（后续主题）：Planning 把工具调用作为计划中的原子步骤。
+- [Tool Use](/05-agent/tool-use/)：Planning 把工具调用作为计划中的原子步骤。
 
 ## 推荐学习路径
 

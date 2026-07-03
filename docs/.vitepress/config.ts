@@ -44,6 +44,7 @@ export default withMermaid(
             { text: 'Reflection', link: '/05-agent/reflection/' },
             { text: 'MCP', link: '/05-agent/mcp/' },
             { text: 'Planning', link: '/05-agent/planning/' },
+            { text: 'Tool Use', link: '/05-agent/tool-use/' },
           ],
         },
       ],

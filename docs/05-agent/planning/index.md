@@ -24,7 +24,7 @@
 | [Reflection](/05-agent/reflection/) | Reflection 负责从执行结果中提炼失败根因与改进策略，触发重规划 | Planning 响应 Reflection 的输出；Reflection 不直接生成新计划。 |
 | [Multi-Agent](/05-agent/multi-agent/) | Multi-Agent 解决“谁来做”，Planning 解决“做什么、按什么顺序做” | 两者常组合：中央 Planner 拆计划，各 Agent 领取子任务执行。 |
 | [MCP](/05-agent/mcp/) | MCP 提供标准化的外部能力接入；Planning 通过 Tool/MCP Gateway 使用这些能力 | Planning 不关心 MCP 协议细节，只依赖工具描述与调用结果。 |
-| Tool Use（后续主题） | Tool Use 负责单次工具调用的语法与结果解析；Planning 决定何时、为何、以什么参数调用 | Planning 把工具调用作为计划中的原子步骤。 |
+| [Tool Use](/05-agent/tool-use/) | Tool Use 负责单次工具调用的语法与结果解析；Planning 决定何时、为何、以什么参数调用 | Planning 把工具调用作为计划中的原子步骤。 |
 
 ## 本章结构
 

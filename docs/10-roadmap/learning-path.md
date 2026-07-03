@@ -44,7 +44,7 @@
 - **Reflection（已上线）**
 - **[MCP](/05-agent/mcp/)（已上线）**
 - **[Planning](/05-agent/planning/)（已上线）**
-- Tool Use
+- **[Tool Use](/05-agent/tool-use/)（已上线）**
 - Embedding、Retriever、Hybrid Search
 - GraphRAG 与评估体系
 
@@ -75,7 +75,8 @@
 11. [Reflection](/05-agent/reflection/) — 理解 Agent 自我反思、批判与质量提升闭环
 12. [MCP](/05-agent/mcp/) — 理解 Agent 协议、工具发现与跨模型能力复用
 13. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
-14. Tool Use — 理解 Agent 工具调用
+14. [Tool Use](/05-agent/tool-use/) — 理解 Agent 工具调用、Schema、解析、执行与可观测
+15. RAG — 理解外部知识检索
 
 ## 面试准备
 

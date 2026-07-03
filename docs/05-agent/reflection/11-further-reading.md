@@ -36,6 +36,7 @@
 | [Agent Memory](/05-agent/memory/) | Memory 存储反思产生的经验与 episode | [阅读](/05-agent/memory/) |
 | [Multi-Agent](/05-agent/multi-agent/) | 群体反思依赖多 Agent 通信与协调 | [阅读](/05-agent/multi-agent/) |
 | [Planning 详解](/05-agent/planning/) | Plan Reflection 在规划层面做批判与重规划 | [阅读](/05-agent/planning/) |
+| [Tool Use 详解](/05-agent/tool-use/) | Tool-use Reflection 反思工具选择、参数与调用结果 | [阅读](/05-agent/tool-use/) |
 | Tool Use（后续主题） | 工具结果可作为 Reflection 的外部反馈 | 敬请期待 |
 | [MCP](/05-agent/mcp/) | Reflection 可调用外部验证工具；[MCP](/05-agent/mcp/) 提供标准化工具发现 | [阅读](/05-agent/mcp/) |
 

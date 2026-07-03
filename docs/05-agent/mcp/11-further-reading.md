@@ -43,6 +43,7 @@
 | Multi-Agent | 多 Agent 可共享同一组 MCP Server | [Multi-Agent 总览](/05-agent/multi-agent/) |
 | Reflection | Reflection 可调用 MCP Tool/Resource 获取评估数据 | [Reflection 总览](/05-agent/reflection/) |
 | Planning | Planner 通过 MCP 发现可用能力并生成调用计划 | [Planning 总览](/05-agent/planning/) |
+| Tool Use | MCP 是 Tool Use 的协议化延伸，提供标准化能力发现与调用 | [Tool Use 总览](/05-agent/tool-use/) |
 
 ## 推荐学习路径
 

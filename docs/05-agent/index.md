@@ -10,10 +10,10 @@
 - [Reflection](/05-agent/reflection/)：Agent 自我反思与纠错系统，负责生成、批判、评估、修订闭环与质量提升
 - [MCP](/05-agent/mcp/)：模型上下文协议，Host / Client / Server 之间的开放工具与能力发现协议
 - [Planning](/05-agent/planning/)：AI Agent 的规划系统，负责任务分解、计划表示、执行、动态重规划与多主题集成
+- [Tool Use](/05-agent/tool-use/)：AI Agent 的工具调用层，负责工具定义、Schema、解析、校验、执行、结果格式化与可观测
 
 ## 计划中主题
 
-- Tool Use
 - Agent OS
 
 ## 一句话理解

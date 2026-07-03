@@ -30,6 +30,7 @@
 | [Agent Memory](/05-agent/memory/) | 如何保留并利用上下文与经验 | Multi-Agent 共享或隔离的长期记忆是协作基础；Blackboard 也需要 Memory 做持久化 |
 | **Multi-Agent** | 多个 Agent 如何分工协作完成复杂目标 | 承上启下，把单 Agent 能力编排成群体智能 |
 | [Planning](/05-agent/planning/) | 如何分解与重规划任务 | Coordinator 依赖 Planner 做任务拆分与再分配 |
+| [Tool Use](/05-agent/tool-use/) | 工具调用与执行 | 每个 Agent 通过 Tool Use 层调用自身工具；Multi-Agent 协调共享工具权限 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
 

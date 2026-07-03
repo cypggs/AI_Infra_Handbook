@@ -45,6 +45,9 @@ hero:
     - theme: alt
       text: Planning 详解
       link: /05-agent/planning/
+    - theme: alt
+      text: Tool Use 详解
+      link: /05-agent/tool-use/
 
 features:
   - icon: 📚
@@ -81,13 +84,14 @@ features:
 - [x] Reflection 主题（Agent 自我反思与纠错系统）
 - [x] MCP 主题（模型上下文协议）
 - [x] Planning 主题（Agent 规划系统）
+- [x] Tool Use 主题（Agent 工具调用）
 - [ ] 更多主题持续建设中……
 
 ## 如何阅读
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/) 或 [Planning 详解](/05-agent/planning/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/) 或 [Tool Use 详解](/05-agent/tool-use/)。
 
 ## 贡献
 
