@@ -39,3 +39,6 @@ build/
 .claude/settings.json
 .claude/skills/**/.env
 .claude/skills/fullstack-deploy/
+
+# Temporary files
+tmp/
