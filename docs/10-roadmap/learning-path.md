@@ -19,7 +19,7 @@
 - **[Kubernetes（已上线）](/02-cloud-native/kubernetes/)** — 声明式 API、控制循环、调度框架、GPU/Gang 调度、生产实践
 - **[容器运行时（已上线）](/02-cloud-native/container-runtime/)** — K8s 之下的执行层：namespace/cgroup/overlayfs、OCI 标准、containerd/runc 分层、镜像优化与供应链安全、沙箱运行时、惰性拉取
 - **[Helm（已上线）](/02-cloud-native/helm/)** — K8s 包管理器：Chart/values/template/Release 四要素、Tiller 移除与客户端渲染、三方合并 Patch、OCI 仓库、GitOps 部署
-- Operator 模式
+- **[Operator 模式（已上线）](/02-cloud-native/operator/)** — 把领域运维知识编码成控制循环：CRD/Controller/Reconcile 四铁律、controller-runtime 架构、finalizer/owner/status/webhook、KubeRay/Training Operator/GPU Operator 源码对照
 - CRI、CNI、CSI
 - GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
 
@@ -83,8 +83,9 @@
 4. **[Kubernetes 与 GPU 调度](/02-cloud-native/kubernetes/)** — 理解 AI 平台的底座
 5. **[容器运行时](/02-cloud-native/container-runtime/)** — 理解 K8s 之下"把镜像变成进程"的那一层
 6. **[Helm](/02-cloud-native/helm/)** — 理解 K8s 包管理、Chart 模板、三方合并与 GitOps 部署
-7. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
-8. OpenTelemetry — 理解 AI 系统可观测性
+7. **[Operator 模式](/02-cloud-native/operator/)** — 理解 CRD + 控制循环、Reconcile 四铁律、finalizer/owner/status，以及 AI 平台（KubeRay/Training Operator/KServe）如何用它实现自管理
+8. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
+9. OpenTelemetry — 理解 AI 系统可观测性
 7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
 9. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理

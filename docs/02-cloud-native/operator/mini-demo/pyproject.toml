@@ -1,0 +1,20 @@
+[project]
+name = "operator-mini"
+version = "0.1.0"
+description = "微型 Kubernetes Operator 教学模拟器 —— CRD + level-triggered Reconcile + Finalizer + Status 子资源 + Owner 级联 + 指数退避"
+requires-python = ">=3.9"
+dependencies = []  # 零第三方依赖：apiserver/informer/workqueue/reconciler 全部用标准库从零实现
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["operator_mini*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

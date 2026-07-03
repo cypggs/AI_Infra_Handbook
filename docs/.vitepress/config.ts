@@ -78,6 +78,23 @@ export default withMermaid(
           ],
         },
         {
+          text: 'Operator 模式',
+          items: [
+            { text: 'Operator 总览', link: '/02-cloud-native/operator/' },
+            { text: 'Operator 1. 背景', link: '/02-cloud-native/operator/01-background' },
+            { text: 'Operator 2. 核心思想', link: '/02-cloud-native/operator/02-core-ideas' },
+            { text: 'Operator 3. 架构设计', link: '/02-cloud-native/operator/03-architecture' },
+            { text: 'Operator 4. Reconcile 工作流程', link: '/02-cloud-native/operator/04-reconcile-loop' },
+            { text: 'Operator 5. 核心模块', link: '/02-cloud-native/operator/05-core-modules' },
+            { text: 'Operator 6. 源码分析', link: '/02-cloud-native/operator/06-source-analysis' },
+            { text: 'Operator 7. 工程实践', link: '/02-cloud-native/operator/07-mini-demo' },
+            { text: 'Operator 8. 企业生产实践', link: '/02-cloud-native/operator/08-production-practice' },
+            { text: 'Operator 9. 最佳实践', link: '/02-cloud-native/operator/09-best-practices' },
+            { text: 'Operator 10. 面试题', link: '/02-cloud-native/operator/10-interview-questions' },
+            { text: 'Operator 11. 延伸阅读', link: '/02-cloud-native/operator/11-further-reading' },
+          ],
+        },
+        {
           text: 'LLMOps',
           items: [
             { text: 'vLLM', link: '/04-llmops/vllm/' },

@@ -88,7 +88,8 @@ AI 平台工程师必须深读的子领域：
 | **kind / minikube** | 本地起测试集群（学习必备） |
 | **k9s** | 终端 TUI，比 `kubectl` 高效十倍 |
 | **kubectx / kubens** | 快速切集群/namespace |
-| **Helm** | 包管理，部署复杂应用 |
+| **Helm** | 包管理，部署复杂应用（[Helm 主题](../helm/)） |
+| **Operator 模式** | CRD + 控制循环，把领域运维知识编码成自愈系统（[Operator 主题](../operator/)） |
 | **ArgoCD / Flux** | GitOps 持续部署 |
 | **kubectl-neat / kubent** | 清理冗余字段 / 查弃用 API |
 | **Prometheus + Grafana** | 监控标配 |
