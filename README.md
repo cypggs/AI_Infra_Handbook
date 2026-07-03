@@ -103,6 +103,7 @@ pnpm docs:preview
 - [RAG 详解](docs/06-rag/) — 覆盖检索增强生成、Chunking、Embedding、Vector Store、Dense/Sparse/Hybrid 检索、RRF、Reranking、GraphRAG、评估体系、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [AI SRE 详解](docs/07-ai-sre/) — 覆盖 AI 系统可观测性、OpenTelemetry GenAI 语义约定、SLI/SLO/Error Budget、Burn Rate 告警、AIOps、事故响应与复盘、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [安全详解](docs/08-security/) — 覆盖 AI 系统安全、IAM/AuthN/AuthZ、Secrets 管理、Zero Trust、Guardrails、合规与隐私治理、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [OpenAI 案例研究详解](docs/09-case-study/openai/) — 覆盖 OpenAI 训练与推理基础设施、Azure AI 超级计算机、H100/H200/InfiniBand、连续批处理与 KV Cache 管理、推测解码与预测输出、流式生成、RLHF 与对齐、Red Teaming/Preparedness Framework/System Cards、Triton/Whisper/CLIP、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

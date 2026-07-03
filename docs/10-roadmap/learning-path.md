@@ -62,6 +62,13 @@
 - IAM、Secrets、Zero Trust
 - 合规（SOC2、HIPAA、GDPR）
 
+## 阶段六：案例研究（持续）
+
+目标：从真实公司的工程实践中提炼可复用的设计原则。
+
+- **[OpenAI 案例研究](/09-case-study/openai/)（已上线）** — 训练/推理基础设施、模型安全与对齐、产品化工程经验
+- Anthropic、Cursor、Perplexity、Google、Meta 等持续建设中
+
 ## 推荐学习顺序
 
 如果你时间有限，建议按以下优先级：
@@ -84,6 +91,7 @@
 16. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
 17. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
 18. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
+19. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
 
 ## 面试准备
 

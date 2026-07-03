@@ -43,6 +43,7 @@
 - [LLM Gateway 详解](/04-llmops/llm-gateway/)
 - [学习路线](/10-roadmap/learning-path)
 - [面试指南](/10-roadmap/interview-guide)
+- [OpenAI 案例研究](/09-case-study/openai/) — 观察 PagedAttention/vLLM 类技术在大规模生产系统中的落地形态。
 
 ## 推荐学习路径
 

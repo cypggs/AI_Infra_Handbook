@@ -93,6 +93,22 @@ export default withMermaid(
             { text: '9. 最佳实践', link: '/08-security/09-best-practices' },
           ],
         },
+        {
+          text: '案例研究',
+          items: [
+            { text: '概述', link: '/09-case-study/' },
+            { text: 'OpenAI 总览', link: '/09-case-study/openai/' },
+            { text: '1. 背景', link: '/09-case-study/openai/01-background' },
+            { text: '2. 核心思想', link: '/09-case-study/openai/02-core-ideas' },
+            { text: '3. 架构设计', link: '/09-case-study/openai/03-architecture' },
+            { text: '4. 训练与推理', link: '/09-case-study/openai/04-training-and-inference' },
+            { text: '5. 核心模块', link: '/09-case-study/openai/05-core-modules' },
+            { text: '6. 源码与生态分析', link: '/09-case-study/openai/06-source-analysis' },
+            { text: '7. Mini Demo', link: '/09-case-study/openai/07-mini-demo' },
+            { text: '8. 企业生产实践', link: '/09-case-study/openai/08-production-practice' },
+            { text: '9. 最佳实践', link: '/09-case-study/openai/09-best-practices' },
+          ],
+        },
       ],
 
       sidebar,

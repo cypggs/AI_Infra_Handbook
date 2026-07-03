@@ -1,0 +1,17 @@
+[project]
+name = "openai-mini"
+version = "0.1.0"
+description = "A minimal OpenAI-compatible inference API demo."
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastapi>=0.100",
+    "uvicorn>=0.23",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "httpx>=0.24"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

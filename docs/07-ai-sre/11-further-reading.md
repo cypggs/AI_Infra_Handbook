@@ -55,6 +55,7 @@
 | Agent Runtime | /05-agent/agent-runtime/ | Agent 步骤需要 trace 与 SLO。 |
 | RAG | /06-rag/ | RAG 流水线需要专门的可观测性与评估指标。 |
 | Agent OS | /05-agent/agent-os/ | 进程隔离与资源治理是故障缓解的底座。 |
+| OpenAI 案例研究 | /09-case-study/openai/ | 大规模 LLM 服务的可观测性、SLO 与事件响应经验。 |
 
 ## 推荐学习路径
 
