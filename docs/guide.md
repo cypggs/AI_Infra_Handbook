@@ -30,6 +30,7 @@
 - 想了解 Agent OS：[Agent OS](/05-agent/agent-os/)（已上线）
 - 想了解 RAG：[RAG](/06-rag/)（已上线）
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
+- 想了解安全：[安全](/08-security/)（已上线）
 
 ### 3. 每个主题的结构
 

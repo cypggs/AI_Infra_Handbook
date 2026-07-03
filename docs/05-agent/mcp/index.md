@@ -29,6 +29,7 @@
 | Tool Use（后续主题） | 工具定义与执行细节 | MCP 是 Tool Use 的协议化延伸，关注发现与互操作 |
 | RAG | /06-rag/ | Retriever 与知识库可封装为 MCP Server。 |
 | AI SRE | /07-ai-sre/ | AI SRE 观测 MCP Server/Client 的调用延迟与错误。 |
+| 安全 | /08-security/ | MCP Server 暴露的工具/资源/提示需要 capability 协商、调用授权与审计。 |
 
 ## 本章结构
 

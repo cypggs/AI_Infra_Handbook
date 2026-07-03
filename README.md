@@ -102,6 +102,7 @@ pnpm docs:preview
 - [Agent OS 详解](docs/05-agent/agent-os/) — 覆盖 Agent 运行时操作系统、进程/生命周期、调度、沙箱、Workspace、Capability/权限、Registry、MCP Host 与 A2A IPC、AIOS/Agent libOS/Quine 等源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [RAG 详解](docs/06-rag/) — 覆盖检索增强生成、Chunking、Embedding、Vector Store、Dense/Sparse/Hybrid 检索、RRF、Reranking、GraphRAG、评估体系、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [AI SRE 详解](docs/07-ai-sre/) — 覆盖 AI 系统可观测性、OpenTelemetry GenAI 语义约定、SLI/SLO/Error Budget、Burn Rate 告警、AIOps、事故响应与复盘、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [安全详解](docs/08-security/) — 覆盖 AI 系统安全、IAM/AuthN/AuthZ、Secrets 管理、Zero Trust、Guardrails、合规与隐私治理、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

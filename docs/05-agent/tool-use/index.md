@@ -27,6 +27,7 @@
 | [Reflection](/05-agent/reflection/) | 反思依据 | 模型基于工具返回的客观结果进行自我修正，而不是仅依赖内部先验。 |
 | RAG | /06-rag/ | 检索器本质上是一种返回文档片段的工具。 |
 | AI SRE | /07-ai-sre/ | AI SRE 把工具调用作为关键 span 与 SLI。 |
+| 安全 | /08-security/ | Tool Use 是 Agent 越权与数据外泄的高危路径，需要 schema 校验、权限控制与沙箱执行。 |
 
 ## 章节导航
 

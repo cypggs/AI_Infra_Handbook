@@ -29,6 +29,7 @@
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
 | RAG | /06-rag/ | RAG 把 Retriever 作为工具接入 Runtime 的 ReAct 循环。 |
 | AI SRE | /07-ai-sre/ | AI SRE 为 Runtime 提供 trace、metrics、SLO 与事故响应体系。 |
+| 安全 | /08-security/ | Runtime 是 Agent 权限、Guardrails、工具沙箱与审计策略的执行底座。 |
 
 ## 本章结构
 

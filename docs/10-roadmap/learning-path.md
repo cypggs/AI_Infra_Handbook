@@ -55,6 +55,7 @@
 目标：让 AI 系统在生产环境中稳定、安全、可观测。
 
 - **[AI SRE](/07-ai-sre/)（已上线）**
+- **[安全](/08-security/)（已上线）**
 - OpenTelemetry 与可观测性
 - SLO / Error Budget
 - AIOps 与事件响应
@@ -82,6 +83,7 @@
 15. [Agent OS](/05-agent/agent-os/) — 理解 Agent 运行时操作系统、进程调度、沙箱、Workspace 与多 Agent 治理
 16. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
 17. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
+18. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
 
 ## 面试准备
 

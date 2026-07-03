@@ -23,6 +23,7 @@
 | [TensorRT-LLM](/04-llmops/tensorrt-llm/) | NVIDIA 编译型推理引擎 | Gateway 可以把 TensorRT-LLM Triton backend 作为高性能上游 |
 | [Triton Inference Server](/04-llmops/triton/) | 多框架统一推理服务 | Gateway 通常位于 Triton 前面，处理认证、限流、多租户 |
 | **LLM Gateway** | 多引擎/多云/多租户统一接入 | 承上启下，向下屏蔽 Provider 差异，向上暴露统一 API |
+| 安全 | /08-security/ | Gateway 是认证、限流、审计、Provider key 隔离与 Guardrails 的核心策略执行点。 |
 
 ## 本章结构
 

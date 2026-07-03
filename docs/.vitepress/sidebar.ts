@@ -310,7 +310,20 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '08. 安全',
     collapsed: false,
-    items: [{ text: '概述', link: '/08-security/' }],
+    items: [
+      { text: '概述', link: '/08-security/' },
+      { text: '1. 背景', link: '/08-security/01-background' },
+      { text: '2. 核心思想', link: '/08-security/02-core-ideas' },
+      { text: '3. 架构设计', link: '/08-security/03-architecture' },
+      { text: '4. AI 安全生命周期', link: '/08-security/04-security-lifecycle' },
+      { text: '5. 核心模块', link: '/08-security/05-core-modules' },
+      { text: '6. 源码与生态分析', link: '/08-security/06-source-analysis' },
+      { text: '7. Mini Demo', link: '/08-security/07-mini-demo' },
+      { text: '8. 企业生产实践', link: '/08-security/08-production-practice' },
+      { text: '9. 最佳实践', link: '/08-security/09-best-practices' },
+      { text: '10. 面试题', link: '/08-security/10-interview-questions' },
+      { text: '11. 延伸阅读', link: '/08-security/11-further-reading' },
+    ],
   },
   {
     text: '09. 案例研究',
