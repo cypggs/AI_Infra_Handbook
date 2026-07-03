@@ -53,7 +53,7 @@
 - [Planning 主题](/05-agent/)（后续主题）— Planner 可以利用 Episodic Memory 中的经验生成更优计划。
 - [Multi-Agent 主题](/05-agent/multi-agent/) — 共享或隔离的长期记忆池是多 Agent 协作的基础。
 - [Reflection 主题](/05-agent/reflection/) — Reflection 系统产出 critique、score 与改进经验，是 Episodic Memory 的重要输入。
-- [MCP 主题](/05-agent/)（后续主题）— Memory 可以暴露 `remember/recall` 接口供 Runtime 调用；MCP 是可选协议。
+- [MCP 主题](/05-agent/mcp/) — Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 [MCP](/05-agent/mcp/) 调用。
 
 ## 推荐学习路径
 

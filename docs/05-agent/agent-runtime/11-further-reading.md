@@ -45,6 +45,7 @@
 - [Memory 详解](/05-agent/memory/) — Agent 的记忆系统：工作记忆、长期记忆、向量检索与持久化。
 - [Multi-Agent 详解](/05-agent/multi-agent/) — 多 Agent 协作、角色定义、协调调度与共享黑板。
 - [Reflection 详解](/05-agent/reflection/) — Agent 自我反思与纠错：生成、批判、评估、修订闭环。
+- [MCP 详解](/05-agent/mcp/) — Agent 能力发现与调用协议，Runtime 的重要搭档。
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — Agent Runtime 通常通过 Gateway 调用模型。
 - [vLLM 详解](/04-llmops/vllm/) — 可作为 Agent Runtime 的上游推理引擎。
 - [SGLang 详解](/04-llmops/sglang/) — 结构化生成与 LLM Program 执行引擎。

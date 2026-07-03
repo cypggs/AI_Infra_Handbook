@@ -8,10 +8,10 @@
 - [Memory](/05-agent/memory/)：AI Agent 的记忆系统，负责工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索与多会话持久化
 - [Multi-Agent](/05-agent/multi-agent/)：多 Agent 协作系统，负责角色定义、消息通信、协调调度、共享黑板与团队可观测
 - [Reflection](/05-agent/reflection/)：Agent 自我反思与纠错系统，负责生成、批判、评估、修订闭环与质量提升
+- [MCP](/05-agent/mcp/)：模型上下文协议，Host / Client / Server 之间的开放工具与能力发现协议
 
 ## 计划中主题
 
-- MCP（Model Context Protocol）
 - Planning
 - Tool Use
 - Agent OS

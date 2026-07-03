@@ -31,7 +31,7 @@
 | **Agent Memory** | 如何保留并利用 Agent 运行中产生的上下文与经验 | 承上启下，把“瞬时对话”转化为“可持续积累的记忆” |
 | RAG（后续主题） | 如何从外部知识库检索固定知识 | RAG 读的是企业知识库；Memory 读的是 Agent 自身运行中积累的用户偏好、任务经验 |
 | Planning（后续主题） | 如何分解与重规划任务 | Planner 可以利用 Episodic Memory 中的成功案例来生成更优计划 |
-| MCP（后续主题） | 工具发现与调用协议 | Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 function call 调用；MCP 只是可选协议 |
+| [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 function call 调用；[MCP](/05-agent/mcp/) 是可选协议 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 共享或隔离的长期记忆池是多 Agent 协作的基础；Memory 为 Multi-Agent 提供跨 Agent 上下文 |
 
 上表可以概括为一句话：**Agent Runtime 决定“怎么执行”，RAG 决定“读什么外部知识”，Memory 决定“记住什么、忘记什么、回注什么”**。
