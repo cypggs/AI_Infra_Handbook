@@ -1,4 +1,7 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/09-case-study/:theme", "destination": "/09-case-study/:theme/index.html" }
+  ]
 }
