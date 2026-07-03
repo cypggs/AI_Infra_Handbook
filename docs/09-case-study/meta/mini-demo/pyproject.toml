@@ -1,0 +1,14 @@
+[project]
+name = "meta-mini"
+version = "0.1.0"
+description = "A minimal demo of Meta-scale synchronous training reliability: failure rollback, checkpoint tradeoff, and SDC detection."
+requires-python = ">=3.10"
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

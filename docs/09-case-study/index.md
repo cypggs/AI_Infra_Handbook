@@ -6,13 +6,13 @@
 
 - [OpenAI](/09-case-study/openai/) — 从 GPT 训练集群到 ChatGPT 推理服务的完整基础设施演化
 - [Anthropic](/09-case-study/anthropic/) — 宪法对齐、机制可解释性、Trainium/Colossus 异构算力与 prompt caching 推理工程
+- [Meta](/09-case-study/meta/) — 开放权重、OCP 硬件协同设计、RoCE/InfiniBand 双网络织物、SDC 治理与 >95% 有效训练时间、MTIA 自研硅
 
 ## 计划中主题
 
 - Cursor
 - Perplexity
 - Google
-- Meta
 
 ## 一句话理解
 

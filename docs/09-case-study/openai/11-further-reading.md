@@ -47,6 +47,7 @@
 - [AI SRE 详解](/07-ai-sre/) — SLO、burn rate、可观测性。
 - [Agent Runtime 详解](/05-agent/agent-runtime/) — Agent 执行与工具调用。
 - [Anthropic 案例研究](/09-case-study/anthropic/) — 对照"规模驱动"与"对齐驱动"两条前沿实验室工程路线。
+- [Meta 案例研究](/09-case-study/meta/) — 对照"闭源规模（OpenAI）↔ 闭源对齐（Anthropic）↔ 开放权重 + 硬件协同设计（Meta）"三角，理解开放生态如何 scale 到极致。
 
 ## 学习路径建议
 

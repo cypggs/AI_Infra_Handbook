@@ -42,6 +42,7 @@
 ## 本手册交叉引用
 
 - [OpenAI 案例研究](/09-case-study/openai/) — 对照"规模驱动" vs "对齐驱动"两条路线。
+- [Meta 案例研究](/09-case-study/meta/) — 对照"闭源对齐（Anthropic）↔ 开放权重 + 硬件协同设计（Meta）"；Meta 也公开 SDC 治理与 >95% 有效训练时间的可靠性工程。
 - [vLLM 详解](/04-llmops/vllm/) — continuous batching、KV/prefix cache 工程化。
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — 多云入口、限流、计费、cache 感知路由。
 - [Agent Runtime 详解](/05-agent/agent-runtime/) — tool/computer use、extended thinking 的执行循环。

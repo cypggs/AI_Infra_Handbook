@@ -45,6 +45,7 @@
 - [面试指南](/10-roadmap/interview-guide)
 - [OpenAI 案例研究](/09-case-study/openai/) — 观察 PagedAttention/vLLM 类技术在大规模生产系统中的落地形态。
 - [Anthropic 案例研究](/09-case-study/anthropic/) — prompt caching（prefix hash + 20-block lookback）是工程化 KV/prefix cache 的代表实践。
+- [Meta 案例研究](/09-case-study/meta/) — Meta 是 PyTorch 主要贡献者，vLLM 是 Llama 推理事实标准，MTIA 提供 vLLM plugin backend；Llama Stack 标准化推理接口。
 
 ## 推荐学习路径
 

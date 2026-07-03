@@ -81,6 +81,7 @@
 - [AI SRE 详解](/07-ai-sre/) — 安全事件的可观测性、审计、事件响应。
 - [OpenAI 案例研究](/09-case-study/openai/) — 大规模 AI 服务的安全对齐、红队、合规与隐私治理实践。
 - [Anthropic 案例研究](/09-case-study/anthropic/) — RSP/ASL 安全治理框架、Constitutional AI、可解释性驱动的安全监控。
+- [Meta 案例研究](/09-case-study/meta/) — 开放权重安全治理的代表：Llama Guard 2、Prompt Guard、CyberSecEval 2、Code Shield 全部开源，GOAT 自动化红队。
 
 ## 学习路径建议
 
