@@ -82,6 +82,7 @@
 - [Multi-Agent](/05-agent/multi-agent/)：与 Planning 协作，解决“谁来做”。
 - [MCP](/05-agent/mcp/)：为 Planning 提供标准化的外部能力接入。
 - [Tool Use](/05-agent/tool-use/)：Planning 把工具调用作为计划中的原子步骤。
+- [Agent OS](/05-agent/agent-os/)：Agent OS 调度并治理 Planning 生成的计划执行。
 
 ## 推荐学习路径
 

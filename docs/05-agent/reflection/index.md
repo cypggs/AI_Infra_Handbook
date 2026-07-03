@@ -33,8 +33,8 @@
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 如何分工协作 | 群体反思（Group Reflection）依赖 Multi-Agent 的通信与协调机制 |
 | [Planning](/05-agent/planning/) | 如何分解与重规划任务 | Plan Reflection 在规划层面做批判与重规划，是 Reflection 与 Planning 的交汇点 |
 | [Tool Use](/05-agent/tool-use/) | 工具调用与执行 | Tool-use Reflection 专门反思工具选择、参数填充与调用结果 |
+| [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Reflection 结果可触发 Agent OS 的 checkpoint/rollback 或流程升级 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Reflection 可以调用外部验证工具（如编译器、单元测试、检索）获取客观反馈；[MCP](/05-agent/mcp/) 提供标准化工具发现 |
-| Tool Use（后续主题） | Agent 如何使用外部工具 | Tool-use Reflection 专门反思工具选择、参数填充与调用结果 |
 
 上表可以概括为一句话：**Agent Runtime 决定“怎么执行”，Memory 决定“记住什么”，Reflection 决定“怎么发现错误并改得更好”**。
 

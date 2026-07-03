@@ -23,6 +23,7 @@
 | [Planning](/05-agent/planning/) | 编排决策 | Planning 决定“先调哪个、后调哪个、如何组合结果”；Tool Use 提供单次调用的原子语义。 |
 | [Memory](/05-agent/memory/) | 状态持久 | 工具结果、用户偏好、调用历史回写入 Memory，供后续轮次检索。 |
 | [Multi-Agent](/05-agent/multi-agent/) | 能力共享 | 一个 Agent 可以把另一个 Agent 或子服务暴露为工具，实现委托与协作。 |
+| [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Agent OS 为 Tool Use 提供进程、调度、沙箱与资源治理，确保工具调用在受控环境中执行。 |
 | [Reflection](/05-agent/reflection/) | 反思依据 | 模型基于工具返回的客观结果进行自我修正，而不是仅依赖内部先验。 |
 
 ## 章节导航

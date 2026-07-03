@@ -31,6 +31,7 @@
 | **Multi-Agent** | 多个 Agent 如何分工协作完成复杂目标 | 承上启下，把单 Agent 能力编排成群体智能 |
 | [Planning](/05-agent/planning/) | 如何分解与重规划任务 | Coordinator 依赖 Planner 做任务拆分与再分配 |
 | [Tool Use](/05-agent/tool-use/) | 工具调用与执行 | 每个 Agent 通过 Tool Use 层调用自身工具；Multi-Agent 协调共享工具权限 |
+| [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Multi-Agent 运行在 Agent OS 提供的进程、调度、沙箱与消息总线之上 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
 

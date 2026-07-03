@@ -27,6 +27,7 @@
 - 想了解 Agent 协议：[MCP](/05-agent/mcp/)（已上线）
 - 想了解 Agent Planning：[Planning](/05-agent/planning/)（已上线）
 - 想了解 Agent Tool Use：[Tool Use](/05-agent/tool-use/)（已上线）
+- 想了解 Agent OS：[Agent OS](/05-agent/agent-os/)（已上线）
 - 想了解 AI 可观测性：[OpenTelemetry](/07-ai-sre/)（建设中）
 
 ### 3. 每个主题的结构

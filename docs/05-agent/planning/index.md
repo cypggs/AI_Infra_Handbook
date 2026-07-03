@@ -25,6 +25,7 @@
 | [Multi-Agent](/05-agent/multi-agent/) | Multi-Agent 解决“谁来做”，Planning 解决“做什么、按什么顺序做” | 两者常组合：中央 Planner 拆计划，各 Agent 领取子任务执行。 |
 | [MCP](/05-agent/mcp/) | MCP 提供标准化的外部能力接入；Planning 通过 Tool/MCP Gateway 使用这些能力 | Planning 不关心 MCP 协议细节，只依赖工具描述与调用结果。 |
 | [Tool Use](/05-agent/tool-use/) | Tool Use 负责单次工具调用的语法与结果解析；Planning 决定何时、为何、以什么参数调用 | Planning 把工具调用作为计划中的原子步骤。 |
+| [Agent OS](/05-agent/agent-os/) | Agent OS 负责任务/进程的调度、沙箱与资源治理；Planning 生成计划后由 Agent OS 调度执行 | Planning 决定“做什么”，Agent OS 决定“以什么进程/资源做”。 |
 
 ## 本章结构
 

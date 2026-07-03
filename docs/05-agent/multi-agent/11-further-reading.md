@@ -34,6 +34,7 @@
 - LLM Gateway（后续主题）— Multi-Agent 调用多模型的统一入口。
 - [Planning 详解](/05-agent/planning/) — Coordinator 做任务拆分与重规划的核心能力。
 - [Tool Use 详解](/05-agent/tool-use/) — 每个 Agent 的工具调用、解析、执行与权限控制。
+- [Agent OS 详解](/05-agent/agent-os/) — Multi-Agent 运行在 Agent OS 提供的进程、调度、沙箱与消息总线之上。
 - RAG（后续主题）— 多个 Agent 可共享的外部知识检索能力。
 
 ## 推荐学习路径

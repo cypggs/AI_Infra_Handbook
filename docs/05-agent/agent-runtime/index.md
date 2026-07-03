@@ -25,6 +25,7 @@
 | [Memory](/05-agent/memory/) | 长期记忆与上下文管理 | Runtime 负责在循环中读写 Memory，具体存储/检索/持久化由 Memory 主题负责 |
 | [Planning](/05-agent/planning/) | 任务分解与重规划 | Runtime 内嵌轻量 Planner，复杂规划由 Planning 主题负责 |
 | [Tool Use](/05-agent/tool-use/) | 工具定义、调用与执行 | Runtime 调用 Tool Use 层完成工具注册、解析、校验、执行与结果反馈 |
+| [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Runtime 是 Agent OS 的核心执行组件；Agent OS 在 Runtime 之上提供进程管理、调度、沙箱与资源治理 |
 | [Multi-Agent](/05-agent/multi-agent/) | 多 Agent 协作 | 本主题聚焦单 Agent Runtime，Multi-Agent 在其之上做协调与调度 |
 
 ## 本章结构

@@ -25,6 +25,7 @@
 | **MCP** | 工具/资源/提示的发现与调用协议 | 承上启下，把外部能力以标准接口暴露给 Agent |
 | [Planning](/05-agent/planning/) | 任务分解与重规划 | Planner 通过 MCP 发现可用能力并生成调用计划 |
 | [Tool Use](/05-agent/tool-use/) | 工具调用与执行 | MCP 是 Tool Use 的协议化延伸，关注能力发现与跨模型互操作 |
+| [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | MCP Host 是 Agent OS 中负责外部能力接入与安全控制的组件；Agent OS 在 Host 之上做进程/调度/沙箱治理 |
 | Tool Use（后续主题） | 工具定义与执行细节 | MCP 是 Tool Use 的协议化延伸，关注发现与互操作 |
 
 ## 本章结构

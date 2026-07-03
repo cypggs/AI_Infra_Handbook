@@ -58,7 +58,7 @@ docs/
 ├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow
 ├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
-├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use
+├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
 ├── 08-security/        # IAM、Secrets、Zero Trust、合规
@@ -99,6 +99,7 @@ pnpm docs:preview
 - [MCP 详解](docs/05-agent/mcp/) — 覆盖 Model Context Protocol、Host/Client/Server 角色、Tools/Resources/Prompts、JSON-RPC 协议流程、Capability negotiation、Transport（stdio/SSE/HTTP）、官方 SDK 源码、Mini Demo、企业生产实践与面试题（内容更新至 2026-07-03）
 - [Planning 详解](docs/05-agent/planning/) — 覆盖 Agent 规划系统、任务分解范式、计划表示（列表/DAG/树/状态图）、Plan-Execute-Observe-Replan 循环、动态重规划、与 Runtime/Memory/Reflection/Multi-Agent/MCP 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Tool Use 详解](docs/05-agent/tool-use/) — 覆盖 Agent 工具调用、JSON Schema 工具定义、Tool Choice、并行调用、解析/校验/执行/结果格式化、OpenAI/Anthropic/Google/LangGraph/OpenAI Agents SDK/AutoGen/MCP 源码对比、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [Agent OS 详解](docs/05-agent/agent-os/) — 覆盖 Agent 运行时操作系统、进程/生命周期、调度、沙箱、Workspace、Capability/权限、Registry、MCP Host 与 A2A IPC、AIOS/Agent libOS/Quine 等源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 
 ## 内容更新说明
 

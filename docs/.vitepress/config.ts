@@ -45,6 +45,7 @@ export default withMermaid(
             { text: 'MCP', link: '/05-agent/mcp/' },
             { text: 'Planning', link: '/05-agent/planning/' },
             { text: 'Tool Use', link: '/05-agent/tool-use/' },
+            { text: 'Agent OS', link: '/05-agent/agent-os/' },
           ],
         },
       ],

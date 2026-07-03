@@ -52,6 +52,7 @@
 - [RAG 主题](/05-agent/)（后续主题）— 外部知识检索，与 Memory 同源但数据不同。
 - [Planning 详解](/05-agent/planning/) — Planner 可以利用 Episodic Memory 中的经验生成更优计划。
 - [Tool Use 详解](/05-agent/tool-use/) — 工具调用层；工具结果与偏好可写入 Memory。
+- [Agent OS 详解](/05-agent/agent-os/) — Agent OS 管理进程级 Workspace 与状态，Memory 提供跨进程持久化与检索。
 - [Multi-Agent 主题](/05-agent/multi-agent/) — 共享或隔离的长期记忆池是多 Agent 协作的基础。
 - [Reflection 主题](/05-agent/reflection/) — Reflection 系统产出 critique、score 与改进经验，是 Episodic Memory 的重要输入。
 - [MCP 主题](/05-agent/mcp/) — Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 [MCP](/05-agent/mcp/) 调用。
