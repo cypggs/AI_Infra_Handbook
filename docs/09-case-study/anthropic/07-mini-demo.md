@@ -86,41 +86,58 @@ pytest tests/ -q
 ### 1. 前缀 hash + 20-block 回看命中
 
 ```python
-def process(self, blocks, breakpoint_idx, workspace, ttl=TTL_5M):
-    # 向前回看最多 20 个 block，寻找之前写过的匹配条目
-    hit = None
-    start = max(-1, breakpoint_idx - LOOKBACK)
-    for i in range(breakpoint_idx, start, -1):
-        if self._lookup(workspace, blocks[i].prefix_hash):
-            hit = i
-            break
-    read  = sum(b.tokens for b in blocks[:hit + 1])            # 0.1x
-    write = sum(b.tokens for b in blocks[hit + 1:breakpoint_idx + 1])  # 1.25x/2x
-    after = sum(b.tokens for b in blocks[breakpoint_idx + 1:])        # 1x
-    self._write(workspace, blocks[breakpoint_idx].prefix_hash, ttl)
-    return Usage(read, write, after)
+def process(self, blocks, breakpoints=None, workspace="default") -> Usage:
+    hashes = cumulative_hashes(blocks)        # hashes[i] = blocks[0..i] 的累积 prefix hash
+    tokens = [b.tokens for b in blocks]
+    bps = breakpoints or [len(blocks) - 1]    # 自动缓存 -> 断点落在最后一个块
+    last_bp = bps[-1]
+
+    # 向前回看最多 20 个 block，寻找之前写过的匹配条目（写入只发生在断点）
+    a = self._find_hit(workspace, hashes, bps)   # 向前回看最多 20 block，找最高命中
+    hit = -1 if a is None else a
+
+    read  = sum(tokens[: hit + 1])                 # 命中部分按 0.1x 计价
+    after = sum(tokens[last_bp + 1 :])             # 最后断点之后的动态部分按 1x
+
+    # 在每个严格大于命中点的断点写入新条目；按 ttl 拆成 5m(1.25x) / 1h(2x)
+    writes = [bp for bp in bps if bp > hit]
+    write_5m = write_1h = 0
+    prev = hit
+    for bp in writes:
+        seg = sum(tokens[prev + 1 : bp + 1])
+        if blocks[bp].cache_ttl == "1h":
+            write_1h += seg
+        else:
+            write_5m += seg
+        prev = bp
+
+    return Usage(cache_read_input_tokens=read,
+                 cache_creation_input_tokens=write_5m + write_1h,
+                 input_tokens=after,
+                 write_5m_tokens=write_5m,
+                 write_1h_tokens=write_1h)
 ```
 
 ### 2. Constitutional critique-revise
 
 ```python
-def revise(response, constitution):
-    for principle in constitution:
-        critique = principle.critique(response)      # 命中则返回批评文本
-        if critique:
-            response = principle.apply(response)     # 规则化修订
+def revise(response: str) -> str:
+    # 规则化地应用每条宪法的 (bad, good) 修订；真实系统用模型做 critique
+    for p in CONSTITUTION:
+        response = response.replace(p.fix[0], p.fix[1])
     return response
 ```
 
 ### 3. 成本计算（官方倍率）
 
 ```python
-def cost(usage, base_per_mtok):
+def cost(usage: Usage, base_per_mtok: float) -> float:
+    m = base_per_mtok / 1_000_000
     return (
-        usage.cache_read  * 0.10 * base_per_mtok / 1e6   # 读 0.1x
-      + usage.write_5m   * 1.25 * base_per_mtok / 1e6   # 5m 写 1.25x
-      + usage.write_1h   * 2.00 * base_per_mtok / 1e6   # 1h 写 2x
-      + usage.input      * 1.00 * base_per_mtok / 1e6
+        usage.cache_read_input_tokens * 0.10 * m   # 读 0.1x
+      + usage.write_5m_tokens         * 1.25 * m   # 5m 写 1.25x
+      + usage.write_1h_tokens         * 2.00 * m   # 1h 写 2x
+      + usage.input_tokens            * 1.00 * m
     )
 ```
 
