@@ -85,6 +85,7 @@
 | Tool Use | /05-agent/tool-use/ | 检索器是一种返回文档的工具。 |
 | Agent OS | /05-agent/agent-os/ | 为 RAG 任务提供进程与资源隔离。 |
 | AI SRE | /07-ai-sre/ | 为 RAG 服务提供可观测性、SLO 与事故响应保障。 |
+| Benchmark + Evaluation | /07-ai-sre/benchmark-evaluation/ | RAG 流水线需要端到端评估：检索召回、生成事实性、延迟与成本。 |
 
 ## 推荐学习路径
 

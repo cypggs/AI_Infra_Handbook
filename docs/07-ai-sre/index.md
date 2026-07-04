@@ -6,6 +6,10 @@ AI SRE 负责让 AI 系统在生产环境中跑得稳、看得清、修得快。
 
 > AI 系统不仅要跑得快，还要跑得稳；AI SRE 负责在不确定性中建立可度量的可靠性。
 
+## 子主题
+
+- [Benchmark + Evaluation](./benchmark-evaluation/) — Agent / LLM / RAG 的可复现评测框架，覆盖 trace-based eval、benchmark 数据集、CI 评估门与生产回归检测。
+
 ## 学习目标
 
 读完本主题后，你应该能够：

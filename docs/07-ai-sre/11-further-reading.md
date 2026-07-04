@@ -55,6 +55,7 @@
 | vLLM | /04-llmops/vllm/ | 推理引擎 metrics（TTFT、ITL、KV cache）是监控重点。 |
 | Agent Runtime | /05-agent/agent-runtime/ | Agent 步骤需要 trace 与 SLO。 |
 | RAG | /06-rag/ | RAG 流水线需要专门的可观测性与评估指标。 |
+| Benchmark + Evaluation | /07-ai-sre/benchmark-evaluation/ | AI SRE 的评测子主题：trace-based eval、benchmark 数据集、CI 评估门、生产回归检测。 |
 | Agent OS | /05-agent/agent-os/ | 进程隔离与资源治理是故障缓解的底座。 |
 | OpenAI 案例研究 | /09-case-study/openai/ | 大规模 LLM 服务的可观测性、SLO 与事件响应经验。 |
 | Anthropic 案例研究 | /09-case-study/anthropic/ | run-rate $30B 增长冲击可靠性的容量治理；prompt cache 命中率作为 SLO。 |

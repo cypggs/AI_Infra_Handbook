@@ -76,6 +76,7 @@
 | Agent OS | /05-agent/agent-os/ | Agent OS 为 Tool Use 提供进程、调度、沙箱与资源治理。 |
 | RAG | /06-rag/ | 检索器本质上是一种返回文档片段的工具。 |
 | AI SRE | /07-ai-sre/ | AI SRE 把工具调用作为关键 span 与 SLI。 |
+| Benchmark + Evaluation | /07-ai-sre/benchmark-evaluation/ | 评测工具调用正确性、参数准确性、工具使用覆盖率。 |
 | Reflection | /05-agent/reflection/ | Reflection 基于工具结果进行自我修正。 |
 
 ## 推荐学习路径

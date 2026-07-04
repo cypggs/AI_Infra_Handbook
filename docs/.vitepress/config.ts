@@ -187,6 +187,7 @@ export default withMermaid(
             { text: '7. Mini Demo', link: '/07-ai-sre/07-mini-demo' },
             { text: '8. 企业生产实践', link: '/07-ai-sre/08-production-practice' },
             { text: '9. 最佳实践', link: '/07-ai-sre/09-best-practices' },
+            { text: 'Benchmark + Evaluation', link: '/07-ai-sre/benchmark-evaluation/' },
           ],
         },
         {

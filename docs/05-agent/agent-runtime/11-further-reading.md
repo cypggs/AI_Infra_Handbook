@@ -49,6 +49,7 @@
 - [Planning 详解](/05-agent/planning/) — 复杂任务分解、计划表示与动态重规划，与 Runtime 内嵌 Planner 形成分层。
 - [Tool Use 详解](/05-agent/tool-use/) — Agent 工具调用层：Schema、解析、校验、执行与结果格式化，Runtime 的直接依赖。
 - [Agent OS 详解](/05-agent/agent-os/) — Agent 运行时操作系统：进程、调度、沙箱、Workspace 与资源治理，Runtime 的上层治理者。
+- [Benchmark + Evaluation 详解](/07-ai-sre/benchmark-evaluation/) — Agent 可评估性：trace-based eval、工具调用正确性、延迟/成本/鲁棒性评测。
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — Agent Runtime 通常通过 Gateway 调用模型。
 - [vLLM 详解](/04-llmops/vllm/) — 可作为 Agent Runtime 的上游推理引擎。
 - [SGLang 详解](/04-llmops/sglang/) — 结构化生成与 LLM Program 执行引擎。

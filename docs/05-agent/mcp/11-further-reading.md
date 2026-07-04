@@ -47,6 +47,7 @@
 | Agent OS | MCP Host 是 Agent OS 中负责外部能力接入与安全控制的组件 | [Agent OS 总览](/05-agent/agent-os/) |
 | RAG | /06-rag/ | Retriever 与知识库可封装为 MCP Server。 |
 | AI SRE | /07-ai-sre/ | AI SRE 观测 MCP Server/Client 的调用延迟与错误。 |
+| Benchmark + Evaluation | /07-ai-sre/benchmark-evaluation/ | 评测 MCP Server 的工具调用正确性、Capability 协商与端到端 Agent 表现。 |
 
 ## 推荐学习路径
 

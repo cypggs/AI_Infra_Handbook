@@ -60,6 +60,7 @@
 目标：让 AI 系统在生产环境中稳定、安全、可观测。
 
 - **[AI SRE](/07-ai-sre/)（已上线）**
+- **[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）** — Agent / LLM / RAG 的可复现评测框架：trace-based eval、benchmark 数据集、CI 评估门与生产回归检测
 - **[安全](/08-security/)（已上线）**
 - OpenTelemetry 与可观测性
 - SLO / Error Budget

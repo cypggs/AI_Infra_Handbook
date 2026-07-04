@@ -103,6 +103,9 @@ hero:
       text: AI SRE 详解
       link: /07-ai-sre/
     - theme: alt
+      text: Benchmark + Evaluation
+      link: /07-ai-sre/benchmark-evaluation/
+    - theme: alt
       text: 安全详解
       link: /08-security/
     - theme: alt
@@ -173,6 +176,7 @@ features:
 - [x] Agent OS 主题（Agent 运行时操作系统）
 - [x] RAG 主题（检索增强生成）
 - [x] AI SRE 主题（可观测性、可靠性、AIOps）
+- [x] Benchmark + Evaluation 主题（Agent / LLM / RAG 可复现评测框架：trace-based eval、benchmark 数据集、CI 评估门、生产回归检测）
 - [x] 安全主题（IAM、Secrets、Zero Trust、合规）
 - [x] OpenAI 案例研究（训练/推理基础设施、安全与对齐）
 - [x] Anthropic 案例研究（宪法对齐、可解释性、异构算力、prompt caching）
