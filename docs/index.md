@@ -16,6 +16,9 @@ hero:
       text: 大模型从 0 到 1
       link: /01-foundation/llm-from-zero/
     - theme: alt
+      text: GPU/CUDA 详解
+      link: /01-foundation/gpu-cuda/
+    - theme: alt
       text: vLLM 详解
       link: /04-llmops/vllm/
     - theme: alt
@@ -127,6 +130,8 @@ features:
 ## 当前进度
 
 - [x] 项目骨架与 VitePress 初始化
+- [x] 大模型从 0 到 1 主题（数据 → Tokenizer → Transformer → 预训练 → 后训练 → 推理服务 → 优化加速）
+- [x] GPU/CUDA 主题（硬件架构、CUDA 编程模型、NVIDIA 软件栈、生产实践）
 - [x] Kubernetes 主题（容器编排底座、调度框架、GPU/Gang 调度）
 - [x] 容器运行时主题（K8s 之下的执行层：namespace/cgroup/overlayfs、OCI、containerd/runc、镜像供应链安全、沙箱运行时、惰性拉取）
 - [x] Helm 主题（K8s 包管理器：Chart/values/template/Release、Tiller 移除与客户端渲染、三方合并 Patch、OCI、GitOps）

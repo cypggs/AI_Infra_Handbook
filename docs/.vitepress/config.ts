@@ -30,6 +30,7 @@ export default withMermaid(
           items: [
             { text: '概述', link: '/01-foundation/' },
             { text: '大模型从 0 到 1', link: '/01-foundation/llm-from-zero/' },
+            { text: 'GPU 架构与 CUDA 基础', link: '/01-foundation/gpu-cuda/' },
           ],
         },
         {

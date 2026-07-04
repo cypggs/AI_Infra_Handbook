@@ -10,7 +10,7 @@
 - Linux 系统调优与性能分析
 - 计算机网络（TCP/IP、RDMA、NCCL 网络拓扑）
 - 存储系统（本地存储、对象存储、并行文件系统）
-- GPU 架构与 CUDA 基础
+- **[GPU 架构与 CUDA 基础（已上线）](/01-foundation/gpu-cuda/)** — 从 SIMT/Warp/SM 到 CUDA 编程模型，从 Fermi 到 Blackwell 架构演进，从 cuBLAS/NCCL 到 DCGM 生产监控
 - 分布式系统基础（一致性、容错、通信）
 
 ## 阶段二：掌握云原生（4~6 周）

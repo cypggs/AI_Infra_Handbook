@@ -31,6 +31,7 @@
 | 主题 | 解决的核心问题 | 与 Kubernetes 的关系 |
 |---|---|---|
 | [Foundation](/01-foundation/) | Linux / 网络 / 存储 / GPU 硬件基础 | K8s 运行在这些基础之上；GPU/NVLink/RDMA 都通过 Device Plugin + CNI 暴露给 Pod |
+| [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/) | GPU 硬件架构、CUDA 编程模型、NVIDIA 软件栈 | K8s 调度 GPU Pod 后，任务在 GPU 内部按 SIMT/Warp/SM 执行；MIG/MPS/DCGM 等概念是两主题的交叉点 |
 | [容器运行时](/02-cloud-native/container-runtime/) | 镜像管理 + 容器生命周期（namespace/cgroup/overlayfs、OCI、containerd/runc） | K8s 通过 CRI 调用容器运行时；运行时是 K8s 之下的执行层，本主题的"CRI 一节"与运行时主题互补 |
 | **Kubernetes** | 声明式编排、调度、生命周期、资源治理 | 本主题，AI 平台的底座 |
 | [Ray](/03-ai-platform/ray/) | 分布式 Python 计算 | KubeRay 把 Ray Cluster 作为 CRD 跑在 K8s 上；Ray Serve/Train 依赖 K8s 做部署与弹性 |
