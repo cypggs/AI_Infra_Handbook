@@ -26,6 +26,7 @@
 - 想了解如何把领域运维知识编码成自愈控制循环（CRD、Reconcile、finalizer、KubeRay/Training Operator）：[Operator 模式](/02-cloud-native/operator/)（已上线）
 - 想了解统一分布式 AI 平台：[Ray](/03-ai-platform/ray/)（已上线）
 - 想了解 Kubernetes 模型服务平台（InferenceService / ServingRuntime / 金丝雀 / 自动扩缩）：[KServe](/03-ai-platform/kserve/)（已上线）
+- 想了解 Kubernetes 上的 ML 平台（Notebook / Pipelines / Katib / Training Operator）：[Kubeflow](/03-ai-platform/kubeflow/)（已上线）
 - 想了解 Agent Runtime：[Agent Runtime](/05-agent/agent-runtime/)（已上线）
 - 想了解 Agent Memory：[Memory](/05-agent/memory/)（已上线）
 - 想了解 Multi-Agent：[Multi-Agent](/05-agent/multi-agent/)（已上线）

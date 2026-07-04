@@ -29,6 +29,7 @@
 
 - **[Ray](/03-ai-platform/ray/)（已上线）** / MLflow
 - **[KServe](/03-ai-platform/kserve/)（已上线）** — Kubernetes 模型服务平台：InferenceService + ServingRuntime + InferenceGraph、协议统一、扩缩、金丝雀、多 runtime 编排
+- **[Kubeflow](/03-ai-platform/kubeflow/)（已上线）** — Kubernetes 上的 ML 平台：Notebook + Pipelines + Katib + Training Operator + KServe + Central Dashboard，覆盖 ML 全生命周期
 - 模型服务与推理优化
 - **[vLLM（已上线）](/04-llmops/vllm/)**
 - **SGLang（已上线）**
@@ -87,7 +88,8 @@
 7. **[Operator 模式](/02-cloud-native/operator/)** — 理解 CRD + 控制循环、Reconcile 四铁律、finalizer/owner/status，以及 AI 平台（KubeRay/Training Operator/KServe）如何用它实现自管理
 8. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
 9. **[KServe](/03-ai-platform/kserve/)** — 理解 Kubernetes 模型服务平台与 runtime 编排
-10. OpenTelemetry — 理解 AI 系统可观测性
+10. **[Kubeflow](/03-ai-platform/kubeflow/)** — 理解 Kubernetes 上的 ML 全生命周期平台
+11. OpenTelemetry — 理解 AI 系统可观测性
 11. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 12. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
 13. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
