@@ -5,11 +5,11 @@
 ## 已上线主题
 
 - **[Ray](/03-ai-platform/ray/)** — 统一分布式 Python 计算框架：tasks + actors + Plasma 对象存储，支撑训练、推理、数据、RL、超参搜索。
+- **[KServe](/03-ai-platform/kserve/)** — Kubernetes 上的标准化模型服务平台：InferenceService + ServingRuntime + InferenceGraph，统一协议、扩缩、金丝雀与多 runtime 编排。
 
 ## 计划中主题
 
 - Kubeflow
-- KServe
 - MLflow
 - Airflow
 - Feast

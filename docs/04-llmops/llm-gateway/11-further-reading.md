@@ -40,6 +40,7 @@
 - [SGLang 详解](/04-llmops/sglang/) — LLM Program 执行引擎，可作为 Gateway 上游。
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/) — NVIDIA 编译型推理引擎，可作为 Gateway 上游。
 - [Triton Inference Server 详解](/04-llmops/triton/) — 多框架推理服务入口，常与 Gateway 配合使用。
+- [KServe 详解](/03-ai-platform/kserve/) — Kubernetes 模型服务平台，可为 Gateway 提供集群内模型端点、扩缩与金丝雀能力。
 - [Ray 详解](/03-ai-platform/ray/) — Ray Serve 可作为 Gateway 上游的分布式推理引擎，Ray Serve LLM 提供 OpenAI-compatible 端点。
 
 ## 推荐学习路径

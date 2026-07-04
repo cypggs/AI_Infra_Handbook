@@ -28,6 +28,7 @@
 目标：理解模型训练、推理、服务的完整链路。
 
 - **[Ray](/03-ai-platform/ray/)（已上线）** / MLflow
+- **[KServe](/03-ai-platform/kserve/)（已上线）** — Kubernetes 模型服务平台：InferenceService + ServingRuntime + InferenceGraph、协议统一、扩缩、金丝雀、多 runtime 编排
 - 模型服务与推理优化
 - **[vLLM（已上线）](/04-llmops/vllm/)**
 - **SGLang（已上线）**
@@ -85,23 +86,24 @@
 6. **[Helm](/02-cloud-native/helm/)** — 理解 K8s 包管理、Chart 模板、三方合并与 GitOps 部署
 7. **[Operator 模式](/02-cloud-native/operator/)** — 理解 CRD + 控制循环、Reconcile 四铁律、finalizer/owner/status，以及 AI 平台（KubeRay/Training Operator/KServe）如何用它实现自管理
 8. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
-9. OpenTelemetry — 理解 AI 系统可观测性
-7. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
-8. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
-9. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
-10. [Multi-Agent](/05-agent/multi-agent/) — 理解多 Agent 协作、角色定义与协调调度
-11. [Reflection](/05-agent/reflection/) — 理解 Agent 自我反思、批判与质量提升闭环
-12. [MCP](/05-agent/mcp/) — 理解 Agent 协议、工具发现与跨模型能力复用
-13. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
-14. [Tool Use](/05-agent/tool-use/) — 理解 Agent 工具调用、Schema、解析、执行与可观测
-15. [Agent OS](/05-agent/agent-os/) — 理解 Agent 运行时操作系统、进程调度、沙箱、Workspace 与多 Agent 治理
-16. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
-17. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
-18. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
-19. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
-20. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
-21. [Meta 案例研究](/09-case-study/meta/) — 通过 Meta 理解开放权重、硬件协同设计、双网络织物、同步训练可靠性（SDC 治理/>95% 有效训练时间）与 MTIA 自研硅
-22. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
+9. **[KServe](/03-ai-platform/kserve/)** — 理解 Kubernetes 模型服务平台与 runtime 编排
+10. OpenTelemetry — 理解 AI 系统可观测性
+11. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
+12. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
+13. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
+14. [Multi-Agent](/05-agent/multi-agent/) — 理解多 Agent 协作、角色定义与协调调度
+15. [Reflection](/05-agent/reflection/) — 理解 Agent 自我反思、批判与质量提升闭环
+16. [MCP](/05-agent/mcp/) — 理解 Agent 协议、工具发现与跨模型能力复用
+17. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
+18. [Tool Use](/05-agent/tool-use/) — 理解 Agent 工具调用、Schema、解析、执行与可观测
+19. [Agent OS](/05-agent/agent-os/) — 理解 Agent 运行时操作系统、进程调度、沙箱、Workspace 与多 Agent 治理
+20. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
+21. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
+22. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
+23. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
+24. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
+25. [Meta 案例研究](/09-case-study/meta/) — 通过 Meta 理解开放权重、硬件协同设计、双网络织物、同步训练可靠性（SDC 治理/>95% 有效训练时间）与 MTIA 自研硅
+26. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
 
 ## 面试准备
 

@@ -50,6 +50,7 @@
 
 | 主题 | 链接 | 与本主题关系 |
 |---|---|---|
+| KServe | /03-ai-platform/kserve/ | 模型服务平台暴露 /metrics 与 status conditions，是 AI SRE 的核心监控对象。 |
 | LLM Gateway | /04-llmops/llm-gateway/ | Gateway 是 AI 服务的流量入口与核心 SLI 来源。 |
 | vLLM | /04-llmops/vllm/ | 推理引擎 metrics（TTFT、ITL、KV cache）是监控重点。 |
 | Agent Runtime | /05-agent/agent-runtime/ | Agent 步骤需要 trace 与 SLO。 |
