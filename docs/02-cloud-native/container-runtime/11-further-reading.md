@@ -137,6 +137,7 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 |---|---|---|
 | **[Kubernetes](/02-cloud-native/kubernetes/)** | K8s 通过 CRI 调用容器运行时；运行时是 K8s 的执行层 | K8s 第 4 章 Runtime 工作流程与本主题第 4 章互补 |
 | [Foundation](/01-foundation/) | namespace/cgroup/overlayfs 都是内核特性 | Foundation 的 Linux/网络/存储是运行时地基 |
+| **[Linux 系统与性能调优](/01-foundation/linux-systems/)** | namespace/cgroup 的内核实现与性能影响 | 先理解 Linux 内核机制，再看运行时如何用它们构建容器 |
 | **[vLLM](/04-llmops/vllm/)** / **[Triton](/04-llmops/triton/)** | 推理引擎打成镜像、由运行时拉起 | 镜像优化直接影响它们的冷启动与扩缩 |
 | **[Ray](/03-ai-platform/ray/)** | Ray worker 以容器形态在 K8s 上由运行时管理 | KubeRay + containerd |
 | **[AI SRE](/07-ai-sre/)** | containerd metrics、cAdvisor 是容器层可观测数据源 | CPU throttle、OOMKill 的监控来自运行时 |

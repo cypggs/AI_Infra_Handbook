@@ -28,6 +28,7 @@ AI SRE 负责让 AI 系统在生产环境中跑得稳、看得清、修得快。
 | [Memory](/05-agent/memory/) | 记忆系统的读写延迟、一致性与漂移影响 Agent 可靠性。 |
 | [Agent OS](/05-agent/agent-os/) | Agent OS 提供进程隔离与资源治理，是 AI SRE 执行降级、重试、沙箱策略的底座。 |
 | [安全](/08-security/) | 安全事件是可观测性的一部分；trace、metrics、audit log 是检测与溯源的基础。 |
+| [Linux 系统与性能调优](/01-foundation/linux-systems/) | CPU、memory、I/O、network 指标都来自 Linux 内核；Linux 调优是 AI SRE 根因分析的基础。 |
 
 ## 章节导航
 

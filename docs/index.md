@@ -19,6 +19,9 @@ hero:
       text: GPU/CUDA 详解
       link: /01-foundation/gpu-cuda/
     - theme: alt
+      text: Linux 系统调优
+      link: /01-foundation/linux-systems/
+    - theme: alt
       text: vLLM 详解
       link: /04-llmops/vllm/
     - theme: alt
@@ -132,6 +135,7 @@ features:
 - [x] 项目骨架与 VitePress 初始化
 - [x] 大模型从 0 到 1 主题（数据 → Tokenizer → Transformer → 预训练 → 后训练 → 推理服务 → 优化加速）
 - [x] GPU/CUDA 主题（硬件架构、CUDA 编程模型、NVIDIA 软件栈、生产实践）
+- [x] Linux 系统与性能调优主题（Kernel/User Space、进程调度、内存管理、I/O、网络、cgroup/namespace、性能分析，含 CPU 可运行 Mini Demo）
 - [x] Kubernetes 主题（容器编排底座、调度框架、GPU/Gang 调度）
 - [x] 容器运行时主题（K8s 之下的执行层：namespace/cgroup/overlayfs、OCI、containerd/runc、镜像供应链安全、沙箱运行时、惰性拉取）
 - [x] Helm 主题（K8s 包管理器：Chart/values/template/Release、Tiller 移除与客户端渲染、三方合并 Patch、OCI、GitOps）
@@ -168,7 +172,7 @@ features:
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/)、[Linux 系统与性能调优](/01-foundation/linux-systems/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
 
 ## 贡献
 

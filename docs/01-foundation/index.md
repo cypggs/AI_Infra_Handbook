@@ -6,10 +6,10 @@
 
 - [大模型从 0 到 1：训练与推理全链路之旅](./llm-from-zero/) — 用通俗易懂的方式走完数据 → Tokenizer → Transformer → 预训练 → 后训练 → 推理服务 → 优化加速的完整旅程，穿插真实模型案例与 2025-2026 前沿动态
 - [GPU 架构与 CUDA 基础](./gpu-cuda/) — 从 SIMT/Warp/SM 到 CUDA 编程模型，从 Fermi 到 Blackwell 架构演进，从 cuBLAS/NCCL 到 DCGM 生产监控，建立 AI Infra 的底层硬件与软件栈直觉（内容更新至 2026-07-04）
+- [Linux 系统与性能调优](./linux-systems/) — 从 Kernel/User Space、系统调用到 CFS 调度器、虚拟内存/TLB/HugePages/NUMA、VFS/I/O 调度、网络协议栈、cgroup v2/namespace，配合 CPU 可运行 Mini Demo（CFS、LRU page cache、OOM、I/O 调度、cgroup 限制），覆盖 AI 训练/推理场景的 Linux 调优与性能分析（内容更新至 2026-07-04）
 
 ## 计划中主题
 
-- Linux 系统与性能调优
 - 计算机网络
 - 存储系统
 - 分布式系统基础

@@ -31,6 +31,7 @@ GPU/CUDA 是 AI Infra 的**底层分水岭**。它不像 Kubernetes 那样看得
 | [Ray / KubeRay](/03-ai-platform/ray/) | 分布式训练平台 vs 单机 GPU | 分布式并行的 Data/Tensor/Pipeline 并行，最终都要落实在 CUDA kernel + NCCL 集合通信上。 |
 | [OpenAI / Meta / Google 案例研究](/09-case-study/) | 超大规模集群 vs 单卡原理 | 万卡集群的可靠性、NVLink 网络、MFU 优化，都需要以单卡 CUDA 行为为前提。 |
 | [大模型从 0 到 1](/01-foundation/llm-from-zero/) | 算法 vs 算力 | 本章解释 Transformer 中的矩阵乘、注意力在 GPU 上是如何被加速的。 |
+| [Linux 系统与性能调优](/01-foundation/linux-systems/) | 硬件 vs 系统软件 | GPU 驱动、CUDA Runtime、nvidia-container-toolkit 都依赖 Linux 的模块、设备文件、cgroup；本章解释它们如何协作。 |
 
 ## 本章结构
 
