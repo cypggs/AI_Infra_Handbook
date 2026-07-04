@@ -203,7 +203,7 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 - `Mounter`：把卷 mount 到容器路径。
 - `Snapshotter`：卷快照。
 
-**流程**：用户声明 `PersistentVolumeClaim` → `StorageClass` 的 provisioner 动态创建 `PV` → attach + mount 到 Pod。
+**流程**：用户声明 `PersistentVolumeClaim` → `StorageClass` 的 provisioner 动态创建 `PV` → attach + mount 到 Pod。详见 [存储系统](/01-foundation/storage-systems/) 主题。
 
 **AI 场景选型**：
 

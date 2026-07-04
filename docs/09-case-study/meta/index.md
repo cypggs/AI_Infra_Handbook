@@ -32,6 +32,7 @@
 | [OpenAI 案例研究](/09-case-study/openai/) | 对照"闭源规模"与"开放权重 + 硬件协同设计"两条路线。 |
 | [Anthropic 案例研究](/09-case-study/anthropic/) | 对照“闭源对齐”与“开放发布 + 自研硅”两条路线。 |
 | [计算机网络](/01-foundation/computer-networks/) | Meta 的 RoCE 与 InfiniBand 双织物、fat-tree 拓扑是计算机网络主题中数据中心网络与 RDMA 的经典案例。 |
+| [存储系统](/01-foundation/storage-systems/) | Meta 的 Tectonic/Hammerspace 存储、TB 级 checkpoint/恢复是存储系统主题的经典案例。 |
 
 ## 章节导航
 

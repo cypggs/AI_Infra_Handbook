@@ -17,6 +17,7 @@
 | 主题 | 关系 | 链接 |
 |---|---|---|
 | Kubeflow | 编排 + 工作流；训练 step 中调用 MLflow | [Kubeflow 总览](../kubeflow/index.md) |
+| 存储系统 | Artifact Store 底层依赖对象存储/文件系统 | [存储系统总览](../../01-foundation/storage-systems/index.md) |
 | KubeRay | 训练作业可跑在 KubeRay 集群上 | [KubeRay 总览](../kuberay/index.md) |
 | Airflow | 工作流编排；可编排 MLflow 训练/注册流水线 | [Airflow 总览](../airflow/index.md) |
 | KServe | 模型服务；可加载 MLflow 模型 | [KServe 总览](../kserve/index.md) |

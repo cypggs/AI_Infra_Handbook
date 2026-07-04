@@ -25,6 +25,9 @@ hero:
       text: 计算机网络
       link: /01-foundation/computer-networks/
     - theme: alt
+      text: 存储系统
+      link: /01-foundation/storage-systems/
+    - theme: alt
       text: vLLM 详解
       link: /04-llmops/vllm/
     - theme: alt
@@ -140,6 +143,7 @@ features:
 - [x] GPU/CUDA 主题（硬件架构、CUDA 编程模型、NVIDIA 软件栈、生产实践）
 - [x] Linux 系统与性能调优主题（Kernel/User Space、进程调度、内存管理、I/O、网络、cgroup/namespace、性能分析，含 CPU 可运行 Mini Demo）
 - [x] 计算机网络主题（OSI/TCP-IP、分组交换、可靠传输、拥塞控制、数据中心拓扑、RDMA/RoCE/InfiniBand、K8s CNI/Service/DNS/LB，含 CPU 可运行 Mini Demo）
+- [x] 存储系统主题（块/文件/对象、一致性、复制与纠删码、DAS/NAS/SAN/并行文件系统、K8s CSI、PyTorch DCP，含 CPU 可运行 Mini Demo）
 - [x] Kubernetes 主题（容器编排底座、调度框架、GPU/Gang 调度）
 - [x] 容器运行时主题（K8s 之下的执行层：namespace/cgroup/overlayfs、OCI、containerd/runc、镜像供应链安全、沙箱运行时、惰性拉取）
 - [x] Helm 主题（K8s 包管理器：Chart/values/template/Release、Tiller 移除与客户端渲染、三方合并 Patch、OCI、GitOps）

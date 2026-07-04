@@ -24,6 +24,7 @@
 | **KServe** | KServe 可加载 `models:/name/version` 格式的 MLflow 模型作为在线服务 | [KServe](../kserve/) |
 | **Ray** | Ray Train/Tune 可把实验记录到 MLflow | [Ray](../ray/) |
 | **Kubernetes** | 生产部署 MLflow Tracking Server 常跑在 K8s 上 | [Kubernetes](../../02-cloud-native/kubernetes/) |
+| **存储系统** | Artifact Store 的底层是对象存储/文件系统；模型版本依赖持久化存储 | [存储系统](../../01-foundation/storage-systems/) |
 | **AI SRE** | MLflow 生产环境的监控、SLO、成本治理 | [AI SRE](../../07-ai-sre/) |
 
 ## 本章结构

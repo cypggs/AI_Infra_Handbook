@@ -24,6 +24,7 @@
 | **Operator 模式** | Kubeflow 每个组件都是 Operator（Pipeline、Katib、Training Operator 等） | [Operator 模式](../../02-cloud-native/operator/) |
 | **Helm** | 安装 Kubeflow 或其组件时可选用 Helm / Kustomize | [Helm](../../02-cloud-native/helm/) |
 | **KServe** | Kubeflow 的模型服务组件 | [KServe](../kserve/) |
+| **存储系统** | Pipeline artifact、Notebook PVC、训练 Job checkpoint 都依赖 K8s 存储选型 | [存储系统](../../01-foundation/storage-systems/) |
 | **Ray** | 分布式训练/推理的补充，可与 Training Operator / KubeRay 组合 | [Ray](../ray/) |
 | **MLflow** | 实验追踪与模型注册，常与 Kubeflow Pipelines 集成 | 计划中 |
 | **AI SRE** | Kubeflow 生产环境的可观测、SLO、成本治理 | [AI SRE](../../07-ai-sre/) |

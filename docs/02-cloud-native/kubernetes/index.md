@@ -34,6 +34,7 @@
 | [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/) | GPU 硬件架构、CUDA 编程模型、NVIDIA 软件栈 | K8s 调度 GPU Pod 后，任务在 GPU 内部按 SIMT/Warp/SM 执行；MIG/MPS/DCGM 等概念是两主题的交叉点 |
 | [Linux 系统与性能调优](/01-foundation/linux-systems/) | 进程调度、内存管理、I/O、网络、cgroup/namespace | K8s 的 CPU/memory 限制、QoS、Device Plugin 最终都要通过 Linux cgroup 生效；本主题是 K8s 资源管理的内核视角 |
 | [计算机网络](/01-foundation/computer-networks/) | 网络协议、拓扑、RDMA/RoCE/IB、CNI/LB/DNS | K8s 主题讲“CNI/Service/DNS 怎么用”，计算机网络讲“它们背后的网络协议、数据包路径与 RDMA 原理” |
+| [存储系统](/01-foundation/storage-systems/) | 块/文件/对象语义、一致性、并行文件系统、CSI | K8s 主题讲“PV/PVC/StorageClass/CSI 怎么用”，存储系统讲“存储形态、选型与 AI checkpoint/模型加载” |
 | [容器运行时](/02-cloud-native/container-runtime/) | 镜像管理 + 容器生命周期（namespace/cgroup/overlayfs、OCI、containerd/runc） | K8s 通过 CRI 调用容器运行时；运行时是 K8s 之下的执行层，本主题的"CRI 一节"与运行时主题互补 |
 | **Kubernetes** | 声明式编排、调度、生命周期、资源治理 | 本主题，AI 平台的底座 |
 | [Ray](/03-ai-platform/ray/) | 分布式 Python 计算 | KubeRay 把 Ray Cluster 作为 CRD 跑在 K8s 上；Ray Serve/Train 依赖 K8s 做部署与弹性 |

@@ -28,6 +28,7 @@ Anthropic 是当代最独特的 AI 实验室之一——它由一群同样坚信
 | [安全](/08-security/) | RSP/ASL、Constitutional AI、红队、Risk Reports 是企业安全治理的标杆。 |
 | [AI SRE](/07-ai-sre/) | run-rate $30B、消费级增长冲击可靠性——典型的容量规划与 SRE 案例。 |
 | [OpenAI 案例研究](/09-case-study/openai/) | 同为前沿实验室，对照"规模驱动"与"对齐驱动"两条工程路线。 |
+| [存储系统](/01-foundation/storage-systems/) | Anthropic 的 TB 级 checkpoint、artifact 治理与 Trainium/Colossus 异构算力上的存储选型是存储系统主题的经典案例。 |
 
 ## 章节导航
 

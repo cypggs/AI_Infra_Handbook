@@ -24,6 +24,7 @@
 | **Kubernetes** | KServe 的底座：Deployment/Service/Ingress/CRD/Scheduler/Leader Election | [Kubernetes](../../02-cloud-native/kubernetes/) |
 | **Ray** | 分布式训练/推理平台，可与 KServe 互补（Ray Serve 也是替代方案） | [Ray 主题](../ray/) |
 | **LLM Gateway** | 统一多供应商/多模型接入，可与 KServe 的模型端点组合 | [LLM Gateway](../../04-llmops/llm-gateway/) |
+| **存储系统** | 模型权重通过对象存储/共享 PVC 加载；storage-initializer 是存储系统的上层应用 | [存储系统](../../01-foundation/storage-systems/) |
 | **AI SRE** | KServe 的指标、SLO、扩缩告警是 SRE 核心 | [AI SRE](../../07-ai-sre/) |
 
 ## 本章结构

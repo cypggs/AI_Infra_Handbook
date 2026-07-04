@@ -25,6 +25,7 @@
 | **KubeRay** | Ray 作业可作为 Airflow 任务执行 | [KubeRay](../kuberay/) |
 | **KServe** | Airflow 编排模型部署流水线，KServe 负责服务 | [KServe](../kserve/) |
 | **Kubernetes** | KubernetesExecutor / CeleryExecutor on K8s 的常见底座 | [Kubernetes](../../02-cloud-native/kubernetes/) |
+| **存储系统** | XCom 与 Dataset/Asset 调度依赖持久化存储；大任务结果常外置到对象存储 | [存储系统](../../01-foundation/storage-systems/) |
 | **AI SRE** | Airflow 生产环境的监控、告警、SLO | [AI SRE](../../07-ai-sre/) |
 
 ## 本章结构
