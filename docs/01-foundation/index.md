@@ -10,9 +10,11 @@
 - [计算机网络](./computer-networks/) — 从 OSI/TCP-IP 分层、分组交换、可靠传输与拥塞控制，到数据中心 Spine-Leaf/fat-tree/3D-torus、InfiniBand/RoCE/RDMA、Kubernetes CNI/Service/DNS/LB，配合 CPU 可运行 Mini Demo（LPM 路由、滑动窗口、CUBIC-like 拥塞控制、ring/tree all-reduce、DNS/LB），覆盖 AI 训练与推理的网络底座（内容更新至 2026-07-04）
 - [存储系统](./storage-systems/) — 从块/文件/对象三种存储语义、一致性、复制与纠删码，到 DAS/NAS/SAN/对象存储/并行文件系统、Kubernetes PV/PVC/StorageClass/CSI、PyTorch Distributed Checkpoint，配合 CPU 可运行 Mini Demo（块分配、inode 文件系统、对象存储/版本/multipart/最终一致性、三副本/XOR 纠删码、热/暖分层缓存、AI checkpoint 保存/加载），覆盖 AI 训练 checkpoint 与推理模型加载的存储底座（内容更新至 2026-07-04）
 
+- [分布式系统基础](./distributed-systems/) — 从故障模型、CAP/PACELC、一致性谱系、复制/分区/quorum/共识，到分布式事务、分布式锁、幂等、逻辑时钟/向量时钟，配合 CPU 可运行 Mini Demo（Lamport/Vector Clock、Raft、2PC、Quorum），建立 AI 集群协调、K8s 控制面、对象存储一致性与分布式训练通信的底层直觉（内容更新至 2026-07-04）
+
 ## 计划中主题
 
-- 分布式系统基础
+- 基础篇阶段性补完，后续将进入进阶专题更新。
 
 ## 一句话理解
 

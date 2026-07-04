@@ -34,6 +34,7 @@
 | [Ray / KubeRay](/03-ai-platform/ray/) | 分布式运行时 vs OS | Ray 的 worker 进程、对象存储、spillback 都依赖 Linux 进程调度和 I/O 子系统。 |
 | [vLLM / TensorRT-LLM](/04-llmops/) | 推理引擎 vs OS | 推理服务的延迟、吞吐、稳定性受 Linux 调度、内存、网络影响。 |
 | [计算机网络](/01-foundation/computer-networks/) | OS 网络栈 vs 网络协议 | Linux 系统调优讲“内核协议栈、NAPI、RPS/RFS/XPS、XDP/RDMA 如何实现”，计算机网络讲“网络协议、拓扑、RDMA/RoCE/IB、CNI/LB/DNS”。 |
+| [分布式系统基础](/01-foundation/distributed-systems/) | 单机 OS 底座 vs 多机协调 | Linux 主题讲进程/网络/存储在单机内如何工作；分布式系统基础讲多台机器如何协作、容错与一致性。 |
 | [AI SRE](/07-ai-sre/) | 可观测 vs 底层指标 | CPU、memory、I/O、network 指标都来自 Linux 内核；本章解释这些指标的含义。 |
 | [存储系统](/01-foundation/storage-systems/) | OS 存储栈 vs 存储系统选型 | Linux 主题讲 VFS、ext4/xfs、块层、page cache、direct I/O；存储系统主题讲块/文件/对象语义、DAS/NAS/SAN、并行文件系统、K8s CSI 与 AI checkpoint 选型。 |
 

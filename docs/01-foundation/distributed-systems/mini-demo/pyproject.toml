@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "distributed_systems_mini"
+version = "0.1.0"
+description = "CPU-runnable distributed systems mechanisms simulator for AI Infra Handbook"
+requires-python = ">=3.10"
+authors = [{ name = "AI Infra Handbook Contributors" }]
+license = { text = "CC-BY-SA-4.0" }
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

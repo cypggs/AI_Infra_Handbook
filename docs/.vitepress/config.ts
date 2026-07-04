@@ -34,6 +34,7 @@ export default withMermaid(
             { text: 'Linux 系统与性能调优', link: '/01-foundation/linux-systems/' },
             { text: '计算机网络', link: '/01-foundation/computer-networks/' },
             { text: '存储系统', link: '/01-foundation/storage-systems/' },
+            { text: '分布式系统基础', link: '/01-foundation/distributed-systems/' },
           ],
         },
         {

@@ -30,6 +30,7 @@
 |---|---|---|
 | [Linux 系统与性能调优](/01-foundation/linux-systems/) | 下层实现 vs 上层抽象 | Linux 系统调优讲“VFS、ext4/xfs、块层、I/O 调度器、page cache 如何实现”，本章讲“存储系统概念、选型与 AI 场景”。 |
 | [计算机网络](/01-foundation/computer-networks/) | 网络 vs 存储 | 网络存储（NAS/SAN/对象存储/并行文件系统）依赖网络；本章解释数据如何通过网络从存储到达 GPU。 |
+| [分布式系统基础](/01-foundation/distributed-systems/) | 分布式一致性 vs 存储语义 | 分布式系统基础讲 CAP、复制、quorum、共识；本章讲这些理论在块/文件/对象存储与 AI checkpoint 中的落地。 |
 | [容器运行时](/02-cloud-native/container-runtime/) | 容器隔离 vs 存储挂载 | 容器运行时讲“怎么用 overlayfs/镜像分层”，本章讲“持久化存储、卷、CSI 挂载”。 |
 | [Kubernetes](/02-cloud-native/kubernetes/) | 编排层 vs 存储层 | Kubernetes 主题讲“PV/PVC/StorageClass/CSI 怎么用”，本章讲“它们背后的存储原理与选型”。 |
 | [MLflow / Kubeflow / KServe / Ray / Airflow](/03-ai-platform/) | AI 平台 vs 存储底座 | Artifact Store、模型仓库、checkpoint 路径、数据集来源都依赖存储；本章提供底层视角。 |

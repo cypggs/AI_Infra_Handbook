@@ -30,6 +30,7 @@
 | 主题 | 关系 | 本章会讲到的交叉点 |
 |---|---|---|
 | [Linux 系统与性能调优](/01-foundation/linux-systems/) | 下层实现 vs 上层抽象 | Linux 系统调优讲“内核协议栈、NAPI、RPS/RFS/XPS、XDP/RDMA 如何实现”，本章讲“网络协议、拓扑、RDMA/RoCE/IB、CNI/LB/DNS”。 |
+| [分布式系统基础](/01-foundation/distributed-systems/) | 网络通信 vs 分布式协议 | 分布式系统基础讲网络分区、RPC、消息传递、超时与重试；本章提供网络层原理支撑。 |
 | [容器运行时](/02-cloud-native/container-runtime/) | 容器隔离 vs 网络连接 | 容器运行时讲“怎么用 namespace/bridge/veth 做容器网络”，本章讲“bridge/veth/路由表背后的二层/三层网络原理”。 |
 | [Kubernetes](/02-cloud-native/kubernetes/) | 编排层 vs 网络层 | Kubernetes 主题讲“CNI/Service/DNS 怎么用”，本章讲“它们背后的网络协议与数据包路径”。 |
 | [vLLM / TensorRT-LLM](/04-llmops/) | 推理引擎 vs 网络 | 分布式推理和多机通信依赖 NCCL、RDMA/TCP；本章解释这些网络机制如何影响推理延迟与吞吐。 |

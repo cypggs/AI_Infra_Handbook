@@ -36,6 +36,7 @@
 | [Anthropic 案例研究](/09-case-study/anthropic/) | 对照“闭源对齐”与“开放生态 + 安全框架”。 |
 | [计算机网络](/01-foundation/computer-networks/) | Google 的 OCS、3D-torus、Falcon NIC、Swift 拥塞控制是计算机网络主题中数据中心网络与 RDMA 的经典案例。 |
 | [存储系统](/01-foundation/storage-systems/) | Google 的 Orbax/OCDBT/Zarr3 checkpoint 格式与 fsspec 后端是存储系统主题中分布式 checkpoint 的经典案例。 |
+| [分布式系统基础](/01-foundation/distributed-systems/) | Borg/Paxos、3D-torus 路由、NSDI'24 双路径恢复、Pathways 单控制器都是分布式系统共识、复制、分区容错与协调的经典案例。 |
 
 ## 章节导航
 

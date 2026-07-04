@@ -33,6 +33,7 @@
 | [Anthropic 案例研究](/09-case-study/anthropic/) | 对照“闭源对齐”与“开放发布 + 自研硅”两条路线。 |
 | [计算机网络](/01-foundation/computer-networks/) | Meta 的 RoCE 与 InfiniBand 双织物、fat-tree 拓扑是计算机网络主题中数据中心网络与 RDMA 的经典案例。 |
 | [存储系统](/01-foundation/storage-systems/) | Meta 的 Tectonic/Hammerspace 存储、TB 级 checkpoint/恢复是存储系统主题的经典案例。 |
+| [分布式系统基础](/01-foundation/distributed-systems/) | Meta 的 Twine/MAST 调度、同步训练一致性、SDC 检测与自动恢复是分布式系统共识、复制与容错的经典案例。 |
 
 ## 章节导航
 

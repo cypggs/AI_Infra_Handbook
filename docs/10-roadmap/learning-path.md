@@ -12,7 +12,7 @@
 - **[计算机网络（已上线）](/01-foundation/computer-networks/)** — 从 OSI/TCP-IP 分层、分组交换、可靠传输与拥塞控制，到数据中心 Spine-Leaf/fat-tree/3D-torus、InfiniBand/RoCE/RDMA、Kubernetes CNI/Service/DNS/LB，配合 CPU 可运行 Mini Demo，建立 AI 集群通信底座的直觉
 - **[存储系统（已上线）](/01-foundation/storage-systems/)** — 从块/文件/对象三种存储语义、一致性、复制与纠删码，到 DAS/NAS/SAN/对象存储/并行文件系统、Kubernetes PV/PVC/StorageClass/CSI、PyTorch Distributed Checkpoint，配合 CPU 可运行 Mini Demo，建立 AI 训练 checkpoint 与推理模型加载的存储直觉
 - **[GPU 架构与 CUDA 基础（已上线）](/01-foundation/gpu-cuda/)** — 从 SIMT/Warp/SM 到 CUDA 编程模型，从 Fermi 到 Blackwell 架构演进，从 cuBLAS/NCCL 到 DCGM 生产监控
-- 分布式系统基础（一致性、容错、通信）
+- **[分布式系统基础（已上线）](/01-foundation/distributed-systems/)** — 一致性、容错、通信、复制、共识、分布式事务、分布式锁、幂等、时钟与顺序
 
 ## 阶段二：掌握云原生（4~6 周）
 
