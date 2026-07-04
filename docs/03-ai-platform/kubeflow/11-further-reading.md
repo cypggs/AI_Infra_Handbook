@@ -32,6 +32,7 @@
 | Helm | 安装辅助 | [Helm](../../02-cloud-native/helm/) |
 | KServe | Kubeflow 的模型服务组件 | [KServe](../kserve/) |
 | Ray | 分布式训练/推理补充 | [Ray](../ray/) |
+| MLflow | 实验追踪与模型注册，可与 Kubeflow Pipelines 集成 | [MLflow](../mlflow/) |
 | AI SRE | 生产可观测与成本治理 | [AI SRE](../../07-ai-sre/) |
 
 ## 推荐学习路径
@@ -51,5 +52,5 @@
 **本章小结**
 
 - 官方文档和 GitHub 是持续学习的核心来源。
-- Kubeflow 与 Kubernetes、Operator、KServe、Ray、AI SRE 等主题紧密相连。
+- Kubeflow 与 Kubernetes、Operator、KServe、Ray、MLflow、AI SRE 等主题紧密相连。
 - 学习路径遵循：本地体验 → 自定义 Pipeline → 生产部署 → 源码阅读。

@@ -27,6 +27,7 @@
 - 想了解统一分布式 AI 平台：[Ray](/03-ai-platform/ray/)（已上线）
 - 想了解 Kubernetes 模型服务平台（InferenceService / ServingRuntime / 金丝雀 / 自动扩缩）：[KServe](/03-ai-platform/kserve/)（已上线）
 - 想了解 Kubernetes 上的 ML 平台（Notebook / Pipelines / Katib / Training Operator）：[Kubeflow](/03-ai-platform/kubeflow/)（已上线）
+- 想了解开源 ML 生命周期平台（实验追踪 / 模型注册 / 模型治理）：[MLflow](/03-ai-platform/mlflow/)（已上线）
 - 想了解 Agent Runtime：[Agent Runtime](/05-agent/agent-runtime/)（已上线）
 - 想了解 Agent Memory：[Memory](/05-agent/memory/)（已上线）
 - 想了解 Multi-Agent：[Multi-Agent](/05-agent/multi-agent/)（已上线）

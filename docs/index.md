@@ -46,6 +46,9 @@ hero:
       text: Kubeflow 详解
       link: /03-ai-platform/kubeflow/
     - theme: alt
+      text: MLflow 详解
+      link: /03-ai-platform/mlflow/
+    - theme: alt
       text: Agent Runtime 详解
       link: /05-agent/agent-runtime/
     - theme: alt
@@ -127,6 +130,7 @@ features:
 - [x] Ray 主题（统一分布式 AI 计算框架）
 - [x] KServe 主题（Kubernetes 模型服务平台：InferenceService / ServingRuntime / InferenceGraph）
 - [x] Kubeflow 主题（Kubernetes 上的 ML 平台：Notebook / Pipelines / Katib / Training Operator / KServe / Central Dashboard）
+- [x] MLflow 主题（开源 ML 生命周期平台：Tracking / Models / Model Registry / 生产部署）
 - [x] Agent Runtime 主题（AI Agent 执行容器）
 - [x] Memory 主题（AI Agent 记忆系统）
 - [x] Multi-Agent 主题（多 Agent 协作系统）

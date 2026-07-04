@@ -28,6 +28,7 @@
 | Triton | KServe 的多 backend runtime | [Triton](../../04-llmops/triton/) |
 | Ray | 可与 KServe 互补的分布式平台 | [Ray](../ray/) |
 | Kubeflow | KServe 是 Kubeflow 的服务组件，可组合成完整 ML 平台 | [Kubeflow](../kubeflow/) |
+| MLflow | 实验追踪与模型注册，KServe 可加载 MLflow 模型 | [MLflow](../mlflow/) |
 | LLM Gateway | 可与 KServe 端点组合 | [LLM Gateway](../../04-llmops/llm-gateway/) |
 | AI SRE | KServe 的可观测与 SLO | [AI SRE](../../07-ai-sre/) |
 

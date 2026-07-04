@@ -27,7 +27,7 @@
 
 目标：理解模型训练、推理、服务的完整链路。
 
-- **[Ray](/03-ai-platform/ray/)（已上线）** / MLflow
+- **[Ray](/03-ai-platform/ray/)（已上线）** / **[MLflow](/03-ai-platform/mlflow/)（已上线）** — 分布式 AI 计算与 ML 生命周期管理
 - **[KServe](/03-ai-platform/kserve/)（已上线）** — Kubernetes 模型服务平台：InferenceService + ServingRuntime + InferenceGraph、协议统一、扩缩、金丝雀、多 runtime 编排
 - **[Kubeflow](/03-ai-platform/kubeflow/)（已上线）** — Kubernetes 上的 ML 平台：Notebook + Pipelines + Katib + Training Operator + KServe + Central Dashboard，覆盖 ML 全生命周期
 - 模型服务与推理优化
@@ -89,7 +89,8 @@
 8. **[Ray](/03-ai-platform/ray/)** — 理解分布式 AI 计算
 9. **[KServe](/03-ai-platform/kserve/)** — 理解 Kubernetes 模型服务平台与 runtime 编排
 10. **[Kubeflow](/03-ai-platform/kubeflow/)** — 理解 Kubernetes 上的 ML 全生命周期平台
-11. OpenTelemetry — 理解 AI 系统可观测性
+11. **[MLflow](/03-ai-platform/mlflow/)** — 理解开源 ML 生命周期平台：实验追踪、模型打包与 Model Registry 治理
+12. OpenTelemetry — 理解 AI 系统可观测性
 11. [LLM Gateway](/04-llmops/llm-gateway/) — 理解多供应商/多引擎的统一接入层
 12. [Agent Runtime](/05-agent/agent-runtime/) — 理解 Agent 时代的执行容器与 ReAct 循环
 13. [Memory](/05-agent/memory/) — 理解 Agent 的记忆系统与长期上下文管理
