@@ -14,6 +14,24 @@ export const sidebar: DefaultTheme.Sidebar = [
     items: [
       { text: '概述', link: '/01-foundation/' },
       { text: '大模型从 0 到 1', link: '/01-foundation/llm-from-zero/' },
+      {
+        text: 'GPU 架构与 CUDA 基础',
+        collapsed: false,
+        items: [
+          { text: '总览', link: '/01-foundation/gpu-cuda/' },
+          { text: '1. 背景', link: '/01-foundation/gpu-cuda/01-background' },
+          { text: '2. 核心思想', link: '/01-foundation/gpu-cuda/02-core-ideas' },
+          { text: '3. 架构设计', link: '/01-foundation/gpu-cuda/03-architecture' },
+          { text: '4. CUDA 编程模型', link: '/01-foundation/gpu-cuda/04-cuda-programming-model' },
+          { text: '5. 核心模块', link: '/01-foundation/gpu-cuda/05-core-modules' },
+          { text: '6. 源码分析', link: '/01-foundation/gpu-cuda/06-source-analysis' },
+          { text: '7. 工程实践', link: '/01-foundation/gpu-cuda/07-mini-demo' },
+          { text: '8. 企业生产实践', link: '/01-foundation/gpu-cuda/08-production-practice' },
+          { text: '9. 最佳实践', link: '/01-foundation/gpu-cuda/09-best-practices' },
+          { text: '10. 面试题', link: '/01-foundation/gpu-cuda/10-interview-questions' },
+          { text: '11. 延伸阅读', link: '/01-foundation/gpu-cuda/11-further-reading' },
+        ],
+      },
     ],
   },
   {

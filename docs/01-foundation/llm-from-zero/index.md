@@ -803,6 +803,7 @@ Blackwell 带来的不只是算力翻倍，还有 **FP4 原生支持** 和 **Tra
 
 如果你继续深入，手册的后续章节会带你走进：
 
+- [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/)：理解 Transformer 矩阵运算在 GPU 上如何被加速；
 - [vLLM](/04-llmops/vllm/)：推理引擎的内存管理与调度细节；
 - [SGLang](/04-llmops/sglang/)：RadixAttention 与结构化生成；
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 编译型推理优化；

@@ -45,4 +45,4 @@
 | 灵活性 | 高 | 高 | 中（受支持的模型/算子约束） |
 | 适用场景 | 通用在线推理 | Agent / 结构化生成 | 对延迟/吞吐敏感的 NVIDIA 部署 |
 
-建议先阅读 [vLLM 详解](/04-llmops/vllm/) 与 [SGLang 详解](/04-llmops/sglang/)，再来理解 TRT-LLM 在“编译-执行”这一轴上的取舍。
+建议先阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/) 与 [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/)，再来理解 TRT-LLM 在“编译-执行”这一轴上的取舍。
