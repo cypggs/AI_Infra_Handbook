@@ -13,6 +13,9 @@ hero:
       text: 学习路线
       link: /10-roadmap/learning-path
     - theme: alt
+      text: 大模型从 0 到 1
+      link: /01-foundation/llm-from-zero/
+    - theme: alt
       text: vLLM 详解
       link: /04-llmops/vllm/
     - theme: alt

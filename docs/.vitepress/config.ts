@@ -26,6 +26,13 @@ export default withMermaid(
         { text: '阅读指南', link: '/guide' },
         { text: '学习路线', link: '/10-roadmap/learning-path' },
         {
+          text: '基础',
+          items: [
+            { text: '概述', link: '/01-foundation/' },
+            { text: '大模型从 0 到 1', link: '/01-foundation/llm-from-zero/' },
+          ],
+        },
+        {
           text: '云原生',
           items: [
             { text: '概述', link: '/02-cloud-native/' },

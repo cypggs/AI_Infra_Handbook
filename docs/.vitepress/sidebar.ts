@@ -11,7 +11,10 @@ export const sidebar: DefaultTheme.Sidebar = [
   {
     text: '01. 基础',
     collapsed: false,
-    items: [{ text: '概述', link: '/01-foundation/' }],
+    items: [
+      { text: '概述', link: '/01-foundation/' },
+      { text: '大模型从 0 到 1', link: '/01-foundation/llm-from-zero/' },
+    ],
   },
   {
     text: '02. 云原生',
