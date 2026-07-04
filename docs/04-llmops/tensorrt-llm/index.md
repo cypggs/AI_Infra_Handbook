@@ -31,6 +31,10 @@
 - 理解 TensorRT 后端被移除后，PyTorch 后端如何承担编译与执行职责
 - 在生产环境中判断是否使用 TRT-LLM，以及如何调优与量化
 
+## 相关主题
+
+- [计算机网络](/01-foundation/computer-networks/) — 多机 TP/PP 通信依赖 NCCL 与 RDMA/RoCE，计算机网络提供网络底座视角。
+
 ## 与 vLLM / SGLang 的关系
 
 三者不是简单的性能排序，而是面向不同约束的解法：

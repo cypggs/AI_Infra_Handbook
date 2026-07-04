@@ -31,6 +31,10 @@
 - 在 Kubernetes / KServe 环境中规划 Triton 部署方案
 - 判断何时应选 Triton，何时应选自研网关或 KServe
 
+## 相关主题
+
+- [计算机网络](/01-foundation/computer-networks/) — Triton 的 gRPC/HTTP 入口、负载均衡与 DNS 解析都建立在计算机网络基础之上。
+
 ## 与 vLLM / SGLang / TensorRT-LLM 的关系
 
 | 维度 | vLLM | SGLang | TensorRT-LLM | Triton Inference Server |

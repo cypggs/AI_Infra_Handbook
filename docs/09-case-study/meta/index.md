@@ -30,7 +30,8 @@
 | [安全](/08-security/) | Llama Guard 2、Prompt Guard、CyberSecEval 2、Code Shield 是开放权重安全治理的代表。 |
 | [AI SRE](/07-ai-sre/) | 同步训练的可靠性工程（SDC、~50x 中断下降、auto-restart）是 AI SRE 的硬核案例。 |
 | [OpenAI 案例研究](/09-case-study/openai/) | 对照"闭源规模"与"开放权重 + 硬件协同设计"两条路线。 |
-| [Anthropic 案例研究](/09-case-study/anthropic/) | 对照"闭源对齐"与"开放发布 + 自研硅"两条路线。 |
+| [Anthropic 案例研究](/09-case-study/anthropic/) | 对照“闭源对齐”与“开放发布 + 自研硅”两条路线。 |
+| [计算机网络](/01-foundation/computer-networks/) | Meta 的 RoCE 与 InfiniBand 双织物、fat-tree 拓扑是计算机网络主题中数据中心网络与 RDMA 的经典案例。 |
 
 ## 章节导航
 

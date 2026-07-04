@@ -33,6 +33,7 @@
 | [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/) | 硬件 vs 系统软件 | GPU 驱动、CUDA Runtime、nvidia-container-toolkit 都依赖 Linux 的模块、设备文件、cgroup；本章解释它们如何协作。 |
 | [Ray / KubeRay](/03-ai-platform/ray/) | 分布式运行时 vs OS | Ray 的 worker 进程、对象存储、spillback 都依赖 Linux 进程调度和 I/O 子系统。 |
 | [vLLM / TensorRT-LLM](/04-llmops/) | 推理引擎 vs OS | 推理服务的延迟、吞吐、稳定性受 Linux 调度、内存、网络影响。 |
+| [计算机网络](/01-foundation/computer-networks/) | OS 网络栈 vs 网络协议 | Linux 系统调优讲“内核协议栈、NAPI、RPS/RFS/XPS、XDP/RDMA 如何实现”，计算机网络讲“网络协议、拓扑、RDMA/RoCE/IB、CNI/LB/DNS”。 |
 | [AI SRE](/07-ai-sre/) | 可观测 vs 底层指标 | CPU、memory、I/O、network 指标都来自 Linux 内核；本章解释这些指标的含义。 |
 
 ## 本章结构

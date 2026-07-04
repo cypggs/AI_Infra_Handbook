@@ -33,7 +33,8 @@
 | [安全](/08-security/) | Frontier Safety Framework（Critical Capability Levels）、AI Principles、PSP 传输加密是 Google 的安全治理代表。 |
 | [Meta 案例研究](/09-case-study/meta/) | 对照"开放权重 + OCP 硬件 + PyTorch"与"开放软件栈 + 自研 TPU 硅 + JAX"两条开放路线。 |
 | [OpenAI 案例研究](/09-case-study/openai/) | 对照"闭源规模 + 通用 GPU"与"垂直整合自研硅 + 软件全开"。 |
-| [Anthropic 案例研究](/09-case-study/anthropic/) | 对照"闭源对齐"与"开放生态 + 安全框架"。 |
+| [Anthropic 案例研究](/09-case-study/anthropic/) | 对照“闭源对齐”与“开放生态 + 安全框架”。 |
+| [计算机网络](/01-foundation/computer-networks/) | Google 的 OCS、3D-torus、Falcon NIC、Swift 拥塞控制是计算机网络主题中数据中心网络与 RDMA 的经典案例。 |
 
 ## 章节导航
 

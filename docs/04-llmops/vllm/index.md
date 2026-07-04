@@ -30,3 +30,7 @@
 - 定位 vLLM 源码中的关键模块与调用链
 - 实现一个简化的 PagedAttention + Continuous Batching Demo
 - 在生产环境中评估是否使用 vLLM，以及如何调优
+
+## 相关主题
+
+- [计算机网络](/01-foundation/computer-networks/) — 分布式推理与多机通信依赖 NCCL、RDMA/RoCE/TCP，计算机网络提供底层网络机制视角。

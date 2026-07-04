@@ -8,7 +8,7 @@
 
 - **[大模型从 0 到 1（已上线）](/01-foundation/llm-from-zero/)** — 用通俗易懂的方式走完数据 → Tokenizer → Transformer → 预训练 → 后训练 → 推理服务 → 优化加速的完整旅程
 - **[Linux 系统与性能调优（已上线）](/01-foundation/linux-systems/)** — 从 Kernel/User Space、系统调用到 CFS 调度器、虚拟内存/TLB/HugePages/NUMA、VFS/I/O 调度、网络协议栈、cgroup v2/namespace，配合 CPU 可运行 Mini Demo，建立 AI Infra 的 OS 底盘直觉
-- 计算机网络（TCP/IP、RDMA、NCCL 网络拓扑）
+- **[计算机网络（已上线）](/01-foundation/computer-networks/)** — 从 OSI/TCP-IP 分层、分组交换、可靠传输与拥塞控制，到数据中心 Spine-Leaf/fat-tree/3D-torus、InfiniBand/RoCE/RDMA、Kubernetes CNI/Service/DNS/LB，配合 CPU 可运行 Mini Demo，建立 AI 集群通信底座的直觉
 - 存储系统（本地存储、对象存储、并行文件系统）
 - **[GPU 架构与 CUDA 基础（已上线）](/01-foundation/gpu-cuda/)** — 从 SIMT/Warp/SM 到 CUDA 编程模型，从 Fermi 到 Blackwell 架构演进，从 cuBLAS/NCCL 到 DCGM 生产监控
 - 分布式系统基础（一致性、容错、通信）

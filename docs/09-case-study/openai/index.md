@@ -25,6 +25,7 @@ OpenAI 是当代最具代表性的 AI 基础设施实践之一。从 GPT-3 到 G
 | [Agent Runtime](/05-agent/agent-runtime/) | ChatGPT/Operator 等产品背后的 Agent 执行与工具调用逻辑值得参考。 |
 | [安全](/08-security/) | OpenAI 的 Preparedness Framework、System Cards、Red Teaming 是企业安全治理的标杆。 |
 | [AI SRE](/07-ai-sre/) | OpenAI 的规模化可观测、SLO、事件响应是 AI SRE 的极端案例。 |
+| [计算机网络](/01-foundation/computer-networks/) | OpenAI 大规模训练集群的 InfiniBand/RoCE 网络、all-reduce 通信模式是计算机网络主题中分布式训练网络的典型案例。 |
 
 ## 章节导航
 
