@@ -243,12 +243,12 @@ export default withMermaid(
       sidebar,
 
       editLink: {
-        pattern: 'https://github.com/case/ai-infra-handbook/edit/main/docs/:path',
+        pattern: 'https://github.com/cypggs/AI_Infra_Handbook/edit/main/docs/:path',
         text: '在 GitHub 上编辑此页',
       },
 
       socialLinks: [
-        { icon: 'github', link: 'https://github.com/case/ai-infra-handbook' },
+        { icon: 'github', link: 'https://github.com/cypggs/AI_Infra_Handbook' },
       ],
 
       footer: {
@@ -277,7 +277,7 @@ export default withMermaid(
     },
 
     sitemap: {
-      hostname: 'https://ai-infra-handbook.vercel.app',
+      hostname: 'https://ai-infra.cypggs.com',
     },
   })
 )

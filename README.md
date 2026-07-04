@@ -4,12 +4,12 @@
 
 > 目标：打造中文最完整、最系统、最工程化的 AI Infrastructure 学习体系。
 
-[![Deploy](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://ai-infra-handbook.vercel.app)
+[![Deploy](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://ai-infra.cypggs.com)
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ## 在线阅读
 
-**[https://ai-infra-handbook.vercel.app](https://ai-infra-handbook.vercel.app)**
+**[https://ai-infra.cypggs.com](https://ai-infra.cypggs.com)**
 
 ## 项目定位
 

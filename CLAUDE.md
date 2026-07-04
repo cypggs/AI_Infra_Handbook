@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **AI Infra Handbook**, a VitePress-based Chinese documentation site covering AI infrastructure topics (Kubernetes, LLMOps, Agent, RAG, AI SRE, etc.). Each theme follows a fixed 11-chapter structure: background → core ideas → architecture → workflow → modules → source analysis → mini demo → production practice → best practices → interview questions → further reading.
 
-The site auto-deploys to Vercel on pushes to `main`. There is no backend or database.
+The site auto-deploys to Vercel on pushes to `main` and is served via the custom domain `https://ai-infra.cypggs.com` (CNAME from `ai-infra-handbook.vercel.app`). There is no backend or database.
 
 ## Common Commands
 
@@ -89,7 +89,7 @@ python -m operator_mini.demo
 After pushing, verify the live page with `curl -sL` and a content check. For example:
 
 ```bash
-curl -sL https://ai-infra-handbook.vercel.app/03-ai-platform/kserve/ | grep -o "KServe" | head -1
+curl -sL https://ai-infra.cypggs.com/03-ai-platform/kserve/ | grep -o "KServe" | head -1
 ```
 
 Vercel uses `cleanUrls`, so a non-following poll may return a 308; always use `curl -sL`.
@@ -107,5 +107,5 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ## Repository Metadata
 
 - License: CC-BY-SA-4.0
-- Production URL: https://ai-infra-handbook.vercel.app
+- Production URL: https://ai-infra.cypggs.com
 - GitHub: https://github.com/cypggs/AI_Infra_Handbook
