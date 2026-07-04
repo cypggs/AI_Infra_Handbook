@@ -29,6 +29,7 @@
 - 想了解 Kubernetes 上的 ML 平台（Notebook / Pipelines / Katib / Training Operator）：[Kubeflow](/03-ai-platform/kubeflow/)（已上线）
 - 想了解开源 ML 生命周期平台（实验追踪 / 模型注册 / 模型治理）：[MLflow](/03-ai-platform/mlflow/)（已上线）
 - 想了解 Ray 在 Kubernetes 上的官方 Operator（RayCluster / RayJob / RayService）：[KubeRay](/03-ai-platform/kuberay/)（已上线）
+- 想了解工作流编排平台（DAG / Operator / Scheduler / Executor / Metadata DB）：[Airflow](/03-ai-platform/airflow/)（已上线）
 - 想了解 Agent Runtime：[Agent Runtime](/05-agent/agent-runtime/)（已上线）
 - 想了解 Agent Memory：[Memory](/05-agent/memory/)（已上线）
 - 想了解 Multi-Agent：[Multi-Agent](/05-agent/multi-agent/)（已上线）

@@ -30,6 +30,7 @@
 | Kubeflow | KServe 是 Kubeflow 的服务组件，可组合成完整 ML 平台 | [Kubeflow](../kubeflow/) |
 | MLflow | 实验追踪与模型注册，KServe 可加载 MLflow 模型 | [MLflow](../mlflow/) |
 | KubeRay | Ray 在 K8s 上的 Operator，可与 KServe 组合 | [KubeRay](../kuberay/) |
+| Airflow | 工作流编排；可编排 KServe 部署流水线 | [Airflow](../airflow/) |
 | LLM Gateway | 可与 KServe 端点组合 | [LLM Gateway](../../04-llmops/llm-gateway/) |
 | AI SRE | KServe 的可观测与 SLO | [AI SRE](../../07-ai-sre/) |
 

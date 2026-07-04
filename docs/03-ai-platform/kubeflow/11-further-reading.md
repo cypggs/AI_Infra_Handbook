@@ -34,6 +34,7 @@
 | Ray | 分布式训练/推理补充 | [Ray](../ray/) |
 | MLflow | 实验追踪与模型注册，可与 Kubeflow Pipelines 集成 | [MLflow](../mlflow/) |
 | KubeRay | Ray 在 K8s 上的 Operator，可与 Kubeflow 互补 | [KubeRay](../kuberay/) |
+| Airflow | 工作流编排；可与 Kubeflow Pipelines 互补 | [Airflow](../airflow/) |
 | AI SRE | 生产可观测与成本治理 | [AI SRE](../../07-ai-sre/) |
 
 ## 推荐学习路径

@@ -18,6 +18,7 @@
 |---|---|---|
 | Kubeflow | 编排 + 工作流；训练 step 中调用 MLflow | [Kubeflow 总览](../kubeflow/index.md) |
 | KubeRay | 训练作业可跑在 KubeRay 集群上 | [KubeRay 总览](../kuberay/index.md) |
+| Airflow | 工作流编排；可编排 MLflow 训练/注册流水线 | [Airflow 总览](../airflow/index.md) |
 | KServe | 模型服务；可加载 MLflow 模型 | [KServe 总览](../kserve/index.md) |
 | vLLM | 大模型推理；MLflow 可注册 PyTorch 大模型 | [vLLM 总览](../../04-llmops/vllm/index.md) |
 | SGLang | 大模型结构化输出；可与 MLflow 模型服务结合 | [SGLang 总览](../../04-llmops/sglang/index.md) |

@@ -56,7 +56,7 @@ Research → Understand → Architecture → Source Code → Engineering Practic
 docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU、分布式系统
 ├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
-├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow
+├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow、Airflow
 ├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
 ├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
@@ -101,6 +101,7 @@ pnpm docs:preview
 - [Kubeflow 详解](docs/03-ai-platform/kubeflow/) — 覆盖 Kubernetes 上的 ML 平台：Notebook / Pipelines / Katib / Training Operator / KServe / Central Dashboard / Profiles，KFP v2 DSL → Compiler → IR YAML → Run 链路、Katib Experiment/Trial/Suggestion、Training Operator TFJob/PyTorchJob/MPIJob、多租户与 Istio 认证、源码与调用链、Mini Demo（纯 Python 模拟 Profile → Notebook → Pipeline → Katib → PyTorchJob → KServe，8 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [MLflow 详解](docs/03-ai-platform/mlflow/) — 覆盖开源 ML 生命周期平台：Tracking（Experiment/Run/params/metrics/artifacts/tags）、Projects、Models（MLmodel / flavors / signature / input_example / pyfunc）、Model Registry（Registered Model / Version / Stage / Alias / Tag）、Tracking Server + Backend Store + Artifact Store 架构、REST API 与 Fluent/MlflowClient 调用链、源码分析、Mini Demo（SQLite backend + 本地 artifact 的 sklearn 训练 → log → 注册 → alias → 加载预测）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [KubeRay 详解](docs/03-ai-platform/kuberay/) — 覆盖 Ray 官方 Kubernetes Operator：RayCluster / RayJob / RayService CRD、head/worker 映射、自动扩缩容（Autoscaler sidecar / v2 / idleTimeout / upscalingMode）、GCS Fault Tolerance、声明式升级（NewCluster / Incremental Upgrade）、controller-runtime 架构与三大 Reconciler 调用链、Batch Scheduler 集成（Volcano/YuniKorn/scheduler-plugins）、GPU/TPU 调度、认证与 TLS、Prometheus/Grafana 监控、Mini Demo（FakeClock + FakeApiServer + Informer + WorkQueue + Reconciler 模拟集群创建/扩缩容/RayJob 生命周期）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
+- [Airflow 详解](docs/03-ai-platform/airflow/) — 覆盖工作流编排平台：DAG / Operator / Task / TaskInstance / DAG Run / Executor（Sequential/Local/Celery/Kubernetes/Dask，Airflow 2.10+ 多 Executor）/ Metadata Database / Triggerer / DAG Processor / XCom / Deferrable Operator / Dataset/Asset 调度、Airflow 3 Execution API + JWT 演进、源码分析（models/jobs/executors/providers）、Mini Demo（纯 Python 模拟 DAG 解析/Scheduler/Executor/XCom/Triggerer，11 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [Agent Runtime 详解](docs/05-agent/agent-runtime/) — 覆盖 ReAct 循环、工具注册与 function calling、记忆、状态机、护栏、可观测、恢复、与 LLM Gateway 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Memory 详解](docs/05-agent/memory/) — 覆盖 Agent 记忆系统、工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索、存储后端、与 Agent Runtime 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Multi-Agent 详解](docs/05-agent/multi-agent/) — 覆盖多 Agent 协作、角色定义、消息通信、协调调度、共享黑板、团队可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
