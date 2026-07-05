@@ -36,8 +36,10 @@ build/
 .vercel
 
 # Claude Code local settings / skill secrets
-.claude/
-.claude/settings.json
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/add-theme/
 .claude/skills/**/.env
 .claude/skills/fullstack-deploy/
 
