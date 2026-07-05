@@ -136,6 +136,7 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 | 主题 | 与容器运行时的关系 | 阅读建议 |
 |---|---|---|
 | **[Kubernetes](/02-cloud-native/kubernetes/)** | K8s 通过 CRI 调用容器运行时；运行时是 K8s 的执行层 | K8s 第 4 章 Runtime 工作流程与本主题第 4 章互补 |
+| **[CNI / CSI 深度](/02-cloud-native/cni-csi/)** | CRI 创建 netns 后触发 CNI，容器 rootfs 准备好后触发 CSI NodePublish；运行时是 CNI/CSI 的上游触发点 | 读完本主题后再读 CNI/CSI，理解容器生命周期如何驱动网络与存储插件 |
 | [Foundation](/01-foundation/) | namespace/cgroup/overlayfs 都是内核特性 | Foundation 的 Linux/网络/存储是运行时地基 |
 | **[Linux 系统与性能调优](/01-foundation/linux-systems/)** | namespace/cgroup 的内核实现与性能影响 | 先理解 Linux 内核机制，再看运行时如何用它们构建容器 |
 | **[vLLM](/04-llmops/vllm/)** / **[Triton](/04-llmops/triton/)** | 推理引擎打成镜像、由运行时拉起 | 镜像优化直接影响它们的冷启动与扩缩 |

@@ -56,6 +56,7 @@ export default withMermaid(
             { text: '容器运行时 总览', link: '/02-cloud-native/container-runtime/' },
             { text: 'Helm 总览', link: '/02-cloud-native/helm/' },
             { text: 'Operator 总览', link: '/02-cloud-native/operator/' },
+            { text: 'CNI / CSI 深度 总览', link: '/02-cloud-native/cni-csi/' },
           ],
         },
         {

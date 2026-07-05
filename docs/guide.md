@@ -30,6 +30,7 @@
 - 想了解 K8s 之下的执行层（镜像、namespace/cgroup、containerd/runc、OCI）：[容器运行时](/02-cloud-native/container-runtime/)（已上线）
 - 想了解 K8s 包管理与部署（Chart、values、三方合并、GitOps）：[Helm](/02-cloud-native/helm/)（已上线）
 - 想了解如何把领域运维知识编码成自愈控制循环（CRD、Reconcile、finalizer、KubeRay/Training Operator）：[Operator 模式](/02-cloud-native/operator/)（已上线）
+- 想了解 Kubernetes 网络与存储插件接口、生命周期与生产排障（CNI、CSI、NetworkPolicy、VolumeAttachment）：[CNI / CSI 深度](/02-cloud-native/cni-csi/)（已上线）
 - 想了解统一分布式 AI 平台：[Ray](/03-ai-platform/ray/)（已上线）
 - 想了解 Kubernetes 模型服务平台（InferenceService / ServingRuntime / 金丝雀 / 自动扩缩）：[KServe](/03-ai-platform/kserve/)（已上线）
 - 想了解 Kubernetes 上的 ML 平台（Notebook / Pipelines / Katib / Training Operator）：[Kubeflow](/03-ai-platform/kubeflow/)（已上线）

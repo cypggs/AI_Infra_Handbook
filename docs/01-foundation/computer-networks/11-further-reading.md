@@ -46,6 +46,7 @@
 - [Linux 系统与性能调优](../linux-systems/)：网络协议栈、NAPI、RPS/RFS/XPS、XDP/DPDK。
 - [容器运行时](../../02-cloud-native/container-runtime/)：网络 namespace、veth、bridge、CNI 调用链。
 - [Kubernetes](../../02-cloud-native/kubernetes/)：Service、kube-proxy、CoreDNS、Ingress/Gateway API。
+- [CNI / CSI 深度](../../02-cloud-native/cni-csi/)：CNI 接口、NetworkPolicy 数据面、Flannel/Calico/Cilium/Multus/SR-IOV、CSI 存储网络。
 - [vLLM](../../04-llmops/vllm/)：分布式推理中的 NCCL 与网络。
 - [TensorRT-LLM](../../04-llmops/tensorrt-llm/)：多机 TP/PP 的网络拓扑。
 - [Triton Inference Server](../../04-llmops/triton/)：gRPC/HTTP 入口网络。

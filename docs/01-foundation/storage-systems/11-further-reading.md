@@ -33,6 +33,7 @@
 - [Linux 系统与性能调优](../linux-systems/)：VFS、ext4/xfs、块层、I/O 调度器、page cache、direct I/O。
 - [计算机网络](../computer-networks/)：网络存储（NAS/SAN/对象存储/并行文件系统）依赖的网络基础。
 - [Kubernetes](../../02-cloud-native/kubernetes/)：PV/PVC/StorageClass/CSI 的使用与实现。
+- [CNI / CSI 深度](../../02-cloud-native/cni-csi/)：CSI 接口、Controller/Node Service、external-provisioner/attacher/resizer/snapshotter、VolumeAttachment、快照与扩容。
 - [MLflow](../../03-ai-platform/mlflow/)：Artifact Store 与模型版本管理。
 - [Kubeflow](../../03-ai-platform/kubeflow/)：Pipeline artifact 与 MLMD lineage。
 - [KServe](../../03-ai-platform/kserve/)：模型存储与 storage-initializer。

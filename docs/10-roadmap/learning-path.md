@@ -8,8 +8,6 @@
 
 - **[大模型从 0 到 1（已上线）](/01-foundation/llm-from-zero/)** — 用通俗易懂的方式走完数据 → Tokenizer → Transformer → 预训练 → 后训练 → 推理服务 → 优化加速的完整旅程
 - **[Linux 系统与性能调优（已上线）](/01-foundation/linux-systems/)** — 从 Kernel/User Space、系统调用到 CFS 调度器、虚拟内存/TLB/HugePages/NUMA、VFS/I/O 调度、网络协议栈、cgroup v2/namespace，配合 CPU 可运行 Mini Demo，建立 AI Infra 的 OS 底盘直觉
-- **[计算机网络（已上线）](/01-foundation/computer-networks/)** — 从 OSI/TCP-IP 分层、分组交换、可靠传输与拥塞控制，到数据中心 Spine-Leaf/fat-tree/3D-torus、InfiniBand/RoCE/RDMA、Kubernetes CNI/Service/DNS/LB，配合 CPU 可运行 Mini Demo，建立 AI 集群通信底座的直觉
-- **[计算机网络（已上线）](/01-foundation/computer-networks/)** — 从 OSI/TCP-IP 分层、分组交换、可靠传输与拥塞控制，到数据中心 Spine-Leaf/fat-tree/3D-torus、InfiniBand/RoCE/RDMA、Kubernetes CNI/Service/DNS/LB，配合 CPU 可运行 Mini Demo，建立 AI 集群通信底座的直觉
 - **[存储系统（已上线）](/01-foundation/storage-systems/)** — 从块/文件/对象三种存储语义、一致性、复制与纠删码，到 DAS/NAS/SAN/对象存储/并行文件系统、Kubernetes PV/PVC/StorageClass/CSI、PyTorch Distributed Checkpoint，配合 CPU 可运行 Mini Demo，建立 AI 训练 checkpoint 与推理模型加载的存储直觉
 - **[GPU 架构与 CUDA 基础（已上线）](/01-foundation/gpu-cuda/)** — 从 SIMT/Warp/SM 到 CUDA 编程模型，从 Fermi 到 Blackwell 架构演进，从 cuBLAS/NCCL 到 DCGM 生产监控
 - **[分布式系统基础（已上线）](/01-foundation/distributed-systems/)** — 一致性、容错、通信、复制、共识、分布式事务、分布式锁、幂等、时钟与顺序
@@ -22,7 +20,7 @@
 - **[容器运行时（已上线）](/02-cloud-native/container-runtime/)** — K8s 之下的执行层：namespace/cgroup/overlayfs、OCI 标准、containerd/runc 分层、镜像优化与供应链安全、沙箱运行时、惰性拉取
 - **[Helm（已上线）](/02-cloud-native/helm/)** — K8s 包管理器：Chart/values/template/Release 四要素、Tiller 移除与客户端渲染、三方合并 Patch、OCI 仓库、GitOps 部署
 - **[Operator 模式（已上线）](/02-cloud-native/operator/)** — 把领域运维知识编码成控制循环：CRD/Controller/Reconcile 四铁律、controller-runtime 架构、finalizer/owner/status/webhook、KubeRay/Training Operator/GPU Operator 源码对照
-- CRI、CNI、CSI
+- **[CNI / CSI 深度（已上线）](/02-cloud-native/cni-csi/)** — Kubernetes 把网络与存储外包给插件的两根柱子：CNI 接口与插件链（bridge/host-local/IPAM/Flannel/Calico/Cilium/Multus/SR-IOV）、CSI Identity/Controller/Node 三面 gRPC、external-provisioner/attacher/resizer/snapshotter 侧车、NetworkPolicy 数据面、VolumeAttachment 一致性、RWO/ROX/RWX、生产排障与 AI 场景选型
 - GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
 
 ## 阶段三：AI 平台与 LLMOps（6~10 周）

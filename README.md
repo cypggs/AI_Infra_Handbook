@@ -55,7 +55,7 @@ Research → Understand → Architecture → Source Code → Engineering Practic
 ```
 docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU/CUDA、分布式系统、大模型从 0 到 1
-├── 02-cloud-native/    # Docker、Kubernetes、Helm、Operator
+├── 02-cloud-native/    # Docker、Kubernetes、容器运行时、Helm、Operator、CNI/CSI
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow、Airflow
 ├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
 ├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS
@@ -97,6 +97,7 @@ pnpm docs:preview
 - [容器运行时详解](docs/02-cloud-native/container-runtime/) — 覆盖 K8s 之下的执行层：从 chroot/LXC/Docker 演进到 OCI 标准化、namespace/cgroup/overlayfs 三件套、Docker→containerd→runc 分层架构、containerd-shim、CRI 与 dockershim 移除、OCI runtime/image spec、源码分析（runc/libcontainer + containerd）、镜像分层与内容寻址、镜像优化（多阶段/distroless/zstd）、镜像供应链安全（cosign 签名/SBOM/trivy/SLSA）、运行时安全（seccomp/capabilities/rootless）、沙箱运行时（gVisor/Kata）、多架构 buildx、惰性拉取（stargz/nydus）、Mini Demo（镜像分层 + overlayfs COW + namespace 隔离 + cgroup throttle/OOM + OCI create/start + 多架构 manifest，40 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [Helm 详解](docs/02-cloud-native/helm/) — 覆盖 K8s 包管理器：裸 YAML 四宗罪、Chart/values/template/Release 四要素、version/appVersion/apiVersion 辨析、Go template + Sprig、values 深合并与分层覆盖、Tiller 移除与客户端渲染、Release Secret 存储、Hook/test/post-renderer、OCI 仓库与 cosign 签名、三方合并 Patch（升级保留人工改动的核心机制）、helm/helm 源码三条主线、GitOps（Argo CD/Flux）部署、External Secrets、AI 推理/Ray/多租户 GPU 配额落地案例、Mini Demo（模板渲染 + Release 生命周期 + 三方合并端到端，55 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [Operator 模式详解](docs/02-cloud-native/operator/) — 覆盖把领域运维知识编码成控制循环：CoreOS 2016 定义、CRD/Controller/Reconcile 四铁律（level-triggered/幂等/不阻塞/乐观）、controller-runtime 全景（Manager/Cache/Client/Workqueue/Leader Election）、finalizer/owner reference/级联 GC/status 子资源/webhook、generation 与 observedGeneration、controller-runtime 源码主干调用链、KubeRay/Training Operator/GPU Operator 三大 AI Operator 对照、Helm+Operator+GitOps 组合、多租户与金丝雀、Mini Demo（纯 Python 从零实现 apiserver/informer/workqueue/reconciler，37 测试，精确复现 reconcile 收敛时间线）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
+- [CNI / CSI 深度详解](docs/02-cloud-native/cni-csi/) — 覆盖 Kubernetes 把网络与存储外包给插件的两根柱子：CNI 接口与插件链（bridge/host-local/IPAM/Flannel/Calico/Cilium/Multus/SR-IOV）、CSI Identity/Controller/Node 三面 gRPC、external-provisioner/attacher/resizer/snapshotter 侧车、NetworkPolicy 数据面（iptables/nftables/eBPF）、VolumeAttachment 一致性、RWO/ROX/RWX、controller/node expand、snapshot/restore、生产排障与 AI 场景选型、Mini Demo（纯 Python 从零实现 CNI/CSI/kubelet，46 测试，精确复现 Pod 网络 + 存储生命周期）、生产实践、最佳实践与面试题（内容更新至 2026-07-05）
 - [vLLM 详解](docs/04-llmops/vllm/) — 覆盖 V1 引擎、PagedAttention、Continuous Batching、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）

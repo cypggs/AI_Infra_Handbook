@@ -55,6 +55,9 @@ hero:
       text: Operator 模式详解
       link: /02-cloud-native/operator/
     - theme: alt
+      text: CNI / CSI 深度详解
+      link: /02-cloud-native/cni-csi/
+    - theme: alt
       text: Ray 详解
       link: /03-ai-platform/ray/
     - theme: alt
@@ -155,6 +158,7 @@ features:
 - [x] 容器运行时主题（K8s 之下的执行层：namespace/cgroup/overlayfs、OCI、containerd/runc、镜像供应链安全、沙箱运行时、惰性拉取）
 - [x] Helm 主题（K8s 包管理器：Chart/values/template/Release、Tiller 移除与客户端渲染、三方合并 Patch、OCI、GitOps）
 - [x] Operator 主题（CRD + 控制循环、Reconcile 四铁律、controller-runtime 架构、finalizer/owner/status/webhook、KubeRay/Training Operator/GPU Operator 源码对照、纯 Python Mini Demo）
+- [x] CNI / CSI 深度主题（K8s 网络与存储插件接口：CNI ADD/DEL、CSI Controller/Node、NetworkPolicy、VolumeAttachment、RWO/ROX/RWX、生产排障、纯 Python Mini Demo）
 - [x] vLLM 主题（LLM 推理引擎）
 - [x] SGLang 主题（LLM Program / RadixAttention / 结构化生成）
 - [x] TensorRT-LLM 主题（NVIDIA 编译型 LLM 推理引擎）
