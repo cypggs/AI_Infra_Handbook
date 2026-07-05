@@ -44,6 +44,7 @@
 - [KServe 详解](/03-ai-platform/kserve/) — Kubernetes 模型服务平台，vLLM 是其核心 LLM runtime 之一，了解 KServe 可补全"从容器到服务"的平台视角。
 - [Ray 详解](/03-ai-platform/ray/) — Ray Serve LLM 默认以 vLLM 作为推理后端，了解 Ray 可补充分布式服务与训练视角。
 - [Kubernetes 详解](/02-cloud-native/kubernetes/) — vLLM 生产部署在 K8s 上，通过 Deployment + GPU 资源声明 + HPA 扩缩、探针/滚动升级管理生命周期，理解 K8s 是 vLLM 落地的基础。
+- [GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/) — vLLM 生产部署依赖 K8s GPU 调度、MIG/MPS、拓扑感知与 Gang 调度，本主题补全集群层面 GPU 治理视角。
 - [学习路线](/10-roadmap/learning-path)
 - [面试指南](/10-roadmap/interview-guide)
 - [OpenAI 案例研究](/09-case-study/openai/) — 观察 PagedAttention/vLLM 类技术在大规模生产系统中的落地形态。

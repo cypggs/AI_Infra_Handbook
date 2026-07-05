@@ -58,7 +58,8 @@
 
 ## 11.5 相关主题交叉引用
 
-- [Kubernetes GPU 调度](/02-cloud-native/kubernetes/)：GPU 在 Kubernetes 中的调度、MIG/MPS、拓扑感知、DCGM；
+- [GPU 在 Kubernetes 上的调度](/02-cloud-native/gpu-scheduling/)：GPU 在 Kubernetes 中的发现、调度、MIG/MPS、拓扑感知、DCGM、Gang/队列公平调度；
+- [Kubernetes 详解](/02-cloud-native/kubernetes/)：容器编排底座、调度框架、extended resource 与 Device Plugin 通用机制；
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 编译型 LLM 推理引擎，大量依赖 Tensor Core 与 FP8；
 - [vLLM](/04-llmops/vllm/)：GPU 上的 LLM 推理服务与内存管理；
 - [Ray](/03-ai-platform/ray/)：分布式 AI 计算，底层调用 CUDA + NCCL；
@@ -79,4 +80,4 @@
 
 > GPU/CUDA 不是一门孤立的技术，它是 AI Infra 的底座。理解了它，再看 Kubernetes 调度、推理引擎、分布式训练，都会有一通百通的感觉。
 
-恭喜你已经走完了本章的全部 11 节。下一章建议继续学习 [Kubernetes GPU 调度](/02-cloud-native/kubernetes/)，把单卡知识扩展到集群层面。
+恭喜你已经走完了本章的全部 11 节。下一章建议继续学习 [GPU 在 Kubernetes 上的调度](/02-cloud-native/gpu-scheduling/)，把单卡知识扩展到集群层面。

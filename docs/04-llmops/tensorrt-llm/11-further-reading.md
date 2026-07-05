@@ -64,6 +64,7 @@
 - [SGLang 详解](/04-llmops/sglang/) — 理解 LLM Program、RadixAttention 与结构化生成
 - [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/) — 理解 Tensor Core、FP8/FP4、NVLink、HBM 等 TRT-LLM 依赖的底层硬件能力
 - [Triton Inference Server 详解](/04-llmops/triton/) — 多框架推理服务入口，可承载 TensorRT-LLM backend
+- [GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/) — TensorRT-LLM 生产部署依赖 K8s GPU 调度、MIG/MPS、拓扑感知与 Gang 调度，理解集群层面 GPU 资源模型
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — 统一接入层，可把 TensorRT-LLM 作为上游 Provider
 
 ## 社区与 benchmark

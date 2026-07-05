@@ -50,6 +50,7 @@
 | **Helm** | 互补：Helm 装 Operator，Operator 管业务 | [Helm 第 1 章](../helm/01-background)、[第 8 章 生产实践](../helm/08-production-practice) |
 | **容器运行时** | Operator 创建的 Pod 由容器运行时执行 | [容器运行时 索引](../container-runtime/) |
 | **Ray（AI 平台）** | KubeRay 是 Ray on K8s 的载体 | [Ray 索引](../../03-ai-platform/ray/)（如已上线） |
+| **GPU 在 Kubernetes 上的调度** | GPU Operator 是典型 AI Operator 实现；本主题讲透 Device Plugin、GPU Operator 与 K8s GPU 调度 | [GPU 在 Kubernetes 上的调度总览](../../02-cloud-native/gpu-scheduling/) |
 | **vLLM/Triton（LLMOps）** | 推理 Operator（KServe/vLLM Operator）管理它们 | [vLLM 索引](../../04-llmops/vllm/)、[Triton 索引](../../04-llmops/triton/) |
 | **AI SRE** | Operator 的可观测/告警（reconcile_errors）是 SRE 核心 | [AI SRE 索引](../../07-ai-sre/)（如已上线） |
 

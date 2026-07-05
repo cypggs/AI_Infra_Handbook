@@ -57,6 +57,7 @@ export default withMermaid(
             { text: 'Helm 总览', link: '/02-cloud-native/helm/' },
             { text: 'Operator 总览', link: '/02-cloud-native/operator/' },
             { text: 'CNI / CSI 深度 总览', link: '/02-cloud-native/cni-csi/' },
+            { text: 'GPU 在 Kubernetes 上的调度 总览', link: '/02-cloud-native/gpu-scheduling/' },
           ],
         },
         {

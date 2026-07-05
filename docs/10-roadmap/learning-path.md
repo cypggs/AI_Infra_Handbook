@@ -21,7 +21,7 @@
 - **[Helm（已上线）](/02-cloud-native/helm/)** — K8s 包管理器：Chart/values/template/Release 四要素、Tiller 移除与客户端渲染、三方合并 Patch、OCI 仓库、GitOps 部署
 - **[Operator 模式（已上线）](/02-cloud-native/operator/)** — 把领域运维知识编码成控制循环：CRD/Controller/Reconcile 四铁律、controller-runtime 架构、finalizer/owner/status/webhook、KubeRay/Training Operator/GPU Operator 源码对照
 - **[CNI / CSI 深度（已上线）](/02-cloud-native/cni-csi/)** — Kubernetes 把网络与存储外包给插件的两根柱子：CNI 接口与插件链（bridge/host-local/IPAM/Flannel/Calico/Cilium/Multus/SR-IOV）、CSI Identity/Controller/Node 三面 gRPC、external-provisioner/attacher/resizer/snapshotter 侧车、NetworkPolicy 数据面、VolumeAttachment 一致性、RWO/ROX/RWX、生产排障与 AI 场景选型
-- GPU 在 Kubernetes 上的调度（NVIDIA Device Plugin、GPU Operator）
+- **[GPU 在 Kubernetes 上的调度（已上线）](/02-cloud-native/gpu-scheduling/)** — 把 NVIDIA GPU 作为 K8s 一等资源：Device Plugin gRPC 协议、GPU Operator 组件编排、`nvidia.com/gpu` 资源模型、MIG/MPS/time-slicing、拓扑感知调度、Gang/队列/公平调度、多租户治理与生产排障
 
 ## 阶段三：AI 平台与 LLMOps（6~10 周）
 

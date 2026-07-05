@@ -83,6 +83,7 @@
 | **KServe** | 可与 Ray Serve 互补 | K8s 模型服务网关（本手册 LLMOps 篇待补充） |
 | **[KubeRay](/03-ai-platform/kuberay/)** | Ray 在 Kubernetes 上的官方 Operator | RayCluster / RayJob / RayService / GCS FT |
 | **[Kubernetes](/02-cloud-native/kubernetes/)** | KubeRay 基座 | K8s 调度框架、Operator 模式、GPU/Gang 调度 |
+| **[GPU 在 Kubernetes 上的调度](/02-cloud-native/gpu-scheduling/)** | Ray 训练/推理任务依赖 K8s GPU 调度；覆盖 Device Plugin、MIG/MPS、Gang、队列公平调度 | K8s GPU 调度框架、Gang 调度与拓扑感知 |
 | **[Observability](/07-ai-sre/)** | Ray 生产可观测 | Prometheus/Grafana/OpenTelemetry |
 | **[Agent Runtime](/05-agent/agent-runtime/)** | Ray 可用于多 Agent 执行后端 | ReAct、multi-agent 调度 |
 | **[Multi-Agent](/05-agent/multi-agent/)** | Ray 可支撑分布式 Agent 集群 | Agent 通信与协调 |

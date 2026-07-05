@@ -20,6 +20,7 @@
 | Kubernetes | KubeRay 的底座 | [Kubernetes 总览](../../02-cloud-native/kubernetes/) |
 | Operator 模式 | KubeRay 本身就是 Operator | [Operator 模式总览](../../02-cloud-native/operator/) |
 | KServe | 可加载 Ray Serve 端点 | [KServe 总览](../kserve/) |
+| GPU 在 Kubernetes 上的调度 | KubeRay 的 RayCluster/Worker 需要 GPU 资源；本主题覆盖 K8s GPU 调度、MIG/MPS、拓扑感知、Gang 调度 | [GPU 在 Kubernetes 上的调度总览](../../02-cloud-native/gpu-scheduling/) |
 | MLflow | 训练实验追踪与模型注册 | [MLflow 总览](../mlflow/) |
 | Airflow | 工作流编排；Ray 作业可作为 Airflow 任务执行 | [Airflow 总览](../airflow/) |
 | AI SRE | 可观测、SLO、告警 | [AI SRE 总览](../../07-ai-sre/) |

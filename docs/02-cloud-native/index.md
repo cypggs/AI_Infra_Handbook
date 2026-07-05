@@ -9,6 +9,7 @@
 - **[Helm](./helm/)** — Kubernetes 的包管理器。从裸 YAML 四宗罪、Chart/values/template/Release 四要素、Tiller 移除与客户端渲染、到三方合并 Patch（升级保留人工改动的核心机制），附纯 Python 可运行的 Mini Demo（55 测试）。
 - **[Operator 模式](./operator/)** — 把领域运维知识编码成控制循环。从 CoreOS 2016 定义、CRD/Controller/Reconcile 四铁律、controller-runtime 架构、finalizer/owner/status/webhook、KubeRay/Training Operator/GPU Operator 源码对照，到纯 Python 从零实现的 Mini Demo（37 测试，精确复现 reconcile 收敛时间线）。
 - **[CNI / CSI 深度](./cni-csi/)** — Kubernetes 把网络与存储外包给插件的两根柱子。从 in-tree 到 out-of-tree 的演进、CNI ADD/DEL/CHECK/GC、CSI Identity/Controller/Node 三面 gRPC、Flannel/Calico/Cilium/Multus/SR-IOV、EBS/Ceph/Lustre/WEKA/S3 CSI，到纯 Python 从零实现的 Mini Demo（46 测试，精确复现 Pod 网络 + 存储生命周期）。
+- **[GPU 在 Kubernetes 上的调度](./gpu-scheduling/)** — 把 NVIDIA GPU 引入 K8s 调度与治理的完整链路。从 Device Plugin gRPC 协议、GPU Operator 组件编排、`nvidia.com/gpu` 资源模型、MIG/MPS/time-slicing、拓扑感知调度、Gang/队列/公平调度，到纯 Python 从零实现的 Mini Demo（44 测试，精确复现 GPU 调度全生命周期）。
 
 ## 计划中主题
 
