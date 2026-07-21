@@ -68,6 +68,7 @@ export default withMermaid(
             { text: 'TensorRT-LLM', link: '/04-llmops/tensorrt-llm/' },
             { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
+            { text: 'RL Post-Training 基础设施', link: '/04-llmops/rl-post-training/' },
           ],
         },
         {

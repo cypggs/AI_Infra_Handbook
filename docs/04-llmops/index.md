@@ -9,6 +9,7 @@
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 高性能编译型 LLM 推理引擎
 - [Triton Inference Server](/04-llmops/triton/)：NVIDIA 开源多框架推理服务软件，统一承载多种推理后端
 - [LLM Gateway](/04-llmops/llm-gateway/)：位于客户端与推理后端之间的访问控制与抽象层
+- [RL Post-Training 基础设施](/04-llmops/rl-post-training/)：把强化学习闭环跑在千卡集群上的工程系统，覆盖 GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF 源码与生产实践
 
 ## 计划中主题
 

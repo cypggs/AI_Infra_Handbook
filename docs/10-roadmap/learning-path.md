@@ -36,6 +36,7 @@
 - **TensorRT-LLM（已上线）**
 - **Triton Inference Server（已上线）**
 - **LLM Gateway（已上线）**
+- **[RL Post-Training 基础设施（已上线）](/04-llmops/rl-post-training/)** — GRPO/PPO 算法工程化、Rollout/Train 分离架构、veRL/OpenRLHF 源码、Agentic RL、生产实践
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 

@@ -1,0 +1,20 @@
+[project]
+name = "rl-post-training-mini"
+version = "0.1.0"
+description = "微型 RL Post-Training 教学模拟器 —— 纯标准库重建 GRPO / Rollout-Train 分离 / 权重版本同步"
+requires-python = ">=3.9"
+dependencies = []  # 零第三方依赖：所有组件用标准库从零实现
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["rl_post_training_mini*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
