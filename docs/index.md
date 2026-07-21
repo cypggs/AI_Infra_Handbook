@@ -46,6 +46,9 @@ hero:
       text: LLM Gateway 详解
       link: /04-llmops/llm-gateway/
     - theme: alt
+      text: RL Post-Training 详解
+      link: /04-llmops/rl-post-training/
+    - theme: alt
       text: Kubernetes 详解
       link: /02-cloud-native/kubernetes/
     - theme: alt
@@ -168,6 +171,7 @@ features:
 - [x] TensorRT-LLM 主题（NVIDIA 编译型 LLM 推理引擎）
 - [x] Triton Inference Server 主题（多框架推理服务软件）
 - [x] LLM Gateway 主题（访问控制与抽象层）
+- [x] RL Post-Training 基础设施主题（GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF 源码、纯 Python Mini Demo）
 - [x] Ray 主题（统一分布式 AI 计算框架）
 - [x] KServe 主题（Kubernetes 模型服务平台：InferenceService / ServingRuntime / InferenceGraph）
 - [x] Kubeflow 主题（Kubernetes 上的 ML 平台：Notebook / Pipelines / Katib / Training Operator / KServe / Central Dashboard）
