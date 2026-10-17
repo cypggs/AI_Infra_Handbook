@@ -7,25 +7,25 @@
 读完本主题，你应该能：
 
 1. 解释为什么需要 Kubeflow（裸跑 ML 工作负载的痛点）。
-2. 说清 Kubeflow 的核心组件：Notebooks、Pipelines、Katib、Training Operator、KServe、Central Dashboard、Profiles。
+2. 说清 Kubeflow 的核心组件：Notebooks、Pipelines、Katib、Kubeflow Trainer、KServe、Hub、Spark Operator、Central Dashboard、Profiles。
 3. 理解 Kubeflow Pipelines v2 的 DSL → Compiler → IR YAML → Run 的完整链路。
-4. 理解 Katib 的 Experiment/Trial/Suggestion/Early Stopping 机制。
-5. 理解 Training Operator 如何管理 TFJob/PyTorchJob/MPIJob/XGBoostJob。
-6. 理解多租户模型：Profile、Namespace、KFAM、Istio 认证。
-7. 了解 Kubeflow 源码主结构和关键控制器调用链。
-8. 动手跑一个纯 Python mini-demo，模拟 Pipeline DAG、Katib 实验、TrainingJob、Profile。
-9. 知道生产落地要点：安装方式选择、多租户、存储、artifact、升级、成本。
+4. 理解 Katib 的 Experiment/Trial/Suggestion/Early Stopping 机制，以及 Trial 直接跑 TrainJob 的新范式。
+5. 理解 Kubeflow Trainer 两代 API：V1 框架 CRD（PyTorchJob 等）与 V2 `TrainJob` + `TrainingRuntime`（内置 torchtune LLM 微调运行时）。
+6. 理解多租户模型：Profile、Namespace、KFAM、Istio 认证，以及 1.11 的 PSS/NetworkPolicy 默认基线。
+7. 了解 Hub（原 Model Registry）：Model Catalog、MCP Catalog、OCI 模型制品。
+8. 会用 Kubeflow SDK（`pip install kubeflow`）：本地后端验证、TrainJob 上集群、模型注册。
+9. 知道生产落地要点：安装方式选择（1.11 / 26.03 日历版本）、SeaweedFS、多租户、存储、artifact、升级、成本。
 
 ## 与相邻主题的关系
 
 | 主题 | 关系 | 链接 |
 |---|---|---|
 | **Kubernetes** | Kubeflow 的底座：namespace、CRD、调度、存储、网络 | [Kubernetes](../../02-cloud-native/kubernetes/) |
-| **Operator 模式** | Kubeflow 每个组件都是 Operator（Pipeline、Katib、Training Operator 等） | [Operator 模式](../../02-cloud-native/operator/) |
+| **Operator 模式** | Kubeflow 每个组件都是 Operator（Pipeline、Katib、Trainer、Hub 等） | [Operator 模式](../../02-cloud-native/operator/) |
 | **Helm** | 安装 Kubeflow 或其组件时可选用 Helm / Kustomize | [Helm](../../02-cloud-native/helm/) |
 | **KServe** | Kubeflow 的模型服务组件 | [KServe](../kserve/) |
 | **存储系统** | Pipeline artifact、Notebook PVC、训练 Job checkpoint 都依赖 K8s 存储选型 | [存储系统](../../01-foundation/storage-systems/) |
-| **Ray** | 分布式训练/推理的补充，可与 Training Operator / KubeRay 组合 | [Ray](../ray/) |
+| **Ray** | 分布式训练/推理的补充，可与 Kubeflow Trainer / KubeRay 组合 | [Ray](../ray/) |
 | **MLflow** | 实验追踪与模型注册，常与 Kubeflow Pipelines 集成 | 计划中 |
 | **AI SRE** | Kubeflow 生产环境的可观测、SLO、成本治理 | [AI SRE](../../07-ai-sre/) |
 
@@ -33,21 +33,21 @@
 
 | 章节 | 标题 | 内容 |
 |---|---|---|
-| 1 | [背景](01-background) | ML 工作负载的痛点、Kubeflow 诞生、与 Airflow/MLflow/KServe/Ray 的对比 |
-| 2 | [核心思想](02-core-ideas) | Notebooks、Pipelines、Katib、Training Operator、KServe、Central Dashboard、Profiles |
+| 1 | [背景](01-background) | ML 工作负载的痛点、Kubeflow 诞生与 2025–2026 演进、与 Airflow/MLflow/KServe/Ray 的对比 |
+| 2 | [核心思想](02-core-ideas) | Notebooks、Pipelines、Katib、Trainer（V1/V2）、KServe、Hub、SDK、Central Dashboard、Profiles |
 | 3 | [架构设计](03-architecture) | 控制平面、组件交互、多租户与认证、存储与网络 |
-| 4 | [Runtime 工作流程](04-runtime-workflow) | 从 Notebook 开发到 Pipeline Run → Katib 调参 → TrainingJob → KServe 部署 |
-| 5 | [核心模块](05-core-modules) | Central Dashboard、Notebook Controller、Profile/KFAM、Pipelines 后端、Katib、Training Operator |
-| 6 | [源码分析](06-source-analysis) | kubeflow/pipelines、training-operator、katib、manifests 关键源码与调用链 |
+| 4 | [Runtime 工作流程](04-runtime-workflow) | 从 Notebook 开发到 Pipeline Run → Katib 调参 → TrainJob → Hub → KServe 部署；Python-first 新范式 |
+| 5 | [核心模块](05-core-modules) | Central Dashboard、Notebook Controller、Profile/KFAM、Pipelines 后端、Katib、Trainer、Hub、Spark Operator |
+| 6 | [源码分析](06-source-analysis) | kubeflow/pipelines、trainer、katib、sdk 关键源码与调用链 |
 | 7 | [Mini Demo](07-mini-demo) | 纯 Python 模拟 Pipeline DAG、Katib Experiment、TrainingJob、Profile |
 | 8 | [企业生产实践](08-production-practice) | 安装方式、多租户、认证、存储、artifact、监控、升级 |
 | 9 | [最佳实践](09-best-practices) | Pipeline 版本、缓存、可复现、资源配额、安全、成本 |
 | 10 | [面试题](10-interview-questions) | 初/中/高级 Kubeflow 高频题 |
-| 11 | [延伸阅读](11-further-reading) | 官方文档、论文/博客、生态工具、学习路径 |
+| 11 | [延伸阅读](11-further-reading) | 官方文档、发布博客、生态工具、学习路径 |
 
 ## 一句话总结
 
-**Kubeflow = Kubernetes 上的 ML 生命周期操作系统**：Notebook 做开发、Pipelines 做编排、Katib 做搜索、Training Operator 做分布式训练、KServe 做服务、Central Dashboard 做入口——全部通过 CRD 和 Operator 跑在 K8s 上。
+**Kubeflow = Kubernetes 上的 ML 生命周期操作系统**：Notebook 做开发、Pipelines 做编排、Katib 做搜索、Trainer 做分布式训练与 LLM 微调、KServe 做服务（含 LLMInferenceService）、Hub 管模型与 MCP 资产、Central Dashboard 做入口——全部通过 CRD 和 Operator 跑在 K8s 上，并且从 2026 年起可以用 `pip install kubeflow` 以 Python-first 方式驱动。
 
 ## 参考来源
 
@@ -55,5 +55,8 @@
 - [Kubeflow GitHub](https://github.com/kubeflow/kubeflow)
 - [Kubeflow Pipelines GitHub](https://github.com/kubeflow/pipelines)
 - [Kubeflow Katib GitHub](https://github.com/kubeflow/katib)
-- [Kubeflow Training Operator GitHub](https://github.com/kubeflow/training-operator)
+- [Kubeflow Trainer GitHub](https://github.com/kubeflow/trainer)
+- [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
+- [Kubeflow 1.11 Release](https://blog.kubeflow.org/kubeflow-1.11-release/)
+- [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
 - 本手册 [Operator 模式](../../02-cloud-native/operator/)、[KServe](../kserve/)、[Ray](../ray/)、[Kubernetes](../../02-cloud-native/kubernetes/)

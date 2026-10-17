@@ -43,7 +43,7 @@
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                    Kubernetes API Server / etcd                       │
-│   CRD: Notebook, Pipeline, Run, Experiment, Trial, TFJob, Profile    │
+│   CRD: Notebook, Pipeline, Run, Experiment, Trial, TrainJob, Profile  │
 └──────────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -61,11 +61,13 @@
 
 | 组件 | CRD |
 |---|---|
-| Notebooks | `Notebook` |
+| Notebooks | `Notebook`（v2 引入 CRD 驱动的 Workspaces） |
 | Pipelines | `Pipeline`, `Run`, `Experiment`, `RecurringRun`（backend 内部） |
 | Katib | `Experiment`, `Trial`, `Suggestion` |
-| Training Operator | `TFJob`, `PyTorchJob`, `MPIJob`, `XGBoostJob`, `PaddleJob`, `MXJob`, `JAXJob` |
-| KServe | `InferenceService`, `ServingRuntime`, `InferenceGraph` |
+| Kubeflow Trainer | V1：`TFJob`, `PyTorchJob`, `MPIJob`, `XGBoostJob` 等（维护模式）；V2：`TrainJob`, `TrainingRuntime`, `ClusterTrainingRuntime` |
+| KServe | `InferenceService`, `ServingRuntime`, `InferenceGraph`, `LLMInferenceService`（v0.18+） |
+| Hub | `ModelRegistry` 相关资源；Model Catalog / MCP Catalog |
+| Spark Operator | `SparkApplication` 等 |
 | Profiles | `Profile` |
 
 ### Controller 层
@@ -74,10 +76,11 @@
 
 - **Notebook Controller**：`Notebook` → StatefulSet + Service + Istio VS。
 - **Profile Controller**：`Profile` → Namespace + RBAC + default resources。
-- **Pipeline API Server**：REST/gRPC API，管理 Pipeline/Run/Experiment。
+- **Pipeline API Server**：REST/gRPC API，管理 Pipeline/Run/Experiment；2.15+ 内置数据库自动迁移，2.16 起原生支持 OIDC。
 - **Katib Controller**：监听 `Experiment`，创建 `Trial` 和 `Suggestion`。
-- **Training Operator**：监听 `PyTorchJob`/`TFJob` 等，创建 Pod/Job。
-- **KServe Controller**：监听 `InferenceService`，创建 Knative/RawDeployment 资源。
+- **Kubeflow Trainer**：V2 Controller 监听 `TrainJob`，按 `runtimeRef` 解析 `TrainingRuntime` 生成 Pod/Job；与 Kueue/Volcano 集成 gang scheduling。
+- **KServe Controller**：监听 `InferenceService`/`LLMInferenceService`，创建 Knative/RawDeployment 资源。
+- **Hub Controller**：维护模型目录与 KServe `InferenceService` 的对账（记录线上实际运行的模型版本）。
 
 ### UI 层
 
@@ -120,8 +123,11 @@ Cluster
 常见认证：
 
 - **DEX**：内置 OIDC provider，可接 LDAP/GitHub/Google。
-- **oauth2-proxy**：把外部 IdP 的 token 转成 K8s service account。
+- **oauth2-proxy**：1.10 起取代旧的 OIDC-authservice，把外部 IdP 的 token 转成 K8s service account。
 - **Istio**：基于 JWT 和 namespace 做授权。
+- **KFP 原生 OIDC**：2.16 起 Pipeline API Server 可不再依赖 Istio 侧车做认证（多租户模式下按 namespace 下发 S3 凭证）。
+
+> 1.11 起安全基线大幅收紧：系统 namespace 默认 Pod Security Standards **restricted**、用户 namespace **baseline**，并为关键 namespace（`knative-serving`、`oauth2-proxy`、`cert-manager`、`istio-system`、`auth` 等）默认下发 NetworkPolicy。
 
 ## 3.4 网络与流量
 
@@ -138,10 +144,11 @@ Kubeflow 需要几类存储：
 | 用途 | 常见方案 |
 |---|---|
 | Notebook 用户目录 | PVC（RWO 或 RWX） |
-| Pipeline artifact | S3 / GCS / MinIO |
+| Pipeline artifact | S3 / GCS / SeaweedFS（1.11 起默认）/ MinIO（已弃用） |
 | Pipeline metadata | ML Metadata（MLMD）+ MySQL / SQLite |
 | Katib experiment 数据 | Katib MySQL / Postgres |
-| KServe 模型 | S3 / GCS / PVC |
+| KServe 模型 | S3 / GCS / PVC / OCI（Hub 的标准，ModelCar 加载） |
+| Hub 模型制品 | OCI Registry（与容器镜像共用分发机制） |
 
 ### Artifact Store
 
@@ -162,7 +169,7 @@ Component B 通过 input artifact 引用
 
 ## 3.6 组件交互示例
 
-一个完整的 Pipeline Run 如何调动 Katib 和 Training Operator：
+一个完整的 Pipeline Run 如何调动 Katib 和 Kubeflow Trainer：
 
 ```
 Pipeline Run
@@ -171,14 +178,14 @@ Pipeline Run
     │     └─ artifact → S3
     │
     ├─ Step 2: Katib Experiment
-    │     └─ Katib Controller 创建多个 Trial Job
+    │     └─ Katib Controller 创建多个 Trial（可直接为 TrainJob）
     │     └─ 最佳参数通过 artifact / output 返回
     │
-    ├─ Step 3: 用最佳参数创建 PyTorchJob
-    │     └─ Training Operator 创建 Master/Worker Pod
-    │     └─ 模型 artifact → S3
+    ├─ Step 3: 用最佳参数创建 TrainJob
+    │     └─ Trainer 按 runtimeRef 解析 TrainingRuntime，创建 Pod
+    │     └─ 模型 artifact → S3 / OCI
     │
-    └─ Step 4: KServe InferenceService
+    └─ Step 4: KServe InferenceService / LLMInferenceService
           └─ KServe Controller 部署模型服务
 ```
 
@@ -192,13 +199,15 @@ Pipeline Run
 kustomize build example | kubectl apply -f -
 ```
 
+自 2026 年起社区发行版改用**日历版本号**（如 `26.03`，表示 2026 年 3 月基线，每年约两个基线版本、约 6 个月社区支持），并验证 Kubernetes 1.34+（26.03 在 1.35/1.36 上跑 CI）。Helm Chart 支持处于实验阶段。
+
 ### 独立组件
 
-平台团队可以只装需要的部分：
+平台团队可以只装需要的部分（具体路径以各组件仓库的 standalone 安装说明为准）：
 
 ```bash
-# 只装 Training Operator
-kubectl apply -k github.com/kubeflow/training-operator/manifests/overlays/standalone?ref=v1.9.2
+# 只装 Kubeflow Trainer（V2 默认启用 TrainJob，支持单条 Helm 命令安装）
+# 见 github.com/kubeflow/trainer 的 standalone / Helm 安装说明，当前版本 v2.2.0
 
 # 只装 Katib
 kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-standalone?ref=v0.19.0
@@ -214,15 +223,17 @@ kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-stan
 ## 本章小结
 
 - Kubeflow 是**多 Operator 集合**，共享 K8s API Server。
-- **Central Dashboard** 是统一入口，**Istio** 处理认证/流量/隔离。
+- **Central Dashboard** 是统一入口，**Istio + oauth2-proxy** 处理认证/流量/隔离；1.11 起默认 PSS 与 NetworkPolicy。
 - **Profile = namespace**，Profile Controller 创建 namespace + RBAC + network policy。
-- 各组件 CRD：Notebook、Run/Experiment、Experiment/Trial、PyTorchJob/TFJob、InferenceService、Profile。
-- 存储分层：PVC、对象存储 artifact、MLMD、Katib DB。
-- 可完整安装，也可按需独立部署某个组件。
+- 各组件 CRD：Notebook、Run/Experiment、Experiment/Trial、TrainJob/TrainingRuntime、InferenceService/LLMInferenceService、Profile。
+- 存储分层：PVC、对象存储 artifact（SeaweedFS 默认）、MLMD、Katib DB、Hub OCI Registry。
+- 可完整安装（日历版本发行版），也可按需独立部署某个组件。
 
 **参考来源**
 
 - [Kubeflow — Architecture](https://www.kubeflow.org/docs/started/architecture/)
 - [Kubeflow — Profiles and Namespaces](https://www.kubeflow.org/docs/components/central-dash/profiles/)
 - [Kubeflow — Authentication](https://www.kubeflow.org/docs/external-add-ons/oidc/)
+- [Kubeflow 1.11 Release Announcement](https://blog.kubeflow.org/kubeflow-1.11-release/)
+- [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
 - [Kubeflow Manifests](https://github.com/kubeflow/manifests)

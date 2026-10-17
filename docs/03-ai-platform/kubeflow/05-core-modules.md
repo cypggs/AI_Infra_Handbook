@@ -1,6 +1,6 @@
-# 5. 核心模块：Central Dashboard、Notebook、Profile、Pipelines、Katib、Training Operator
+# 5. 核心模块：Central Dashboard、Notebook、Profile、Pipelines、Katib、Trainer、Hub、Spark Operator
 
-> 一句话理解：Kubeflow 是多个独立 Operator 的组合，**每个组件都有自己的控制器、API 和 UI**，它们统一挂在 Central Dashboard 下，用 Profile 做租户边界。
+> 一句话理解：Kubeflow 是多个独立 Operator 的组合，**每个组件都有自己的控制器、API 和 UI**，它们统一挂在 Central Dashboard 下，用 Profile 做租户边界；2026 年后又由统一的 Python SDK 在它们之上提供编程接口。
 
 ## 5.1 Central Dashboard
 
@@ -161,6 +161,13 @@ Artifact + MLMD
 - **Launcher**：附加在 user container 的 init/sidecar，负责下载/上传 artifact。
 - **Executor**：用户业务容器。
 
+### 2.15+ 存储与认证变化
+
+- **SeaweedFS 取代 MinIO 成为默认对象存储**（2.15 引入，2.16 完成 MinIO 客户端替换为 AWS SDK v2；MinIO manifest 仍可用但可能在未来移除）。
+- **数据库自动迁移**：从 2.15.0 之前升级时自动建索引；不支持回滚，生产库升级前务必备份。
+- **原生 OIDC**：2.16 起 API Server 可直接对接 OIDC，不再强依赖 Istio 认证链。
+- **Local Runner**：2.16 起可在本地（无集群）执行 pipeline，支持条件求值与并行控制流，用于开发调试。
+
 ### 关键表（MySQL / SQLite）
 
 - `pipelines`：pipeline 元数据。
@@ -187,6 +194,13 @@ Artifact + MLMD
 | 超参搜索 | random、grid、bayesian optimization（skopt）、tpe、hyperband、cmaes、sobol |
 | NAS | ENAS、DARTS（部分支持） |
 | Early Stopping | medianstop |
+
+1.10 起增强：
+
+- **LLM 微调调参 API**：面向大模型微调实验的高层 API。
+- **新参数分布**：log-uniform、normal、log-normal。
+- **Push-based 指标采集**：Trial 主动上报指标，替代轮询文件，性能与可管理性更好。
+- **OptimizerClient**：Python SDK 客户端，`Experiment` 的 Trial 可直接以 `TrainJob` 运行（而非仅 batch Job），与 Kubeflow Trainer v2 深度集成。
 
 ### Trial 生命周期
 
@@ -216,13 +230,16 @@ Trial 容器把目标指标写到约定路径：
 
 Controller 读取后比较，保留最优 Trial。
 
-## 5.6 Training Operator
+## 5.6 Kubeflow Trainer（原 Training Operator）
 
 ### 职责
 
-监听 `TFJob`、`PyTorchJob`、`MPIJob`、`XGBoostJob`、`PaddleJob`、`MXJob`、`JAXJob` 等 CRD，创建对应的 Pod/Job/Service，管理分布式训练生命周期。
+管理分布式训练与 LLM 微调生命周期。项目已从 `kubeflow/training-operator` 更名为 `kubeflow/trainer`，两代 API 并存：
 
-### 通用 CRD 结构
+- **V1（维护模式）**：监听 `TFJob`、`PyTorchJob`、`MPIJob`、`XGBoostJob`、`PaddleJob`、`MXJob`、`JAXJob` 等 CRD。
+- **V2（2025-07 GA，当前默认）**：统一的 `TrainJob` + `TrainingRuntime` 模型，仓库主体在 `pkg/controller/`（V2 控制器）。
+
+### V1 通用 CRD 结构
 
 ```yaml
 apiVersion: kubeflow.org/v1
@@ -244,7 +261,33 @@ spec:
       replicas: 4
 ```
 
-### Replica 角色
+### V2：TrainJob + TrainingRuntime
+
+```yaml
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: finetune-llama
+spec:
+  runtimeRef:
+    name: torchtune-llama3.2-1b
+  trainer:
+    numNodes: 2
+    command: ["tune", "run", "--config", "llama3_2/1B_qlora_single_device"]
+```
+
+- **`TrainingRuntime` / `ClusterTrainingRuntime`**：平台面资源，声明镜像、入口（`torchrun` 等）、默认配置与调度插件。
+- **内置运行时**：torchtune LLM 微调（Llama 3.2、Qwen 2.5 配方，LoRA/QLoRA/DoRA）、torch-distributed、DeepSpeed、MLX（MPI）、JAX、XGBoost、Flux（HPC）。
+- **Initializer**：`HuggingFaceModelInitializer`、`HuggingFaceDatasetInitializer` 等，在训练前拉取模型/数据集（支持 Hugging Face / S3）；可选 Arrow/DataFusion 数据缓存把数据集流式喂给 GPU。
+- **可观测性**：v2.2 起 TrainJob 暴露进度与指标，Hugging Face Transformers 可通过 `KubeflowTrainerCallback` 自动上报。
+
+### v2.2 破坏性变更（升级注意）
+
+- `PodTemplateOverrides` 被 **`RuntimePatches` API** 取代。
+- 移除 `numProcPerNode`（Torch API）与 `ElasticPolicy` API。
+- 修复 TrainJob API 不可变性问题（创建后关键字段不可修改）。
+
+### Replica 角色（V1）
 
 | CRD | 角色 |
 |---|---|
@@ -261,34 +304,63 @@ spec:
 - **服务发现**：为每个 replica 创建 Headless Service，Pod 通过 DNS 发现同伴。
 - **环境变量**：把集群信息注入容器（如 `MASTER_ADDR`、`MASTER_PORT`、`WORLD_SIZE`）。
 - **失败处理**：通过 `restartPolicy`（Never / OnFailure / ExitCode）控制重试。
-- **弹性训练**：PyTorchJob 支持 `elasticPolicy` 动态扩缩。
+- **调度**：与 Kueue / Volcano / Coscheduling 集成实现 gang scheduling 与队列。
 
 ### 源码结构
 
-- `github.com/kubeflow/training-operator`
-- `pkg/controller.v1/pytorch`、`pkg/controller.v1/tensorflow` 等目录分别实现各框架 controller。
+- 仓库：`github.com/kubeflow/trainer`（原 training-operator）。
+- V1：`pkg/controller.v1/pytorch`、`pkg/controller.v1/tensorflow` 等目录分别实现各框架 controller。
+- V2：`pkg/controller/trainjob_controller.go`、`pkg/controller/trainingruntime_controller.go`。
 
-## 5.7 KServe 集成
+## 5.7 Hub（原 Model Registry）
+
+### 定位
+
+Hub 是 2026 年由 Model Registry 更名扩围而来的**资产中心**，26.03 起默认随发行版安装：
+
+| 能力 | 说明 |
+|---|---|
+| Model Registry | 模型版本、元数据、过滤/排序/归档（UI 完整支持） |
+| Model Catalog | 受治理的模型目录：Hugging Face 拉取、基准测试与硬件对比（Pareto 过滤、延迟排序） |
+| MCP Catalog | 搜索/浏览/部署 MCP 服务器，含工具列表与过滤 |
+| KServe 集成 | Custom Storage Initializer + reconciliation controller（记录线上 InferenceService 实际运行的模型版本） |
+| 存储后端 | MySQL / PostgreSQL；模型本体以 OCI 制品存储 |
+
+其他变化：API 趋于稳定（准备 v1）；Python 客户端支持打包上传与异步上传 Job；移除对 legacy Google MLMD 的依赖。
+
+## 5.8 Spark Operator
+
+2025 年起成为 Kubeflow 核心组件（2.5.0，基于 controller-runtime 重构）：
+
+- 支持 Spark 4 / Spark Connect、suspend/resume、Kueue 队列。
+- YuniKorn gang scheduling、动态分配与 shuffle tracking。
+- 更强安全上下文（seccompProfile、readOnlyRootFilesystem）。
+- 通过 Kubeflow SDK 的 `SparkClient` 提交：`connect()` 交互式 Spark Connect 会话，或 `submit_job()` 批作业（`SparkApplication` CRD）。
+
+## 5.9 KServe 集成
 
 KServe 是 Kubeflow 的模型服务组件。在 Kubeflow 部署中：
 
-- KServe Controller 监听 `InferenceService` CRD。
+- KServe Controller 监听 `InferenceService` CRD；0.18 起新增 `LLMInferenceService`。
 - Central Dashboard 展示 InferenceService 列表与端点。
 - 可通过 Pipeline 部署 `InferenceService` 作为最后一步。
+- Hub 的 reconciliation controller 会把线上服务与注册版本对账。
 
 已在 [KServe 主题](../kserve/) 详述，本章不再展开。
 
-## 5.8 组件之间的调用关系
+## 5.10 组件之间的调用关系
 
 ```
-Central Dashboard
+Central Dashboard / Kubeflow SDK
    │
    ├─ Notebook Controller → StatefulSet / Service / VS
    ├─ Profile Controller → Namespace / RBAC / AuthorizationPolicy
    ├─ KFP API Server → Run → Driver/Launcher/Executor → Pod
-   ├─ Katib Controller → Trial → Job / PyTorchJob
-   ├─ Training Operator → TFJob / PyTorchJob / MPIJob → Pod
-   └─ KServe Controller → InferenceService → Knative / Deployment
+   ├─ Katib Controller → Trial → TrainJob / Job
+   ├─ Kubeflow Trainer → TrainJob → TrainingRuntime → Pod
+   ├─ Hub → Model Catalog / OCI Registry → KServe Initializer
+   ├─ Spark Operator → SparkApplication → Driver/Executor Pod
+   └─ KServe Controller → InferenceService / LLMInferenceService → Deployment
 ```
 
 所有组件最终都通过 Kubernetes API Server 操作 etcd 和 Pod。
@@ -298,9 +370,11 @@ Central Dashboard
 - **Central Dashboard**：统一入口，聚合各组件 UI。
 - **Notebook Controller**：把 Jupyter 环境声明式化。
 - **Profile / KFAM**：namespace 级多租户与权限管理。
-- **KFP**：API Server + Persistence Agent + MLMD + artifact store + Driver/Launcher/Executor。
-- **Katib**：Controller + DB Manager + Suggestion + Early Stopping 实现 AutoML。
-- **Training Operator**：一套 Operator 管理多种分布式训练框架。
+- **KFP**：API Server + Persistence Agent + MLMD + artifact store + Driver/Launcher/Executor；2.16 默认 SeaweedFS、原生 OIDC、Local Runner。
+- **Katib**：Controller + DB Manager + Suggestion + Early Stopping；OptimizerClient 让 Trial 直接跑 TrainJob。
+- **Kubeflow Trainer**：V1 框架 CRD 维护模式；V2 `TrainJob` + `TrainingRuntime` 统一范式，内置 LLM 微调运行时。
+- **Hub**：模型目录 + MCP Catalog + OCI 制品，默认安装。
+- **Spark Operator**：数据工程核心组件，SDK 原生支持。
 - 各组件独立迭代，通过 K8s API Server 协同。
 
 **参考来源**
@@ -310,4 +384,6 @@ Central Dashboard
 - [Kubeflow Profiles](https://www.kubeflow.org/docs/components/central-dash/profiles/)
 - [KFP v2 Architecture](https://www.kubeflow.org/docs/components/pipelines/)
 - [Katib Overview](https://www.kubeflow.org/docs/components/katib/overview/)
-- [Training Operator Overview](https://www.kubeflow.org/docs/components/training/)
+- [Kubeflow Trainer v2.2 Release](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
+- [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
+- [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)

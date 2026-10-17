@@ -1,6 +1,6 @@
 # 4. Runtime 工作流程：从 Notebook 到模型服务
 
-> 一句话理解：一个典型的 Kubeflow 旅程是——**数据科学家在 Notebook 里开发，把代码封装成 Pipeline component，编译上传后创建 Run；Run 中 Katib 自动搜索超参，Training Operator 用最佳参数分布式训练，最后 KServe 把模型发布为在线服务**。
+> 一句话理解：一个典型的 Kubeflow 旅程是——**数据科学家在 Notebook 里开发，把代码封装成 Pipeline component，编译上传后创建 Run；Run 中 Katib 自动搜索超参，Kubeflow Trainer 用最佳参数分布式训练，最后 KServe 把模型发布为在线服务**。
 
 ## 4.1 完整旅程时序图
 
@@ -42,10 +42,10 @@ Step 2: Katib Experiment
    │ 12. 生成 Trial Jobs（Batch Job / PyTorchJob）
    │ 13. 收集 metrics，返回最佳参数
    ▼
-Step 3: Training Operator PyTorchJob
+Step 3: Kubeflow Trainer TrainJob（V1 为 PyTorchJob）
    │
-   │ 14. Training Operator 创建 Master + Workers
-   │ 15. 分布式训练，保存模型 artifact → S3
+   │ 14. Trainer 按 runtimeRef 解析 TrainingRuntime，创建 Master + Workers
+   │ 15. 分布式训练，保存模型 artifact → S3 / OCI
    ▼
 Step 4: KServe InferenceService
    │
@@ -167,22 +167,21 @@ Katib Controller：
 
 ### 阶段 6：分布式训练
 
-Pipeline 用最佳参数创建 `PyTorchJob`：
+Pipeline 用最佳参数创建训练任务。V2 范式是 `TrainJob`（`runtimeRef` 指向平台预置的 `TrainingRuntime`）：
 
 ```yaml
-apiVersion: kubeflow.org/v1
-kind: PyTorchJob
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
 metadata:
   name: final-train
 spec:
-  pytorchReplicaSpecs:
-    Master:
-      replicas: 1
-    Worker:
-      replicas: 4
+  runtimeRef:
+    name: torch-distributed
+  trainer:
+    numNodes: 4
 ```
 
-Training Operator 创建 Master + 4 Workers，训练完成后模型写入 S3。
+Kubeflow Trainer 创建 4 个节点，训练完成后模型写入 S3 或作为 OCI 制品推入 Hub。（V1 的 `PyTorchJob` 写法仍可用，处于维护模式。）
 
 ### 阶段 7：模型服务
 
@@ -242,15 +241,47 @@ dag:
 
 ## 4.4 失败与重试
 
-- **Pipeline step 失败**：KFP 支持 `retry_policy`，按策略重试。
+- **Pipeline step 失败**：KFP 支持 `retry_policy`，按策略重试；2.16 起 Local Runner 支持条件求值与并行控制流，可在提交集群前先本地验证逻辑。
 - **Katib Trial 失败**：超过 `maxFailedTrialCount` 后 Experiment 失败。
-- **Training Job 失败**：Training Operator 按 `restartPolicy` 处理（Never/OnFailure/ExitCode）。
+- **TrainJob 失败**：Trainer 按运行时定义的重启策略处理；V2 提供 TrainJob 生命周期与进度/指标可观测性（集成 Hugging Face `KubeflowTrainerCallback`）。
 - **全部状态通过 K8s status conditions 暴露**，Dashboard 可观测。
+
+## 4.5 GenAI 时代的新范式：Python-first 旅程
+
+2026 年的典型旅程不再从"写 YAML"开始，而是从 `pip install kubeflow` 开始。以下是用 SDK 微调一个 LLM 并上线的完整链路：
+
+```mermaid
+sequenceDiagram
+    participant DS as 数据科学家
+    participant SDK as Kubeflow SDK
+    participant Local as 本地后端(Docker/进程)
+    participant K8s as Kubernetes
+    participant Hub as Hub
+    participant KS as KServe
+
+    DS->>SDK: BuiltinTrainer + TorchTuneConfig (LoRA/QLoRA)
+    SDK->>Local: 本地小规模验证（同一份代码）
+    DS->>SDK: 提交 TrainJob（runtimeRef: torchtune-llama3.2）
+    SDK->>K8s: 创建 TrainJob（HuggingFace 初始化器拉模型/数据）
+    K8s-->>SDK: 进度与指标（KubeflowTrainerCallback）
+    DS->>SDK: 注册微调产物到 Hub（OCI 制品）
+    SDK->>K8s: 创建 LLMInferenceService
+    K8s->>Hub: 经 KServe Custom Storage Initializer 拉取 OCI 模型
+    KS-->>DS: OpenAI 兼容端点（/v1/chat/completions）
+```
+
+要点：
+
+- **同一份训练代码**先在本地后端（Docker/Podman/子进程）跑通，再切到 K8s 后端规模化——本地与集群之间没有"翻译成本"。
+- **LLM 微调**：`BuiltinTrainer` + torchtune 运行时内置 LoRA/QLoRA/DoRA 配方，`HuggingFaceModelInitializer` 负责拉模型，无需手写分布式启动脚本。
+- **模型分发**：微调产物以 OCI 制品推入 Hub；KServe 通过 Custom Storage Initializer 直接从 Hub/OCI 加载，冷启动可用 namespace 级 ModelCache 加速。
+- **服务形态**：`LLMInferenceService` 暴露 OpenAI 兼容 API（含 `/v1/responses` 路由），多节点大模型由 LWS（LeaderWorkerSet）集成支撑分布式推理，KEDA/HPA 按真实推理需求扩缩。
 
 ## 本章小结
 
-- 完整链路：**Notebook 开发 → Component/Pipeline 编写 → 编译上传 → Run → Katib 调参 → TrainingJob 训练 → KServe 部署 → 监控迭代**。
+- 完整链路：**Notebook 开发 → Component/Pipeline 编写 → 编译上传 → Run → Katib 调参 → TrainJob 训练 → Hub 注册 → KServe 部署 → 监控迭代**。
 - KFP v2 核心是 **IR YAML + Driver/Launcher/Executor** 三层执行模型。
+- 2026 新范式：**Python-first SDK**——本地后端验证、TrainJob 上集群、OCI 制品进 Hub、`LLMInferenceService` 对外服务。
 - 各阶段失败都有标准的 K8s condition 和重试机制。
 - Kubeflow 把一次 ML 迭代变成可复现、可观测、可协作的声明式流程。
 
@@ -258,5 +289,6 @@ dag:
 
 - [Kubeflow Pipelines — Getting Started](https://www.kubeflow.org/docs/components/pipelines/)
 - [KFP v2 DSL Documentation](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/)
-- [Kubeflow Pipelines AGENTS.md — end-to-end flow](https://github.com/kubeflow/pipelines/blob/master/AGENTS.md)
+- [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
+- [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
 - 本手册 [KServe](../kserve/04-runtime-workflow)、[Operator 模式](../../02-cloud-native/operator/04-reconcile-loop)

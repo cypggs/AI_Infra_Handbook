@@ -7,21 +7,26 @@
 - [Kubeflow Pipelines GitHub](https://github.com/kubeflow/pipelines)
 - [Kubeflow Pipelines AGENTS.md](https://github.com/kubeflow/pipelines/blob/master/AGENTS.md)
 - [Kubeflow Katib GitHub](https://github.com/kubeflow/katib)
-- [Kubeflow Training Operator GitHub](https://github.com/kubeflow/training-operator)
+- [Kubeflow Trainer GitHub](https://github.com/kubeflow/trainer)
+- [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow Manifests GitHub](https://github.com/kubeflow/manifests)
 - [Kubeflow KServe GitHub](https://github.com/kubeflow/kserve)
 
 ## 核心论文与博客
 
-- [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629) — 与本主题无直接关联，但涉及 Agent 规划，可参考本手册 Agent 篇。
-- Kubeflow 最初由 Google 发布，相关早期论文可参考 [Kubeflow: Machine Learning on Kubernetes](https://arxiv.org/abs/2406.00xx)（如存在）。
+- [Kubeflow 1.10 Release Announcement（2025-03）](https://blog.kubeflow.org/kubeflow-1.10-release/)
+- [Kubeflow 1.11 Release Announcement（2025-12）](https://blog.kubeflow.org/kubeflow-1.11-release/)
+- [Kubeflow Community Distribution 26.03 Release（2026-04）](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Trainer v2.2 Release（2026-03）](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
+- [Kubeflow SDK v0.4 Release](https://blog.kubeflow.org/kubeflow-sdk-0.4.0-release/)
+- [InfoQ — Kubeflow Expands AI Capabilities as CNCF Graduation Nears（2026-08）](https://www.infoq.com/news/2026/08/kubeflow/)
 
 ## 关键工程文章
 
-- [Kubeflow 1.9/1.11 Release Notes](https://github.com/kubeflow/website/blob/master/content/en/docs/kubeflow-distribution/releases/)
-- [KFP v2 迁移指南](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/)
+- [Kubeflow Trainer V2 迁移指南](https://trainer.kubeflow.org/en/latest/operator-guides/migration.html)
+- [KFP v2 核心函数文档](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/)
 - [Katib 超参搜索算法对比](https://www.kubeflow.org/docs/components/katib/user-guides/hyperparameter-tuning/)
-- [Training Operator 弹性训练](https://www.kubeflow.org/docs/components/training/user-guides/)
+- [Kubeflow SDK 官方文档](https://sdk.kubeflow.org/)
 
 ## 本手册相关主题
 
@@ -40,19 +45,20 @@
 ## 推荐学习路径
 
 1. **先修**：Kubernetes、Operator 模式、容器基础。
-2. **入门**：本地 kind 安装 Kubeflow，跑官方 [MNIST Pipeline 示例](https://github.com/kubeflow/pipelines/tree/master/samples)。
-3. **进阶**：写一个自己的 @dsl.component，接入 S3 artifact；用 Katib 调参；用 PyTorchJob 分布式训练。
-4. **生产**：独立组件安装、Istio 认证、多租户 ResourceQuota、Prometheus 监控、升级演练。
-5. **源码**：阅读 `kubeflow/pipelines/backend`、`training-operator/pkg/controller.v1`、`katib/pkg/controller.v1beta1`。
+2. **入门**：本地 kind 安装 Kubeflow（或 `pip install kubeflow` 只装 SDK），跑官方 [MNIST Pipeline 示例](https://github.com/kubeflow/pipelines/tree/master/samples)。
+3. **进阶**：写一个自己的 @dsl.component，接入 S3 artifact；用 Katib 调参（Trial 跑 TrainJob）；用 torchtune 运行时做一次 LoRA 微调。
+4. **生产**：独立组件安装、Istio 认证、多租户 ResourceQuota、SeaweedFS/PSS 基线、Prometheus 监控、升级演练。
+5. **源码**：阅读 `kubeflow/pipelines/backend`、`kubeflow/trainer/pkg/controller`（V2）、`kubeflow/katib/pkg/controller.v1beta1`、`kubeflow/sdk`。
 
 ## 社区与生态
 
 - [Kubeflow Slack](https://www.kubeflow.org/docs/about/community/#kubeflow-slack)
 - [Kubeflow 社区会议](https://www.kubeflow.org/docs/about/community/)
-- [KubeCon + AICon Kubeflow 议题](https://www.cncf.io/online-programs/)
+- [Kubeflow Community Showcase 2026（CNCF 虚拟活动）](https://community2.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-kubeflow-community-showcase-2026-genai-and-mlops-in-action/)
+- [CNCF Kubeflow 项目页（毕业进度）](https://www.cncf.io/projects/kubeflow/)
 
 **本章小结**
 
-- 官方文档和 GitHub 是持续学习的核心来源。
+- 官方文档和 GitHub 是持续学习的核心来源；版本发布博客（1.10/1.11/26.03/Trainer v2.2）是跟进演进的最好材料。
 - Kubeflow 与 Kubernetes、Operator、KServe、Ray、MLflow、KubeRay、AI SRE 等主题紧密相连。
-- 学习路径遵循：本地体验 → 自定义 Pipeline → 生产部署 → 源码阅读。
+- 学习路径遵循：本地体验 → 自定义 Pipeline → LLM 微调 → 生产部署 → 源码阅读。

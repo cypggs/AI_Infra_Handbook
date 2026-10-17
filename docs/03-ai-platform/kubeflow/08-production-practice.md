@@ -1,6 +1,6 @@
 # 8. 企业生产实践：安装、多租户、存储与运维
 
-> 一句话理解：Kubeflow 在生产环境的难点不在于单个组件，而在于**把多个 Operator、认证、存储、网络、GPU、artifact、升级整合成可运维的平台**。
+> 一句话理解：Kubeflow 在生产环境的难点不在于单个组件，而在于**把多个 Operator、认证、存储、网络、GPU、artifact、升级整合成可运维的平台**——2026 年后社区在默认安全基线（PSS/NetworkPolicy/SeaweedFS）上已大幅减负。
 
 ## 8.1 安装方式选择
 
@@ -14,6 +14,8 @@ cd manifests
 kustomize build example | kubectl apply -f -
 ```
 
+- 当前基线：Kubeflow 1.11（2025-12）/ Community Distribution 26.03（2026-04，日历版本号），验证 Kubernetes 1.34+。
+- 26.03 起 Hub（Model Registry/Catalog/UI）默认启用安装；Helm Chart 处于实验阶段。
 - 优点：官方集成，组件版本兼容。
 - 缺点：体积大，所有组件一起升级，定制复杂。
 
@@ -22,14 +24,11 @@ kustomize build example | kubectl apply -f -
 适合：已有部分 ML 平台，只想引入训练/编排/AutoML。
 
 ```bash
-# Training Operator
-kubectl apply -k github.com/kubeflow/training-operator/manifests/overlays/standalone?ref=v1.9.2
-
+# Kubeflow Trainer（V2 默认；v2.2 支持单条 Helm 命令）
 # Katib
 kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-standalone?ref=v0.19.0
 
-# KFP standalone
-kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic-pns?ref=2.3.0
+# KFP standalone（路径以 pipelines 仓库当前版本的说明为准）
 ```
 
 - 优点：按需引入，升级独立。
@@ -41,6 +40,14 @@ kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/platform-
 - **Amazon SageMaker**：若不需要 Kubeflow 生态，可直接用 SageMaker Pipelines / Training。
 - **Azure Machine Learning**：可与 AKS 自托管 Kubeflow 并用。
 - **Charmed Kubeflow (Canonical)**、**Arrikto Enterprise Kubeflow**：企业支持。
+
+### 方式 4：Python SDK（无平台安装）
+
+```bash
+pip install kubeflow        # 或 kubeflow[docker] / kubeflow[podman]
+```
+
+适合团队已有 K8s 集群、只想引入训练/调参能力：`TrainerClient`/`OptimizerClient` 直接对集群操作，无需完整 Kubeflow 发行版。
 
 ## 8.2 多租户与认证
 
@@ -71,9 +78,11 @@ kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/platform-
 
 ### 常见坑
 
-- **Istio sidecar 注入**：Kubeflow 默认依赖 Istio；某些自定义 namespace 未注入 sidecar 会导致认证失败。
+- **Istio sidecar 注入**：Kubeflow 默认依赖 Istio；1.11 针对大规模集群做了 sidecar 内存/流量优化（"零 Pod 开销"目标），自定义 namespace 未注入 sidecar 会导致认证失败。
 - **OIDC callback URL**：需与 Istio Gateway 的 host 一致。
 - **Central Dashboard iframe**：跨组件 UI 需要统一认证 Cookie / header。
+- **Pod Security Standards**：1.11 起默认强制（系统 namespace restricted / 用户 namespace baseline），自定义镜像需能以非 root 运行、只读根文件系统。
+- **Notebooks 版本**：Notebooks v1 处于维护模式，社区计划 2026 年底 EOL；v2（CRD 驱动的 Workspaces）已在 26.03 提供 alpha，升级前阅读 Dashboard v2 迁移指南。
 
 ## 8.3 存储与 Artifact
 
@@ -82,10 +91,13 @@ kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/platform-
 | 用途 | 推荐方案 | 注意 |
 |---|---|---|
 | Notebook 用户目录 | RWX PVC 或对象存储挂载 | 多副本 Notebook 需要共享存储 |
-| Pipeline artifact | S3 / GCS / MinIO | 配置 KFP 的 `objectStore` secret |
+| Pipeline artifact | S3 / GCS / SeaweedFS（1.11+ 默认）/ MinIO（已弃用） | 配置 KFP 的 `objectStore` secret |
 | Pipeline metadata | ML Metadata + MySQL | 默认 SQLite 不适合生产 |
 | Katib experiment 数据 | Katib MySQL / Postgres | 独立数据库 |
-| KServe 模型 | S3 / GCS / PVC | 注意模型缓存与拉取权限 |
+| KServe 模型 | S3 / GCS / PVC / OCI（Hub + ModelCar） | 注意模型缓存与拉取权限 |
+| Hub 模型制品 | OCI Registry | 与容器镜像共用分发与权限体系 |
+
+1.11 起多租户对象存储改为 **per-namespace S3 凭证**下发；26.03 默认 SeaweedFS，MinIO 与其他 S3 兼容存储仍可用。
 
 ### Artifact Store 配置示例（KFP）
 
@@ -142,15 +154,17 @@ resources:
 
 ### 升级策略
 
-1. **先升级 Training Operator / Katib 等独立组件**，观察稳定后再升级 KFP。
-2. **备份 MLMD / MySQL**：KFP Run 历史与 lineage 存在数据库里。
-3. **在新 namespace 做金丝雀升级**：例如先给部分团队用新版本 Kubeflow。
-4. **保留旧版 manifests**：出问题可快速回滚。
+1. **先升级 Kubeflow Trainer / Katib 等独立组件**，观察稳定后再升级 KFP。
+2. **备份 MLMD / MySQL**：KFP 2.15+ 升级时自动执行数据库索引迁移，**不支持回滚**——生产库必须先备份。
+3. **注意破坏性 API 变更**：Trainer v2.2 用 `RuntimePatches` 取代 `PodTemplateOverrides` 并移除 `ElasticPolicy`；Dashboard v2 / Notebooks v2 有独立迁移指南。
+4. **在新 namespace 做金丝雀升级**：例如先给部分团队用新版本 Kubeflow。
+5. **保留旧版 manifests**：出问题可快速回滚（KFP 数据库除外）。
 
 ### 版本兼容性
 
 - KFP v1 与 v2 的 DSL 不兼容；升级前需迁移 pipeline。
-- Training Operator V1 与 V2（TrainJob）API 不同；V2 仍在 alpha。
+- Kubeflow Trainer V1 CRD 处于维护模式，新部署建议直接使用 V2 `TrainJob`；V1→V2 迁移见官方 migration 指南。
+- 26.03 发行版在 Kubernetes 1.34/1.35 上验证（1.36 跑 CI）；升级集群前先核对发行版支持矩阵。
 
 ## 8.7 安全
 
@@ -193,12 +207,12 @@ resources:
 
 ## 本章小结
 
-- 安装可选完整发行版、独立组件或云厂商托管方案。
-- 多租户核心：**Profile = namespace + RBAC + Istio AuthorizationPolicy + ResourceQuota**。
-- 存储分层：PVC、对象存储 artifact、MLMD、Katib DB。
+- 安装可选完整发行版（1.11 / 26.03 日历版本）、独立组件、云厂商托管，或仅引入 Python SDK。
+- 多租户核心：**Profile = namespace + RBAC + Istio AuthorizationPolicy + ResourceQuota**；1.11 起默认 PSS 与 NetworkPolicy。
+- 存储分层：PVC、对象存储 artifact（SeaweedFS 默认、per-namespace 凭证）、MLMD、Katib DB、Hub OCI Registry。
 - GPU 调度依赖 NVIDIA GPU Operator，训练任务声明 `nvidia.com/gpu`。
 - 可观测覆盖基础设施、组件、训练、服务四层。
-- 升级注意 DSL/API 兼容性，先备份数据库。
+- 升级注意：KFP 2.15+ 数据库自动迁移不可回滚、Trainer v2.2 破坏性 API、Notebooks v1 将 EOL。
 - 成本治理：自动休眠、cache、弹性训练、缩容到零。
 
 **参考来源**
@@ -207,4 +221,7 @@ resources:
 - [Kubeflow — Authentication](https://www.kubeflow.org/docs/external-add-ons/oidc/)
 - [Kubeflow — Profiles and Namespaces](https://www.kubeflow.org/docs/components/central-dash/profiles/)
 - [KFP v2 — Configure Object Store](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/)
+- [Kubeflow 1.11 Release Announcement](https://blog.kubeflow.org/kubeflow-1.11-release/)
+- [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Trainer v2.2 Release](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
 - [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/)

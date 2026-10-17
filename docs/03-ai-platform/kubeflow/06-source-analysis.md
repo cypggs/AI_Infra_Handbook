@@ -6,11 +6,13 @@
 
 | 仓库 | 负责组件 | 本主题关联章节 |
 |---|---|---|
-| `github.com/kubeflow/kubeflow` | Central Dashboard、Notebook Controller、Profile Controller、KFAM | 第 3、5 章 |
+| `github.com/kubeflow/kubeflow` | Profile Controller、KFAM（注：Central Dashboard 与 Notebooks 自 26.03 起拆分至 `kubeflow/dashboard`、`kubeflow/notebooks` 独立仓库） | 第 3、5 章 |
 | `github.com/kubeflow/pipelines` | KFP SDK、Backend（API Server / Driver / Launcher / Persistence Agent）、Frontend | 第 2、4、5 章 |
 | `github.com/kubeflow/katib` | Katib Controller、Suggestion、DB Manager、Early Stopping、UI | 第 2、5 章 |
-| `github.com/kubeflow/training-operator` | TFJob / PyTorchJob / MPIJob / XGBoostJob 等 Controller | 第 2、5 章 |
-| `github.com/kubeflow/manifests` | Kustomize 发行版 | 第 8 章 |
+| `github.com/kubeflow/trainer`（原 training-operator） | V1 框架 Job Controller；V2 TrainJob / TrainingRuntime Controller | 第 2、5 章 |
+| `github.com/kubeflow/sdk` | 统一 Python SDK（TrainerClient / SparkClient / PipelinesClient / OptimizerClient / ModelRegistryClient） | 第 2、4 章 |
+| `github.com/kubeflow/hub`（原 model-registry） | Hub：模型目录、MCP Catalog、OCI 制品、UI | 第 2、5 章 |
+| `github.com/kubeflow/manifests` | Kustomize 发行版（社区日历版本） | 第 8 章 |
 | `github.com/kubeflow/kserve` | KServe 服务组件 | [KServe 主题](../kserve/) |
 
 ## 6.2 `kubeflow/pipelines` 关键路径
@@ -84,7 +86,7 @@ SDK → API Server → Driver → Launcher → Executor → 完成
 | 3306 | MariaDB |
 | 8080 | ML Metadata gRPC |
 | 8888 | API Server |
-| 9000 | MinIO 对象存储 |
+| 9000 | 对象存储（旧版为 MinIO，2.15+ 为 SeaweedFS） |
 
 ## 6.3 `kubeflow/katib` 关键路径
 
@@ -149,26 +151,23 @@ Trial 训练容器把指标写入约定文件：
 
 Metrics Collector 通过 sidecar 读取并上报；Experiment Controller 据此判断目标函数值。
 
-## 6.4 `kubeflow/training-operator` 关键路径
+## 6.4 `kubeflow/trainer`（原 training-operator）关键路径
 
 ### 目录结构
 
 ```
-kubeflow/training-operator
+kubeflow/trainer
 ├── pkg/
-│   ├── apis/                    # 各框架 CRD Go types
-│   ├── controller.v1/           # V1 控制器（当前稳定版）
+│   ├── apis/                    # V1 各框架 CRD Go types + V2 trainer.kubeflow.org types
+│   ├── controller.v1/           # V1 控制器（维护模式，仍接收缺陷修复）
 │   │   ├── pytorch/             # PyTorchJob controller
 │   │   ├── tensorflow/          # TFJob controller
 │   │   ├── mpi/                 # MPIJob controller
 │   │   ├── xgboost/             # XGBoostJob controller
-│   │   ├── paddlepaddle/        # PaddleJob controller
-│   │   ├── mxnet/               # MXJob controller
-│   │   ├── jax/                 # JAXJob controller
 │   │   └── common/              # 公共逻辑：pod/service 创建、状态汇总
-│   └── controller/              # V2（alpha）统一 TrainJob / TrainingRuntime 控制器
-├── cmd/training-operator.v1/    # V1 入口
-└── manifests/                   # 安装清单
+│   └── controller/              # V2 统一 TrainJob / TrainingRuntime 控制器（当前默认）
+├── cmd/                         # V1 / V2 各组件 main.go
+└── manifests/                   # 安装清单（含 Helm）
 ```
 
 ### V1 控制器通用调用链
@@ -189,21 +188,32 @@ PyTorchJob Controller (pkg/controller.v1/pytorch)
 更新 PyTorchJob Status（conditions、replicaStatuses）
 ```
 
+### V2 控制器调用链（GA，Kubeflow 1.11+ 默认）
+
+```
+用户/SDK 创建 TrainJob（spec.runtimeRef: torchtune-llama3.2-1b）
+        │
+        ▼
+TrainJob Controller (pkg/controller/trainjob_controller.go)
+        │
+        ├─ 解析 runtimeRef → 获取 TrainingRuntime / ClusterTrainingRuntime
+        ├─ 应用 RuntimePatches（v2.2 取代 PodTemplateOverrides）
+        ├─ 通过 Initializer 准备模型/数据集（Hugging Face / S3）
+        ├─ 按运行时模板生成 Pod/Job（torchrun 入口、env 注入）
+        ├─ 集成 Kueue/Volcano gang scheduling
+        │
+        ▼
+更新 TrainJob Status（生命周期、进度、指标）
+```
+
 ### 关键文件
 
-- `pkg/controller.v1/pytorch/pytorchjob_controller.go`：PyTorchJob reconcile。
-- `pkg/controller.v1/common/job.go`：通用 job 接口与状态机。
-- `pkg/common/util/util.go`：工具函数（service 名、pod 名生成等）。
+- `pkg/controller.v1/pytorch/pytorchjob_controller.go`：V1 PyTorchJob reconcile。
+- `pkg/controller.v1/common/job.go`：V1 通用 job 接口与状态机。
+- `pkg/controller/trainjob_controller.go`：V2 TrainJob reconcile。
+- `pkg/controller/trainingruntime_controller.go`：V2 TrainingRuntime reconcile。
 
-### V2 方向（Alpha）
-
-Training Operator 正在向统一的 `TrainJob` + `TrainingRuntime` 模型演进：
-
-- `TrainJob`：用户面资源，描述训练任务。
-- `TrainingRuntime` / `ClusterTrainingRuntime`：平台面资源，描述框架运行时。
-- 控制器：`pkg/controller/trainjob_controller.go`、`pkg/controller/trainingruntime_controller.go`。
-
-当前生产仍主要使用 V1 CRD（`PyTorchJob`、`TFJob` 等）。
+> v2.2 破坏性变更：`PodTemplateOverrides` → `RuntimePatches` API；移除 `numProcPerNode` 与 `ElasticPolicy`。升级前需迁移已有作业模板。
 
 ## 6.5 `kubeflow/kubeflow`（Notebook / Profile / Dashboard）
 
@@ -293,7 +303,7 @@ KFAM API 管理 contributors
    sdk/python/kfp/compiler/pipeline_spec_builder.py
         │
         ▼
-3. kfp.Client 上传 / 创建 Run
+3. kfp.Client / SDK PipelinesClient 上传并创建 Run
    backend/src/apiserver/
         │
         ▼
@@ -301,20 +311,20 @@ KFAM API 管理 contributors
    backend/src/apiserver/resource/
         │
         ▼
-5. 某个 Task 创建 Katib Experiment
-   pkg/controller.v1beta1/experiment/
+5. 某个 Task 创建 Katib Experiment（Trial = TrainJob）
+   pkg/controller.v1beta1/experiment/（katib）
         │
         ▼
-6. Katib 创建 Trial Job → Metrics Collector
-   pkg/controller.v1beta1/trial/
+6. Katib 创建 Trial → TrainJob → Metrics 上报
+   pkg/controller.v1beta1/trial/（katib）+ pkg/controller/（trainer）
         │
         ▼
-7. 最佳参数触发 PyTorchJob
-   pkg/controller.v1/pytorch/
+7. 最佳参数触发 TrainJob（runtimeRef → TrainingRuntime）
+   pkg/controller/trainjob_controller.go
         │
         ▼
-8. 模型保存到 S3，KServe 部署 InferenceService
-   github.com/kubeflow/kserve
+8. 模型以 OCI 制品推入 Hub，KServe 部署 InferenceService
+   github.com/kubeflow/hub → github.com/kubeflow/kserve
 ```
 
 ## 6.7 阅读源码的建议路径
@@ -325,10 +335,11 @@ KFAM API 管理 contributors
 
 ## 本章小结
 
-- Kubeflow 由 **5+ 个核心仓库**组成，彼此独立发布。
+- Kubeflow 由 **8+ 个核心仓库**组成，彼此独立发布；Dashboard/Notebooks 已拆分为独立仓库。
 - **KFP**：SDK 编译 IR YAML → API Server → Driver/Launcher/Executor。
 - **Katib**：Experiment/Trial/Suggestion 三个控制器协同完成 AutoML。
-- **Training Operator**：V1 按框架分 controller；V2 走向统一 `TrainJob` + `TrainingRuntime`。
+- **Kubeflow Trainer**：V1 按框架分 controller（维护模式）；V2 `pkg/controller/` 实现统一的 `TrainJob` + `TrainingRuntime`（GA）。
+- **kubeflow/sdk**：统一 Python SDK，把上述组件包装成 Python API。
 - **Notebook / Profile Controller**：把开发环境和多租户声明式化。
 - 读源码时遵循 **CRD → Controller → SDK** 的顺序最高效。
 
@@ -337,6 +348,7 @@ KFAM API 管理 contributors
 - [Kubeflow Pipelines GitHub](https://github.com/kubeflow/pipelines)
 - [Kubeflow Pipelines AGENTS.md — Architecture](https://github.com/kubeflow/pipelines/blob/master/AGENTS.md)
 - [Kubeflow Katib GitHub](https://github.com/kubeflow/katib)
-- [Kubeflow Training Operator GitHub](https://github.com/kubeflow/training-operator)
+- [Kubeflow Trainer GitHub](https://github.com/kubeflow/trainer)
+- [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow Kubeflow GitHub](https://github.com/kubeflow/kubeflow)
 - 本手册 [Operator 模式源码分析](../../02-cloud-native/operator/06-source-analysis)

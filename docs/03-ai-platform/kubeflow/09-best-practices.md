@@ -50,6 +50,15 @@ def my_pipeline():
     )
 ```
 
+### 用 Local Runner 本地验证（KFP 2.16+）
+
+提交集群前先在本地跑通 pipeline 逻辑（支持条件求值与并行控制流），把"调 DAG"的成本留在笔记本上：
+
+```bash
+pip install kfp
+python my_pipeline.py        # 使用本地 runner 执行
+```
+
 ## 9.2 Artifact 与可复现
 
 - **所有输入/输出走 artifact store**（S3 / GCS / MinIO），不要写本地临时路径。
@@ -71,12 +80,16 @@ with open("/katib/metrics/metrics.json", "w") as f:
     json.dump(metrics, f)
 ```
 
-## 9.4 Training Operator
+## 9.4 Kubeflow Trainer
 
-- **合理设置 replica 数**：先从小规模验证，再扩大 Worker 数。
-- **使用 Elastic Training**：PyTorchJob 支持动态扩缩，可配合 Spot 实例。
+- **新部署直接用 V2 `TrainJob`**：V1 框架 CRD（PyTorchJob 等）进入维护模式；通过 `runtimeRef` 引用 `TrainingRuntime`，任务与环境解耦。
+- **LLM 微调优先用内置 torchtune 运行时**：LoRA/QLoRA/DoRA 配方 + `HuggingFaceModelInitializer`，避免自己拼装分布式启动脚本。
+- **用 RuntimePatches 而非 PodTemplateOverrides**：v2.2 已做破坏性替换，旧模板迁移时注意。
+- **合理设置 numNodes**：先小规模验证，再扩大节点数；注意 v2.2 已移除 `numProcPerNode` 与 `ElasticPolicy`。
+- **接入 gang scheduling**：与 Kueue/Volcano 集成，避免分布式训练一半 Pod 起不来占住资源。
+- **用 SDK 本地后端先跑通**：`ContainerBackendConfig`（Docker/Podman）或本地进程，再提交集群。
 - **checkpoint 定期保存**：防止训练中断后从头开始。
-- **分布式通信**：确保节点间网络带宽足够；MPIJob 需要 RDMA/InfiniBand 时配置 `hostNetwork`。
+- **观测进度指标**：Hugging Face 训练接入 `KubeflowTrainerCallback`，TrainJob status 直接暴露进度。
 
 ## 9.5 Notebook 与开发环境
 
@@ -100,12 +113,15 @@ hard:
 - **LimitRange**：防止用户申请过大/过小资源。
 - **NetworkPolicy**：默认拒绝跨 namespace 流量，仅放行必要服务。
 
-## 9.7 KServe 部署
+## 9.7 KServe 与 Hub 部署
 
 - 已在 [KServe 主题](../kserve/09-best-practices) 详述，补充：
   - Pipeline 中部署 InferenceService 时，把模型 URI 作为 artifact 传递。
   - 使用 `canaryTrafficPercent` 做 A/B 测试。
   - 监控 `inference_service_ready` 与请求延迟。
+  - **LLM 服务用 `LLMInferenceService`**：OpenAI 兼容 API、LWS 多节点分布式推理、KEDA/HPA 按真实需求扩缩。
+  - **模型分发走 Hub + OCI**：注册到 Hub 后由 KServe Custom Storage Initializer 加载；高频模型开 namespace 级 ModelCache 降低冷启动。
+  - **线上版本对账**：利用 Hub reconciliation controller 确认线上服务运行的是注册版本，满足审计要求。
 
 ## 9.8 安全
 
@@ -118,26 +134,30 @@ hard:
 
 | 反模式 | 问题 | 建议 |
 |---|---|---|
-| 在 Notebook 里长期跑训练 | 无法复现、占用交互式资源 | 迁移到 Pipeline / TrainingJob |
+| 在 Notebook 里长期跑训练 | 无法复现、占用交互式资源 | 迁移到 Pipeline / TrainJob |
+| 新部署仍用 PyTorchJob 写新平台 | V1 进入维护模式，能力停在旧范式 | 新任务用 `TrainJob` + `TrainingRuntime` |
 | Pipeline 里硬编码路径 | 环境迁移困难 | 用参数 + artifact |
-| Katib Trial 不写 metrics | 实验无法判断最优 | 统一写到约定路径 |
+| Katib Trial 不写 metrics | 实验无法判断最优 | 统一写到约定路径或启用 push-based 采集 |
 | 所有用户共用 default namespace | 权限混乱、资源争抢 | 用 Profile 隔离 |
 | 不限制 GPU quota | 单用户耗尽集群 | ResourceQuota + LimitRange |
 | 忽略 Pipeline cache | 重复执行浪费资源 | 保持 component 确定性 |
+| 模型靠 scp/手动拷贝上线 | 无血缘、无审计 | 走 Hub 注册 + OCI 制品 + KServe 拉取 |
 
 ## 本章小结
 
-- Pipeline：component 化、版本化、用缓存、加重试。
+- Pipeline：component 化、版本化、用缓存、加重试；2.16+ 用 Local Runner 先本地验证。
 - Artifact：固定随机种子、版本化数据、记录环境。
 - Katib：先粗后细、限制 Trial、用 Early Stopping。
-- Training：合理 replica、checkpoint、弹性训练。
+- Trainer：新部署用 V2 `TrainJob`；LLM 微调用 torchtune 运行时；RuntimePatches 取代 PodTemplateOverrides。
 - Notebook：标准化镜像、自动休眠、禁止跑生产训练。
 - 多租户：Profile + ResourceQuota + NetworkPolicy。
 - 安全：最小权限、镜像扫描、Secrets 集中管理。
+- 模型上线：Hub 注册 + OCI 制品 + KServe（LLMInferenceService/ModelCache）。
 
 **参考来源**
 
 - [KFP v2 Best Practices](https://www.kubeflow.org/docs/components/pipelines/user-guides/best-practices/)
 - [Katib Hyperparameter Tuning Guide](https://www.kubeflow.org/docs/components/katib/user-guides/hyperparameter-tuning/)
-- [Training Operator User Guides](https://www.kubeflow.org/docs/components/training/user-guides/)
+- [Kubeflow Trainer User Guides](https://trainer.kubeflow.org/en/latest/user-guides/)
+- [Kubeflow Trainer v2.2 Release](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
 - 本手册 [KServe 最佳实践](../kserve/09-best-practices)
