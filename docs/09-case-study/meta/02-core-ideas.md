@@ -4,15 +4,29 @@
 
 ## 2.1 一句话理解
 
-> Meta 的基础设施 = **开放权重（Llama）+ 硬件协同设计（Grand Teton / Catalina / MTIA）+ 双网络织物验证（RoCE & InfiniBand）+ 可靠性即设计（SDC 治理 / >95% 有效训练）+ PyTorch 原生软件栈（FSDP / torch.compile / Triton / Llama Stack）**。
+> Meta 的基础设施 = **开放权重与选择性开放（Llama → Muse）+ 硬件协同设计（Grand Teton / Catalina / MTIA）+ 双网络织物验证（RoCE & InfiniBand → MetaRoCE 自研传输层）+ 可靠性即设计（SDC 治理 / >95% 有效训练）+ PyTorch 原生软件栈（FSDP / Triton / Helion / Llama Stack）**。
 
 ## 2.2 支柱一：开放权重（Open Weights）
 
-Meta 把训练出来的前沿模型以**开放权重**发布，这是它与 OpenAI、Anthropic 最显性的区别。开放权重不是"免费派送"，而是一种有明确工程后果的策略：
+Meta 从 Llama 时代起把训练出的前沿模型以**开放权重**发布，这是它与 OpenAI、Anthropic 最显性的区别（2026 年起调整为"选择性开放"，见本节末尾）。开放权重不是"免费派送"，而是一种有明确工程后果的策略：
 
 - **训练到发布（train-to-release）的完整工程链路必须自建**：因为权重要开放给整个生态（AWS、Databricks、Google Cloud、Hugging Face、AMD、Intel、NVIDIA、Qualcomm、各种推理引擎），Meta 必须保证权重在**异构硬件、异构框架**上都能跑——这倒逼出一套高度标准化的发布与兼容性测试流水线。
 - **安全责任转移给部署者**：Meta 提供 Llama Guard、Prompt Guard、CyberSecEval、Code Shield 等开源工具，但最终的安全策略由部署方决定。Llama 4 引入 **GOAT（Generative Offensive Agent Testing）** 等自动化红队工具来覆盖已知风险。
 - **蒸馏链路成为工程一等公民**：Llama 4 Maverick 从 Behemoth（~2T）codistill，采用动态加权 soft/hard target 的新型蒸馏损失——开放权重让"大模型蒸馏小模型"成为可复用的规模化手段。
+
+### 2026：从"全部开放"到"选择性开放"（Muse 时代）
+
+2025 年 Meta 组建 Meta Superintelligence Labs（MSL，由 Alexandr Wang 主导）后，模型开放策略发生了行业瞩目的调整（来源：pytorch.org 官方博客 2026-10-15；The Next Web 2026-10 报道）：
+
+| 层级 | 模型 | 开放形态 |
+|---|---|---|
+| 前沿旗舰 | **Muse Wonder / Wonder Full**（2026-10-12） | 闭源，仅 Meta Model API 与订阅产品提供 |
+| 主力开放 | **Muse Spark Open**（2026-10-15） | 开放权重（816B total / 42B active MoE，1M 上下文，多模态），**Muse Model License**（要求署名；大型 MaaS 商用需单独协议） |
+| 小型开放 | **Muse Glimmer**（30B 级 dense） | 完全开放，可下沉端侧（ExecuTorch） |
+
+MSL 负责人 Alexandr Wang 的公开表述是："出于安全与能力两方面考虑，我们通常不会开源最强的模型"——即**前沿闭源、次级开放**成为长期策略，Llama 4 成为 Llama 系列最后一代"全量开放权重"的旗舰。Muse Spark Open 还做了额外的安全后训练（相比同基座的 Muse Spark 1.3），以适配"无系统护栏的独立部署"场景。
+
+对工程链路的影响：开放权重的兼容性测试矩阵依然存在（Muse Spark Open 官方优化覆盖 PyTorch / SGLang / vLLM / TensorRT-LLM / llama.cpp、NVIDIA / AMD / Intel，甚至两台 Apple M5 Ultra Mac Studio 即可通过 MLX 框架运行），但"安全责任转移给部署者"的边界变得更精细——通过许可证分层（署名义务、MaaS 收入门槛）实现。
 
 ## 2.3 支柱二：硬件协同设计（Hardware Co-design）
 
@@ -43,6 +57,16 @@ Meta 在 2024 年同时建了两个 24,576-H100 集群，**一个用 RoCE（基�
 
 Meta 的工程结论是：**只要做好拓扑感知调度与 NCCL 路由协同优化，RoCE 与 InfiniBand 都能把大规模 AllGather 带宽利用率推到 90% 以上**。
 
+### 2026 深化：MetaRoCE 传输层与"三层网络"框架
+
+双织物验证的结论最终沉淀为更激进的开源动作（engineering.fb.com，2026-08-24；OCP Summit 2026，2026-10-12）：
+
+- **MetaRoCE**：Meta 自研的"白纸设计" RDMA 传输层，把以太网当作**有损网络**对待——取消对 PFC（无损以太网）的依赖，由 NIC 端点做逐路径状态跟踪、跨路径报文喷洒与乱序直写、256-bit 选择性确认重传。在 1% 丢包下仍保持约 86% 吞吐（RoCEv2 对比基准上全面胜出），规范与参考实现通过 OCP 开源。
+- **Scale-Up / Scale-Out / Scale-Across 三层框架**：OCP 2026 上 Meta 把 AI 网络显式分为三层——Scale-Up（机柜内，MTIA 300 的 Tahan 以太网交换机，4 台 51.2T 交换机组 16 加速器无阻塞域）、Scale-Out（数据中心内，**Flattened Planar Fabric**：每 GPU 8 条独立 100G 上联接入 8 个平面，把 3 层 Clos 压成 2 层）、Scale-Across（跨建筑/园区/区域，**BAG** petabit 级 super-spine，支撑 Prometheus 与 Hyperion）。
+- **开放交换机栈**：102.4T IceCube 交换刀片（Broadcom Tomahawk6C 与 NVIDIA Spectrum-6 两个版本，跑开源 FBOSS）、首个液冷网络机柜 IcePack、与 Microsoft / Alibaba 共同主导的 **OSPA** 交换机平台规范（补齐 SAI 之下的平台层标准化）。
+
+从"买两套商用织物做验证"到"自己定义传输层与拓扑并开源"，Meta 的网络策略完成了从消费者到标准制定者的转变。
+
 ## 2.5 支柱四：可靠性即设计（Reliability as Design）
 
 这是 Meta 在 GenAI 时代学到最深刻的一课。同步训练把单点故障放大成全局停顿，Meta 用一套组合拳把中断率降低约 50 倍：
@@ -60,9 +84,11 @@ Meta 是 PyTorch 的主要贡献者，整套训练与服务栈都构建在 PyTor
 
 - **训练**：FSDP / FSDP2（分布式数据并行）、torch.compile（图编译）、Triton（kernel 生成）。
 - **微调**：torchtune（PyTorch 原生微调库）。
-- **推理**：ExecuTorch（移动/边缘推理）、vLLM（服务端推理，MTIA 提供 plugin backend）。
+- **推理**：ExecuTorch（移动/边缘推理，2026 年已支持端侧 agentic 场景）、vLLM（服务端推理，MTIA 提供 plugin backend）。
+- **kernel 的新答案：Helion**（2026）——PyTorch 原生 kernel DSL，2026-04 进入 PyTorch Foundation；Muse Spark Open 附带的 Helion kernel（RoPE、RMSNorm、量化等）在 GB300 上比 CUDA/CuTe DSL 手写 kernel 快 **1.03–3.95×**，且可直接移植到 AMD MI350——"一份 kernel 跨硬件"从口号变成官方发布实践。
+- **训练平台化：TorchTitan**——PyTorch 原生的大模型训练平台（FSDP2/TP/PP/CP/EP、Dist-MoE），2026-10 起官方支持 Muse Spark Open 的开源微调（多轮 SFT、LoRA 与 RL/TitanRL）。
 - **服务接口**：Llama Stack（9 类标准化 API）。
-- **MTIA 专用栈**：TorchInductor + Triton + MLIR + LLVM 编译器栈、HCCL（Hoot Collective Communications Library，MTIA 通信库）、Rust 用户态驱动 + bare-metal Rust 固件。
+- **MTIA 专用栈**：TorchInductor + Triton + MLIR + LLVM 编译器栈、HCCL（MTIA 通信库，MTIA 300 上已演进为"把集合通信编译成自主执行的 work-queue 子图"）、Rust 用户态驱动 + bare-metal Rust 固件。
 - **Kernel 生成**：用 agentic AI（TritorX、KernelEvolve）自动生成与进化 kernel。
 
 这条主线的动机是：**统一软件栈 = 可移植的优化**。当一个 kernel、一个调度策略在 PyTorch 上写好，它就能同时服务 NVIDIA、AMD、MTIA——这正是"开放"在软件层的具体兑现。
@@ -71,13 +97,13 @@ Meta 是 PyTorch 的主要贡献者，整套训练与服务栈都构建在 PyTor
 
 | 维度 | OpenAI | Anthropic | Meta |
 |---|---|---|---|
-| 模型开放度 | 闭源（API） | 闭源（API） | **开放权重（Llama）** |
+| 模型开放度 | 闭源（API） | 闭源（API） | **选择性开放（Muse：旗舰闭源 + Spark Open/Glimmer 开放权重）** |
 | 硬件策略 | Azure + NVIDIA（合作） | AWS Trainium + SpaceXAI GPU（异构采购） | **OCP 协同设计 + 自研 MTIA + 多供应商** |
-| 网络织物 | （未公开） | （未公开） | **RoCE 与 InfiniBand 双织物并行验证** |
+| 网络织物 | （未公开） | （未公开） | **RoCE 与 InfiniBand 双织物 → MetaRoCE/FPF 自研开源** |
 | 安全治理 | Preparedness Framework（闭源） | RSP/ASL（闭源合规） | **Llama Guard/Prompt Guard/CyberSecEval（开源）** |
 | 可靠性工程 | （未公开） | （未公开） | **SDC 治理、~50x 中断下降、>95% MFU（公开）** |
-| 规模路线 | （未公开） | Project Rainier >100 万芯片、5GW | **Prometheus 1GW → Hyperion 5GW** |
-| 软件栈 | 闭源 | 闭源 | **PyTorch/Triton/Llama Stack（开源）** |
+| 规模路线 | （未公开） | Project Rainier >100 万芯片、5GW | **Prometheus 1GW（2026 上线）→ Hyperion 5GW（2030 起）** |
+| 软件栈 | 闭源 | 闭源 | **PyTorch/Triton/Helion/Llama Stack（开源）** |
 | 范式定位 | 规模驱动 | 对齐驱动 | **开放 + 协同设计 + 训练到发布** |
 
 三者构成一个完整的三角：**OpenAI 代表"闭源规模"，Anthropic 代表"闭源对齐"，Meta 代表"开放 + 硬件协同设计 + 训练到发布"**。研究 Meta，正是补齐这个三角的第三条边。

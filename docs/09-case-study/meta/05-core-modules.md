@@ -39,7 +39,22 @@ MTIA（Meta Training and Inference Accelerator）与 Broadcom 合作，遵循 **
 
 从 MTIA 300 到 500：**HBM 带宽 4.5×、计算 FLOPS 25×（MX8→MX4）**。400/450/500 共用同一 chassis/rack/network（drop-in 升级）。
 
-> **MTIA 已有论文**：ISCA'23（MTIA 100）与 ISCA'25（MTIA 200，原名 MTIA 1 / MTIA 2i）。MTIA 已大规模部署服务广告（ads）推理。
+> **MTIA 已有论文**：ISCA'23（MTIA 100）、ISCA'25（MTIA 200，原名 MTIA 1 / MTIA 2i）与 **ISCA'26（MTIA 300）**。MTIA 已大规模部署服务广告（ads）推理。
+
+#### MTIA 300 深度拆解（2026-08-24 官方专文 + ISCA'26）
+
+2026-08-24 Meta 发表 MTIA 300 专文（engineering.fb.com），并配以 ISCA'26 论文，给出大量硬数字。MTIA 300 是 Meta **第一颗专为训练设计的芯片**（ranking/recommendation 模型），2026 年初已量产上线，其核心创新是**把网络与通信卸载做进芯片**：
+
+| 维度 | 设计 |
+|---|---|
+| 内置 NIC | 2 个 network chiplet 内含 **12 个自研 800 Gbps Ethernet RDMA NIC**，合计 **1.2 TB/s I/O 带宽且完全不经过 PCIe**——消除了 GPU 架构中 host-device-NIC 的瓶颈路径 |
+| 网络灵活性 | 同一 NIC 池软件可配为 Scale-Up（16 节点机柜内最高 1 TB/s）或 Scale-Out（跨机柜 200 GB/s），换模式不改硬件 |
+| 通信卸载 | **16 个 message engine**（各含 RISC-V 核 + NIC 接口 + 近存计算块）独立于计算网格执行 AllReduce / AllGather 等集合通信，归约吞吐 **2.8 TB/s**；并发集合通信对计算的干扰 **<0.5%**（GPU 上 NCCL 与 SM 抢资源通常 >20%） |
+| 软件协同 | **HCCL 把集合通信编译成自主执行的 work-queue 子图**，无需 host CPU 介入（SC'26 论文） |
+| 性能 | 150B 参数推荐模型（40 加速器）上通信比等价 GPU 集群 **快 3.9×**；单 rack 带宽最高 940 GB/s |
+| 配套 | OCP 2026 公开的 **Tahan** 51.2T 以太网 scale-up 交换机（4 台组 16 加速器无阻塞域），与 scale-out 共用同一 RoCE 传输栈 |
+
+MTIA 300 验证了 Meta 的"PyTorch Native + 通信卸载"路线：**当集合通信不再占用计算单元，训练有效算力随规模下降的曲线被显著拉平**。
 
 ## 5.2 网络模块
 
@@ -49,8 +64,14 @@ MTIA（Meta Training and Inference Accelerator）与 Broadcom 合作，遵循 **
 | **Wedge 400 / Minipack2** | OCP 开放的 ToR/leaf 交换机（RoCE 集群） |
 | **NVIDIA Quantum-2** | InfiniBand 集群的交换机 |
 | **拓扑** | rail-optimized fat-tree，400 Gbps 端点 |
+| **MetaRoCE**（2026） | 自研 RDMA 传输层：有损以太网设计、逐路径状态、报文喷洒、256-bit 选择确认；1% 丢包下 ~86% 吞吐；OCP 开源 |
+| **FPF**（OCP 2026） | Flattened Planar Fabric：每 GPU 8×100G 接入 8 平面，3 层 Clos → 2 层，NIC 喷洒 + 主机可绕开故障平面 |
+| **IceCube / IcePack**（OCP 2026） | 102.4T 交换刀片（Tomahawk6C / Spectrum-6 两版，FBOSS + OCP SAI）/ 首个液冷网络机柜（ORV3-HPR） |
+| **Tahan**（OCP 2026） | MTIA 300 的 51.2T 以太网 scale-up 交换机（4 台组 16 加速器无阻塞域） |
+| **BAG**（OCP 2026） | petabit 级 super-spine，跨建筑/园区/区域互联 Prometheus 与 Hyperion（Inter-BAG 数十 Pbps） |
+| **OSPA / ESUN**（OCP 2026） | 开放交换机平台规范（Meta/Microsoft/Alibaba 共导）/ scale-up 以太网数据面倡议（9 家厂商） |
 
-网络模块的关键不是单台交换机，而是**拓扑 + 调度 + NCCL 协同**（见 [第 3 章](03-architecture) 3.3 节）。
+网络模块的关键不是单台交换机，而是**拓扑 + 调度 + 传输层 + NCCL 协同**（见 [第 3 章](03-architecture) 3.3 节）。2026 年之后，Meta 把每一层都做成了开放规范。
 
 ## 5.3 存储模块
 
@@ -62,6 +83,14 @@ MTIA（Meta Training and Inference Accelerator）与 Broadcom 合作，遵循 **
 | **YV3 Sierra Point + E1.S SSD** | 高密度存储服务器 + EDSFF SSD |
 
 存储模块的 SLA 核心：**checkpoint 跨数千 rank 数百毫秒存取**（依赖 Tectonic Flash 吞吐）。
+
+### 2026：AI 存储蓝图重构（BLOB 化 + 分层缓存）
+
+2026-07-01《Meta's AI Storage Blueprint at Scale》（engineering.fb.com）披露了存储栈重构（详见 [第 3 章](03-architecture) 3.4 节）：
+
+- **Tectonic 升级为区域级多租户块存储 fabric**，数百个 EB 级集群；训练访问从 NFS 式接口迁移到与 GPU 区域共置的 **BLOB API**（ZippyDB 扁平元数据 O(1) 解析，fat-client SDK 直读）。
+- **分层缓存**：L1/L2（GPU 宿主机内存 + 本地 Flash）→ L3（区域 Flash BLOB）→ 全球 HDD BLOB 真相源；分布式缓存复用 **Owl** 组件，平均命中率 ~80%。
+- **平滑尖峰**：hedged reads 对冲慢节点 + 客户端动态并发控制平滑 checkpoint 写出；prefetch() API 消除跨区导入作业。
 
 ## 5.4 集群管理与调度模块
 
@@ -115,7 +144,18 @@ MTIA（Meta Training and Inference Accelerator）与 Broadcom 合作，遵循 **
 
 Meta 把 SDC 治理延伸到硅的全生命周期：设计期（RAS 架构、telemetry、debug hook）→ 验证/集成期（yield 分析、制造诊断、机队签名反馈）→ 部署期（用户态诊断、周期测试、覆盖图）→ 运营期（Hardware Sentinel 大规模分析、固件 hook）。叠加**栈级韧性**（firmware/compiler/kernel/OS），把可靠性做成"贯穿硅生命周期 + 软硬协同"的体系工程。
 
-## 5.6 服务模块：Llama Stack
+### 可观测性与自动化 RCA：Zoomer / DrP（2025 末）
+
+可靠性工程的另一半是"出问题后多快定位"。Meta 在 2025 年底公开了两个平台（详见 [第 4 章](04-training-and-inference) 4.1.6 节与 [第 8 章](08-production-practice)）：
+
+| 平台 | 时间 | 定位 | 关键数字 |
+|---|---|---|---|
+| **Zoomer** | 2025-11-21 | AI 性能调试与优化平台（straggler 检测、关键路径分析、一键 QPS 优化） | 100k+ GPU 工作负载；广告训练时间 -75%、功耗 -78%；32k GPU 一天 +30% |
+| **DrP** | 2025-12-19 | 根因分析平台：把人工 playbook 排查变为自动执行的 "analyzer" 工作流 | 300+ 团队、~2,000 个 analyzer、每天 5 万次自动分析；MTTR 降低 20–80%；arXiv:2512.04250 |
+
+两者共同指向 Meta 的 **AI4Ops** 方向：让 AI 系统自己诊断、自己优化。
+
+## 5.6 服务模块：Llama Stack 与 Muse 服务栈
 
 Llama Stack 把 Llama 的服务标准化为 9 类 API：
 
@@ -130,6 +170,8 @@ Llama Stack 把 Llama 的服务标准化为 9 类 API：
 | Post-training | 微调 |
 | Toolchain | 构建/打包 |
 | RAG | 检索增强 |
+
+2026 年起 Meta 的开发者服务栈转向 **Muse 系列 + Meta Model API**（dev.meta.ai 模型中心）：闭源旗舰 Muse Wonder（API 与订阅提供）与开放权重 Muse Spark Open（SGLang / vLLM 双引擎 + Helion kernel，见 [第 4 章](04-training-and-inference) 4.3 节）并行。Llama Stack 的"标准化接口"思想被继承——只是落地的载体从单一 Llama 生态扩展为多引擎兼容矩阵。
 
 Llama Stack 与 [LLM Gateway](/04-llmops/llm-gateway/)、[Agent Runtime](/05-agent/agent-runtime/) 的理念相通：用开放协议把"换底层实现不影响上层应用"标准化。
 

@@ -66,6 +66,16 @@ FSDP 每个 step 都需要 AllGather（收集分片参数）。在大规模集�
 - **desync debug**：定位哪些 rank 与参考不同步。
 - **distributed collective flight recorder**：记录每次集合通信的元数据（类似航空黑匣子），故障后回放定位瓶颈 rank。
 
+### 4.1.6 性能调试平台化：Zoomer（2025-11）
+
+2025-11-21 Meta 公开 **Zoomer**（engineering.fb.com）——把"AI 性能调试与优化"从专家手艺变成中央化、自动化的平台，覆盖从 Llama 训练到广告推荐、**100k+ GPU 规模**的工作负载（同时支持 NVIDIA / AMD / MTIA 三种硅）：
+
+- **三层架构**：基础设施层（Manifold BLOB 存 trace，数千宿主机的容错流水线）→ 分析引擎（整合 Kineto GPU trace、NVIDIA DCGM、StrobeLight CPU profiling、dyno 遥测，自动识别反模式并给出建议）→ 可视化（交互时间线、热力图、Perfetto 集成）。
+- **核心能力**：分布式训练 **straggler 检测**、PyTorch 应用关键路径分析、推理 **一键 QPS 优化**（+2% ~ +50%）、超大 trace（单 rank 2GB+）的高级处理。
+- **公开战果**：广告相关性模型训练时间 **-75%**（功耗 -78%）；一次修复低效内存拷贝的一行代码带来 **+20% QPS**；32k GPU 基准一天内 **+30%**、64k GPU 配置 **+25%**；自动参数调优降低功耗 10–45%。
+
+Zoomer 代表了一条重要经验：**当集群规模到万卡级，"找不到瓶颈"本身就是最大的瓶颈**——性能工程必须平台化、自动化，这与本手册 [AI SRE](/07-ai-sre/) 的可观测性主题直接呼应。
+
 ## 4.2 Llama 3 / Llama 4 训练细节
 
 ### Llama 3
@@ -84,6 +94,8 @@ FSDP 每个 step 都需要 AllGather（收集分片参数）。在大规模集�
 - **后训练新范式**：lightweight SFT → online RL → lightweight DPO（发现 SFT/DPO 过度约束会限制 online RL 探索）；移除 >50% 简单数据；continuous online RL + 自适应难度过滤。
 - **蒸馏**：Maverick 从 Behemoth **codistill**，采用动态加权 soft/hard target 的新型蒸馏损失。
 - **Behemoth 的异步 RL**：全新**完全异步 online RL 训练框架**，把不同模型灵活分配到不同 GPU（而非全塞进内存），训练效率比上一代提升约 **10×**。
+
+> **2026 年起**：Meta 的前沿训练转向 Muse 系列（Meta Superintelligence Labs，闭源、细节未公开）；Llama 3/4 的训练工程（本节的 3D 并行、FP8、AllGather 调优、checkpoint 体系）仍是公开资料中最完整的超大规模训练样本，且整套 PyTorch 工程栈（FSDP2、TorchTitan、Helion）继续服务新一代模型。MTIA 300 则把 R&R 训练带入自研硅时代（见 [第 5 章](05-core-modules)）。
 
 ## 4.3 推理工程：让前沿模型便宜地服务
 
@@ -110,6 +122,15 @@ Llama 4 Scout 的 iRoPE 通过"部分层无位置编码 + 推理期温度缩放"
 
 推理侧同样用 FP8/Int4 等低精度（Scout 可在单个 H100 上用 Int4 量化部署），与训练侧的"低精度计算 + 高精度累积"一脉相承。MTIA 400/450/500 的 MX4/MX8 微缩放格式正是为低精度推理设计。
 
+### 2026：Muse 时代的推理栈——开放权重 + 开放 kernel
+
+2026-10-15 发布的 **Muse Spark Open**（816B total / 42B active MoE，256 experts / 每 token 激活 8 个，1M 上下文）是观察 Meta 推理工程的最佳样本（pytorch.org 官方博客，2026-10-15）：
+
+- **跨引擎开放优化**：官方同时优化 **SGLang 与 vLLM**（以及 TensorRT-LLM、llama.cpp），覆盖 NVIDIA / AMD / Intel——推理引擎不再二选一，兼容性矩阵成为发布的一部分。
+- **Helion kernel 成为发布物**：模型附带 RoPE、RMSNorm、量化等算子的 **Helion（PyTorch 原生 kernel DSL）**实现，在 GB300 上比 CUDA/CuTe DSL 手写 kernel 快 **1.03–3.95×**，同一套 kernel 直接移植 AMD MI350（端到端再 +3%）；SGLang 中还有全 Helion 编写的 **megakernel**（多算子融合为单一 persistent kernel，服务低延迟推理）。
+- **部署门槛下探**：NVFP4 量化版可在 **两台 Apple M5 Ultra Mac Studio**（各 512GB，MLX 框架）上运行；或 4 张 Blackwell Ultra GPU / 8 张 H200——MoE 的低激活参数特性再次兑现"前沿能力、平民部署"。
+- **微调闭环**：**TorchTitan** 官方提供 Muse Spark Open 模型定义，开箱支持多轮 SFT、LoRA 与 RL（TitanRL）——从推理到 post-training 的全链路都留在 PyTorch 生态内。
+
 ## 4.4 服务接口：Llama Stack 与 vLLM
 
 Meta 不只开放权重，还把**服务接口标准化**：
@@ -118,15 +139,17 @@ Meta 不只开放权重，还把**服务接口标准化**：
 
 Llama Stack 提供 9 类标准化 API（Inference、Safety、Agentic、Memory、Eval、Telemetry、Post-training、Toolchain、RAG），让 Llama 模型在**任何云、任何硬件、任何框架**上都有统一的调用方式。这与本手册 [LLM Gateway](/04-llmops/llm-gateway/) 的"统一入口"理念一致。
 
+> **2026 年现状**：随着 Meta 开发者入口转向 Muse 系列与 Meta Model API（dev.meta.ai 模型中心已只列 Muse 家族），Llama Stack 作为开放 API 层的遗产仍随 Llama 4 权重可用，其"标准化服务接口"的思想也被 Meta 新栈继承（Muse Spark Open 的多引擎兼容矩阵本质上解决同一问题）。
+
 ### vLLM 作为推理事实标准
 
-vLLM（PagedAttention、continuous batching）是 Llama 推理的事实标准，Meta 的 MTIA 为此提供 **vLLM plugin backend**：
+vLLM（PagedAttention、continuous batching）是 Llama 系列推理的事实标准，Meta 的 MTIA 为此提供 **vLLM plugin backend**：
 
 - 替换 FlashAttention / fused LayerNorm 等 kernel 为 MTIA 优化版本。
 - 作为 torch.compile backend。
 - 支持 prefill-decode 分离（disaggregation）与 continuous batching。
 
-这让"在 MTIA 上跑 Llama"与"在 NVIDIA 上跑 Llama"在应用层几乎无差别——这正是 PyTorch 原生栈的价值。
+2026 年之后这一格局演进为"**双引擎 + 开放 kernel**"：Muse Spark Open 同时官方优化 SGLang 与 vLLM（见 4.3 节），Helion kernel 可在两引擎间移植——让"在 MTIA / NVIDIA / AMD 上跑模型"在应用层几乎无差别，这正是 PyTorch 原生栈的价值。
 
 ## 4.5 训练 vs 推理：可靠性约束的差异
 
@@ -142,4 +165,4 @@ vLLM（PagedAttention、continuous batching）是 Llama 推理的事实标准，
 
 ## 小结
 
-Meta 的训练与推理工程有一条清晰的主线：**用低精度（FP8/Int4）+ 并行（3D parallelism）+ 拓扑优化把效率推到极致，用 MoE/GQA/iRoPE 把部署成本降下来，用 Llama Stack + vLLM 把服务接口标准化，用 checkpoint/恢复 + SDC 治理把可靠性兜住**。训练解决"大规模可靠地造"，推理解决"便宜标准化地用"——两端共同构成了 Meta 开放权重范式的工程闭环。
+Meta 的训练与推理工程有一条清晰的主线：**用低精度（FP8/Int4/NVFP4）+ 并行（3D parallelism）+ 拓扑优化把效率推到极致，用 MoE/GQA/iRoPE 把部署成本降下来，用开放 kernel（Helion）+ 双引擎（SGLang/vLLM）把服务接口标准化，用 checkpoint/恢复 + SDC 治理 + 平台化性能调试（Zoomer）把可靠性兜住**。训练解决"大规模可靠地造"，推理解决"便宜标准化地用"——两端共同构成了 Meta 开放权重（2026 年起为"选择性开放"）范式的工程闭环。

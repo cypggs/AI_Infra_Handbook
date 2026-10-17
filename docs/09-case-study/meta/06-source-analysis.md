@@ -11,20 +11,24 @@ graph TB
         FSDP["FSDP / FSDP2"]
         COMPILE["torch.compile / torch.export"]
         TTUNE["torchtune"]
+        TITAN["TorchTitan<br/>(含 TitanRL)"]
     end
     subgraph Kernel["Kernel 生成"]
         TRI["Triton"]
+        HELION["Helion<br/>(PyTorch 原生 kernel DSL)"]
         INDUCT["TorchInductor"]
         AGEN["TritorX / KernelEvolve<br/>(agentic kernel gen)"]
     end
     subgraph Infer["推理栈"]
         VLLM["vLLM (PagedAttention)"]
+        SGLANG["SGLang<br/>(Muse Spark Open 双引擎之一)"]
         EXEC["ExecuTorch (端侧)"]
         STACK["Llama Stack (9 API)"]
     end
     subgraph HW["硬件/通信"]
         NCCL["NCCL (NVIDIA)"]
         HCCL["HCCL (MTIA)"]
+        METAROCE["MetaRoCE (OCP 开源)"]
         RUST["Rust 用户态驱动 + 固件"]
     end
     Train --> Kernel --> Infer
@@ -36,13 +40,15 @@ Meta 是 PyTorch 的主要贡献者，并衍生出围绕它的完整工具链。
 
 | 组件 | 作用 | 开源仓库 / 文档 |
 |---|---|---|
-| **PyTorch** | 训练/推理基础框架 | `pytorch/pytorch` |
+| **PyTorch** | 训练/推理基础框架（2.x 快速迭代，2026-09 已至 2.14；尚无 3.0） | `pytorch/pytorch` |
 | **FSDP / FSDP2** | 分片数据并行（参数/梯度/优化器状态分片） | `pytorch/FSDP`（torch.distributed） |
 | **torch.compile / torch.export** | 图编译、IR 导出 | `pytorch/torch.compile`、TorchInductor |
 | **Triton** | GPU kernel 语言与编译器 | `triton-lang/triton` |
+| **Helion** | PyTorch 原生 kernel DSL，2026-04 进入 PyTorch Foundation；Muse Spark Open 官方 kernel 载体 | `pytorch/helion` |
+| **TorchTitan** | PyTorch 原生大模型训练平台（FSDP2/TP/PP/CP/EP/RL） | `pytorch/torchtitan` |
 | **torchtune** | PyTorch 原生微调库 | `pytorch/torchtune` |
-| **ExecuTorch** | 移动/边缘推理 | `pytorch/executorch` |
-| **vLLM** | 服务端推理（PagedAttention） | `vllm-project/vllm` |
+| **ExecuTorch** | 移动/边缘推理（2026 年支持端侧 agentic） | `pytorch/executorch` |
+| **vLLM** | 服务端推理（PagedAttention），2025-05 起属 PyTorch Foundation | `vllm-project/vllm` |
 | **Llama Stack** | 9 类标准化服务 API | `meta-llama/llama-stack` |
 | **Llama 模型** | 开放权重 | `meta-llama/llama-models`、Hugging Face |
 
@@ -98,6 +104,14 @@ flowchart LR
 
 这与本手册 [Agent 篇](/05-agent/) 的"Agent + 工具 + 反思"模式同构：Agent 把"写高性能 kernel"这种需要专家经验的任务，变成可自动迭代搜索的工程问题。
 
+### Helion：PyTorch 原生 kernel DSL（2026）
+
+2026 年 Meta 把 kernel 层的"可移植性"推进到语言级。**Helion** 是一门 PyTorch 原生 kernel 编写语言（高层 DSL），2026-04 成为 PyTorch Foundation 托管项目（Meta / NVIDIA / AMD / Intel 共同贡献）：
+
+- **写法像 PyTorch，编译成各硬件后端**：同一份 Helion kernel 可编译到 NVIDIA、AMD、Google TPU 等平台，无需为每家维护手写 CUDA / CuTe DSL 实现。
+- **官方发布的性能背书**：Muse Spark Open 附带的 RoPE / RMSNorm / 量化等 Helion kernel 在 **GB300 上比手写 CUDA/CuTe kernel 快 1.03–3.95×**，直接移植 AMD MI350 后端到端再提升 3%；SGLang 中的 Helion **megakernel** 把多个算子融合成单一 persistent kernel。
+- **意义**：把 [第 2 章](02-core-ideas)"统一软件栈换可移植优化"的支柱从"框架层"下沉到"kernel 层"——这是 Triton 之后 Meta 在编译器栈上的下一个押注。
+
 ## 6.4 推理栈：vLLM、ExecuTorch、Llama Stack
 
 ### vLLM（MTIA plugin）
@@ -112,7 +126,11 @@ vLLM 的 PagedAttention、continuous batching 是 Llama 服务端推理事实标
 
 ### ExecuTorch（端侧）
 
-ExecuTorch 把 Llama 部署到手机、边缘设备，是"开放权重下沉到端"的工具链。与本手册 [LLMOps](/04-llmops/) 的"端云协同"主题相关。
+ExecuTorch 把 Llama 部署到手机、边缘设备，是"开放权重下沉到端"的工具链；2026 年已扩展到端侧 agentic 场景（小模型 Muse Glimmer 即提供 ExecuTorch 部署路径）。与本手册 [LLMOps](/04-llmops/) 的"端云协同"主题相关。
+
+### Muse 时代的双引擎推理（2026）
+
+2026-10 发布的 Muse Spark Open 把"开源模型 + 开源 kernel + 多引擎"组合成发布标准：SGLang 与 vLLM 双引擎官方优化、Helion kernel 附带、TensorRT-LLM / llama.cpp 兼容、NVFP4 量化可在两台 Mac Studio 上运行（pytorch.org 官方博客，2026-10-15）。对源码学习者，这套组合的全部组件——SGLang 的调度器、vLLM 的 PagedAttention、Helion 编译器——都是开源可读的。
 
 ### Llama Stack
 
@@ -126,8 +144,8 @@ MTIA 虽是自研 ASIC，但坚持 **"PyTorch Native"**——不另起炉灶，�
 |---|---|
 | 前端 | PyTorch（torch.compile / torch.export） |
 | 图编译器 | Torch FX IR → TorchInductor |
-| Kernel 编译器 | Triton / MLIR / LLVM |
-| 通信库 | **HCCL（Hoot Collective Communications Library）** —— MTIA 版 NCCL |
+| Kernel 编译器 | Triton / MLIR / LLVM（Helion 为新一代 kernel DSL） |
+| 通信库 | **HCCL（Hoot Collective Communications Library）** —— MTIA 版 NCCL；MTIA 300 上把集合通信编译为自主执行的 work-queue 子图（SC'26 论文） |
 | 用户态驱动 | **Rust** |
 | 固件 | **bare-metal Rust** |
 | kernel 生成 | TritorX / KernelEvolve |
@@ -138,6 +156,8 @@ MTIA 虽是自研 ASIC，但坚持 **"PyTorch Native"**——不另起炉灶，�
 
 HCCL 提供与 NCCL 接口对齐的集合通信（AllReduce、AllGather、ReduceScatter），让 FSDP 等 PyTorch 并行策略在 MTIA 上无修改运行。这是"开放 + 可移植"在通信层的具体兑现。
 
+MTIA 300 把 HCCL 推向下一阶段：16 个 message engine 独立执行集合通信，HCCL 把 collective **编译成自主执行的 work-queue 子图**、无需 host CPU 介入——并发通信对计算的干扰 <0.5%（GPU 上 NCCL 抢 SM 资源通常 >20%）。当通信从"计算资源的寄生虫"变成"独立的硬件流水线"，大规模训练的有效算力曲线被拉平（详见 [第 5 章](05-core-modules) 5.1.3 节）。
+
 ## 6.6 与 OpenAI / Anthropic 的源码可见性对照
 
 | 维度 | OpenAI | Anthropic | Meta |
@@ -146,7 +166,7 @@ HCCL 提供与 NCCL 接口对齐的集合通信（AllReduce、AllGather、Reduce
 | Kernel 生成 | Triton（OpenAI 起源，现已独立开源） | 闭源 | **Triton + TritorX/KernelEvolve** |
 | 推理引擎 | 闭源（API） | 闭源（API） | **vLLM + ExecuTorch + Llama Stack（开源）** |
 | 自研硅软件栈 | 无自研硅 | Trainium（AWS 闭源 SDK） | **MTIA 全栈（编译器/通信/驱动部分开源）** |
-| 模型权重 | 闭源 | 闭源 | **Llama 开放权重** |
+| 模型权重 | 闭源 | 闭源 | **Llama 开放权重；2026 起 Muse 选择性开放（Spark Open 开放权重，Wonder 闭源）** |
 
 研究 Meta 源码的独特价值：**它是唯一一个能让外部工程师"读代码、跑代码、改代码"的前沿实验室基础设施**。FSDP 的实现、torch.compile 的 lowering、Triton kernel 的写法、Llama Stack 的 API 设计，全部可对照学习——这也是本手册把 Meta 作为案例的核心理由之一。
 

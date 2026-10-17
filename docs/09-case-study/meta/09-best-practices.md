@@ -26,7 +26,19 @@
 
 ### 原则 5：统一软件栈换可移植性
 
-所有硬件接同一个软件栈（PyTorch + torch.compile + Triton），让 kernel 与并行策略可跨硬件复用。这是"自研硅（MTIA）不另起炉灶"的工程前提。
+所有硬件接同一个软件栈（PyTorch + torch.compile + Triton），让 kernel 与并行策略可跨硬件复用。这是"自研硅（MTIA）不另起炉灶"的工程前提。2026 年的新实践是把这一层下沉到 kernel 语言级——Helion 让一份 kernel 跨 NVIDIA/AMD 编译，性能反超手写 CUDA kernel（1.03–3.95×）。
+
+### 原则 6：网络假设有损，智能放在端点
+
+MetaRoCE 的核心启示：**不要为了"无损"给以太网打补丁（PFC），而是让传输层容忍丢包**——逐路径状态、报文喷洒、选择确认全放 NIC 端点，交换机只要求标准 ECMP + ECN。1% 丢包下 ~86% 吞吐的结果证明，"有损假设 + 端点智能"比"无损假设 + 复杂队列管理"更可扩展。
+
+### 原则 7：性能调试平台化，不要依赖专家救火
+
+Zoomer 的经验：**万卡规模下"找不到瓶颈"比瓶颈本身更贵**。把 trace 采集（Kineto/DCGM）、反模式识别、优化建议做成中央平台，让一行代码修复带来 +20% QPS 这种事成为常态，而不是专家们的偶发战果。
+
+### 原则 8：把存储当 GPU 的"内存"来设计
+
+算力每两年翻三倍，存储跟不上。Meta 的 AI 存储蓝图把存储栈重构为"分层缓存"（GPU 宿主机内存/Flash → 区域 Flash BLOB → 全球 HDD BLOB），目标不是 EB 容量，而是**别拖 GPU 后腿、别拖研究员迭代**（Owl 缓存 ~80% 命中、prefetch API 消除跨区导入）。
 
 ## 9.2 可靠性工程检查清单
 
@@ -42,6 +54,10 @@
 | 8 | 训练 SDC 治理 | gradient clipping、deterministic training、hyper-checkpointing、reductive triage |
 | 9 | 推理 SDC 治理 | divergence detection（神经元分布图）+ 故障节点隔离 |
 | 10 | factory-to-fleet | 把可靠性贯穿硅全生命周期（设计→验证→部署→运营） |
+| 11 | 性能调试平台 | 类 Zoomer：straggler 检测、关键路径分析、一键优化（+2%~+50% QPS） |
+| 12 | 自动化 RCA | 类 DrP：analyzer 工作流自动触发、MTTR 降 20–80% |
+| 13 | 网络有损假设 | 类 MetaRoCE：取消 PFC 依赖、端点逐路径状态、喷洒 + 选择确认 |
+| 14 | 存储分层缓存 | L1/L2 宿主内存 + Flash → L3 区域 Flash → HDD 真相源；缓存命中 ~80% |
 
 ## 9.3 Checkpoint 间隔的 trade-off
 
@@ -84,14 +100,15 @@ graph LR
 
 | # | 检查项 |
 |---|---|
-| 1 | 跨硬件兼容矩阵（NVIDIA/AMD/Intel/Qualcomm/自研硅） |
-| 2 | 跨云部署验证（AWS/GCP/Azure/Databricks/HF） |
-| 3 | 跨推理引擎验证（vLLM/TGI/各框架） |
-| 4 | 安全工具随权重开放（Llama Guard/Prompt Guard/CyberSecEval） |
-| 5 | 标准化服务接口（Llama Stack 9 API） |
-| 6 | 评测 + 红队（含 GOAT 类自动化红队） |
-| 7 | 偏见与对齐测试（如 Llama 4 的政治偏见降低） |
-| 8 | 文档与 Responsible Use Guide |
+| 1 | 跨硬件兼容矩阵（NVIDIA/AMD/Intel/Qualcomm/自研硅；含 Apple Silicon 端侧路径） |
+| 2 | 跨云部署验证（AWS/GCP/Azure/SageMaker/Model Garden/Foundry） |
+| 3 | 跨推理引擎验证（vLLM/SGLang/TensorRT-LLM/llama.cpp） |
+| 4 | kernel 随权重发布（Helion 类可移植 kernel，附 autotune 能力） |
+| 5 | 安全工具随权重开放（Llama Guard/Prompt Guard/CyberSecEval） |
+| 6 | 无护栏独立部署的安全后训练（Muse Spark Open 模式） |
+| 7 | 评测 + 红队（含 GOAT 类自动化红队） |
+| 8 | 许可证分层（署名义务、MaaS 商用收入门槛） |
+| 9 | 开放策略显式分层（前沿闭源/次级开放，对内对外口径一致） |
 
 ## 9.7 反模式（别这么干）
 
@@ -102,6 +119,8 @@ graph LR
 - ❌ **用"GPU 数量"当成功指标** → 真正的指标是"有效训练时间"与"单位 FLOPS 成本"。
 - ❌ **开放权重但不提供安全工具与服务接口** → 生态碎片化，部署方各自踩坑。
 - ❌ **可靠性只靠软件兜底** → 同步训练下"重试到另一台"不成立，必须从硅生命周期（factory-to-fleet）就设计可靠性。
+- ❌ **网络栈追求"绝对无损"** → PFC 带来的队头阻塞与拥塞扩散在大规模上比丢包更难治；容忍有损 + 端点智能（MetaRoCE）才是扩展方向。
+- ❌ **开放策略"一刀切"** → 2026 年 Meta 的教训是"前沿闭源 + 次级开放"需要显式分层（产品、许可证、安全后训练各就各位），模糊的中间态最伤生态信任。
 
 ## 9.8 与本手册其他主题的最佳实践联动
 
