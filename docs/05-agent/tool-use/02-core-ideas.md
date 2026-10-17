@@ -26,7 +26,7 @@ Tool Use 的核心可以概括为一句话：**用结构化契约（JSON Schema�
 
 工程上建议建立一个 **Schema Manager**，把不同方言归一化为内部标准模型，再反向序列化为各厂商需要的格式。这样可以在切换模型时最小化改动。
 
-> 2025–2026 年的趋势是**受约束解码（constrained decoding）成为标配**：OpenAI 的 strict mode / structured outputs、主流厂商对 schema 遵循的持续强化、开源侧的 outlines / xgrammar 等约束解码库，使“模型输出必然合法 JSON”从奢望变成默认假设。工程重点相应地从“解析容错”转向“schema 设计质量”与“语义校验”。
+> 2025–2026 年的趋势是**受约束解码（constrained decoding）成为标配**：OpenAI 的 strict mode / structured outputs、主流厂商对 schema 遵循的持续强化、开源侧的 outlines / xgrammar 等约束解码库，使“模型输出必然合法 JSON”从奢望变成默认假设。Google 在 2026 年进一步扩大了 Gemini API structured outputs 支持的 JSON Schema 关键字（`anyOf`、`$ref`、`minimum`/`maximum`、`additionalProperties`、`prefixItems`），并自 Gemini 3 起支持 structured outputs 与 function calling 在同一调用中组合。工程重点相应地从“解析容错”转向“schema 设计质量”与“语义校验”。
 
 ## Tool Choice：谁来决定调不调用
 
@@ -39,7 +39,7 @@ Tool Choice 控制模型是否有权调用工具、必须调用工具、或必�
 | `none` / `NONE` | 禁止调用工具 | 只需要文本生成 |
 | forced / named | 强制调用指定工具 | 流程中已知必须用某工具 |
 
-OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropic 提供 `tool_choice` 和 `disable_parallel_tool_use`；Google 提供 `tool_config.function_calling_config.mode`。2025–2026 年的一个趋势是把 Tool Choice 与**工具检索**结合起来：客户端不把所有工具塞进 Prompt，而是先按意图召回少量候选工具，再让模型在候选集上做决策（详见下文“大规模工具集”）。
+OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropic 提供 `tool_choice` 和 `disable_parallel_tool_use`；Google 提供 `tool_config.function_calling_config.mode`。2025–2026 年的一个趋势是把 Tool Choice 与**工具检索**结合起来：客户端不把所有工具塞进 Prompt，而是先按意图召回少量候选工具，再让模型在候选集上做决策（详见下文“大规模工具集”）。到 2026 下半年，这一模式开始被平台原生吸收——OpenAI 在 DevDay 2026（2026-09-29）发布的 Agents API 公测中内置 tool search，与 Anthropic 的 tool search 工具殊途同归。
 
 ## 并行工具调用（Parallel Tool Calls）
 

@@ -56,16 +56,16 @@ UC Berkeley 的 Gorilla 项目通过在海量 API 文档上微调模型，使其
 CodeAct（Wang et al., 2024）提出让模型直接编写并执行代码来完成动作——循环体内只有一个“执行代码”工具，其他能力全部以 Python 函数/库的形式被代码调用。2026 年的实证研究《The Bitter Lesson of Tool Calling》（arXiv 2608.06370）在 BFCL v4 上对比了 **programmatic tool calling（PTC，写代码调工具）** 与传统 JSON 原生工具调用，结论是：在 14 个受测模型中，PTC 在 11 个上持平或更优，并行扇出场景下 13 个模型持平或更优，且把顺序调用链折叠进单轮代码可将延迟降低约一半。其“苦涩教训”在于：随着模型代码能力增强，为工具调用专门设计的 JSON 协议可能不再是唯一正解——但 PTC 的收益与模型自身的代码能力正相关，弱模型上并不普适。
 
 ### 评测基准：BFCL 与 τ-bench 家族
-- **BFCL**：Berkeley Function-Calling Leaderboard 从 v1 的单一函数调用，演进到 v2（多语言、多函数并行）、v3（多轮对话、长上下文、幻觉检测），再到 **v4**（2026 年主版本，覆盖 simple / multiple / parallel / live / multi-turn / web-search / memory / hallucination / format-sensitivity 等类别，强调真实可执行的函数调用）。头部模型整体准确率已进入 75%–88% 区间（第三方榜单快照，口径不一），但与生产要求的可靠性仍有差距。
+- **BFCL**：Berkeley Function-Calling Leaderboard 从 v1 的单一函数调用，演进到 v2（多语言、多函数并行）、v3（多轮对话、长上下文、幻觉检测），再到 **v4**（2026 年主版本，v3 榜单已转为展示性质；v4 覆盖 simple / multiple / parallel / live / multi-turn / web-search / memory / hallucination / format-sensitivity 等类别，强调真实可执行的函数调用）。2026-10 的第三方快照显示头部模型约 0.75–0.885（如 BTL-3 约 88.5%、Qwen3.7 Max 约 75.0%，口径不一），同时小模型差距巨大（Llama-3.2-1B 仅约 10.8%）——工具调用仍是高度可训练的技能，与生产要求的可靠性仍有差距。
 - **τ-bench / τ²-bench**（Sierra Research）：不把工具调用当孤立动作，而是评估“工具—Agent—用户”三方交互：Agent 与模拟用户对话、调用领域 API、操作数据库，按最终世界状态打分，核心指标是 **pass^k**（同一任务连续成功 k 次的概率，衡量可靠性而非运气）。τ²-bench（arXiv 2506.07982，2025-06）新增电信域与“双控”设定（用户侧也持有工具，建模为 Dec-POMDP），2025 下半年起又衍生出 Verified 修正版、银行知识域、全双工语音评测等变体。它揭示的一个残酷事实是：前沿模型的 pass@1 尚可，但 pass^k 与 pass@1 之间存在显著落差——**一致性是当前 Agent 可靠性的主要瓶颈**。
 
 ### 协议化：MCP 成为工具接入事实标准
-2024 年 11 月 Anthropic 发布 Model Context Protocol（MCP）后，2025 年迅速成为连接模型与外部能力的开放协议事实标准：传输从 stdio 演进到 Streamable HTTP，鉴权引入 OAuth 2.1 资源服务器语义，能力上增加了工具注解（annotations）、服务端主动请求用户输入（elicitation）、结构化工具输出（structuredContent）等。到 2026 年，主流编码助手、Agent 框架与云平台普遍内建 MCP 客户端，“把内部能力封装成 MCP Server”成为企业落地 Tool Use 的主流路径之一。详见 [MCP](/05-agent/mcp/) 主题。
+2024 年 11 月 Anthropic 发布 Model Context Protocol（MCP）后，2025 年迅速成为连接模型与外部能力的开放协议事实标准：传输从 stdio 演进到 Streamable HTTP，鉴权引入 OAuth 2.1 资源服务器语义，能力上增加了工具注解（annotations）、服务端主动请求用户输入（elicitation）、结构化工具输出（structuredContent）等，2026-07 的规范 RC 进一步走向无状态化。到 2026 年，主流编码助手、Agent 框架与云平台普遍内建 MCP 客户端，“把内部能力封装成 MCP Server”成为企业落地 Tool Use 的主流路径之一；同时头部模型厂商开始把“工具检索”下沉为平台能力（OpenAI DevDay 2026 的 Agents API 内置 tool search、Anthropic 提供 tool search 工具），详见 [MCP](/05-agent/mcp/) 主题。
 
 ### 代码执行与浏览器：两类“通用工具”的成熟
 2025–2026 年，两类通用工具从 demo 走向 GA：
 - **代码执行工具**：Anthropic 于 2025 年推出服务端代码执行工具，2026-01 版本（`code_execution_20260120`）支持 REPL 状态持久化与 programmatic tool calling，成为官方推荐版本；OpenAI 的 ChatGPT Agent、Codex 也把沙箱代码执行作为标配动作空间。
-- **浏览器/计算机使用工具**：从 Claude Computer Use、OpenAI CUA（Computer-Using Agent，Operator 已并入 ChatGPT Agent）到开源的 browser-use，Agent 获得了“操作真实 GUI/网页”的能力，2026 年 Anthropic 进一步推出面向视口的 `browser_toolset` 浏览器工具集，与完整的 Computer Use 形成分工。详见第 6 章。
+- **浏览器/计算机使用工具**：从 Claude Computer Use、OpenAI CUA（Computer-Using Agent，Operator 已并入 ChatGPT Agent）到开源的 browser-use，Agent 获得了“操作真实 GUI/网页”的能力。2026 年 Anthropic 推出面向视口的 `browser_toolset` 浏览器工具集（2026-08 GA），与完整的 Computer Use 形成分工；OpenAI 在 2026-09-29 的 DevDay 2026 上把 computer use 做成 Agents API 的托管能力（OpenAI 云端浏览器/桌面环境，公测）。评测侧，旧版 OSWorld（Verified）2026 年年中头部已越过人类基线（Claude Fable 5 约 86%，最高约 90%），但新版 **OSWorld 2.0**（arXiv 2606.29537，108 个长程真实任务）把各家打回 40%–78% 区间（partial 口径；binary 口径更低）——长程桌面操作可靠性仍是明显短板。详见第 6 章。
 
 ## 小结
 

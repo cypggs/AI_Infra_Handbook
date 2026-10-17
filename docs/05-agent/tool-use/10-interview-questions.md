@@ -34,7 +34,7 @@
    - 参考答案要点：设置连接超时与整体超时；区分可重试与不可重试错误；指数退避重试；熔断与降级。写操作超时后要先验证外部状态再重试（verify-before-retry），防止重复副作用。
 
 5. **MCP 和 OpenAI Function Calling 是什么关系？**
-   - 参考答案要点：MCP 是开放协议，统一外部能力发现与调用；OpenAI Function Calling 是厂商 API。Tool Use 层可用 MCP 接入外部能力，再适配到不同模型。
+   - 参考答案要点：MCP 是开放协议，统一外部能力发现与调用；OpenAI Function Calling 是厂商 API。Tool Use 层可用 MCP 接入外部能力，再适配到不同模型。2026 年的趋势是平台原生吸收：OpenAI Agents API 公测内置 MCP 支持与 tool search，Anthropic 提供 MCP 连接器。
 
 6. **什么是工具投毒（Tool Poisoning）和 Rug Pull？如何防护？**
    - 参考答案要点：工具投毒是把恶意指令藏在工具描述/metadata 中的间接提示注入；Rug Pull 是 Server 通过审批后篡改工具定义。防护：描述审查去指令化、哈希存证 + 变更告警、静态扫描（mcp-scan）、最小权限与沙箱、破坏性操作 HITL。
@@ -111,6 +111,12 @@
      - 评估：定期抽样，用人工或 LLM Judge 评估工具选择准确率。
      - 告警：核心指标跌破阈值时通知。
      - A/B：对比不同 schema 描述、不同模型对准确率和成本的影响。
+
+9. **托管 Agent 运行时（如 OpenAI Agents API）与自研 Tool Use 层是什么关系？哪些该交给平台，哪些必须自己掌握？**
+   - 参考答案要点：
+     - 可交给平台：工具循环执行、托管 computer use、tool search、context compaction、基础 trace。
+     - 必须自己掌握：Tool Registry 与版本治理、参数级授权与 HITL、供应链安全（哈希存证/变更告警）、审计日志、跨厂商抽象层（避免被单一平台锁定）。
+     - 判断标准：涉及业务权限、合规审计、数据边界的逻辑不下放；纯执行与性能优化可借力平台。
 
 ## 面试建议
 

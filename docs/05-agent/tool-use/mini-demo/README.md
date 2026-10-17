@@ -34,6 +34,7 @@ mini-demo/
     ├── test_validator.py
     ├── test_executor.py
     ├── test_formatter.py
+    ├── test_policy.py
     └── test_demo.py
 ```
 

@@ -14,7 +14,7 @@
 
 - **Berkeley Function-Calling Leaderboard（BFCL）**
   - 地址：https://gorilla.cs.berkeley.edu/berkeley-function-calling-leaderboard.html
-  - 价值：评估模型函数调用能力的权威基准，包含多语言、并行调用、可执行性等维度。
+  - 价值：评估模型函数调用能力的权威基准，包含多语言、并行调用、可执行性等维度。v3 榜单已转为展示性质，v4 为 2026 年主版本。
 
 - **ReAct: Synergizing Reasoning and Acting in Language Models**
   - 论文地址：https://arxiv.org/abs/2210.03629
@@ -37,6 +37,10 @@
   - 论文地址：https://arxiv.org/abs/2608.02645
   - 价值：系统揭示工具调用的非原子失败（超时但实际成功、效果延迟可见），论证 verify-before-retry 优于盲目重试。
 
+- **OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks（2026）**
+  - 论文地址：https://arxiv.org/abs/2606.29537
+  - 价值：108 个长程真实桌面任务的新基准，取代旧版 OSWorld 成为计算机使用能力的主标尺；partial 与 binary 两种口径差异巨大，阅读厂商自报数字时需谨慎。
+
 ## 官方规范与文档
 
 - **OpenAI Function Calling Guide**
@@ -58,6 +62,14 @@
 - **Google Gemini Function Calling**
   - 地址：https://ai.google.dev/gemini-api/docs/function-calling
   - 覆盖：`function_declarations`、`tool_config`、并行与串行调用。
+
+- **Google: Improving Structured Outputs in the Gemini API（2026）**
+  - 地址：https://blog.google/innovation-and-ai/technology/developers-tools/gemini-api-structured-outputs/
+  - 覆盖：structured outputs 的 JSON Schema 关键字扩展（`anyOf`、`$ref`、`minimum`/`maximum`、`additionalProperties`、`prefixItems`），可直接配合 Pydantic / Zod 使用。
+
+- **OpenAI DevDay 2026 Recap（InfoQ，2026-10）**
+  - 地址：https://www.infoq.com/news/2026/10/openai-devday-2026/
+  - 覆盖：Agents API 公测（托管 computer use、tool search、context compaction）、GPT-6.1 Sol、Decisions API、Ultrafast 推理档等 DevDay 2026 发布全景。
 
 - **Model Context Protocol（MCP）Specification**
   - 地址：https://modelcontextprotocol.io/specification
@@ -124,7 +136,7 @@
 ## 推荐学习路径
 
 1. **入门**：先读完 OpenAI 与 Anthropic 的官方 Function Calling / Tool Use 文档，动手写一个天气查询 Demo。
-2. **进阶**：阅读 Gorilla 论文与 BFCL v3/v4，理解函数调用能力如何被评估；用 τ-bench 的思路给自建工具链做端到端可靠性评测（关注 pass^k）；用 LangGraph 或 OpenAI Agents SDK 搭建多工具 Agent。
+2. **进阶**：阅读 Gorilla 论文与 BFCL v4，理解函数调用能力如何被评估；用 τ-bench 的思路给自建工具链做端到端可靠性评测（关注 pass^k）；用 LangGraph 或 OpenAI Agents SDK 搭建多工具 Agent。
 3. **深入**：阅读 Toolformer、ReAct 与 CodeAct 论文，理解“代码即动作”的脉络；学习 MCP 规范（含 annotations、elicitation、structuredContent），尝试把内部能力封装为 MCP Server。
 4. **生产**：回到本主题第 8、9 章，结合自己业务场景设计 Registry、工具检索、权限、熔断、供应链安全与可观测性方案。
 

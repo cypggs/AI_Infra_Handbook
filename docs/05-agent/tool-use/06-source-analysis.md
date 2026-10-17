@@ -33,7 +33,7 @@ tools = [
 ]
 
 response = client.chat.completions.create(
-    model="gpt-5.2",
+    model="gpt-6.1-sol",
     messages=[{"role": "user", "content": "北京今天天气怎么样？"}],
     tools=tools,
     tool_choice="auto",
@@ -50,7 +50,7 @@ if response.choices[0].message.tool_calls:
 
 ```python
 response = client.responses.create(
-    model="gpt-5.2",
+    model="gpt-6.1-sol",
     input="北京今天天气怎么样？",
     tools=[
         {
@@ -70,7 +70,7 @@ response = client.responses.create(
 - `strict: True` 可显著提升参数格式遵循率。
 - `tool_choice` 支持 `auto` / `none` / `required` / `{"type": "function", "function": {"name": "..."}}`。
 - `parallel_tool_calls: False` 可禁用并行调用。
-- 2025–2026 年 GPT-5.x 系列把函数调用、structured outputs 与 MCP 支持作为标配延续下来；官方宣称 GPT-5.2 的工具调用准确率有显著提升（第三方评测亦显示其在 τ²-bench 工具使用类任务上处于第一梯队）。结构化输出与 strict mode 底层均由受约束解码保证，生产上建议默认开启。
+- 2026 年的主线是 DevDay 2026（2026-09-29）发布的 **Agents API 公测**：基于 Codex harness 的托管 Agent 运行时，内置 OpenAI 云端 computer use、**tool search**、**context compaction** 与多 Agent 协调，并集成进 Codex 与 ChatGPT Work；配套发布 GPT-6.1 Sol（Ultrafast 推理档可使 Codex 生成提速约 8 倍）与 Decisions API（Luna 模型驱动的确定性结构化判定，面向合规场景）。官方口径工具调用与工作流整体提速 30%+；Agent Builder 已弃用，Agents SDK 成为官方主推编排层。结构化输出与 strict mode 底层均由受约束解码保证，生产上建议默认开启。
 
 ## Anthropic Tool Use
 
@@ -96,7 +96,7 @@ tools = [
 ]
 
 response = client.messages.create(
-    model="claude-sonnet-4-6",
+    model="claude-sonnet-5-5",
     max_tokens=1024,
     messages=[{"role": "user", "content": "北京今天天气怎么样？"}],
     tools=tools,
@@ -119,7 +119,7 @@ for block in response.content:
 - 工具参数 schema 字段名为 `input_schema`。
 - 工具结果通过 `tool_result` 块回传，需匹配 `tool_use_id`。
 - 支持 `disable_parallel_tool_use` 与 `tool_choice: {type: "any"}` / `{type: "tool", name: "..."}`。
-- 2026 年起 Anthropic 在服务端工具上持续加码：代码执行工具（见下文）、浏览器工具集（`browser_toolset`，2026-08 GA）、web 搜索/抓取工具、MCP 连接器；客户端侧支持 tool search 与 Skills（渐进披露），大规模工具集不必全量注入。
+- 2026 下半年起 Anthropic 的当前主力是 5.5 家族：Opus 5.5（2026-09-22，多数任务达 Fable 5.1 水平、成本低 40%）、Sonnet 5.5（2026-09-28，提速 30%）、Haiku 5.5（2026-10-07，首个可调 effort 的 Haiku），均支持 tool use。服务端工具持续加码：代码执行工具（见下文）、浏览器工具集（`browser_toolset`，2026-08 GA）、web 搜索/抓取工具、MCP 连接器；客户端侧支持 tool search 与 Skills（渐进披露），大规模工具集不必全量注入。
 
 ## 代码执行作为内置工具（Anthropic / OpenAI）
 
@@ -129,7 +129,7 @@ Anthropic 的代码执行工具（2026-01 版 `code_execution_20260120` 为推�
 
 ```python
 response = client.messages.create(
-    model="claude-sonnet-4-6",
+    model="claude-sonnet-5-5",
     max_tokens=4096,
     tools=[
         {"type": "code_execution_20260120", "name": "code_execution"}
@@ -159,8 +159,8 @@ response = client.messages.create(
 工程要点：
 
 - Anthropic 2026-08 将 `browser_toolset`（视口级浏览器工具集，含元素引用、表单输入、标签页管理、可选文件上传）推向 GA，与完整的 Computer Use 形成“网页任务用浏览器工具、桌面任务用 Computer Use”的分工；开源 browser-use 项目也实现了兼容该工具集的动作集合。
-- OpenAI 的 CUA（computer-use-preview）经 Responses API 暴露，独立产品 Operator 已于 2025-08 并入 ChatGPT Agent；第三方基础设施（Browserbase、Hyperbrowser 等）提供配套的隐身浏览器与代理网络。
-- 第三方评测（2026）大致显示：浏览器专用任务上 DOM 类工具领先（WebVoyager 约 89%），完整桌面控制上 Claude Computer Use 领先（OSWorld 约 73%–82%），OpenAI CUA 在 OSWorld 约 38%——GUI 级操作的可靠性仍是明显短板，生产上应优先用 API/结构化工具，把界面操作作为兜底。
+- OpenAI 侧：CUA 的独立产品 Operator 已于 2025-08 并入 ChatGPT Agent；2026-09 DevDay 起，computer use 作为 **Agents API 的托管能力**进入公测（OpenAI 云端浏览器/桌面环境），第三方基础设施（Browserbase、Hyperbrowser 等）继续提供配套隐身浏览器与代理网络。
+- 第三方评测（2026）大致显示：浏览器专用任务上 DOM 类工具领先（WebVoyager 约 89%）；旧版 OSWorld（Verified）头部已越过人类基线（Intelligence-Indeed Agent 约 90.2%、Claude Fable 5 约 86.0%、GPT-5.5 约 78.7%，100 步限制），但新版 **OSWorld 2.0**（108 个长程任务）大幅拉开差距：Claude Fable 5.1 约 77.9% partial / 41.7% binary、Claude Opus 5（max effort）约 68.3% partial、GPT-6 Astra 厂商自报约 72.6% partial——注意 partial 与 binary 口径差异巨大，且不少数字为厂商自报、不可直接横比。GUI 级长程操作的可靠性仍是明显短板，生产上应优先用 API/结构化工具，把界面操作作为兜底。
 - 安全：浏览器/桌面工具是提示注入的高危入口（恶意网页内容可劫持工具调用），必须配合域名白名单、敏感操作 HITL 与输出审查（见第 8、9 章）。
 
 ## Google Gemini Function Calling
@@ -168,19 +168,22 @@ response = client.messages.create(
 Gemini 使用 `function_declarations` 定义工具，通过 `tool_config` 控制调用模式。
 
 ```python
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
-weather_tool = genai.protos.Tool(
+client = genai.Client()
+
+weather_tool = types.Tool(
     function_declarations=[
-        genai.protos.FunctionDeclaration(
+        types.FunctionDeclaration(
             name="get_weather",
             description="获取指定城市的当前天气",
-            parameters=genai.protos.Schema(
-                type=genai.protos.Type.OBJECT,
+            parameters=types.Schema(
+                type=types.Type.OBJECT,
                 properties={
-                    "city": genai.protos.Schema(type=genai.protos.Type.STRING),
-                    "unit": genai.protos.Schema(
-                        type=genai.protos.Type.STRING,
+                    "city": types.Schema(type=types.Type.STRING),
+                    "unit": types.Schema(
+                        type=types.Type.STRING,
                         enum=["c", "f"],
                     ),
                 },
@@ -190,18 +193,17 @@ weather_tool = genai.protos.Tool(
     ]
 )
 
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    tools=[weather_tool],
-    tool_config={
-        "function_calling_config": {
-            "mode": "AUTO",  # AUTO / ANY / NONE
-        }
-    },
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="北京今天天气怎么样？",
+    config=types.GenerateContentConfig(
+        tools=[weather_tool],
+        tool_config=types.ToolConfig(
+            function_calling_config=types.FunctionCallingConfig(mode="AUTO")
+        ),
+    ),
 )
-
-response = model.generate_content("北京今天天气怎么样？")
-for part in response.parts:
+for part in response.candidates[0].content.parts:
     if part.function_call:
         fc = part.function_call
         result = get_weather(**dict(fc.args))
@@ -210,9 +212,10 @@ for part in response.parts:
 
 **特点**：
 
-- Schema 使用 protobuf 风格封装，参数类型为枚举常量。
-- 工具选择模式为 `AUTO` / `ANY` / `NONE`。
+- Schema 使用 protobuf 风格封装（新 SDK 为 `types.Schema`），参数类型为枚举常量；旧的 `google.generativeai` SDK 已被 `google-genai` 取代，新代码应使用后者。
+- 工具选择模式为 `AUTO` / `ANY` / `NONE`（`FunctionCallingConfig.mode`）。
 - 结果通过 `function_response` part 回传。
+- 2026 年的重要变化在**结构化输出**：Google 官方扩大 structured outputs 的 JSON Schema 关键字支持（`anyOf`、`$ref`、`minimum`/`maximum`、`additionalProperties`、`prefixItems`），可直接配合 Pydantic / Zod 使用；Gemini 3 起支持 structured outputs 与 function calling 在同一调用中组合。同时 API 形态在迁移：Interactions API 以多态 `response_format` 取代 `response_mime_type`（2026-06 旧接口下线），Schema Manager 需要跟踪这类厂商侧 schema 表达变更。
 
 ## LangGraph
 
@@ -260,7 +263,7 @@ agent = Agent(
     name="weather_assistant",
     instructions="你是一个天气助手。",
     tools=[get_weather],
-    model="gpt-5.2",
+    model="gpt-6.1-sol",
 )
 
 result = Runner.run_sync(agent, "北京今天天气怎么样？")
@@ -272,6 +275,7 @@ print(result.final_output)
 - `@function_tool` 自动 schema 生成。
 - `Runner` 内部负责工具循环、结果反馈、跟踪（trace）。
 - 支持 `handoff` 把任务转交给其他 Agent。
+- DevDay 2026 后 Agents SDK 是 OpenAI 官方主推的编排层（Agent Builder 已弃用）；需要托管运行时可叠加 Agents API（computer use、tool search、context compaction，2026-09 公测）。
 - 对需要深度定制的生产系统，仍需自行封装 Registry、权限、熔断等。
 
 ## AutoGen
@@ -293,7 +297,7 @@ weather_tool = FunctionTool(
 
 agent = AssistantAgent(
     name="weather_assistant",
-    model_client=OpenAIChatCompletionClient(model="gpt-5.2"),
+    model_client=OpenAIChatCompletionClient(model="gpt-6.1-sol"),
     tools=[weather_tool],
     system_message="你是一个天气助手。",
 )
@@ -355,6 +359,7 @@ MCP 不是某一厂商的 SDK，而是一套开放协议，用于标准化模型
 | --- | --- | --- | --- | --- | --- | --- |
 | OpenAI Chat Completions | `function.parameters` | `tool_choice` + `parallel_tool_calls` | 支持 | `role: tool` + `tool_call_id` | 应用代码 | 通用生产 |
 | OpenAI Responses API | `parameters` | `tool` | 支持 | 输出项中 `type: function_call` | 应用代码 | 新 API 路线，内置托管工具多 |
+| OpenAI Agents API（公测） | 平台托管 tools | 平台托管 | 支持 | 平台托管 trace | 平台托管运行时 | 托管 Agent：computer use / tool search / context compaction |
 | Anthropic Messages | `input_schema` | `tool_choice` + `disable_parallel_tool_use` | 支持 | `tool_use` / `tool_result` 块 | 应用代码 | Claude 生态，服务端工具丰富 |
 | Anthropic Code Execution | 无需 schema | 模型自主决定 | 同轮混合编排 | `tool_result`（代码输出） | 托管沙箱执行 | 数据处理、代码类动作（CodeAct） |
 | Google Gemini | `function_declarations[].parameters` | `tool_config.function_calling_config.mode` | 支持 | `function_call` / `function_response` part | 应用代码 | Gemini 生态 |
@@ -368,6 +373,7 @@ MCP 不是某一厂商的 SDK，而是一套开放协议，用于标准化模型
 - **直接与 LLM 厂商集成**：如果团队只需要支持一家模型，直接使用厂商 SDK 最简单，严格模式与原生跟踪都可用。
 - **需要切换多家模型**：在内部建立统一的 `ToolDefinition` 与 `SchemaManager`，再适配到各厂商格式。
 - **快速原型与编排**：LangGraph 或 OpenAI Agents SDK 能显著降低样板代码。
+- **不想自研 Agent 运行时**：可考虑托管运行时路线（OpenAI Agents API 公测），把 computer use、tool search、context compaction 交给平台；但 Registry、权限、审计等治理层仍需自己掌握。
 - **开放插件生态 / 多租户**：采用 MCP 作为外部能力接入标准，Tool Use 层负责语义映射与权限治理。
 - **代码密集型任务**：优先考虑代码执行工具 / CodeAct 形态（托管沙箱或自建沙箱），把数据加工类动作从“多轮 JSON 调用”折叠成“单轮代码”；但要求模型具备足够的代码能力，且沙箱隔离必须到位。
 - **网页/桌面自动化任务**：优先 DOM/CDP 级浏览器工具，视觉级 Computer Use 作为无 API 系统的兜底；两者都要叠加防注入与人机确认。

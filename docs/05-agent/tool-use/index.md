@@ -37,7 +37,7 @@
 3. [架构设计](03-architecture.md) — Tool Use 子系统的分层架构、Tool Retriever、Code Sandbox、控制面/数据面与模块边界。
 4. [工具调用工作流](04-tool-use-workflow.md) — 端到端生命周期、状态机、非原子失败与 verify-before-retry、终止条件与失败分支。
 5. [核心模块详解](05-core-modules.md) — Registry、Retriever、Schema Manager、Executor、Parser、Validator、Permission、Formatter、Tracer 的职责与接口。
-6. [源码与协议对比](06-source-analysis.md) — OpenAI / Anthropic / Google / LangGraph / OpenAI Agents SDK / AutoGen / MCP 的代码形态，代码执行与浏览器工具，MCP 规范演进。
+6. [源码与协议对比](06-source-analysis.md) — OpenAI / Anthropic / Google / LangGraph / OpenAI Agents SDK / Agents API / AutoGen / MCP 的代码形态，代码执行与浏览器工具，MCP 规范演进。
 7. [Mini Demo 说明](07-mini-demo.md) — 配套示例的设计思路、目录结构、运行方式与关键代码片段。
 8. [生产落地](08-production-practice.md) — 多工具编排、大规模工具集管理、供应链安全、版本、鉴权授权、成本/延迟、可观测性、故障模式与跨厂商兼容。
 9. [最佳实践与反模式](09-best-practices.md) — schema 设计、执行、校验、重试、沙箱、大规模工具集、供应链安全、可观测性检查清单。

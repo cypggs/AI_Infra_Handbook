@@ -1,129 +1,112 @@
 # Mini Demo 说明
 
-为了帮助读者把概念落地，本主题配套了一个最小可运行的示例（`docs/05-agent/tool-use/mini-demo/`）。该示例不依赖复杂框架，只用 Python 标准库 + 一个 LLM 客户端，演示“工具注册 → 模型决策 → 解析校验 → 执行 → 结果反馈”的完整循环。
+为了帮助读者把概念落地，本主题配套了一个最小可运行的示例（`docs/05-agent/tool-use/mini-demo/`）。示例**只依赖 Python 标准库**：LLM 由确定性的 Mock 客户端扮演，工具返回固定数据，不访问网络、不需要任何 API Key，方便离线阅读与调试。
 
 > 注意：本章只说明示例的设计思路、目录结构与运行方式，**不重复贴出完整源码**。读者可在配套目录中阅读并运行实际代码。
 
 ## 场景设计
 
-示例选择一个贴近日常的复合查询：
+示例选择一个覆盖两类典型调用模式的复合查询：
 
-> “我想下周三去北京出差，帮我查一下那天的天气，再算一下从北京南站到首都机场打车大概要多少钱，以及总共需要预留多少时间。”
+> “帮我查一下北京天气和美元兑人民币汇率，然后计算 1000 美元能换多少人民币。”
 
-为了完成这个任务，Agent 需要调用三类工具：
+为了完成这个任务，Agent 需要调用三个工具：
 
-1. `get_weather(city, date)`：查询指定城市指定日期的天气。
-2. `estimate_taxi_fare(distance_km, time_of_day)`：根据距离与时段估算打车费用。
-3. `get_route_duration(origin, destination, mode)`：查询两点之间的交通耗时。
+1. `get_weather(city)`：查询指定城市的当前天气（独立调用）。
+2. `get_exchange_rate(currency_pair)`：查询汇率（独立调用，但首次调用会失败，走重试/兜底路径）。
+3. `calculate_rmb(amount_usd, rate)`：用汇率计算人民币金额（依赖前两个工具的结果，顺序调用）。
 
-这个场景覆盖了**并行调用**（天气与路线可以并发查）和**顺序依赖**（估算费用需要先知道距离）两种典型模式。
+这个场景同时覆盖了**并行调用**（天气与汇率并发执行）和**顺序依赖**（换算必须等汇率返回）两种模式，外加一条“参数 malformed → 校验拒绝 → 重试修正”的容错路径。
 
 ## 目录结构
 
 ```text
 docs/05-agent/tool-use/mini-demo/
-├── README.md              # 运行说明与环境变量
-├── requirements.txt       # 依赖：openai / anthropic 等
-├── config.yaml            # 工具配置与执行策略（超时、重试）
-├── agent.py               # 主循环：调用模型、调度工具、终止判断
-├── tools/
+├── README.md                  # 运行说明
+├── pyproject.toml             # 打包配置（hatchling），dev 依赖为 pytest
+├── tool_use_mini/             # 示例包
 │   ├── __init__.py
-│   ├── weather.py         # get_weather 实现
-│   ├── taxi.py            # estimate_taxi_fare 实现
-│   └── route.py           # get_route_duration 实现
-├── registry.py            # ToolRegistry：注册与发现
-├── schema_manager.py      # SchemaManager：归一化与校验
-├── executor.py            # ToolExecutor：并发、超时、重试
-├── formatter.py           # ResultFormatter：结果格式化与截断
-└── tests/
-    ├── test_registry.py
+│   ├── llm_client.py          # MockLLMClient：按对话历史返回预编排响应
+│   ├── tool.py                # Tool / ToolRegistry / JSON Schema 工具定义
+│   ├── parser.py              # 解析模型输出的 tool_calls
+│   ├── validator.py           # JSON Schema 校验，输出结构化错误
+│   ├── executor.py            # 并发执行、超时、重试、fallback
+│   ├── formatter.py           # 把工具结果格式化为模型消息
+│   ├── policy.py              # 允许工具清单、调用次数与超时预算
+│   └── demo.py                # run_demo() 主循环入口
+└── tests/                     # 每个模块一组单元测试
+    ├── test_llm_client.py
+    ├── test_tool.py
+    ├── test_parser.py
     ├── test_validator.py
-    └── test_executor.py
+    ├── test_executor.py
+    ├── test_formatter.py
+    └── test_demo.py
 ```
 
 ## 运行方式
 
-1. 安装依赖：
-
 ```bash
 cd docs/05-agent/tool-use/mini-demo
-pip install -r requirements.txt
-```
 
-2. 配置 API Key：
+# 安装（可选，含 dev 依赖）
+pip install -e ".[dev]"
 
-```bash
-export OPENAI_API_KEY=sk-...
-# 或 export ANTHROPIC_API_KEY=...
-```
+# 运行 demo
+python -m tool_use_mini.demo
+# 或安装后使用入口脚本
+tool-use-demo
 
-3. 运行示例：
-
-```bash
-python agent.py \
-  --query "下周三北京出差，查天气、算打车费、预估总耗时" \
-  --provider openai \
-  --max-turns 5
-```
-
-4. 运行单元测试：
-
-```bash
-pytest tests/
+# 运行单元测试
+pytest tests/ -v
 ```
 
 ## 关键设计点
 
-### 1. 工具定义完全用 JSON Schema 描述
+### 1. MockLLMClient 保证完全确定性
 
-每个工具模块除了实现函数，还提供一个 `definition()` 方法，返回标准 JSON Schema。`schema_manager.py` 负责把它转换为当前 provider 需要的格式。例如 OpenAI 需要 `function.parameters`，Anthropic 需要 `input_schema`。
+`llm_client.py` 中的 Mock 客户端根据当前对话历史返回预编排的响应：第一轮同时发出 `get_weather` 和 `get_exchange_rate` 两个并行调用；在收到汇率结果后发出 `calculate_rmb`；全部完成后给出最终自然语言答案。因为响应是预编程的，测试与演示结果完全可复现。
 
-### 2. 调用结果用内部模型标准化
+### 2. 工具定义就是 JSON Schema
 
-无论使用哪家模型，`agent.py` 内部统一使用如下结构：
+每个工具模块提供名称、描述与 JSON Schema（`type` / `properties` / `required` / `enum`）。`validator.py` 中的 `validate_arguments` 是一个手写的小型校验器，覆盖 `object`、`properties`、`required` 与基本类型检查，校验失败时输出**结构化错误**（参数路径 + 原因），供模型自我修正。
 
-```python
-@dataclass
-class ToolInvocation:
-    call_id: str
-    tool_name: str
-    arguments: dict
-```
+### 3. 解析、校验、执行、格式化分层
 
-Parser 负责把不同厂商的响应解析成这个结构，Validator 再用 JSON Schema 校验参数。
-
-### 3. 显式区分并行与串行
-
-示例中 `executor.py` 的 `execute_batch` 方法默认并发执行独立调用，但 `agent.py` 会在调用前检查参数依赖。如果发现某个调用需要依赖前一次结果（例如估算费用需要距离），则先执行前置调用，再构造后续调用。
-
-### 4. 结果截断与错误回显
-
-`formatter.py` 对过长的执行结果做截断，并把执行异常包装成模型可理解的错误描述。例如：
+`demo.py` 主循环串联各模块，对应第 4 章的生命周期：
 
 ```text
-调用 get_weather 失败：外部天气服务返回 503，已重试 2 次仍不可用。请稍后重试或换一个城市查询。
+MockLLMClient.chat(messages)
+  → parser.parse_tool_calls(...)     # 解析
+  → registry.get(...) + validator    # 查表 + 校验
+  → policy.check(...)                # 策略检查（允许清单 / 次数 / 预算）
+  → executor.execute(...)            # 并发执行（ThreadPoolExecutor）
+  → formatter.format_tool_message(...)  # 格式化回写消息
+  → 下一轮对话
 ```
 
-### 5. 终止条件可配置
+### 4. 显式的容错路径
 
-`agent.py` 支持 `max-turns`、`max-tool-calls`、`no-progress-threshold` 等终止条件，防止无限循环。
+示例内置三条容错路径，均可在测试中复现：
+
+- **工具故障 + fallback**：`get_exchange_rate` 首次调用返回错误，Executor 按配置重试并使用兜底汇率，最终调用成功。
+- **malformed 调用**：某轮 `calculate_rmb` 参数不合法，Validator 拒绝并生成错误结果回传，Mock 模型下一轮修正参数。
+- **并发执行**：独立的天气与汇率调用在 `ThreadPoolExecutor` 中并行执行。
+
+### 5. Policy 模块兜底
+
+`policy.py` 维护允许工具清单、最大调用次数与总超时预算。任一约束被突破时抛出异常，防止无限循环——对应第 4 章的终止条件。
 
 ## 预期输出
 
-运行成功后，终端会打印：
+运行 `python -m tool_use_mini.demo` 后，终端先打印完整对话与工具调用 trace（角色、tool_call 名称与参数、tool_call_id、结果），最后输出：
 
 ```text
-[Turn 1] Model decided: tool_use get_weather, get_route_duration
-[Turn 1] Executed 2 tools in 0.42s
-[Turn 2] Model decided: tool_use estimate_taxi_fare
-[Turn 2] Executed 1 tool in 0.18s
-[Turn 3] Model decided: final_answer
-
-Final Answer:
-下周三北京天气晴，气温 22~30°C。
-北京南站到首都机场驾车约 35 公里，预计 50 分钟。
-非高峰时段打车费用约 110~140 元。
-建议预留 1.5~2 小时（含安检与市内交通）。
+============================================================
+Final answer:
+北京今天晴，气温 28℃，湿度 45%。
+美元兑人民币汇率为 7.25。
+1000 美元可以兑换 7250.00 人民币。
 ```
 
 ## 与生产系统的差距
@@ -132,12 +115,13 @@ Final Answer:
 
 | 能力 | Demo 实现 | 生产要求 |
 | --- | --- | --- |
-| 鉴权授权 | 无 | RBAC、OAuth、HITL |
+| 模型 | Mock 预编排响应 | 真实 LLM + 受约束解码 |
+| 鉴权授权 | Policy 允许清单 | RBAC、OAuth、参数级授权、HITL |
 | 沙箱执行 | 本地函数 | 容器 / 网络隔离 |
-| 工具发现 | 静态注册 | MCP 动态发现、版本管理 |
-| 可观测性 | 打印日志 | OpenTelemetry、指标、告警 |
-| 错误治理 | 简单重试 | 熔断、降级、幂等、批量部分失败 |
-| 多模型兼容 | 单一 provider | Schema Manager 适配多家模型 |
-| 结果压缩 | 硬截断 | 摘要模型、embedding 检索 |
+| 工具发现 | 静态注册 | MCP 动态发现、版本管理、哈希存证 |
+| 可观测性 | 打印 trace | OpenTelemetry、指标、告警 |
+| 错误治理 | 简单重试 + fallback | 熔断、降级、幂等键、verify-before-retry |
+| 多模型兼容 | 单一消息格式 | Schema Manager 适配多家厂商 |
+| 结果压缩 | 直接序列化 | 摘要、截断、外置存储 |
 
 尽管如此，Demo 已经足以展示 Tool Use 的核心循环，并作为后续扩展的起点。

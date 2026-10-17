@@ -70,7 +70,7 @@ class SchemaManager:
 
 **设计要点**：
 
-- 严格模式（strict mode）会禁用模型对 schema 的“自由发挥”，但要求 schema 可被编译为 constrained grammar。复杂 schema 需要降级处理。2025–2026 年受约束解码已高度普及（OpenAI structured outputs、开源 outlines / xgrammar），“输出合法 JSON”不再是主要矛盾，重点转向语义校验。
+- 严格模式（strict mode）会禁用模型对 schema 的“自由发挥”，但要求 schema 可被编译为 constrained grammar。复杂 schema 需要降级处理。2025–2026 年受约束解码已高度普及（OpenAI structured outputs、Gemini structured outputs 于 2026 年扩展至 `anyOf`/`$ref` 等关键字、开源 outlines / xgrammar），“输出合法 JSON”不再是主要矛盾，重点转向语义校验。注意厂商 schema 表达也在迁移（如 Gemini Interactions API 以多态 `response_format` 取代 `response_mime_type`，2026-06 旧接口下线），Schema Manager 需要跟踪这类变更。
 - 对 description 进行压缩或分片，避免 prompt 过长导致工具选择质量下降；大规模工具集应配合 Tool Retriever 做候选集注入（每轮 5~10 个）。
 - 记录 schema 版本变更，支持向后兼容检测；对动态发现的工具保留哈希快照，支持变更告警（防 rug pull）。
 - 若走 CodeAct 路线（代码执行作为通用工具），Schema Manager 还要为“以 Python 函数签名 + docstring 表示工具”的形态提供归一化能力。
