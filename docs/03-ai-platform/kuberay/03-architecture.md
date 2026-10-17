@@ -116,10 +116,11 @@ level-based 调和：当资源发生变更时，对象的 namespace/name 被加�
 - v1.4+ 引入的 Web UI。
 - 可视化 RayCluster、RayJob、RayService 状态。
 
-### Ray History Server（Alpha）
+### Ray History Server（Beta，v1.7）
 
-- v1.6+ 引入。
-- 聚合已销毁集群的历史事件，便于调试。
+- v1.6 引入，v1.7 毕业为 Beta 并重构（懒加载 + LRU 缓存，降低内存占用、加快启动）。
+- 由两部分组成：注入 head/worker Pod 的 collector sidecar（把日志/事件上传到对象存储）+ 独立部署的 History Server（对外提供 Dashboard API）。
+- 用于查看**已销毁**的 RayCluster/RayJob/RayService 的历史日志与事件，是 RayJob 故障复盘利器（类比 Spark History Server，字节跳动早期也自研过类似方案）。
 
 ## 3.5 资源创建顺序
 
@@ -168,16 +169,21 @@ sequenceDiagram
 
 ## 3.8 Feature Gates
 
-v1.6 中的部分特性门：
+v1.7 中的部分特性门（Alpha 默认关闭、Beta 默认开启）：
 
 | Feature Gate | 默认 | 阶段 |
 |---|---|---|
 | `RayClusterStatusConditions` | true | Beta |
 | `RayJobDeletionPolicy` | true | Beta |
 | `RayMultiHostIndexing` | true | Beta |
-| `RayServiceIncrementalUpgrade` | false | Alpha |
+| `RayServiceIncrementalUpgrade` | true | Beta（v1.7 起默认开启） |
 | `RayCronJob` | false | Alpha |
-| `RayClusterNetworkIsolation` | false | Alpha |
+| `SidecarSubmitterRestart` | false | Alpha |
+| `RayClusterNetworkPolicy` | false | Alpha（v1.7） |
+| `RayClusterMTLS` | false | Alpha（v1.7） |
+| `GCSFaultToleranceEmbeddedStorage` | false | Alpha（v1.7） |
+| `RayClusterHistoryServer` | false | Alpha（v1.7） |
+| `GCSFaultToleranceActivePassiveHead` | false | Alpha（主备 Head） |
 
 ## 本章小结
 

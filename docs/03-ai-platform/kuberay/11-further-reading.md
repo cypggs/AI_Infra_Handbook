@@ -8,9 +8,12 @@
 |---|---|
 | [KubeRay Docs](https://ray-project.github.io/kuberay/) | 官方文档首页 |
 | [Ray on Kubernetes](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) | Ray 官方 K8s 指南 |
-| [KubeRay GitHub](https://github.com/ray-project/kuberay) | 源码与 release note |
+| [KubeRay GitHub](https://github.com/ray-project/kuberay) | 源码与 release note（最新稳定版 v1.7.1，2026-09） |
 | [KubeRay API Reference](https://ray-project.github.io/kuberay/reference/api/) | CRD 字段参考 |
 | [Ray Cluster Key Concepts](https://docs.ray.io/en/latest/cluster/key-concepts.html) | Ray 核心概念 |
+| [Introducing KubeRay v1.5](https://www.anyscale.com/blog/kuberay-v1-5) | v1.5 新特性详解 |
+| [Introducing KubeRay v1.6 and v1.7](https://www.anyscale.com/blog/kuberay-v1-7) | v1.6/v1.7 新特性详解（History Server、mTLS、NetworkPolicy、RocksDB FT） |
+| [KubeCon：使用 KubeRay 和 Kueue 托管 Ray 工作负载](https://www.infoq.cn/article/ZRC4RXO1SXy7HfqBzFCg) | 字节跳动生产实践（中文） |
 
 ## 11.2 相邻主题交叉引用
 
@@ -39,6 +42,9 @@
 | KubeRay Auth | https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/kuberay-auth.html |
 | TLS Guide | https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/tls.html |
 | Kueue Integration | https://docs.ray.io/en/latest/cluster/kubernetes/k8s-ecosystem/kueue.html |
+| RayService Incremental Upgrade | https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice-incremental-upgrade.html |
+| vLLM — KubeRay Integration | https://docs.vllm.ai/en/latest/deployment/integrations/kuberay/ |
+| RayCluster History Server | https://github.com/ray-project/kuberay/tree/master/historyserver |
 | Prometheus + Grafana | https://docs.ray.io/en/latest/cluster/kubernetes/k8s-ecosystem/prometheus-grafana.html |
 
 ## 11.4 推荐学习路径
@@ -46,7 +52,7 @@
 1. **第 1 周**：精读本主题 01-05 章，理解 CRD、架构、模块与工作流。
 2. **第 2 周**：阅读 06 源码分析 + 07 Mini Demo；尝试本地 kind 安装 KubeRay Operator。
 3. **第 3 周**：实践 GCS FT、GPU worker group、Autoscaler V2、RayService 升级。
-4. **第 4 周**：阅读 KubeRay release note 与源码，关注 v1.6 新特性（History Server、RBAC、CronJob）。
+4. **第 4 周**：阅读 KubeRay release note 与源码，动手验证 v1.5-v1.7 新特性：RayJob deletionRules、Kueue 弹性集成、渐进式升级与回滚、History Server、mTLS/NetworkPolicy、RocksDB GCS FT。
 
 ## 11.5 一句话总结
 

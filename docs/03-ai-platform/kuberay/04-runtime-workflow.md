@@ -108,7 +108,7 @@ stateDiagram-v2
 
 - 根据 `shutdownAfterJobFinishes` 决定是否删除 RayCluster。
 - 根据 `ttlSecondsAfterFinished` 保留一定时间后清理。
-- 根据 `deletionStrategy` 决定删除策略。
+- v1.5+（Beta）根据 `deletionStrategy.deletionRules` 做规则化清理：按作业状态（SUCCEEDED/FAILED）执行分级策略（`DeleteWorkers` → `DeleteCluster` → `DeleteSelf`），每条规则可带独立 TTL，例如“失败后 30 秒删 worker、1 小时后删集群”便于查日志。它与 `shutdownAfterJobFinishes` 互斥；旧的 `onSuccess`/`onFailure` 字段在 v1.6.0 已移除，需迁移到 `deletionRules`。
 
 ### 提交模式对比
 
@@ -117,7 +117,9 @@ stateDiagram-v2
 | K8sJobMode | 默认 | 隔离性好，提交器作为 K8s Job |
 | HTTPMode | Operator 能直连 Dashboard | 无额外 Pod，依赖网络 |
 | InteractiveMode | 调试 | 不自动提交 |
-| SidecarMode | v1.5+ | submitter 与 head 同生命周期 |
+| SidecarMode | v1.5+ | submitter 作为 head Pod 的 sidecar，与 head 同生命周期，不依赖外部网络；v1.7+ 可开启 `SidecarSubmitterRestart`（Alpha）让提交器独立重试 |
+
+从 v1.5 起，submitter 使用轻量镜像（仅约 13.2 MB），不再为提交作业拉取超过 1 GB 的完整 Ray 镜像。
 
 ## 4.4 RayService 生命周期
 
@@ -148,14 +150,15 @@ sequenceDiagram
 | 策略 | 流程 | 停机 |
 |---|---|---|
 | NewCluster | 新建 pending，就绪后切 Service selector，删除旧 active | 无 |
-| NewClusterWithIncrementalUpgrade | 基于 Gateway API / HTTPRoute 渐进式迁移流量 | 无，可回滚 |
+| NewClusterWithIncrementalUpgrade | 基于 Gateway API / HTTPRoute 渐进式迁移流量；v1.7 起 Beta 默认开启，支持对升级中的流量按比例灰度并在异常时回滚 | 无，可回滚 |
 | None | 原地更新 RayCluster spec | 有 |
 
 ### 高可用
 
-- 启用 GCS FT：head 重启后从 Redis 恢复状态。
+- 启用 GCS FT：head 重启后从 Redis（或 v1.7+ 的内嵌 RocksDB）恢复状态。
 - `serveService` 指向健康的 serve proxy。
 - `excludeHeadPodFromServeSvc: true` 让 serve 流量只走 worker，避免 head 成为瓶颈。
+- v1.6+ 支持 `managedBy` 字段：将 RayService 交由 Kueue MultiKueue 等外部系统管理，实现跨集群队列派发。
 
 ## 4.5 失败恢复
 

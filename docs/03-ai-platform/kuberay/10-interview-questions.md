@@ -112,11 +112,23 @@ Reconcile()
 - 使用 Prometheus + Grafana，导入官方 Dashboard。
 - 关键告警：GCS 停止上报、worker 数量不足、job 失败、serve endpoint 数为 0。
 
+### Q16. KubeRay 与 Kueue 如何做弹性训练队列？
+
+**答**：v1.5+ 支持 Kueue + Autoscaler 集成：在 RayCluster 上加注解 `kueue.x-k8s.io/elastic-job: "true"` 并开启 `enableInTreeAutoscaling`，Kueue（v0.13+，开启 `ElasticJobsViaWorkloadSlices` 特性门）把集群当作弹性工作负载——先按最小资源准入，autoscaler 扩容时通过 Workload Slice 申请增量配额。v1.6+ RayService 可通过 `spec.managedBy` 成为 Kueue 顶层作业，支持 MultiKueue 跨集群派发。
+
+### Q17. RayService 蓝绿升级和渐进式升级怎么选？
+
+**答**：蓝绿（`NewCluster`）简单可靠，但升级期需要双倍 GPU/内存，大模型服务成本高；`NewClusterWithIncrementalUpgrade`（v1.7 起 Beta 默认开启）基于 Gateway API 按比例灰度切流，官方示例中 5 GPU 集群以 20% 增量升级只需 6 GPU（约为蓝绿的 60%），且支持异常回滚。资源充足选蓝绿，资源紧张或模型大选渐进式。
+
+### Q18. GCS Fault Tolerance 除了外部 Redis 还有什么方案？
+
+**答**：v1.7+（Alpha）支持内嵌 RocksDB 后端：设置 `gcsFaultToleranceOptions.backend: rocksdb`，Operator 自动供给 PVC 存放 GCS 状态，无需运维外部 Redis；需要 Ray 2.57.0+ 并开启 `GCSFaultToleranceEmbeddedStorage` 特性门。另有 `GCSFaultToleranceActivePassiveHead`（Alpha）提供主备 Head 方案。
+
 ## 本章小结
 
 - 初级题聚焦 CRD 与基本概念。
 - 中级题聚焦扩缩容、FT、Job/Service 生命周期。
-- 高级题聚焦源码调用链、多副本、多租户、可观测性。
+- 高级题聚焦源码调用链、多副本、多租户、可观测性，以及 2025-2026 新特性（Kueue 弹性集成、渐进式升级、RocksDB FT）。
 
 **参考来源**
 

@@ -275,12 +275,17 @@ func BuildHeadServiceForRayCluster(...) corev1.Service {
 
 ```go
 var defaultFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
-    RayClusterStatusConditions:  {Default: true, PreRelease: featuregate.Beta},
-    RayJobDeletionPolicy:        {Default: true, PreRelease: featuregate.Beta},
-    RayMultiHostIndexing:        {Default: true, PreRelease: featuregate.Beta},
-    RayServiceIncrementalUpgrade:{Default: false, PreRelease: featuregate.Alpha},
-    RayCronJob:                  {Default: false, PreRelease: featuregate.Alpha},
-    RayClusterNetworkIsolation:  {Default: false, PreRelease: featuregate.Alpha},
+    RayClusterStatusConditions:          {Default: true, PreRelease: featuregate.Beta},
+    RayJobDeletionPolicy:                {Default: true, PreRelease: featuregate.Beta},
+    RayMultiHostIndexing:                {Default: true, PreRelease: featuregate.Beta},
+    RayServiceIncrementalUpgrade:        {Default: true, PreRelease: featuregate.Beta}, // v1.7 起默认开启
+    RayCronJob:                          {Default: false, PreRelease: featuregate.Alpha},
+    SidecarSubmitterRestart:             {Default: false, PreRelease: featuregate.Alpha},
+    RayClusterNetworkPolicy:             {Default: false, PreRelease: featuregate.Alpha}, // v1.7
+    RayClusterMTLS:                      {Default: false, PreRelease: featuregate.Alpha}, // v1.7
+    GCSFaultToleranceEmbeddedStorage:    {Default: false, PreRelease: featuregate.Alpha}, // v1.7
+    RayClusterHistoryServer:             {Default: false, PreRelease: featuregate.Alpha}, // v1.7
+    GCSFaultToleranceActivePassiveHead:  {Default: false, PreRelease: featuregate.Alpha},
 }
 ```
 

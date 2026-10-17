@@ -137,9 +137,9 @@ KubeRay 支持将 Pod 交给批调度器做 Gang Scheduling：
 | Volcano | 最早的批调度集成 |
 | YuniKorn | 支持队列与配额 |
 | scheduler-plugins | v1.4+ 支持，更轻量 |
-| kai-scheduler | 华为开源批调度器 |
+| kai-scheduler | NVIDIA 开源，支持 Gang Scheduling、工作负载自动伸缩/优先级、GPU 共享与抢占 |
 
-集成方式：在 CR 中指定 `schedulerName` 和相关 annotation，KubeRay 在创建 Pod 时注入 PodGroup 等对象。
+集成方式：在 CR 中指定 `schedulerName` 和相关 annotation，KubeRay 在创建 Pod 时注入 PodGroup 等对象。v1.5 起 RayJob 原生支持 Volcano/YuniKorn Gang Scheduling：RayJob、submitter Pod 与 RayCluster 作为一个整体绑定到同一个 PodGroup，避免“集群起来了、作业没提交上”的碎片化调度。
 
 ## 5.5 Autoscaler 集成
 
@@ -153,6 +153,10 @@ Autoscaler V2（推荐）：
 
 - 通过 `autoscalerOptions.version: v2` 启用。
 - 支持自定义 `idleTimeoutSeconds`、TPU v6e、更稳定的扩缩容。
+- v1.7+ 支持 worker group `priority` 字段（需 Ray 2.56+ 的优先级感知选择），让伸缩优先回收低优先级 group。
+- v1.5+ 支持与 Kueue 协同：在 RayCluster 上加 `kueue.x-k8s.io/elastic-job: "true"` 注解并开启 `enableInTreeAutoscaling`，Kueue 把集群当作弹性工作负载（需 Kueue `ElasticJobsViaWorkloadSlices` 特性门）调度。
+
+v1.5 官方压测数据（Kwok 模拟 100 节点）：100 个 RayCluster 各从 0 扩到 100 副本（共 10,000 Pod），调高 reconcile 并发与 kube-client QPS/Burst 后 **3 分 20 秒**内全部创建完成。
 
 ## 5.6 KubeRay APIServer
 
@@ -181,7 +185,13 @@ kubectl ray session my-cluster
 ### Operator Metrics
 
 - Operator 暴露 controller-runtime 标准指标。
+- v1.4+（Alpha）新增 SLI 指标，如 `kuberay_cluster_info`、`kuberay_job_execution_duration_seconds`，可直接用于 workload 级 SLO 监控。
 - 可配置 `ServiceMonitor`。
+
+### Ray History Server
+
+- v1.6 引入、v1.7 Beta：collector sidecar 把日志/事件归档到对象存储，History Server 提供 Dashboard API 查询已销毁集群的历史。
+- 适合 RayJob 失败后的离线复盘。
 
 ### Ray Cluster Metrics
 
@@ -201,7 +211,7 @@ Head Pod 暴露：
 
 ```bash
 export KUBERAY_FEATURE_RAYCRONJOB=true
-export KUBERAY_FEATURE_RAYSERVICEINCREMENTALUPGRADE=true
+export KUBERAY_FEATURE_RAYCLUSTERNETWORKPOLICY=true
 ```
 
 ## 本章小结
@@ -219,3 +229,5 @@ export KUBERAY_FEATURE_RAYSERVICEINCREMENTALUPGRADE=true
 - [controllers/ray/batchscheduler 目录](https://github.com/ray-project/kuberay/tree/master/ray-operator/controllers/ray/batchscheduler)
 - [pkg/features/features.go](https://github.com/ray-project/kuberay/blob/master/ray-operator/pkg/features/features.go)
 - [Prometheus Grafana Guide](https://docs.ray.io/en/latest/cluster/kubernetes/k8s-ecosystem/prometheus-grafana.html)
+- [Introducing KubeRay v1.5](https://www.anyscale.com/blog/kuberay-v1-5)
+- [Introducing KubeRay v1.6 and v1.7](https://www.anyscale.com/blog/kuberay-v1-7)

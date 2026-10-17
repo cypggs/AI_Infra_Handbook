@@ -136,8 +136,20 @@ spec:
 
 - **2021**：KubeRay 项目启动，作为社区 Operator。
 - **2022**：成为 Ray 官方项目，CRD 稳定到 `ray.io/v1`。
-- **2023-2024**：加入 RayJob、RayService、GCS FT、Batch Scheduler 集成。
-- **2025-2026**：推出 Autoscaler V2、Incremental Upgrade、Kubernetes RBAC 认证、RayCronJob、Ray History Server。
+- **2023-2024**：加入 RayJob、RayService、GCS FT、Batch Scheduler 集成；字节跳动等公司开始在生产环境大规模使用（全站 Ray 集群由 KubeRay 管理，覆盖图计算、离线推理、大模型训练）。
+- **2025（v1.4 ~ v1.5）**：API Server V2 与 KubeRay Dashboard 发布；推出 Autoscaler V2、SLI 指标；v1.5（2025-12）带来 RayJob `SidecarMode` 提交、基于规则的删除策略（deletion rules）、Token 认证（Ray 2.52+）、RayService 渐进式升级（Alpha），以及 **Kueue + Autoscaler 弹性集成**。
+- **2026（v1.6 ~ v1.7）**：v1.6（2026-03）引入 Ray History Server、K8s RBAC 认证（Ray 2.55+）、RayCronJob（Alpha）；v1.7（2026-08）将渐进式升级升级为 Beta 并支持回滚，History Server 转 Beta，新增原生 NetworkPolicy、mTLS（cert-manager 集成）、**GCS FT 内嵌 RocksDB 后端**（免外部 Redis，Ray 2.57+）。最新稳定版为 v1.7.1（2026-09）。
+
+```mermaid
+timeline
+    title KubeRay 版本演进
+    2021 : 项目启动
+    2022 : Ray 官方项目 : ray.io/v1 稳定
+    2023 : RayJob / RayService / GCS FT
+    2024 : Batch Scheduler 集成 : 字节跳动等生产落地
+    2025 : v1.4 API Server V2 + Dashboard : v1.5 SidecarMode / 删除策略 / Kueue 弹性集成
+    2026 : v1.6 History Server / RBAC 认证 / RayCronJob : v1.7 渐进升级 Beta+回滚 / mTLS / RocksDB FT
+```
 
 ## 本章小结
 
@@ -151,3 +163,7 @@ spec:
 - [Ray Docs — Ray on Kubernetes](https://docs.ray.io/en/latest/cluster/kubernetes/index.html)
 - [Ray Cluster Key Concepts](https://docs.ray.io/en/latest/cluster/key-concepts.html)
 - [KubeRay v1.3.0 Blog](https://www.anyscale.com/blog/kuberay-v1-3-0)
+- [Introducing KubeRay v1.5](https://www.anyscale.com/blog/kuberay-v1-5)
+- [Introducing KubeRay v1.6 and v1.7](https://www.anyscale.com/blog/kuberay-v1-7)
+- [KubeRay Releases](https://github.com/ray-project/kuberay/releases)
+- [KubeCon：使用 KubeRay 和 Kueue 在 Kubernetes 中托管 Ray 工作负载（字节跳动实践）](https://www.infoq.cn/article/ZRC4RXO1SXy7HfqBzFCg)

@@ -22,7 +22,7 @@ spec:
       spec:
         containers:
           - name: ray-head
-            image: rayproject/ray:2.55.0
+            image: rayproject/ray:2.57.0
             resources:
               limits:
                 memory: "8Gi"
@@ -35,7 +35,7 @@ spec:
         spec:
           containers:
             - name: ray-worker
-              image: rayproject/ray:2.55.0
+              image: rayproject/ray:2.57.0
 ```
 
 关键字段：
@@ -46,8 +46,11 @@ spec:
 | `workerGroupSpecs` | Worker Group 列表，每个 group 可独立配置资源与副本 |
 | `enableInTreeAutoscaling` | 是否注入 Autoscaler sidecar |
 | `autoscalerOptions` | 扩缩容参数：version、idleTimeoutSeconds、upscalingMode |
-| `gcsFaultToleranceOptions` | GCS FT 配置：外部 Redis 地址与密码 |
+| `gcsFaultToleranceOptions` | GCS FT 配置：外部 Redis 地址，或 v1.7+ 的内嵌 RocksDB 后端 |
 | `suspend` | 挂起集群：删除所有 Pod 但保留 CR |
+| `upgradeStrategy` | v1.6+：`None`（原地，默认）/ `Recreate`（先删全部 Pod 再按新 spec 重建，适合可安全重启的集群） |
+| `networkPolicy` | v1.7+（Alpha）：声明式网络隔离，`DenyAll` / `DenyAllIngress` / `DenyAllEgress` |
+| `tlsOptions` | v1.7+（Alpha）：启用 mTLS，由 cert-manager 自动签发 head/worker 证书 |
 
 ### RayJob
 
@@ -75,10 +78,11 @@ spec:
 | `entrypoint` | Ray job 入口命令 |
 | `rayClusterSpec` | 若未指定 `clusterSelector`，则按此创建临时 RayCluster |
 | `clusterSelector` | 复用已有 RayCluster |
-| `submissionMode` | `K8sJobMode` / `HTTPMode` / `InteractiveMode` / `SidecarMode` |
+| `submissionMode` | `K8sJobMode` / `HTTPMode` / `InteractiveMode` / `SidecarMode`（v1.5+） |
 | `shutdownAfterJobFinishes` | 作业完成后是否删除集群 |
 | `ttlSecondsAfterFinished` | 完成后保留多久 |
-| `deletionStrategy` | 集群删除策略 |
+| `deletionStrategy.deletionRules` | v1.5+（Beta，v1.6 默认开启）：按作业状态（SUCCEEDED/FAILED）分级清理（`DeleteCluster`/`DeleteWorkers`/`DeleteSelf`），取代 v1.6.0 已移除的 `onSuccess`/`onFailure`；与 `shutdownAfterJobFinishes` 互斥 |
+| `preRunningDeadlineSeconds` | v1.4+：作业进入 Running 前的等待上限，超时失败 |
 
 ### RayService
 
@@ -104,9 +108,10 @@ spec:
 |---|---|
 | `serveConfigV2` | Ray Serve 多应用配置 YAML |
 | `rayClusterConfig` | 底层 RayCluster 配置 |
-| `upgradeStrategy` | `NewCluster` / `NewClusterWithIncrementalUpgrade` / `None` |
+| `upgradeStrategy` | `NewCluster` / `NewClusterWithIncrementalUpgrade`（v1.7 起 Beta 且默认开启，支持回滚）/ `None` |
 | `serveService` | 自定义 serve 负载均衡 Service |
 | `excludeHeadPodFromServeSvc` | 是否让 serve 流量只走 worker |
+| `managedBy` | v1.6+：声明外部管理器（如 Kueue MultiKueue），使 RayService 成为 Kueue 顶层作业 |
 
 ## 2.2 Head / Worker 映射
 
@@ -150,7 +155,7 @@ Ray 的 Global Control Store（GCS）默认运行在 Head Pod 中。如果 Head 
 - 未启用 FT：worker 无法重连新 head，集群状态丢失。
 - 启用 FT：GCS 把状态写入外部 Redis，新 head 可从 Redis 恢复。
 
-启用方式：
+启用方式一：外部 Redis（默认方式，兼容所有 Ray 版本）。
 
 ```yaml
 spec:
@@ -163,7 +168,17 @@ spec:
           key: password
 ```
 
-生产建议：为高可用 Redis 配置哨兵或集群模式，并为不同 Ray 集群使用不同 `externalStorageNamespace` 避免 key 冲突。
+启用方式二：内嵌 RocksDB（v1.7+ Alpha，需要 Ray 2.57.0+ 且开启 `GCSFaultToleranceEmbeddedStorage` 特性门）——GCS 状态写入 Operator 自动供给的 PVC，**不再需要外部 Redis**：
+
+```yaml
+spec:
+  gcsFaultToleranceOptions:
+    backend: rocksdb
+    embeddedStorageOptions:
+      deletionPolicy: Retain   # 或指定 claimName 复用已有 PVC
+```
+
+生产建议：使用外部 Redis 时配置哨兵或集群模式，并为不同 Ray 集群使用不同 `externalStorageNamespace` 避免 key 冲突；v1.7 起 Redis 清理 finalizer 卡住超过 5 分钟会被强制移除并发出 `ForceDeletedStuckCluster` 警告事件。
 
 ## 2.5 声明式升级
 
@@ -176,9 +191,11 @@ RayService 同时维护两个 RayCluster：
 
 | 策略 | 说明 |
 |---|---|
-| `NewCluster` | 蓝绿部署，pending 就绪后全量切流 |
-| `NewClusterWithIncrementalUpgrade` | 渐进式切流，需要 Gateway API |
+| `NewCluster` | 蓝绿部署，pending 就绪后全量切流；默认策略 |
+| `NewClusterWithIncrementalUpgrade` | 渐进式切流（基于 Gateway API / HTTPRoute），v1.5 引入 Alpha，**v1.7 毕业为 Beta 且默认开启**，升级过程可回滚；大模型服务升级时 GPU 开销约为蓝绿的 60% |
 | `None` | 原地更新，有停机 |
+
+此外 v1.6 起 RayCluster 支持 `upgradeStrategy.type: Recreate`：删除所有 Pod 后按新 spec 重建，只适用于可以安全丢弃工作负载的集群。
 
 ## 2.6 作业生命周期状态机
 
@@ -192,7 +209,7 @@ New → Initializing → Running / Waiting
 
 - `Initializing`：创建/选择集群、创建提交器。
 - `Running`：通过 Dashboard client 轮询 job 状态。
-- `Complete/Failed`：按策略清理集群。
+- `Complete/Failed`：按 `deletionRules`（按状态 TTL 规则化清理，v1.5+）或旧 `shutdownAfterJobFinishes`/`ttlSecondsAfterFinished` 策略清理集群。
 
 ## 2.7 声明式 vs 命令式
 
@@ -221,4 +238,7 @@ New → Initializing → Running / Waiting
 - [Configuring Autoscaling](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/configuring-autoscaling.html)
 - [KubeRay GCS FT Guide](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/kuberay-gcs-ft.html)
 - [RayService HA Guide](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice-high-availability.html)
+- [RayService Zero-Downtime Incremental Upgrades](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice-incremental-upgrade.html)
+- [Introducing KubeRay v1.5](https://www.anyscale.com/blog/kuberay-v1-5)
+- [Introducing KubeRay v1.6 and v1.7](https://www.anyscale.com/blog/kuberay-v1-7)
 - [raycluster_types.go](https://github.com/ray-project/kuberay/blob/master/ray-operator/apis/ray/v1/raycluster_types.go)
