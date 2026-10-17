@@ -20,7 +20,7 @@ pytest tests/ -v                      # 全部测试通过
 python -m rl_post_training_mini.demo  # 跑六个端到端场景
 ```
 
-## 7.3 六个端到端场景
+## 7.3 七个端到端场景
 
 | 场景 | 演示的核心机制 | 对应真实组件 |
 |---|---|---|
@@ -30,6 +30,7 @@ python -m rl_post_training_mini.demo  # 跑六个端到端场景
 | **4. KL 惩罚防爆** | 不加 KL 时策略漂移崩溃，加 KL 后稳定 | Reference Model + β 系数 |
 | **5. 长尾生成与负载均衡** | 不同长度 rollout 样本混合调度 | vLLM Continuous Batching |
 | **6. Reward Hacking 检测** | Reward 模型被打分欺骗时，可验证奖励兜底 | 混合奖励设计 |
+| **7. 半异步与陈旧样本治理** | lag 上界拒绝超龄样本 + 截断 IS 修正 | veRL V1 trainer / AReaL 陈旧性控制 |
 
 ## 7.4 运行示例
 
@@ -69,7 +70,14 @@ Verifiable reward:  0.00 (真实)
 Final mixed reward: 0.19 (α=0.2 权重)
 ✓ 可验证奖励有效抑制 hacking
 
-✅ 全部 6 个场景通过
+=== 场景 7：半异步与陈旧样本治理 ===
+Current version: v2, max_lag=1
+Accepted: 4 samples (lag=1)
+Rejected: 4 samples (lag=2, 超出深度上界)
+TIS weight: ratio=1.350 → w=1.200, clipped=True
+✓ 版本打标 + 深度上界 + TIS 修正 = 半异步陈旧性控制
+
+✅ 全部 7 个场景通过
 ```
 
 ## 7.5 目录结构与模块对照
@@ -78,21 +86,22 @@ Final mixed reward: 0.19 (α=0.2 权重)
 rl_post_training_mini/
 ├── __init__.py             # 导出与真实组件对照表
 ├── model.py                # TinyPolicy / TinyReward：微型"语言模型"
-├── algorithms.py           # GRPO advantage / PPO clip / KL penalty
+├── algorithms.py           # GRPO advantage / PPO clip / KL penalty / TIS 修正
 ├── rollout.py              # RolloutWorker：模拟 vLLM 生成 + logprobs
 ├── reward.py               # RewardService：规则 + Reward Model 混合
 ├── trainer.py              # TrainWorker：PPO 更新
 ├── controller.py           # Controller：step 编排 + 权重版本管理
-├── buffer.py               # ExperienceBuffer：经验存储
+├── buffer.py               # ExperienceBuffer + split_by_lag（陈旧性控制）
 ├── clock.py                # FakeClock：精确复现调度时间线
-└── demo.py                 # 6 个端到端场景入口
+└── demo.py                 # 7 个端到端场景入口
 
 tests/
 ├── test_algorithms.py      # GRPO/PPO/KL 数学正确性
 ├── test_rollout.py         # Rollout 与 logprob 一致性
 ├── test_controller.py      # step 编排与权重版本
 ├── test_convergence.py     # 多 step 收敛性
-└── test_scenarios.py       # 6 个端到端场景
+├── test_scenarios.py       # 7 个端到端场景
+└── test_async.py           # TIS 修正与 lag 上界（半异步陈旧性控制）
 ```
 
 ## 7.6 与真实系统的映射
@@ -173,26 +182,16 @@ def step(self):
 ## 7.8 运行测试
 
 ```bash
-$ pytest tests/ -v
-
-tests/test_algorithms.py::test_grpo_advantage_zero_mean PASSED
-tests/test_algorithms.py::test_grpo_advantage_group_normalized PASSED
-tests/test_algorithms.py::test_ppo_clip_symmetric PASSED
-tests/test_algorithms.py::test_kl_penalty PASSED
-tests/test_rollout.py::test_logprobs_match_policy PASSED
-tests/test_rollout.py::test_continuous_batching PASSED
-tests/test_controller.py::test_step_increments_version PASSED
-tests/test_controller.py::test_stale_rollout_rejected PASSED
-tests/test_convergence.py::test_reward_increases PASSED
-tests/test_scenarios.py::test_scenario_1_simple_grpo PASSED
-tests/test_scenarios.py::test_scenario_2_multi_step PASSED
-tests/test_scenarios.py::test_scenario_3_weight_sync PASSED
-tests/test_scenarios.py::test_scenario_4_kl_penalty PASSED
-tests/test_scenarios.py::test_scenario_5_long_tail PASSED
-tests/test_scenarios.py::test_scenario_6_reward_hacking PASSED
-
-============= 15 passed in 0.42s =============
+$ pytest tests/ -q
+..................................                   [100%]
+============= 34 passed in 0.17s =============
 ```
+
+测试覆盖三组：
+
+- **算法正确性**：GRPO zero-mean / 组内归一化、PPO clip 四种分支、KL、TIS 截断。
+- **组件契约**：rollout logprob 一致性、版本守护、lag 上界拆分。
+- **端到端**：7 个场景全链路跑通。
 
 ## 7.9 局限与扩展
 
@@ -206,16 +205,16 @@ tests/test_scenarios.py::test_scenario_6_reward_hacking PASSED
 可作为下一步扩展：
 
 1. **加 KV Cache 模拟**：让 RolloutWorker 跟踪每个请求的 cache 占用，演示 PagedAttention。
-2. **加异步 Rollout**：用线程模拟 Rollout/Train 异步执行，演示 Off-Policy 修正。
+2. **加并发异步执行**：在场景 7 的版本打标/lag 上界之上，用线程模拟 Rollout/Train 流水重叠，测量 wall time 收益。
 3. **加 Reward Model 训练**：让 Reward Model 也是从人类偏好数据学习出来的，演示 RM 训练。
 4. **加 Agentic Rollout**：让 Rollout 不只是单轮生成，而是多轮工具调用。
 
 ## 本章小结
 
-Mini Demo 用 600 行纯 Python 代码实现了 RL Post-Training 的全部核心机制：
+Mini Demo 用纯 Python 代码实现了 RL Post-Training 的全部核心机制：
 
-- **算法层**：GRPO advantage / PPO clip / KL penalty
-- **架构层**：Rollout/Train 分离 + 权重版本同步
+- **算法层**：GRPO advantage / PPO clip / KL penalty / TIS 截断修正
+- **架构层**：Rollout/Train 分离 + 权重版本同步 + 半异步陈旧性治理
 - **工程层**：Continuous Batching / 长尾治理 / Reward Hacking 防御
 
-跑通这个 demo，你就有了阅读 veRL / OpenRLHF 源码的"心智脚手架"。
+跑通这个 demo，你就有了阅读 veRL / OpenRLHF / AReaL 源码的"心智脚手架"。

@@ -1,9 +1,13 @@
-"""六个端到端场景：演示 RL Post-Training 的核心机制。
+"""六个端到端场景 + 一个半异步场景：演示 RL Post-Training 的核心机制。
 
 运行：python -m rl_post_training_mini.demo
 """
 from __future__ import annotations
 
+import math
+
+from .algorithms import truncated_is_weight
+from .buffer import split_by_lag
 from .clock import FakeClock
 from .controller import Controller
 from .model import TinyPolicy, TinyRewardModel
@@ -182,6 +186,50 @@ def scenario_6_reward_hacking() -> None:
     print()
 
 
+def scenario_7_semi_async_staleness() -> None:
+    print("=== 场景 7：半异步与陈旧样本治理 ===")
+    controller, _ = make_controller(seed=6)
+    prompts = [("task: ", "chat")] * 2
+
+    # Step 1：正常同步 step，权重版本 v0 → v1
+    controller.step(prompts)
+    v1 = controller.train_worker.policy.version
+
+    # 半异步：这批 rollout 在 v1 上生成（不等训练停下来）
+    rollouts = controller.rollout_worker.generate(
+        [(text, gid, task) for gid, (text, task) in enumerate(prompts)],
+        group_size=controller.group_size,
+        max_length=controller.max_length,
+        weight_version=v1,
+    )
+
+    # 与此同时训练又走了一步，当前版本推进到 v2
+    controller.step(prompts)
+    current = controller.train_worker.policy.version
+
+    # 一半样本 lag=1（近端，可接受），另一半伪装成 lag=2（过旧，应拒绝）
+    half = len(rollouts) // 2
+    for e in rollouts[:half]:
+        e.weight_version = current - 1
+    for e in rollouts[half:]:
+        e.weight_version = current - 2
+
+    accepted, rejected = split_by_lag(rollouts, current, max_lag=1)
+    print(f"Current version: v{current}, max_lag=1")
+    print(f"Accepted: {len(accepted)} samples (lag=1)")
+    print(f"Rejected: {len(rejected)} samples (lag=2, 超出深度上界)")
+    assert len(accepted) == half
+    assert len(rejected) == len(rollouts) - half
+
+    # 对接受的样本做截断重要性采样（TIS）修正
+    ratio = math.exp(0.3)
+    w, clipped = truncated_is_weight(logprob_new=-0.5, logprob_old=-0.8, clip_eps=0.2)
+    print(f"TIS weight: ratio={ratio:.3f} → w={w:.3f}, clipped={clipped}")
+    assert clipped and abs(w - 1.2) < 1e-9
+    print("✓ 版本打标 + 深度上界 + TIS 修正 = 半异步陈旧性控制")
+    print()
+
+
 def main() -> None:
     scenario_1_simple_grpo()
     scenario_2_multi_step_convergence()
@@ -189,7 +237,8 @@ def main() -> None:
     scenario_4_kl_penalty()
     scenario_5_long_tail()
     scenario_6_reward_hacking()
-    print("✅ 全部 6 个场景通过")
+    scenario_7_semi_async_staleness()
+    print("✅ 全部 7 个场景通过")
 
 
 if __name__ == "__main__":

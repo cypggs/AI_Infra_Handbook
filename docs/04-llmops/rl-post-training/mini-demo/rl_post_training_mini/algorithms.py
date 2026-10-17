@@ -56,6 +56,24 @@ def ppo_clip_loss(
     return loss, was_clipped
 
 
+def truncated_is_weight(
+    logprob_new: float,
+    logprob_old: float,
+    clip_eps: float = 0.2,
+) -> tuple[float, bool]:
+    """截断重要性采样（Truncated IS）修正权重，用于近端 Off-Policy 训练。
+
+    半异步/异步 RL 中，rollout 可能用滞后若干 step 的旧权重生成。
+    用 w = clip(π_new/π_old, 1-ε, 1+ε) 把样本权重限制在信任域内，
+    超出部分直接截断（对应 veRL / AReaL 中的 TIS / ratio clipping）。
+
+    返回 (weight, was_clipped)。
+    """
+    ratio = math.exp(logprob_new - logprob_old)
+    clipped = max(min(ratio, 1 + clip_eps), 1 - clip_eps)
+    return clipped, abs(ratio - clipped) > 1e-9
+
+
 def kl_divergence(
     logprob_policy: float,
     logprob_ref: float,

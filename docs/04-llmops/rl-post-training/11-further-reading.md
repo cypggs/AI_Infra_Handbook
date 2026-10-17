@@ -40,6 +40,22 @@
   - 大规模 Agentic RL 的代表。
   - https://arxiv.org/abs/2507.20534
 
+- **Kimi K3: Open Frontier Intelligence**（Moonshot, 2026-07）
+  - 2.8T MoE / 1M 上下文；百万 token Agentic RL（AgentENV 沙箱）+ 多教师 On-Policy Distillation。
+  - https://arxiv.org/abs/2607.24653
+
+- **DeepSeek Elastic Compute (DSec)**（DeepSeek, 2026-09）
+  - Agentic 训练的弹性沙箱基础设施：日产 300 万沙箱、峰值 38 万并发。
+  - https://arxiv.org/abs/2609.22978
+
+- **CUDA-Agent**（ByteDance Seed + 清华 AIR, 2026）
+  - 在真实 CUDA 沙箱里做 PPO，训出超过 torch.compile 的 kernel 生成模型。
+  - https://arxiv.org/abs/2602.24286
+
+- **Lossless Weight Synchronization with ~100× Less Communication**（2026-05）
+  - MoE RL 训练的增量权重同步，已集成 slime + SGLang。
+  - https://arxiv.org/abs/2605.07330
+
 ### 推理引擎
 
 - **Efficient Memory Management for Large Language Model Serving with PagedAttention**（vLLM, SOSP 2023）
@@ -72,17 +88,21 @@
 
 ### 各家自研
 
-- **AReaL**（蚂蚁）
-  - 大规模异步 RL 训练。
+- **AReaL**（蚂蚁 + 清华）
+  - 大规模异步 RL 训练；2.0（2026-07）微服务化：训练/推理/Agent/权重更新四服务。
   - https://github.com/inclusionAI/AReaL
 
 - **slime**（清华 / 智谱）
-  - GLM 系列的 RL 训练框架。
+  - GLM-5 系列的 RL 训练框架；Megatron 训练与 SGLang 服务集群生命周期解耦。
   - https://github.com/THUDM/slime
 
 - **ROLL**（阿里）
   - Agentic RL 专用。
   - https://github.com/alibaba/ROLL
+
+- **AgentENV**（Moonshot + kvcache-ai）
+  - Firecracker microVM 沙箱，Kimi K3 长程 Agentic RL 的开源底座。
+  - https://github.com/kvcache-ai/AgentENV
 
 ### 推理引擎
 
@@ -164,6 +184,18 @@
 
 - **HuggingFace: RLHF 详解**
   - https://huggingface.co/blog/rlhf
+
+- **HuggingFace: Keep the Tokens Flowing（2026-03）**
+  - 16 个开源异步 RL 框架的系统调研：调度、缓冲、权重同步、陈旧性控制、LoRA、MoE。
+  - https://huggingface.co/blog/async-rl-training-landscape
+
+- **HuggingFace: One sandbox per rollout（2026）**
+  - Agentic RL 的沙箱模式综述：OpenEnv 标准、DSec / AgentENV / NeMo Gym 等平台对比。
+  - https://huggingface.co/blog/sergiopaniego/rl-environments-2026
+
+- **veRL 版本说明**
+  - v0.7 ~ v0.9.1 的演进（server-based rollout、V1 trainer、delta checkpoint）。
+  - https://github.com/verl-project/verl/releases
 
 ## 五、课程与书籍
 

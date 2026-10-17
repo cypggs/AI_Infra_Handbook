@@ -176,9 +176,12 @@ for mini_batch in split(batch, n_minibatch):
 
 **优化技术**：
 
-1. **增量同步**：只同步 delta = new_weight - old_weight，配合低秩压缩。
-2. **量化传输**：FP8 量化后传输，Rollout 端反量化。
+1. **增量同步**：只同步 delta = new_weight - old_weight，配合低秩压缩。veRL v0.9.0 的 `delta_sharded` checkpoint engine 把这一流程产品化（72B 实测 3.1 倍加速），v0.9.1 起 vLLM 引擎可直接消费 delta 分片。
+2. **量化传输**：FP8 量化后传输，Rollout 端反量化；DeepSeek-V4 GRPO 已在 veRL 上端到端使用 Megatron-Bridge + FP8/MXFP4 权重传输。
 3. **流水线**：Train 一边保存 layer i，Rollout 一边加载 layer i-1。
+4. **传输后端升级**：NCCL / NIXL 直传（Checkpoint Engine）、TorchTitan 后端（Qwen3-8B / 32 卡上快 10.3 倍）；MoE 场景有"无损同步、通信量减少约 100 倍"的专用方案（arXiv:2605.07330）。
+
+**半异步下的变化**：同步不再以"step"为单位——veRL v0.9 separate_async 允许训练侧完成更新后把空闲 GPU 临时借给生成侧；样本按 `weight_version` 打标进入缓冲，训练侧按陈旧度上界（如 lag ≤ 2）取数，超龄样本丢弃或降权（TIS 修正）。
 
 ## 长尾与负载均衡
 
@@ -199,6 +202,8 @@ sample N: 8000 tokens    (30s)  ← 长尾
 2. **Partial Rollout**：不等最长的样本，达到 80% 完成度就进入 Train。
 3. **Length-aware batching**：按预估长度分桶，相似长度一起跑。
 4. **Early abort**：超过 max_length 的样本强制截断，避免无限等待。
+5. **Prefill-Decode 分离**（2026 年新选项）：把 prefill 与 decode 拆到不同 GPU 池（vLLM / SGLang 均支持，veRL v0.9.0 起接入），prefix 重的 GRPO group 请求在 prefill 池消化，decode 池专注逐 token 生成。
+6. **异步流水**（2026 年主流）：rollout 不等批边界，样本完成即入缓冲，训练侧按陈旧度上界取数——代价是需要版本打标与 IS 修正（见核心思想章）。
 
 ### GPU 利用率目标
 
@@ -237,14 +242,16 @@ sample N: 8000 tokens    (30s)  ← 长尾
 | ratio_clip_frac | 5-20% | >50%（更新太激进） |
 | Rollout throughput | 稳定 | 持续下降（KV cache 泄露） |
 | Train MFU | >35% | <20%（通信瓶颈） |
+| rollout_staleness_lag | 0-2（半异步） | 持续顶到上界（生成侧追不上）或丢弃率 >20% |
 
 ## 本章小结
 
 一次 RL step 是"生成-评分-训练-同步"四段流水线。理解每个阶段的瓶颈：
 
-- **Rollout** 是 wall time 大头（60-80%），关键在 Continuous Batching 与长尾治理。
-- **Reward** 尽量用可验证奖励，避免 Reward Model 的额外部署。
+- **Rollout** 是 wall time 大头（60-80%），关键在 Continuous Batching、PD 分离与异步流水。
+- **Reward** 尽量用可验证奖励，避免 Reward Model 的额外部署；Agentic 场景的评分常常就是一次沙箱交互。
 - **Train** 用 GRPO 简化 Critic，用 PPO clip 控制更新幅度。
-- **Weight Sync** 是 On-Policy 的"阿喀琉斯之踵"，需要 NCCL / 量化 / 流水线优化。
+- **Weight Sync** 是 On-Policy 的"阿喀琉斯之踵"，需要增量化（delta checkpoint）+ 低精度（FP8/MXFP4）+ 新传输后端（NCCL/NIXL）。
+- **陈旧性控制**是异步化的前提：版本打标 + 深度上界 + TIS 修正缺一不可。
 
 下一章我们看每个核心模块的具体实现。

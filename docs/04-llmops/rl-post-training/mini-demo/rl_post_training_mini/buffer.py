@@ -61,3 +61,25 @@ class ExperienceBuffer:
         if not self.items:
             return 0.0
         return sum(len(e.response) for e in self.items) / len(self.items)
+
+
+def split_by_lag(
+    items: list[Experience],
+    current_version: int,
+    max_lag: int,
+) -> tuple[list[Experience], list[Experience]]:
+    """按权重版本陈旧度（lag）拆分样本：接受 lag <= max_lag 的，拒绝其余。
+
+    这是 2026 年异步 RL 系统的标准陈旧性控制手段之一：
+    逐样本版本打标（per-sample version tagging）+ 深度上界（depth bounding）。
+    与 ExperienceBuffer 的在线/回放模式正交，可叠加使用。
+    """
+    accepted: list[Experience] = []
+    rejected: list[Experience] = []
+    for exp in items:
+        lag = current_version - exp.weight_version
+        if 0 <= lag <= max_lag:
+            accepted.append(exp)
+        else:
+            rejected.append(exp)
+    return accepted, rejected

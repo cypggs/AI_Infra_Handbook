@@ -65,6 +65,13 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 
 **工程折中**：Near On-Policy（允许滞后 1-N step + ratio clip）。
 
+**2026 年的标准答案**：半异步/全异步 + 三重陈旧性控制——
+1. **逐样本版本打标**：样本记录 `weight_version`，超龄丢弃；
+2. **深度上界**：缓冲队列限容，限制最大 lag；
+3. **TIS 修正**：lag 样本按 `clip(π_new/π_old, 1-ε, 1+ε)` 截断加权。
+
+代表实现：veRL v0.9 V1 trainer（separate_async 还支持训练侧空闲 GPU 借给生成侧）、AReaL 2.0 全异步微服务、OpenRLHF FlashREINFORCE（单样本 + KL 信任域，取消 group 等待）。
+
 ## 二、架构与工程
 
 ### Q5：RL Post-Training 系统的四大组件是什么？
@@ -95,6 +102,11 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 **生产实践**：
 - 中小规模（<100 卡）→ 同卡
 - 大规模（>500 卡）→ 分卡 + NCCL over RDMA
+
+**2026 年的新选项**（veRL v0.9 V1 trainer）：
+- **sync**：传统同步循环。
+- **colocate_async**：同卡部署，rollout 与 train 时间分片但可重叠。
+- **separate_async**：分卡部署，训练侧完成更新后空闲 GPU 借给生成侧——不再设固定 Rollout:Train 配比。
 
 ### Q7：Rollout 阶段怎么优化？
 
@@ -131,10 +143,11 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 **A**：
 
 1. **环境多样性**：终端、浏览器、代码执行器，每个都是分布式系统。
-2. **长 Horizon**：单个 episode 上百轮交互，Experience Buffer 设计复杂。
+2. **长 Horizon**：单个 episode 上百轮交互（Kimi K3 达数百次工具调用、1M 上下文），Experience Buffer 设计复杂。
 3. **异步必须**：环境延迟长，Rollout 必须异步，引入 Off-Policy 偏差。
 4. **沙箱安全**：执行模型生成的代码必须隔离（gVisor / Firecracker）。
 5. **工具集成**：MCP / function calling / file system 都要打通。
+6. **沙箱平台化**（2026 新答案）：环境不再是"脚本"，而是独立平台——DeepSeek DSec 日产约 300 万沙箱、峰值 38 万并发；AgentENV 用 Firecracker microVM 做到小于 50ms 快照恢复、单环境 fork 16 子环境。关键机制是**有状态 rollout 与可抢占训练分离**：环境会话可挂起/恢复，GPU 训练可被回收。
 
 ## 三、问题排查
 
@@ -201,9 +214,24 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 3. Gradient clipping（max_norm=1.0）。
 4. 降低学习率 + warmup。
 
+### Q14：半异步训练中样本丢弃率飙升，怎么排查？
+
+**A**：
+
+**排查清单**：
+1. **生成侧跟不上训练侧**：rollout 吞吐下降（KV 泄露、PD 池配比失衡）→ 平均 lag 顶到上界，超龄样本被批量丢弃。
+2. **权重同步变慢**：delta 同步超时、网络争抢 → 训练 step 变短而 rollout 周期没变，相对 lag 放大。
+3. **深度上界设太紧**：max_lag 从 2 改到 1，丢弃率立刻上升——先确认是配置变更还是系统退化。
+4. **样本长度分布漂移**：response 变长导致 rollout 周期变长。
+
+**对策**：
+1. 放宽深度上界或增大 rollout 集群。
+2. 超龄样本不直接丢，降级为 TIS 修正样本（权重截断）——用算法换数据。
+3. 监控 `rl_sample_mean_lag` 与 `rl_sample_drop_ratio`，告警阈值分别设 2 与 20%。
+
 ## 四、设计题
 
-### Q14：设计一个支持 70B 模型、1000 张 H100 的 RL Post-Training 系统
+### Q15：设计一个支持 70B 模型、1000 张 H100 的 RL Post-Training 系统
 
 **A**：
 
@@ -223,13 +251,13 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 - 对象存储作为容灾
 
 **关键设计**：
-1. Rollout 用 vLLM V1 + Prefix Caching + Continuous Batching
+1. Rollout 用 vLLM V1 + Prefix Caching + Continuous Batching（评估 PD 分离）
 2. Train 用 Megatron + FlashAttention 3 + Gradient Checkpointing
-3. 权重每 step 同步，FP8 量化 + 流水线
-4. 半异步（N=2）平衡收敛与利用率
-5. Prometheus + Grafana 全指标监控
+3. 权重每 step 同步，delta 分片 + FP8 量化 + NCCL/NIXL 直传
+4. 半异步（lag ≤ 2）+ 逐样本版本打标 + TIS 修正，训练侧空闲 GPU 借给生成侧
+5. Prometheus + Grafana 全指标监控（含 lag / drop ratio）
 
-### Q15：如何评估一个 RL Post-Training 系统的好坏？
+### Q16：如何评估一个 RL Post-Training 系统的好坏？
 
 **A**：
 
@@ -255,7 +283,7 @@ advantages = [(r - mean) / (std + eps) for r in rewards]
 
 ## 本章小结
 
-- **算法**：PPO / GRPO / DPO 区别、GRPO advantage 计算、On-Policy vs Off-Policy。
-- **工程**：四大组件、同卡 vs 分卡、Rollout 优化、权重同步。
-- **排查**：Reward hacking、KL 爆炸、Rollout 吞吐下降、loss NaN。
+- **算法**：PPO / GRPO / DPO 区别、GRPO advantage 计算、On-Policy vs Off-Policy 与三重陈旧性控制。
+- **工程**：四大组件、同卡 vs 分卡 vs V1 trainer 三模式、Rollout 优化（server-based / PD 分离）、权重同步增量化。
+- **排查**：Reward hacking、KL 爆炸、Rollout 吞吐下降、loss NaN、异步样本丢弃率飙升。
 - **设计**：1000 卡集群设计、评估指标体系。

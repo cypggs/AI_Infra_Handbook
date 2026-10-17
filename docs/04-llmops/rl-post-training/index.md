@@ -14,7 +14,7 @@ RL Post-Training 是后训练的核心手段，代表算法包括：
 - **RLHF**（Reinforcement Learning from Human Feedback，OpenAI InstructGPT/ChatGPT 的路线）
 - **RLAIF**（RL from AI Feedback，Anthropic Constitutional AI 的路线）
 - **RLVR**（RL with Verifiable Rewards，DeepSeek-R1 / Qwen3 的路线，用可验证奖励替代人类偏好模型）
-- **DPO / GRPO / PPO**（具体策略优化算法）
+- **DPO / GRPO / PPO**（具体策略优化算法，及 DAPO / GSPO / VAPO 等 GRPO 变体）
 
 ## 为什么 RL Post-Training 是"基础设施"问题
 
@@ -34,8 +34,9 @@ RL 训练与 SFT/预训练有本质区别：
 
 - **2024-09**：OpenAI o1 发布，证明 RL 可以让模型获得"推理能力"（reasoning），突破 SFT 天花板。
 - **2025-01**：DeepSeek-R1 开源，证明 **纯 RL（GRPO）+ 可验证奖励** 可以在数学/代码上达到 o1 水平，且**不需要 Reward Model**。
-- **2025-2026**：Qwen3、Kimi K2、GLM-4.5、Claude 4、Gemini 2.5 全部把 RL Post-Training 作为标配；字节 Seed、阿里通义、腾讯混元、Meta、NVIDIA 都公开了自家 RL 训练栈。
-- **Agentic RL**：让模型在真实环境（终端、浏览器、代码执行器）中多轮交互学习，成为 2026 年的下一个主战场。
+- **2025-2026**：Qwen3、Kimi K2/K3、GLM-4.5/5、Claude 4、Gemini 2.5 全部把 RL Post-Training 作为标配；字节 Seed、阿里通义、腾讯混元、Meta、NVIDIA 都公开了自家 RL 训练栈。
+- **2026 H1**：训练框架集体"异步化 + Agentic 化"——veRL v0.9 默认 V1 trainer（sync / colocate_async / separate_async 三种模式）、AReaL 2.0（2026-07）重构为训练/推理/Agent/权重更新四微服务、OpenRLHF 加入 FlashREINFORCE 单样本异步算法（2026-09）。
+- **2026 H2**：**Agentic RL 成为主战场**——Kimi K3（2.8T MoE、1M 上下文，基于 Firecracker 沙箱 AgentENV 做百万 token 长程训练）、字节 Seed CUDA-Agent（用 Agentic RL 训出超过 torch.compile 的 CUDA kernel）、DeepSeek DSec 沙箱平台（日产 300 万沙箱）。
 
 RL Post-Training 从"OpenAI 内部秘方"变成了"所有一线实验室的基础设施必备件"。
 

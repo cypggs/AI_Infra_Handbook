@@ -43,6 +43,8 @@ DeepSeek-R1 的关键洞察是：**对于有标准答案的任务（数学、代
 
 GRPO 的工程优势：**省掉了 Critic 网络**，显存减半，工程链路大幅简化。代价是需要为每个 prompt 生成多个 response（通常 8-64 个），增加了 Rollout 压力。
 
+2025-2026 年围绕 GRPO 的弱点（长度偏差、零 advantage 坍缩、探索停滞、长序列不稳定）出现了一系列变体：**DAPO**（动态采样 + clip 改进）、**VAPO**（价值预训练 + 非对称裁剪）、**GSPO**（序列级 importance sampling）、**Dr.GRPO**（去长度偏差）。它们共享同一套工程骨架，多数可以只改 `core_algos` 级别的纯函数就接入现有框架。
+
 ```
 # PPO（需要 Critic）
 advantage = reward - critic(state)
@@ -83,6 +85,14 @@ reward_total = reward - β * KL(π_policy || π_ref)
 | **Off-Policy** | 训练数据可以来自稍旧的策略 | 可以异步流水线，GPU 利用率高 | 需要 importance sampling 修正，可能不稳定 |
 
 **工程折中**：**近端 On-Policy**——允许 Rollout 用滞后 1-N step 的权重，配合 ratio clipping 把偏差控制在可接受范围。veRL 和 OpenRLHF 都支持这种"半异步"模式。
+
+**2026 年的实践演进**（截至 2026-10）：半异步/全异步已成为生产标配，陈旧性控制收敛为三个正交手段的组合：
+
+1. **逐样本版本打标**（per-sample version tagging）：每个 rollout 样本记录生成时的 `weight_version`，超龄样本直接丢弃。
+2. **深度上界**（depth bounding）：rollout 缓冲队列限容，限制策略漂移的最大步数。
+3. **重要性采样修正**（TIS）：对lag 样本用 `w = clip(π_new/π_old, 1-ε, 1+ε)` 截断修正。
+
+代表实现：veRL v0.9 的 V1 trainer（sync / colocate_async / separate_async 三模式，separate_async 可把训练侧空闲 GPU 借给生成侧）、AReaL 2.0 的四微服务全异步架构、OpenRLHF 的 FlashREINFORCE（单样本、无 Critic、把 KL 信任域直接建在 vLLM logprobs 上）。HuggingFace 对 16 个开源异步 RL 框架的调研（2026-03）也确认了"版本打标 + 深度上界 + 可选 IS 修正"是主流答案。
 
 ### 权衡二：Rollout / Train 资源配比
 
@@ -145,5 +155,6 @@ RL Post-Training 的核心思想可以浓缩为四句话：
 2. **用可验证的奖励信号，而非主观偏好**（Verifiable Reward）。
 3. **用组内相对优势代替绝对值函数**（GRPO 对 PPO 的简化）。
 4. **推理和训练必须协同设计，不能独立优化**（Rollout/Train 一体化基建）。
+5. **异步是利用率的生命线，陈旧性控制是收敛性的底线**（版本打标 + 深度上界 + IS 修正）。
 
 下一章我们看这些思想如何落到具体的系统架构上。

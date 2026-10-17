@@ -8,6 +8,7 @@ from rl_post_training_mini.demo import (
     scenario_4_kl_penalty,
     scenario_5_long_tail,
     scenario_6_reward_hacking,
+    scenario_7_semi_async_staleness,
 )
 
 
@@ -36,3 +37,10 @@ def test_scenario_5_long_tail():
 
 def test_scenario_6_reward_hacking():
     scenario_6_reward_hacking()
+
+
+def test_scenario_7_semi_async_staleness(capsys):
+    scenario_7_semi_async_staleness()
+    out = capsys.readouterr().out
+    assert "场景 7" in out
+    assert "Accepted" in out

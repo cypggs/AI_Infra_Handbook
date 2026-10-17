@@ -4,45 +4,53 @@
 
 > 读懂 veRL 和 OpenRLHF 的源码，就读懂了 2026 年 RL Post-Training 基础设施的两种主流范式：**Ray Actor 编排的显式分离**（OpenRLHF）vs **Hybrid Engine 的灵活部署**（veRL）。
 
-## 框架全景对比
+## 框架全景对比（截至 2026-10）
 
 | 框架 | 维护方 | 调度底座 | 推理引擎 | 训练框架 | 代表场景 |
 |---|---|---|---|---|---|
-| **veRL** | 字节 Seed | Ray + 自研 | vLLM / SGLang | FSDP / Megatron | 生产级 RL |
-| **OpenRLHF** | 开源社区 | Ray | vLLM | DeepSpeed | 研究 + 生产 |
-| **TRL** | HuggingFace | 单进程 | transformers | transformers / PEFT | 小规模教学 |
+| **veRL**（v0.9.1，2026-09） | 字节 Seed | Ray + 自研 | vLLM ≥0.18 / SGLang / TRT-LLM | Megatron-Bridge / FSDP / VeOmni / TorchTitan | 生产级 RL + On-Policy Distillation |
+| **OpenRLHF**（0.10.x） | 开源社区 | Ray | vLLM | DeepSpeed / Molt | 研究 + 生产，Agentic/VLM |
+| **TRL** | HuggingFace | 单进程 | transformers | transformers / PEFT | 小规模教学；异步版设计已定稿 |
 | **NeMo-RL** | NVIDIA | Ray | TensorRT-LLM | Megatron | NVIDIA 生态 |
-| **AReaL** | 蚂蚁 | 自研 | SGLang | FSDP | 大规模异步 |
-| **slime** | 清华 | Ray | SGLang | Megatron | GLM 系列 |
+| **AReaL 2.0**（2026-07） | 蚂蚁 + 清华 | 微服务（无 Ray 依赖） | SGLang / vLLM | FSDP | 大规模全异步、Agentic |
+| **slime**（v0.4.x） | 清华 / 智谱 | Ray | SGLang | Megatron Core | GLM-5 系列，训练/服务解耦 |
 | **ROLL** | 阿里 | Ray | vLLM | Megatron | Qwen Agentic |
 
-下面重点分析 **veRL** 和 **OpenRLHF** 两个最有代表性的框架。
+2026 年的三条演进主线：**server-based rollout 取代 SPMD rollout**（veRL v0.7 移除 SPMD 模式）、**训练/推理/Agent 微服务化解耦**（AReaL 2.0、slime 生命周期解耦）、**权重同步增量化**（veRL `delta_sharded`、MoE 无损同步）。下面重点分析 **veRL** 和 **OpenRLHF** 两个最有代表性的框架。
 
 ## veRL 源码分析
 
-### 仓库结构
+### 版本演进脉络（2026）
+
+- **v0.7（2026-01）**：移除 SPMD rollout，默认 server-based rollout；引入 `AgentLoop` 抽象（`SingleTurnAgentLoop` / `ToolAgentLoop`，可扩展 SWEAgentLoop 等）；支持 vLLM 0.12.0 / SGLang 0.5.6 与 blockwise FP8 rollout；新增 CISPO / SAPO 算法。
+- **v0.8.0（2026-06）**：同步 trainer 引入 TransferQueue（128 卡多模态训练最高 2 倍提速）；端到端 On-Policy Distillation（FSDP / Megatron / VeOmni）；SGLang LoRA 与 PD 分离；TRT-LLM async RL。
+- **v0.9.0（2026-08-14）**：**V1 PPO trainer 成为默认**（sync / colocate_async / separate_async 三模式）；DeepSeek-V4 GRPO 端到端（Megatron-Bridge + FP8/MXFP4 权重传输）；vLLM PD-disaggregated rollout；vLLM rollout 全确定性；`delta_sharded` checkpoint engine（72B 实测 3.1 倍）；**破坏性变更：不再支持 vLLM < 0.18**。
+- **v0.9.1（2026-09-20）**：unified V1 trainer——separate_async 可把训练侧空闲 GPU 借给生成侧；Liger Kernel 集成（actor 更新快 13.5%）；`RequestLoadBalancer` 可插拔 vLLM 路由；TorchTitan 后端权重同步快 10.3 倍（Qwen3-8B / 32 卡）；旧 `fully_async_policy` / `one_step_off_policy` 废弃。
+
+### 仓库结构（v0.9 视角）
 
 ```
 verl/
-├── workers/                    # 各种 Worker 抽象
+├── workers/                    # 各种 Worker 抽象（基于统一 model engine）
 │   ├── actor/                  # Policy (Actor) 训练
 │   ├── critic/                 # Critic 训练（PPO）
 │   ├── rollout/                # Rollout 生成
-│   │   ├── vllm_rollout.py     # vLLM 后端
-│   │   └── sglang_rollout.py   # SGLang 后端
+│   │   ├── vllm_rollout/       # vLLM 后端（server-based）
+│   │   └── sglang_rollout/     # SGLang 后端（含 PD 分离）
 │   └── reward_model/           # Reward Model
 ├── trainer/                    # 训练主循环
 │   ├── ppo/                    # PPO 算法
-│   │   ├── ray_trainer.py      # RayPPOTrainer
-│   │   └── core_algos.py       # PPO/GRPO/DPO 算法实现
-│   └── fsdp_sft_trainer.py     # SFT
+│   │   ├── ray_trainer.py      # RayPPOTrainer（V0，逐步被 V1 取代）
+│   │   ├── core_algos.py       # PPO/GRPO/GSPO/DAPO/CISPO/SAPO 算法实现
+│   │   └── metric.py
+│   └── vllm_/fsdp_/megatron_…  # 各引擎的 V1 trainer 实现
+├── engine/                     # 统一模型引擎抽象（V1 新增）
+├── checkpoint_engine/          # delta_sharded / NCCL / NIXL 权重同步
 ├── single_controller/          # 自研 Ray 调度抽象
 │   ├── base/                   # Worker / WorkerGroup 基类
 │   └── ray/                    # Ray 后端实现
-├── models/                     # 模型封装
-│   └── transformers/           # HF transformers 集成
-├── utils/                      # 工具
-└── protocol.py                 # DataProto 数据协议
+├── protocol.py                 # DataProto 数据协议
+└── utils/
 ```
 
 ### 核心抽象：DataProto
@@ -89,6 +97,37 @@ class WorkerGroup:
 **设计亮点**：
 - 用 Ray Actor 抽象分布式 worker，Controller 只需面向 `WorkerGroup` 编程。
 - `execute_all` 一行代码完成分布式调用，屏蔽底层 Ray 细节。
+
+### 核心抽象：AgentLoop（v0.7 新增）
+
+Agentic RL 的关键抽象从"rollout 函数"变成"agent 循环"：
+
+```python
+# verl/agent_loop/ 下的伪代码
+class AgentLoop:
+    async def run(self, sample) -> MultiTurnOutput:
+        """定义"一轮任务"的交互逻辑：模型生成 → 工具调用 → 环境反馈 → 续生成"""
+        messages = sample.prompt
+        while not self.is_done(messages):
+            action = await self.rollout(messages)        # vLLM/SGLang 生成
+            observation = await self.execute_tool(action) # 沙箱/工具/MCP
+            messages = append(messages, action, observation)
+        return self.build_output(messages)
+```
+
+veRL 内置 `SingleTurnAgentLoop` 与 `ToolAgentLoop`（ReAct 风格工具调用），并允许用户自定义（如 SWEAgentLoop）。这把"环境交互"从框架内部彻底开放为扩展点——配合 server-based rollout，Agentic 请求可以像普通在线服务一样动态 batching。
+
+### 核心抽象：V1 Trainer 与异步模式（v0.9）
+
+```python
+# 伪代码：V1 trainer 的三种模式
+trainer = V1PPOTrainer(mode="separate_async")  # sync / colocate_async / separate_async
+# - sync:        同步循环（原 V0 语义）
+# - colocate_async: 同卡部署，rollout 与 train 时间分片但可重叠
+# - separate_async: 分卡部署，训练侧完成更新后空闲 GPU 可借给生成侧
+```
+
+V1 trainer 的关键设计：rollout 样本带 `weight_version` 进入 TransferQueue，训练侧按陈旧度上界取数并做 TIS 修正；权重通过 checkpoint engine 的 delta 分片直投 vLLM。
 
 ### 核心抽象：HybridEngine（同卡时分复用）
 
@@ -175,19 +214,28 @@ class RayPPOTrainer:
 
 ## OpenRLHF 源码分析
 
+### 版本演进（2026）
+
+- **v0.8（2025-05）**：引入异步训练 `--async_train` 与异步 Agentic RL `--agent_func_path`（class-based Agent API），rollout / actor / reward 引擎经消息传递独立运行。
+- **0.10.x（2026-04 ~ 06）**：端到端 VLM RLHF 与多轮 VLM Agentic RL（图像输入 + 环境截图反馈，`vlm_multiturn_agent.py`）；0.10.4 发布于 2026-06-08。
+- **2026-02**：ProRL V2 实践——用 REINFORCE++-baseline 做"延长版" RL（1.5B 推理模型长时间训练不崩）。
+- **2026-09**：**FlashREINFORCE**——critic-free、单 rollout 的异步 Agentic RL：不做 group 等待，把二元 KL 信任域直接建立在 vLLM 返回的 logprobs 上（`--algo.advantage.estimator flash_reinforce`）。
+- **Molt 后端**：定位为"比 DeepSpeed 更强"的训练后端，面向数千亿参数 RL 训练，工作流与现有一致。
+
 ### 仓库结构
 
 ```
 openrlhf/
 ├── models/              # Actor / Critic / RewardModel 封装
 ├── trainer/
-│   ├── ppo_trainer.py   # PPO 主循环
+│   ├── ppo_trainer.py   # PPO 主循环（含 async 模式）
 │   ├── dpo_trainer.py
 │   └── sft_trainer.py
 ├── cli/                 # 命令行入口
 │   ├── train_ppo.py     # 单机 PPO
 │   └── train_ppo_ray.py # Ray 分布式 PPO
-└── utils/               # Deepspeed / vLLM 工具
+├── agents/              # Agentic RL：可插拔 agent 定义（--agent_func_path）
+└── utils/               # Deepspeed / vLLM / Molt 工具
 ```
 
 ### 核心抽象：Actor / Critic / Reward / Reference 四模型
@@ -283,6 +331,35 @@ def sync_weights(self):
         engine.update_weights.remote(state_dict)
 ```
 
+## AReaL 2.0：微服务化全异步范式（2026-07）
+
+如果说 veRL / OpenRLHF 代表"Ray Actor 编排的单体框架"，AReaL 2.0（蚂蚁 + 清华，2026-07-01 发布）代表了另一种范式：**用微服务边界替代框架内部抽象**。
+
+### 架构
+
+```
+┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────────┐
+│   Agent    │   │ Inference  │   │  Training  │   │ Weight Update  │
+│  Service   │──→│  Service   │──→│  Service   │←──│    Service     │
+│ (环境/沙箱) │   │(SGLang/vLLM)│   │  (FSDP)    │   │ (增量权重广播)  │
+└────────────┘   └────────────┘   └────────────┘   └────────────────┘
+      四个服务独立部署、独立扩缩容，通过队列/流式协议交换数据
+```
+
+- **v1.0（2026-03）** 的招牌是 Proxy Worker：Agent 侧只要改 API endpoint 就能接入 RL 训练，报告相对同步系统提速 2.77 倍。
+- **2.0（2026-07）** 把训练、推理、Agent、权重更新拆成四个微服务，内置 Hermes 在线 RL loop 与端到端 SWE（软件工程）RL 训练示例。
+- 配套算法改进：KPop / IcePop（2026-06）——基于双向二元 KL 与 importance ratio 的 token 掩码技术，缓解异步带来的偏差。
+- 2026-01 起支持华为昇腾 NPU。
+
+### 与前两种范式的对比
+
+| 维度 | veRL / OpenRLHF | AReaL 2.0 |
+|---|---|---|
+| 组织方式 | Ray Actor 单体框架 | 微服务（可跨集群） |
+| 故障域 | 框架内恢复 | 服务级独立重启，rollout 状态外置 |
+| 扩展点 | 类继承 / Worker 抽象 | 服务边界（换服务即可） |
+| 适合 | 单一训练集群 | 多集群、Agentic 环境分散部署 |
+
 ## 共同设计模式
 
 ### 1. 推理与训练分离
@@ -316,26 +393,33 @@ def sync_weights(self):
 
 ### veRL
 
-1. `verl/trainer/ppo/ray_trainer.py` — 训练主循环
-2. `verl/trainer/ppo/core_algos.py` — PPO/GRPO 算法实现
-3. `verl/workers/rollout/vllm_rollout/vllm_rollout_spmd.py` — vLLM 集成
-4. `verl/single_controller/base/worker_group.py` — 分布式抽象
+1. `verl/trainer/ppo/ray_trainer.py` — V0 训练主循环（理解 baseline）
+2. `verl/trainer/ppo/core_algos.py` — PPO/GRPO/GSPO/DAPO/CISPO/SAPO 算法实现
+3. `verl/agent_loop/` — AgentLoop 抽象（Agentic RL 扩展点）
+4. `verl/checkpoint_engine/` — delta_sharded / NCCL / NIXL 权重同步
+5. `verl/workers/rollout/` — vLLM / SGLang server-based rollout 集成
 
 ### OpenRLHF
 
 1. `openrlhf/cli/train_ppo_ray.py` — Ray PPO 入口
-2. `openrlhf/trainer/ppo_trainer.py` — PPO 主循环
-3. `openrlhf/models/actor.py` — Actor 抽象
+2. `openrlhf/trainer/ppo_trainer.py` — PPO 主循环（含 async 模式）
+3. `openrlhf/agents/` — Agentic RL 可插拔 agent
+
+### AReaL
+
+1. 四微服务拆分与 Hermes loop 的 README 架构图
+2. KPop / IcePop token 掩码实现
 
 ## 一句话总结
 
-> veRL 代表"极致工程优化"——HybridEngine 同卡时分复用、零拷贝权重、灵活的拓扑选择；OpenRLHF 代表"清晰的分离架构"——四模型独立 Actor、Ray Collective 同步、DeepSpeed 后端。理解这两个框架，就掌握了 RL Post-Training 基建的两大流派。
+> veRL 代表"极致工程优化"——HybridEngine、server-based rollout、V1 trainer 三模式异步、delta 权重直投；OpenRLHF 代表"清晰的分离架构 + 算法广度"——四模型 Actor、Ray Collective 同步、FlashREINFORCE 单样本异步；AReaL 2.0 代表"微服务化"——用服务边界替代框架抽象。理解这三个框架，就掌握了 RL Post-Training 基建的三大流派。
 
 ## 本章小结
 
-- **veRL**：DataProto 统一协议 + HybridEngine 同卡复用 + Ray 调度，工程极致。
-- **OpenRLHF**：四模型抽象 + Ray Collective 同步 + DeepSpeed 后端，架构清晰。
-- **共同模式**：推理/训练分离 + Ray 调度 + 算法/工程解耦。
-- **生态**：TRL 适合教学，NeMo-RL 适合 NVIDIA 栈，AReaL/slime/ROLL 是各家自研的代表。
+- **veRL**：DataProto 统一协议 + HybridEngine + V1 trainer（sync/colocate_async/separate_async）+ checkpoint engine 增量化同步，v0.9 起全面转向 server-based rollout。
+- **OpenRLHF**：四模型抽象 + Ray Collective 同步 + DeepSpeed/Molt 后端，算法覆盖 PPO/DAPO/REINFORCE++/FlashREINFORCE，Agentic/VLM 支持最灵活。
+- **AReaL 2.0**：训练/推理/Agent/权重更新四微服务全异步，Proxy Worker 一键接入，Agentic RL 的另一种工程答案。
+- **共同模式**：推理/训练分离 + 异步流水 + 版本打标陈旧性控制 + 算法/工程解耦。
+- **生态**：TRL 适合教学（异步版设计已定稿），NeMo-RL 适合 NVIDIA 栈，slime 以 Megatron/SGLang 生命周期解耦服务 GLM-5。
 
 下一章我们用纯 Python 实现一个迷你的 GRPO + Rollout/Train 分离系统。

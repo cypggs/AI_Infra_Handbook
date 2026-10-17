@@ -104,6 +104,20 @@ flowchart TB
 
 这是 2025-2026 年长推理训练的主流折中。
 
+### 拓扑四（2026 新趋势）：微服务化全异步
+
+```
+[Train Service]  ←→  [Weight Update Service]  ←→  [Inference Service]  ←→  [Agent Service]
+     训练进程              权重广播/增量化                 vLLM/SGLang 服务          环境/沙箱交互
+```
+
+**代表**：AReaL 2.0（2026-07，训练/推理/Agent/权重更新四个独立微服务）、veRL v0.9 V1 trainer 的 separate_async（2026-08，训练侧空闲 GPU 可临时借给生成侧）、slime 的 Megatron/SGLang 生命周期解耦（训练挂了 rollout 集群仍可复用）。
+
+**新特征**（相比拓扑三）：
+- **Server-based rollout**：Rollout 从"SPMD 数据并行进程"变成"独立在线推理服务"（veRL v0.7 起移除 SPMD rollout 模式），天然支持动态 batching 与多轮 Agentic 请求。
+- **Prefill-Decode 分离**：vLLM / SGLang 的 PD 分离进入 RL 系统，预填充与解码各自扩缩容（veRL v0.9.0 已支持 vLLM PD-disaggregated rollout）。
+- **Agent 服务独立**：环境交互（沙箱、工具、浏览器）从 Rollout Worker 中拆出，与 DSec / AgentENV 这类沙箱平台对接。
+
 ## 关键数据流
 
 ### 1. Prompt 流
@@ -149,6 +163,13 @@ Train Worker → save checkpoint → Weight Store → Rollout Worker reload
 | **共享 NVMe** | 10s 级 | 中 | veRL（NVMe over Fabrics） |
 | **对象存储** | 分钟级 | 低 | 部分自建系统 |
 
+**2026 年的演进**（截至 2026-10）：
+
+- **增量化 checkpoint**：veRL v0.9.0 引入 `delta_sharded` checkpoint engine，只保存/广播权重增量，72B 模型实测加速至 3.1 倍；v0.9.1 起 vLLM 引擎可直接消费 delta 分片。
+- **低精度权重传输**：DeepSeek-V4 GRPO 已在 veRL 上端到端跑通 Megatron-Bridge + FP8/MXFP4 权重传输；slime 方向有"无损权重同步、通信量减少约 100 倍"的工作（arXiv:2605.07330，MoE 场景）。
+- **新传输后端**：veRL Checkpoint Engine 增加 NCCL / NIXL 传输；TorchTitan 后端在 Qwen3-8B / 32 卡上权重同步快 10.3 倍。
+- vLLM 侧的权重热更新与 Native RL API 接口演进详见 [vLLM 主题](/04-llmops/vllm/)，本章聚焦训练侧系统。
+
 **优化**：
 - 只同步**增量**（delta weight）。
 - 用 **FP8/INT8** 压缩传输，Rollout 端反量化。
@@ -177,6 +198,8 @@ Controller 是 RL 系统的"大脑"，职责包括：
 
 **生产实践**：R1 类长推理通常用**同步或半异步**；Agentic RL 因为环境延迟长，更倾向于**全异步 + replay buffer**。
 
+**2026 年的新变化**：三者边界正在模糊——veRL v0.9 的 V1 trainer 把 sync / colocate_async / separate_async 统一成一套配置；AReaL 2.0 用"陈旧度上界 + TIS 修正"把全异步的收敛性损失压到可用范围；OpenRLHF FlashREINFORCE（2026-09）则干脆用单样本 + KL 信任域取消 group 等待，让异步流水没有"批边界"。HuggingFace 2026-03 对 16 个开源异步 RL 框架的调研（"Keep the Tokens Flowing"）总结：生产系统的主流答案是**深度上界 + 逐样本版本拒绝，IS 修正作为可选项**。
+
 ## 资源模型与弹性
 
 ### GPU 资源划分
@@ -204,21 +227,22 @@ Controller 是 RL 系统的"大脑"，职责包括：
 | Rollout Worker | StatefulSet / RayCluster | GPU + 大 NVMe（KV Cache offload） |
 | Train Worker | Job / RayCluster | GPU + RDMA（NCCL） |
 | Reward Service | Deployment | 普通 CPU 或 GPU（如有 RM） |
-| Sandbox | Deployment + 安全策略 | 高隔离（gVisor/Kata） |
+| Sandbox | 独立沙箱平台（DSec / AgentENV / gVisor / Kata） | 高隔离 + 高密度（万级并发） |
 | Weight Store | PVC（NVMe）/ 对象存储 | 高吞吐 |
 
 **调度挑战**：
 - Train 需要 **Gang Scheduling**（参考 [GPU 在 Kubernetes 上的调度](/02-cloud-native/gpu-scheduling/)）。
 - Rollout 需要 **拓扑感知**（同 NUMA 的 GPU 一组 TP）。
 - 权重同步需要 **NCCL over RDMA**（参考 [计算机网络](/01-foundation/computer-networks/)）。
+- Agentic RL 时代，**沙箱集群**成为新的调度对象：DeepSeek DSec 单生产单元约 160 节点、日产 300 万沙箱、峰值 38 万并发；AgentENV（Kimi K3 在用）基于 Firecracker microVM，快照恢复小于 50ms、可 fork 出 16 个子环境——它们的编排与回收是独立于 GPU 的调度面。
 
 ## 本章小结
 
 RL Post-Training 架构的核心是：
 
 1. **四大组件**：Controller / Rollout / Reward / Train，各司其职。
-2. **三种拓扑**：Co-located / Disaggregated / Hybrid，按规模与延迟选择。
-3. **两条数据流**：prompt → rollout → reward → train，以及 train → weight → rollout。
-4. **三种同步策略**：Sync / Semi-async / Full-async，在收敛性与利用率之间权衡。
+2. **四种拓扑**：Co-located / Disaggregated / Hybrid / 微服务化全异步，按规模与延迟选择（2026 年新增第四种）。
+3. **两条数据流**：prompt → rollout → reward → train，以及 train → weight（增量化）→ rollout。
+4. **三种同步策略**：Sync / Semi-async / Full-async，在收敛性与利用率之间权衡，配合版本打标 + 深度上界 + IS 修正做陈旧性控制。
 
 下一章我们看一次 RL step 在系统中的完整时序。

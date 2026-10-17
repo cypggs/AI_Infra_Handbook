@@ -70,11 +70,13 @@ class RolloutWorker:
 
 ### 实现要点
 
-1. **推理引擎**：vLLM / SGLang / TensorRT-LLM。生产环境首选 vLLM V1（V1 引擎默认开启 Prefix Caching 与 Continuous Batching）。
-2. **logprobs 返回**：必须开启，PPO 的 ratio 计算需要 π_old(a|s)。
-3. **Prefix Caching**：同一 prompt 的 G 个 sample 共享 prompt 的 KV，节省 50% prefill 算力。
-4. **Continuous Batching**：让长短样本混合跑，GPU 不空转。
-5. **权重热加载**：vLLM 支持 `load_weights` API，无需重启进程。
+1. **推理引擎**：vLLM / SGLang / TensorRT-LLM。生产环境首选 vLLM V1（V1 引擎默认开启 Prefix Caching 与 Continuous Batching）。注意版本约束在收紧：veRL v0.9.0 起要求 vLLM ≥ 0.18。
+2. **Server-based rollout**（2026 主流）：Rollout Worker 从"SPMD 数据并行进程"演进为独立在线推理服务（veRL v0.7 起移除 SPMD rollout），天然支持动态 batching、多轮 Agentic 请求与可插拔路由（veRL v0.9.1 的 `RequestLoadBalancer` 协议）。
+3. **logprobs 返回**：必须开启，PPO 的 ratio 计算需要 π_old(a|s)。
+4. **Prefix Caching**：同一 prompt 的 G 个 sample 共享 prompt 的 KV，节省 50% prefill 算力。
+5. **Continuous Batching**：让长短样本混合跑，GPU 不空转。
+6. **PD 分离**：prefill 与 decode 拆到不同 GPU 池（vLLM / SGLang 均支持），veRL v0.9.0 已接入 vLLM PD-disaggregated rollout。
+7. **权重热加载**：vLLM 支持 `load_weights` API，无需重启进程；接口演进详见 [vLLM 主题](/04-llmops/vllm/) 的 Native RL API 一节。
 
 ### 显存模型
 
@@ -110,7 +112,7 @@ class VerifiableReward:
 ```
 
 **实现要点**：
-- **沙箱**：代码执行必须隔离（参考 [Agent 沙箱](/05-agent/agent-os/)）。
+- **沙箱**：代码执行必须隔离（参考 [Agent 沙箱](/05-agent/agent-os/)）。2026 年的新现实是沙箱以"平台"形态出现：DeepSeek DSec（FnCall / 容器 / microVM / 全 VM 四种后端，日产 300 万沙箱）、AgentENV（Firecracker microVM，快照恢复小于 50ms、可 fork 16 个子环境）。RL 框架通过统一 SDK 调用，而不是自己起容器。
 - **超时**：每个样本限 1-5s，防止单个样本阻塞。
 - **并行**：用进程池/Ray task 并发跑，吞吐上千样本/秒。
 
@@ -220,6 +222,14 @@ Rollout → Buffer (容量 N 个 step) → Train (随机采样)
 - 提高样本效率，但引入 off-policy 偏差
 - Agentic RL 常用（环境延迟长，样本宝贵）
 
+**2026 年增量——陈旧性控制成为 buffer 的一等公民**：
+
+- 逐样本 `weight_version` 打标（数据结构里已有），训练侧按 **lag 上界**取数，超龄样本直接丢弃。
+- 可选 **TIS 修正**：对 lag 样本用 `w = clip(π_new/π_old, 1-ε, 1+ε)` 截断加权。
+- AReaL 2.0（2026-07）进一步把 buffer 变成独立微服务，训练/推理/Agent/权重更新四方可独立扩缩容。
+
+Agentic RL 还需要注意：DSec 等平台会把**有状态的 rollout 执行**与**可抢占的 GPU 训练**分开调度——环境会话可以挂起、迁移、恢复，这在 buffer 设计上体现为"轨迹可分片续跑"（partial rollout + resume）。
+
 ### 数据结构
 
 ```python
@@ -250,13 +260,14 @@ class Experience:
 | 扩展点 | 默认实现 | 可替换为 |
 |---|---|---|
 | 推理引擎 | vLLM | SGLang / TensorRT-LLM |
-| 训练框架 | Megatron | FSDP / DeepSpeed |
-| Reward | 规则脚本 | Reward Model / LLM-as-judge |
-| 算法 | PPO / GRPO | DPO / REINFORCE / GSPO |
-| 调度器 | 本地 | Ray / K8s Job |
-| 权重同步 | NCCL | 共享存储 / 对象存储 |
+| 推理拓扑 | 单实例 serve | PD 分离 / server-based 集群 + 可插拔路由 |
+| 训练框架 | Megatron | FSDP / DeepSpeed / VeOmni / TorchTitan / Megatron-Lite |
+| Reward | 规则脚本 | Reward Model / LLM-as-judge / 沙箱平台（DSec / AgentENV） |
+| 算法 | PPO / GRPO | DPO / REINFORCE++ / GSPO / DAPO / CISPO / FlashREINFORCE |
+| 调度器 | 本地 | Ray / K8s Job / 微服务编排（AReaL 2.0 模式） |
+| 权重同步 | NCCL | 共享存储 / 对象存储 / NIXL / delta 分片直投 |
 
-veRL 通过 `Worker` 抽象 + Ray 实现这些扩展；OpenRLHF 通过 `Actor` 抽象 + DeepSpeed 实现。
+veRL 通过 `Worker` 抽象 + Ray 实现这些扩展；OpenRLHF 通过 `Actor` 抽象 + DeepSpeed 实现；AReaL 2.0 则干脆用微服务边界作为扩展点。
 
 ## 本章小结
 

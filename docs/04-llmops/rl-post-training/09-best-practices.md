@@ -25,6 +25,12 @@ Qwen 团队提出的 **GSPO**（Group Sequence Policy Optimization）：把 toke
 
 **实践经验**：当平均 response 长度超过 2k token 时，考虑用 GSPO 替代 GRPO。
 
+同类选择（截至 2026-10）：**DAPO**（动态采样 + clip 改进，OpenRLHF 已内置）、**VAPO**（价值预训练 + 非对称裁剪）、**Dr.GRPO**（去长度偏差）、veRL 内置的 **CISPO / SAPO**。它们都只是 `core_algos` 级别的纯函数替换，工程骨架不变。
+
+### 1.2b Agentic 场景的 FlashREINFORCE
+
+OpenRLHF 2026-09 引入的 **FlashREINFORCE**：critic-free、**单 rollout** 的异步算法——取消 group 等待，把二元 KL 信任域直接建立在 vLLM 返回的 logprobs 上。适合环境延迟高、样本成本贵的 Agentic 训练；代价是放弃了组内基线，需要更强的 KL 约束兜底。
+
 ### 1.3 DPO 的适用边界
 
 DPO（Direct Preference Optimization）不需要 Rollout，直接用偏好数据对训练：
@@ -59,6 +65,11 @@ vllm.LLM(
     swap_space=4,                          # KV cache offload
 )
 ```
+
+2026 年的额外选项：
+
+- **Server-based rollout**：Rollout 以在线服务形式部署（veRL v0.7 起默认），支持动态 batching 与可插拔路由（`RequestLoadBalancer`），Agentic 多轮请求不再走 SPMD 进程模型。
+- **PD 分离**：prefill / decode 分池部署（vLLM、SGLang 均支持；veRL v0.9.0 接入 vLLM PD-disaggregated rollout）。GRPO 场景 prefill 占比高（group 共享 prompt），分池收益明显。
 
 ### 2.3 Sampling 参数
 
@@ -159,8 +170,9 @@ DP=N (scale out)
 
 ### 5.3 传输优化
 
-- **FP8 量化**：带宽减半，精度损失 <1%。
-- **增量同步**：只传 delta weight。
+- **FP8 / MXFP4 量化**：带宽减半到四分之一，精度损失可控；DeepSeek-V4 GRPO 已在 veRL 上端到端使用。
+- **增量同步**：delta 分片直投（veRL `delta_sharded`，72B 实测 3.1 倍）；MoE 有无损、通信量降两个数量级的专用方案（arXiv:2605.07330）。
+- **新传输后端**：NCCL / NIXL 直传、TorchTitan 后端（Qwen3-8B / 32 卡权重同步快 10.3 倍）。
 - **流水线**：layer-by-layer 流式传输。
 
 ## 六、可观测性
@@ -180,6 +192,8 @@ rl_train_mfu                     # 训练 MFU
 rl_weight_sync_duration_seconds  # 权重同步耗时
 rl_rollout_worker_utilization    # Rollout GPU 利用率
 rl_train_worker_utilization      # Train GPU 利用率
+rl_sample_mean_lag               # 样本平均陈旧度（半异步/异步必配）
+rl_sample_drop_ratio             # 超龄样本丢弃率
 ```
 
 ### 6.2 告警规则
@@ -200,6 +214,14 @@ rl_train_worker_utilization      # Train GPU 利用率
 - alert: RLLowTrainMFU
   expr: rl_train_mfu < 0.2
   for: 15m
+
+- alert: RLHighSampleDrop
+  expr: rl_sample_drop_ratio > 0.2
+  for: 10m
+
+- alert: RLStalenessGrowing
+  expr: rl_sample_mean_lag > 2
+  for: 10m
 ```
 
 ## 七、常见踩坑
@@ -250,6 +272,7 @@ rl_train_worker_utilization      # Train GPU 利用率
 
 - 根据当前队列深度动态调整 Rollout worker 数量。
 - 夜间低峰缩减 Rollout，保留 Train。
+- **GPU 借贷**（2026 年新手段）：veRL v0.9 separate_async 模式下，训练侧完成更新后的空闲 GPU 可临时借给生成侧跑 rollout，不设固定配比——让负载决定资源流向。
 
 ### 8.3 异构硬件
 
@@ -262,10 +285,11 @@ rl_train_worker_utilization      # Train GPU 利用率
 
 ## 本章小结
 
-- **算法**：默认 GRPO，长序列用 GSPO，主观偏好用 PPO。
-- **Rollout**：vLLM + Prefix Caching + Continuous Batching + 长尾治理。
+- **算法**：默认 GRPO，长序列用 GSPO/DAPO 类变体，主观偏好用 PPO，Agentic 高延迟场景评估 FlashREINFORCE。
+- **Rollout**：server-based 部署 + Prefix Caching + PD 分离 + Continuous Batching + 长尾治理。
 - **Train**：TP=8/PP=4/DP=N + FlashAttention + KL penalty。
-- **Reward**：可验证优先 + 混合防 hack + 沙箱跑代码。
-- **同步**：每 step 优先，FP8 + 增量 + 流水线优化。
-- **可观测**：reward / KL / length / clip_frac / MFU 五大指标。
-- **成本**：Rollout 用 spot + 异构硬件 + 弹性伸缩。
+- **Reward**：可验证优先 + 混合防 hack + 沙箱平台化（快照/恢复/续跑）。
+- **同步**：delta 分片 + FP8/MXFP4 + NCCL/NIXL 多后端。
+- **异步**：版本打标 + 深度上界 + TIS 修正，监控 lag 与丢弃率。
+- **可观测**：reward / KL / length / clip_frac / MFU / staleness 六大指标。
+- **成本**：Rollout 用 spot + 异构硬件 + 弹性伸缩 + GPU 借贷。

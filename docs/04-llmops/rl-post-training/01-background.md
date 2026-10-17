@@ -19,7 +19,7 @@ flowchart LR
 
 2024 年之前，业界普遍认为 RL 只是"对齐的点缀"——InstructGPT 论文里 RLHF 带来的提升有限，工程复杂度却极高。因此很多团队只做 SFT 就上线了。
 
-## 2024-2025 年的两个拐点
+## 2024-2026 年的三个拐点
 
 ### 拐点一：OpenAI o1（2024-09）
 
@@ -34,6 +34,14 @@ R1 的工程意义比算法意义更大：
 - 奖励**不需要训练 Reward Model**，直接用脚本判定，工程上极度简化。
 - 算法用 GRPO 替代 PPO，**去掉了 Critic 网络**，省一半显存。
 - 训练框架是开源的（基于 veRL 改进），所有人都能复现。
+
+### 拐点三：Agentic RL 与训练系统异步化（2026）
+
+2026 年，竞争焦点从"数学/代码单轮推理"转向"真实环境中的长程任务"，训练系统也随之重构：
+
+- **Agentic RL 规模化**：Kimi K3（2026-07，2.8T MoE / 1M 上下文）在自研 Firecracker 沙箱 AgentENV 上做百万 token 长程 Agentic RL，训练后期还引入多教师 On-Policy Distillation；字节 Seed CUDA-Agent（2026-08 公开）用 PPO 在真实 CUDA 开发沙箱里训出超过 torch.compile 的 kernel 生成模型。
+- **沙箱成为一等基础设施**：DeepSeek 公开 DSec 平台（arXiv:2609.22978，2026-09）——日产约 300 万个沙箱、峰值 38 万并发、每秒 5000+ 创建，与 RL 框架协同设计（有状态 rollout 与可抢占 GPU 训练分离）。
+- **异步训练成为标配**：veRL v0.9（2026-08/09）默认 V1 trainer，支持把训练侧空闲 GPU 借给生成侧（separate_async）；AReaL 2.0（2026-07）彻底微服务化；OpenRLHF 推出单样本、无 Critic 的 FlashREINFORCE 异步算法（2026-09）。
 
 ## 为什么 RL 训练是基础设施难题
 
@@ -91,21 +99,25 @@ Rollout 是**变长生成**：
 | 异构调度 | ❌ 单一负载 | ✅ 生成+评分+训练混合 |
 | 环境交互 | ❌ 没有 | ✅ Agentic RL 必需 |
 
-因此诞生了专门的 RL 训练框架：**veRL（字节）、OpenRLHF（开源社区）、TRL（HuggingFace）、NeMo-RL（NVIDIA）、AReaL（蚂蚁）、slime（清华）、ROLL（阿里）**。
+因此诞生了专门的 RL 训练框架：**veRL（字节）、OpenRLHF（开源社区）、TRL（HuggingFace）、NeMo-RL（NVIDIA）、AReaL（蚂蚁+清华）、slime（清华）、ROLL（阿里）**。截至 2026-10，这些框架正在快速收敛到"server-based rollout + 异步流水 + 微服务化解耦"的新范式。
 
-## RL Post-Training 的产业现状（2026 中）
+## RL Post-Training 的产业现状（截至 2026-10）
 
 | 团队 | 框架 | 公开实践 |
 |---|---|---|
-| DeepSeek | 自研（基于 veRL） | R1 用 GRPO + 可验证奖励，H800 集群 |
-| 字节 Seed | veRL | 开源，支持 PPO/GRPO/DPO，FSDP + Megatron 后端 |
+| DeepSeek | 自研（基于 veRL） | R1 用 GRPO + 可验证奖励；DSec 沙箱平台支撑 Agentic RL（日产 300 万沙箱） |
+| 字节 Seed | veRL | 开源，v0.9 默认 V1 trainer（sync / colocate_async / separate_async）；CUDA-Agent / Seed-Prover 1.5 走 Agentic RL |
 | 阿里 Qwen | 自研 + ROLL | Qwen3 用 GSPO，Agentic RL 强 |
-| Kimi | 自研 | K2 用大规模 Agentic RL |
-| OpenAI | 自研 | o1/o3/o4 系列，不公开细节 |
-| Anthropic | 自研 | Constitutional AI / RLAIF，Claude 4 |
+| Kimi | 自研 + AgentENV | K3（2.8T MoE / 1M ctx）百万 token Agentic RL + 多教师 On-Policy Distillation |
+| OpenAI | 自研 | o 系列与 GPT 系列，不公开细节 |
+| Anthropic | 自研 | Constitutional AI / RLAIF，Claude 4/5 |
 | Meta | 自研 + 开源 | Llama 4 用 RLHF + RLVR，TorchTitan + vLLM |
 | NVIDIA | NeMo-RL | 开源，深度整合 TensorRT-LLM |
-| HuggingFace | TRL | 社区最广泛，但性能不是为超大规模设计 |
+| HuggingFace | TRL | 社区最广泛；异步版设计已定稿（有界队列 + 逐样本版本打标） |
+| 蚂蚁 + 清华 | AReaL | 2.0（2026-07）微服务化：训练/推理/Agent/权重更新四服务全异步 |
+| 清华 / 智谱 | slime | Megatron 训练生命周期与 SGLang 服务集群解耦，GLM-5 在用 |
+
+框架层的共同演进方向：**server-based rollout（替代 SPMD rollout）、推理/训练微服务化解耦、权重同步增量化（delta checkpoint）、陈旧性控制（版本打标 + 深度上界 + IS 修正）**。
 
 ## 一句话总结
 
@@ -113,6 +125,6 @@ Rollout 是**变长生成**：
 
 ## 本章小结
 
-- 2024-2025 年 o1 和 R1 证明 RL 能解锁推理能力，RL Post-Training 成为大模型标配。
+- 2024-2026 年 o1、R1、Agentic RL 三个拐点，让 RL Post-Training 从"对齐点缀"变成"能力引擎"。
 - RL 训练的"生成-评分-训练"三段式负载、On-Policy 强一致、长尾分布，让传统预训练基建不够用。
-- 这催生了 veRL / OpenRLHF / NeMo-RL 等专门框架，以及一套新的基础设施范式。
+- 这催生了 veRL / OpenRLHF / AReaL / slime 等专门框架；2026 年的主线是异步化、微服务化与 Agentic 环境基建（沙箱）。
