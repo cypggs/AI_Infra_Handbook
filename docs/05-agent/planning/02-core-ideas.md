@@ -202,12 +202,12 @@ graph TD
 
 | 手段 | 做法 | 效果（GAIA 基准观测） |
 |---|---|---|
-| 并行采样（Best-of-N / Beam / DVTS） | 同时生成 N 条计划轨迹，用 Verifier 选出最优 | Best-of-N 将平均分从 55.8% 提升到 63.0% |
+| 并行采样（Best-of-N / Beam / DVTS） | 同时生成 N 条计划轨迹，用 Verifier 选出最优 | Best-of-N 将 GPT-4.1 基线的平均分从 55.8% 提升到 63.0% |
 | 序贯修正 | 失败后带着错误信息重写计划，而非原地重试 | “何时修正”比”修正多少次”更关键 |
 | Verifier 合并 | 用打分模型对多条轨迹排序或合并 | 列表式（list-wise）打分效果最好 |
 | 轨迹多样化 | 刻意让采样温度/提示多样化 | 收益稳定为正 |
 
-Cohere 2026 年关于”编码 Agent 团队”的进一步研究还给出一个反直觉结论：**规划是最值得投入额外计算的阶段**——只把规划环节做并行委派，就能以约一半的成本达到全链路委派的效果；而执行/验证环节加人很快就出现收益递减。这验证了”Planner 用强模型、Executor 用快模型”分层选型策略的合理性。
+Cohere 2026 年 10 月关于”扩展编码 Agent 团队”的研究给出了一个反直觉结论：**规划是并行委派的明确赢家（"Planning was the clear winner"）**——只让 lead agent 委派规划环节，奖励与全链路委派基本持平（63.6% vs 63.2%），成本却只要一半（$249 vs $510）；而给执行/验证环节加资源很快出现收益递减。这验证了”Planner 用强模型、Executor 用快模型”分层选型策略的合理性。
 
 ### 方向二：用树搜索代替单路径生成
 
@@ -252,5 +252,6 @@ Planning 把工具视为能力的抽象，计划项中引用 tool name 和参数
 - [AFlow: Automating Agentic Workflow Generation](https://arxiv.org/abs/2410.10762)
 - [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
 - [AdaPlan-H: Self-Adaptive Hierarchical Planning for LLM Agents](https://aclanthology.org/2026.findings-acl.77/)
+- [Lessons from scaling teams of coding agents - Cohere](https://cohere.com/blog/lessons-from-scaling-teams-of-frontier-coding-agents)
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)

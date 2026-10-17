@@ -45,10 +45,10 @@ graph LR
 
 ### 框架现状（2025-2026）
 
-- **LangGraph 已成为有状态 Plan-and-Execute 的事实标准**（v1.0 于 2025-10 GA，之后持续迭代）：图结构即计划，节点是动作、边是控制流；每个 super-step 自动保存 checkpoint，生产环境推荐 Postgres checkpointer 而非内存实现；`interrupt` 系列原语支持在任意节点暂停等人审。
-- **checkpoint 不等于 durable execution**：LangGraph 开源版默认单进程，进程崩溃后状态可恢复，但执行不会自动重启。需要进程/机器级容错时，引入 Temporal 等持久化执行层（LangGraph 提供 Temporal 插件，OpenAI Agents SDK 与 Temporal 的集成也已于 2026-03 GA），或使用托管平台。
+- **LangGraph 已成为有状态 Plan-and-Execute 的事实标准**（1.0 alpha 于 2025-09 发布、10 月下旬 GA，之后持续迭代）：图结构即计划，节点是动作、边是控制流；每个 super-step 自动保存 checkpoint，生产环境推荐 Postgres checkpointer 而非内存实现；`interrupt` 系列原语支持在任意节点暂停等人审。
+- **checkpoint 不等于 durable execution**：LangGraph 开源版默认单进程，进程崩溃后状态可恢复，但执行不会自动重启。需要进程/机器级容错时，引入 Temporal 等持久化执行层（LangGraph 提供 Temporal 插件；OpenAI Agents SDK 与 Temporal 的集成于 2025-07 公开预览、2026-03-23 GA），或使用托管平台。
 - **CrewAI、Pydantic AI 等框架默认缺少原生持久 checkpoint**，长程任务选型时要把"中断恢复"列为硬性需求逐项验证。
-- **持久化面也是攻击面**：以 LangGraph 的 SQLite checkpointer 曾曝出 SQL 注入漏洞（CVE-2025-67644，已在后续版本修复）为例，checkpoint 存储、计划序列化通道都应纳入安全审计范围。
+- **持久化面也是攻击面**：LangGraph 的 SQLite checkpointer 曾曝出 SQL 注入漏洞（CVE-2025-67644，经 checkpoint 查询的 metadata 过滤键触发，2025-12 披露、3.0.1 修复），checkpoint 存储、计划序列化通道都应纳入安全审计范围。
 
 ## 与 Memory 集成
 
@@ -250,16 +250,16 @@ Planning 层必须提供完整审计能力。
 
 | 基准 | 关注点 | 2025-2026 现状 |
 |---|---|---|
-| OSWorld | 计算机操作 | SOTA 从 2024 年 12.2% 升至 66.3%（Claude Opus 4.5，Stanford AI Index 2026），已接近 72% 人类基线 |
-| OSWorld 2.0 | 长程真实任务 | 2026 年新基准，最强系统仅约 20%——长程规划仍是主要瓶颈 |
-| WebArena | 网页任务 | 最优系统约 74%，已逼近 78.2% 人类基线 |
+| OSWorld | 计算机操作 | SOTA 从 2024 年约 12% 升至 66.3%（Claude Opus 4.5，Stanford AI Index 2026），距约 72% 的人类基线仅 6 个百分点 |
+| OSWorld 2.0 | 长程真实任务 | 2026 年新基准（108 个长程工作流），最强系统 Claude Opus 4.8 二元完成率仅 20.6%（部分完成 54.8%），GPT-5.5 约 13%——长程规划仍是主要瓶颈 |
+| WebArena | 网页任务 | 2026 年初最优系统 74.3%，距 78.2% 人类基线约 4 个百分点，是模型与人类差距最小的 Agent 基准 |
 | GAIA | 通用助理 | 头部系统已达甚至超过人类基线，对前沿模型失去区分度 |
 
 三条评估纪律：
 
 1. **看可靠性而非单次分数**：pass@1 提升快于 pass^k，生产应以"连续 k 次成功率"作为对外承诺口径。
 2. **警惕 scaffold 敏感性**：同一模型换 harness、换步数/token 预算，分数可能相差很大；比较方案时固定 scaffold。
-3. **关注抗操纵性**：2026 年的研究显示 WebArena、GAIA 等基准存在被提示注入、配置泄露等手段"作弊刷分"的漏洞（最高近乎满分），内部评测集应包含对抗样本。
+3. **关注抗操纵性**：UC Berkeley 的"How We Broke Top AI Agent Benchmarks"研究（2025-06 发布、2026 年持续发酵）用自动化扫描 agent 在 WebArena、GAIA、SWE-bench 等 8 个主流基准上"不解题却拿近满分"（WebArena 约 100%、GAIA 约 98%），手段包括提示注入、配置泄露、评测器与被测 agent 无隔离等；内部评测集应包含对抗样本，且评测器要与 agent 运行环境隔离。
 
 ## 成本与 SLO
 
@@ -272,7 +272,7 @@ Planning 的成本主要来自：
 - 重规划次数
 - 工具/MCP 调用费用
 - 人工审批成本
-- 多 agent fanout 的放大效应（公开案例中多 agent 比单 agent 贵约一个数量级，规划环节单独 fanout 的性价比最高）
+- 多 agent fanout 的放大效应（公开案例中多 agent 比单 agent 贵约一个数量级，规划环节单独 fanout 的性价比最高；Cohere 2026-10 的最优异构搭配——强模型领队 + 16 个廉价规划工人——以约 30% 的成本达到全强模型团队 97% 以上的奖励）
 
 ### SLO 建议
 
@@ -302,6 +302,9 @@ Planning 的成本主要来自：
 - [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
 - [Stanford HAI AI Index Report 2026](https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf)
 - [OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks](https://arxiv.org/abs/2606.29537)
+- [How We Broke Top AI Agent Benchmarks - UC Berkeley RDI](https://rdi.berkeley.edu/blog/trustworthy-benchmarks-cont/)
+- [Lessons from scaling teams of coding agents - Cohere](https://cohere.com/blog/lessons-from-scaling-teams-of-frontier-coding-agents)
+- [Introducing Temporal and agentic sandboxes: the OpenAI Agents SDK](https://temporal.io/blog/introducing-temporal-and-agentic-sandboxes-openai-agents-sdk)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)
 - [LLM+P: Empowering Large Language Models with Optimal Planning Proficiency](https://arxiv.org/abs/2304.11477)

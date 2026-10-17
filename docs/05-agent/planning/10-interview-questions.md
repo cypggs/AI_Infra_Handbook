@@ -161,7 +161,7 @@ Planning 负责“做什么”，Runtime 负责“怎么调度执行”。分离
 
 - 不是。checkpoint 是状态快照：崩溃后数据不丢，可以从断点恢复（LangGraph 每 super-step 自动保存，生产用 Postgres）。
 - durable execution 还要求"执行自动重启"：进程/机器挂了之后，执行逻辑本身能被重新拉起继续跑。开源框架默认单进程，做不到这一点。
-- 方案：引入 Temporal 等持久化执行层（LangGraph 有插件，OpenAI Agents SDK 集成已 GA），或使用托管平台；选型时把"状态可恢复"与"执行可自动重启"作为两个等级分别验证。
+- 方案：引入 Temporal 等持久化执行层（LangGraph 有插件，OpenAI Agents SDK 集成 2026-03 GA），或使用托管平台；选型时把"状态可恢复"与"执行可自动重启"作为两个等级分别验证。
 - 安全提醒：checkpoint 存储是攻击面，需要纳入安全审计（已有 SQLite checkpointing SQL 注入漏洞的公开案例）。
 
 ## 本章小结
@@ -177,6 +177,8 @@ Planning 负责“做什么”，Runtime 负责“怎么调度执行”。分离
 - [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
 - [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
 - [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
+- [Introducing Temporal and agentic sandboxes: the OpenAI Agents SDK](https://temporal.io/blog/introducing-temporal-and-agentic-sandboxes-openai-agents-sdk)
+- [Lessons from scaling teams of coding agents - Cohere](https://cohere.com/blog/lessons-from-scaling-teams-of-frontier-coding-agents)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

@@ -64,13 +64,13 @@
 - [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
   - 系统总结 Agent 测试时扩展四手段：并行采样、序贯修正、Verifier、轨迹多样化。
 
-- [Structured Handling of Exceptions in LLM-Driven Agentic Workflows](https://arxiv.org/abs/2508.07935)
-  - 约 40 类异常的分类学与恢复动作集（Plan Repair / Plan Shortening / Abort Task Chain）。
+- [Structured Handling of Exceptions in LLM-Driven Agentic Workflows (SHIELDA)](https://arxiv.org/abs/2508.07935)
+  - 36 类异常（分布于 12 类 agent artifact）的分类学与恢复动作集（Plan Repair / Plan Shortening / Abort Task Chain）。
 
 - [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)（ICML 2026）
   - 层级 RL 训练"高层出子目标、低层做执行"的双层策略，ALFWorld 97.4%。
 
-- [AdaPlan-H: Self-Adaptive Hierarchical Planning for LLM Agents](https://aclanthology.org/2026.findings-acl.77/)（ACL 2026 Findings）
+- [From Coarse to Fine: Self-Adaptive Hierarchical Planning for LLM Agents (AdaPlan-H)](https://aclanthology.org/2026.findings-acl.77/)（ACL 2026 Findings）
   - 按任务复杂度自适应细化计划，避免过度规划。
 
 - [OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks](https://arxiv.org/abs/2606.29537)
@@ -100,6 +100,12 @@
 
 - [How we built our multi-agent research system - Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
   - 生产级"中央 Planner + 并行子 agent"架构的完整复盘。
+
+- [Lessons from scaling teams of coding agents - Cohere](https://cohere.com/blog/lessons-from-scaling-teams-of-frontier-coding-agents)
+  - 2026-10：规划是并行委派的明确赢家——只委派规划与全链路委派奖励持平（63.6% vs 63.2%）而成本减半；强模型领队 + 廉价规划工人可达前沿约 98% 奖励、约 30% 成本。
+
+- [How We Broke Top AI Agent Benchmarks - UC Berkeley RDI](https://rdi.berkeley.edu/blog/trustworthy-benchmarks-cont/)
+  - 8 个主流 Agent 基准的操纵漏洞复盘（WebArena 约 100%、GAIA 约 98% 可"不解题拿分"），自建评测前必读。
 
 - [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
   - checkpoint 与 durable execution 的区别，生产选型必读。

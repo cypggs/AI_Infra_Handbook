@@ -301,7 +301,7 @@ graph TD
 
 **执行方式**：Selection → Expansion → Evaluation → Simulation → Backpropagation 的标准 MCTS 循环，环境真实反馈驱动搜索。
 
-**关键结果**：HumanEval pass@1 92.7-94.4%（GPT-4）；WebShop 平均得分 75.9；HotPotQA 上约 2 倍于 ReAct。
+**关键结果**：HumanEval pass@1 GPT-3.5 / GPT-4 分别达 92.7% / 94.4%；WebShop 平均得分 75.9；HotPotQA 上约 2 倍于 ReAct。
 
 **优点**：
 

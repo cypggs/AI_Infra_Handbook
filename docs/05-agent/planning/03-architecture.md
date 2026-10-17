@@ -204,7 +204,7 @@ graph LR
 
 生产注意点：
 
-- **规划是最值得花计算的地方**：Cohere 2026 年的实验表明，把推理预算向规划环节倾斜（甚至只对规划做并行委派），投入产出比高于在执行/验证环节加码；执行与验证加资源会很快触及收益递减。
+- **规划是最值得花计算的地方**：Cohere 2026 年 10 月的实验表明，把推理预算向规划环节倾斜（甚至只对规划做并行委派）投入产出比最高——只委派规划的 lead agent 与全链路委派的奖励基本持平（63.6% vs 63.2%），成本约为一半（$249 vs $510）；执行与验证加资源会很快触及收益递减。
 - **推理预算要显式化**：给 Planner 设置 thinking token 预算与最大扩展轮数，避免单次规划耗时失控；预算应与 Policy Engine 的成本上限联动。
 - **计划生成可用并行采样**：Plan 阶段可并行采样 N 份计划草案，由 Plan Validator / Verifier 打分后取最优（Best-of-N），成本远低于执行失败后的全局重规划。
 - **学习型 Planner 是另一条路**：当任务分布稳定时，可用 Plan-and-Act（ICML 2025）式的合成数据管线或 HiPER（ICML 2026）式的层级 RL 训练专用 Planner，把规划质量从”提示工程”升级为”模型能力”，同时大幅降低单次规划的 token 成本。
@@ -224,4 +224,5 @@ graph LR
 - [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)
+- [Lessons from scaling teams of coding agents - Cohere](https://cohere.com/blog/lessons-from-scaling-teams-of-frontier-coding-agents)
 - [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
