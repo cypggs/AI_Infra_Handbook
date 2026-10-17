@@ -1,6 +1,6 @@
 # 6. 源码分析：helm/helm 的代码地图
 
-> 一句话理解：本章是 Helm 的"源码导游"——`helm/helm` 仓库结构清晰、分层干净（`cmd/helm` CLI 入口、`pkg/action` 业务动作、`pkg/engine` 模板渲染、`pkg/kube` 与 apiserver 交互及三方合并、`pkg/releaseutil`/`pkg/storage`/`pkg/chart` 等支撑），抓三条主线就能理解全局：**install/upgrade 怎么调到三方合并**、**模板怎么被渲染**、**Release 怎么被存储**。
+> 一句话理解：本章是 Helm 的"源码导游"——`helm/helm` 仓库结构清晰、分层干净（`cmd/helm` CLI 入口、`pkg/action` 业务动作、`pkg/engine` 模板渲染、`pkg/kube` 与 apiserver 交互及 apply 合并、`pkg/releaseutil`/`pkg/storage`/`pkg/chart` 等支撑），抓三条主线就能理解全局：**install/upgrade 怎么调到 apply 合并**（Helm 3 三方合并 / Helm 4 SSA）、**模板怎么被渲染**、**Release 怎么被存储**。下文以 Helm 4（Go module `helm.sh/helm/v4`）为参照，Helm 3（`helm.sh/helm/v3`）结构相同、仅 apply 路径与 SDK 包名不同。
 
 ## 6.1 仓库总览
 
@@ -10,19 +10,19 @@
 helm/
 ├── cmd/helm/                 # CLI 入口：main.go + cobra 命令注册
 ├── internal/                 # 内部包（不对外稳定）
-├── pkg/                      # 核心库（稳定 API）
+├── pkg/                      # 核心库
 │   ├── action/               # ★ 业务动作：Install/Upgrade/Rollback/Uninstall/...
-│   ├── chart/                # Chart 数据结构（Chart.yaml → Metadata, File, Loader）
+│   ├── chart/                # Chart 数据结构；v4 起版本化分包（pkg/chart/v2 等）
 │   ├── chartutil/            # Chart 工具（values 合并、CreateValues、version 约束）
 │   ├── cli/                  # ★ 环境与 kubeconfig（cmd/helm 调它）
 │   ├── engine/               # ★ 模板渲染引擎（Go template + Sprig）
 │   ├── getters/              # HTTP/OCI 取 chart
 │   ├── helm/path/            # 路径（repo cache、config dir）
-│   ├── kube/                 # ★ 与 apiserver 交互 + 三方合并 Patch
+│   ├── kube/                 # ★ 与 apiserver 交互 + apply 合并（三方合并 / SSA）
 │   ├── lint/                 # Chart 静态检查
-│   ├── plugin/               # 插件机制（helm-diff 等）
-│   ├── postrender/           # post-renderer 执行器
-│   ├── release/              # Release 数据结构（Release, Status, Hook）
+│   ├── plugin/               # 插件机制；v4 增加 Wasm 运行时（CLI/getter/post-renderer）
+│   ├── postrender/           # post-renderer 执行器（v4 经插件调用）
+│   ├── release/              # Release 数据结构（v4 版本化为 pkg/release/v1）
 │   ├── releaseutil/          # ★ 清单排序、拆分、过滤
 │   ├── repo/                 # Chart 仓库（index.yaml 解析、repo add/update）
 │   ├── registry/             # OCI registry 客户端
@@ -33,6 +33,8 @@ helm/
 ```
 
 > **读源码策略**：Helm 代码可读性很高，建议从一条命令（`helm install`）的入口 `cmd/helm/install.go` 一路追到 `pkg/action/install.go` → `pkg/kube`，建立"参数→渲染→合并→apply→存储"的全链路直觉，再按需深入 `engine`/`storage` 等子模块。
+>
+> **Helm 4 的两个工程变化**：① SDK 包**版本化**（`pkg/chart/v2`、`pkg/release/v1`…），import 路径从 `helm.sh/helm/v3/...` 变为 `helm.sh/helm/v4/...`——直接引用 Helm 库的工具（自研部署器、Operator 里嵌 Helm）升级时要改 import；② 日志从传统日志库切到 Go 标准 **`slog`**（结构化日志），把 Helm 当库集成时可以统一日志后端。
 
 ## 6.2 主线一：`helm install/upgrade` 的调用链
 
@@ -106,7 +108,7 @@ func (u *Upgrade) Run(chrt *chart.Chart, vals map[string]interface{}) (*release.
 }
 ```
 
-`pkg/kube.Client.Update(target, current, ...)` 是**三方合并的真正所在**：
+`pkg/kube.Client.Update(target, current, ...)` 是**客户端合并的真正所在**（Helm 3 及 Helm 4 中未切换 SSA 的 release）：
 
 ```go
 // pkg/kube/client.go（简化思路）
@@ -121,6 +123,8 @@ func (c *Client) Update(original, target ResourceList, ...) (*Result, error) {
 ```
 
 它对每个资源用 client-go 的 `StrategicMergePatchType`（有 schema 的结构化 patch）或退化到 `MergePatchType`，三路（old chart / live / new chart）算出最小 diff，再 `PATCH` 到 apiserver。这正是第 3 章三方合并语义的代码实现。
+
+> **Helm 4 的分叉点**：`pkg/action` 在 upgrade 时会根据 release 记录的上次 apply 方式（及 `--server-side` 标志）决定走上面这条客户端 patch 路径，还是走 **`pkg/kube` 里的 SSA 路径**（以 field manager `helm` 调 client-go 的 server-side apply，冲突时按 `--force-conflicts` 决定是否强制接管）。想理解 HIP-0023 的实现，在 `pkg/action/upgrade.go` 里找 apply 策略选择逻辑，顺到 `pkg/kube` 的 SSA 分支即可——Release 存储里多了一个记录 apply 方式的字段，这就是 4.0 早期"SSA 升级新增资源被记成 Update 导致冲突"那个 bug（#31515/#31516）的修复位置。
 
 > **关键定位**：想看"Helm 升级为什么没覆盖我手动 scale 的副本"，看 `pkg/kube` 的 `Update` 和它调用的 patch 构造逻辑（`pkg/kube/resource.go`、`pkg/kube/converter.go`、依赖 `k8s.io/apimachinery` 的 strategic merge 实现）。
 
@@ -231,7 +235,7 @@ helm template ... | kubectl apply --dry-run=server -f -                  # 服�
 
 ## 本章小结
 
-helm/helm 仓库分层清晰，抓三条主线即可贯通：**主线一（install/upgrade 调用链）**：`cmd/helm`（cobra）→ `pkg/action/install.go`/`upgrade.go`（业务动作）→ `pkg/kube`（与 apiserver 交互），其中 `pkg/kube.Client.Update` 用 `StrategicMergePatchType` 实现**三方合并**（old chart / live / new chart），是"Helm 升级为何保留手动改动"的代码根源。**主线二（模板渲染）**：`pkg/engine.Engine.Render` 注册 Sprig 函数（故意删掉 `env`/`expandenv` 保证确定性渲染）+ Helm 扩展（include/tpl/required/lookup），父子 chart 递归渲染、values 隔离。**主线三（Release 存储）**：`pkg/storage.Storage` + `driver.Driver`（Secret/ConfigMap/Memory，默认 Secret），每 revision 一个 gzip+base64 的 protobuf Secret，`--history-max` 在 Create 时清理。辅助：`pkg/releaseutil`（清单拆分 + 按资源类型排序保证依赖顺序、分离 hook）、`pkg/chart/loader`（Chart 加载）、`pkg/downloader`（依赖解析）。四条命令代码高度对称：install=Create、upgrade=Update(三方合并)、rollback=取旧清单走 upgrade、uninstall=逆序删除。`helm template` 是 install 的"只渲染不 apply"子集，是 CI/GitOps 的基石。从一条命令入口追到底，就能建立 Helm 全链路直觉。
+helm/helm 仓库分层清晰，抓三条主线即可贯通：**主线一（install/upgrade 调用链）**：`cmd/helm`（cobra）→ `pkg/action/install.go`/`upgrade.go`（业务动作）→ `pkg/kube`（与 apiserver 交互），其中 `pkg/kube.Client.Update` 的 strategic merge patch 实现**三方合并**（old chart / live / new chart），是"Helm 3 升级为何保留手动改动"的代码根源；**Helm 4 在同一条链路上按 release 的 apply 方式分叉出 SSA 路径**（field manager `helm`，`--force-conflicts` 处理冲突）。**主线二（模板渲染）**：`pkg/engine.Engine.Render` 注册 Sprig 函数（故意删掉 `env`/`expandenv` 保证确定性渲染）+ Helm 扩展（include/tpl/required/lookup），父子 chart 递归渲染、values 隔离。**主线三（Release 存储）**：`pkg/storage.Storage` + `driver.Driver`（Secret/ConfigMap/Memory，默认 Secret，Helm 4 沿用），每 revision 一个 gzip+base64 的 protobuf Secret，`--history-max` 在 Create 时清理。辅助：`pkg/releaseutil`（清单拆分 + 按资源类型排序保证依赖顺序、分离 hook）、`pkg/chart/loader`（Chart 加载）、`pkg/downloader`（依赖解析）。四条命令代码高度对称：install=Create、upgrade=Update（三方合并或 SSA）、rollback=取旧清单走 upgrade、uninstall=逆序删除。`helm template` 是 install 的"只渲染不 apply"子集，是 CI/GitOps 的基石。Helm 4 的工程差异：SDK 版本化分包（`pkg/chart/v2`、`pkg/release/v1`）、module 路径 `helm.sh/helm/v4`、日志切 slog、插件增加 Wasm 运行时。从一条命令入口追到底，就能建立 Helm 全链路直觉。
 
 **参考来源**
 

@@ -190,8 +190,8 @@ metadata:
 ```bash
 helm upgrade --install inference ./chart \
   -f values/prod.yaml \
-  --atomic \          # 失败自动 rollback
-  --wait \            # 等 readiness
+  --atomic \          # Helm 4 更名 --rollback-on-failure（旧名仍可用但告警）
+  --wait \            # 等 readiness（Helm 4 基于 kstatus）
   --timeout 15m       # 大模型加载慢
 ```
 
@@ -270,18 +270,19 @@ helm test inference -n prod     # 起这个 Pod 跑健康检查，成功则 rele
 
 ## 9.7 安全最佳实践
 
-1. **chart 来自可信仓库**：用 OCI + cosign 签名（第 5.9 节），`helm install --verify` 校验签名。
+1. **chart 来自可信仓库并验签**：OCI chart 用 **cosign keyless 签名 + 校验**（第 5.9 节），CI 里 `cosign verify`，集群侧用准入控制器（Sigstore Policy Controller / Kyverno / Flux verify）强制；digest 钉版（`oci://.../chart@sha256:...`，Helm 4 支持按 digest 安装）。传统的 `.prov` PGP 校验（`--verify`）仅用于遗留传统仓库。
 2. **Pod Security Standards**：chart 默认 `runAsNonRoot: true`、`readOnlyRootFilesystem: true`，需要特权的（GPU operator）显式开。
 3. **RBAC 最小化**：chart 模板里 `ServiceAccount` + `Role/RoleBinding` 只授必要权限，别图省事用 `cluster-admin`。
 4. **镜像来源**：`image.repository` 指向私有镜像仓库，加 `imagePullSecrets`；不用公网 latest。
 5. **网络策略**：推理服务 chart 默认带 `NetworkPolicy`，只允许网关 namespace 访问推理端口。
+6. **CI 门禁**：`helm lint` + `helm template` 后接 Checkov/KubeSec 扫描渲染产物（2026 年供应链审计对 chart 的默认要求），Helm 4 迁移时同步更新脚本中的旧标志（第 8.9 节）。
 
 ## 本章小结
 
 - **命名靠 `_helpers.tpl` 的 fullname/labels/selectorLabels**，全家资源统一调，不自造 name。
 - **values 用 `schema.json` 强制契约**，AI 场景的 `tensorParallelSize`、GPU 数约束写进去，比 README 强百倍。
 - **模板保持"笨"**：避开 `lookup`、用 `nindent` 不用 `indent`、逻辑放 values 不放模板、不用随机函数。
-- **升级纪律**：钉版本禁 latest、开 HPA 就别写 replicaCount、CRD/PVC/证书加 `resource-policy: keep`、生产用 `--atomic --wait`。
+- **升级纪律**：钉版本禁 latest、开 HPA 就别写 replicaCount、CRD/PVC/证书加 `resource-policy: keep`、生产用 `--atomic`（Helm 4 起 `--rollback-on-failure`）`--wait`。
 - **三层测试**：`helm lint` / `helm unittest` / `helm test`，AI 服务在 test 里发真实推理请求验证模型加载。
 - **选型**：参数化 + 条件渲染选 Helm，纯 patch 选 Kustomize，**别混用**。
 

@@ -73,14 +73,14 @@ $ helm upgrade myrelease mychart -n prod -f values-prod.yaml --reset-values --at
 6. ★ **读取上一版 release**：从 Secret 读 revision N（当前 deployed）的 chart、values、**渲染清单（v_prev）**。
 7. **pre-upgrade Hook**。
 8. ★ **写 Release Secret（revision N+1，状态 pending-upgrade）**。
-9. ★ **三方合并 Patch**：对每个资源，用 ① v_prev 清单 ② 集群现状 ③ v3 清单 算出 patch，应用：
+9. ★ **apply 变更**：对每个资源算出 patch 并应用。apply 模型分两代（第 3 章 3.4.1）：Helm 3 全程**三方合并 Patch**；Helm 4 则**闩锁**——老 release（Helm 3 装的、或未切换过的）继续走三方合并，Helm 4 新装的 release 走 **Server-Side Apply**（字段所有权在 apiserver，冲突时报错、可用 `--force-conflicts` 强制接管）。无论哪种模型，语义保持一致：
    - 资源在 v3 有、v_prev 有 → patch（保留集群里 chart 之外的改动）。
    - 资源在 v3 有、v_prev 无 → 创建（chart 新增的）。
    - 资源在 v3 无、v_prev 有 → 删除（chart 删掉的）。
    - 资源在 v3 无、v_prev 无（人工建的）→ 不动。
 10. **post-upgrade Hook**。
 11. **--wait ready / --atomic 回滚**：
-    - `--atomic`：若 upgrade 失败或超时，**自动 rollback 到 N**（生产强烈推荐，避免半升级状态）。
+    - `--atomic`（Helm 4 起更名 **`--rollback-on-failure`**，旧名 4.0 仍可用但告警）：若 upgrade 失败或超时，**自动 rollback 到 N**（生产强烈推荐，避免半升级状态）。
 12. ★ **更新两个 Secret**：revision N 状态 `deployed → superseded`；revision N+1 状态 `pending-upgrade → deployed`。
 
 **`--reset-values` vs `--reuse-values`**（易混）：
@@ -104,7 +104,7 @@ $ helm rollback myrelease 3 -n prod --wait
 1. **读取目标 revision**：从 Secret `sh.helm.release.v1.myrelease.v3` 取出那一版的**渲染清单 + chart + values**。
 2. **pre-rollback Hook**。
 3. **写新 Secret（revision N+1，状态 pending-rollback）**：内容是 revision 3 的清单。
-4. ★ **三方合并 Patch**：用 ① 当前 deployed（rev N）清单 ② 集群现状 ③ 目标 revision 3 的清单，算出 patch 应用。本质是"用旧清单做一次 upgrade"——它**不是简单地删除/重建**，而是把集群状态往 revision 3 的清单收敛，**保留你 chart 之外的手动改动**（除非那些改动在 revision 3 里不存在）。
+4. ★ **apply 变更**：用 ① 当前 deployed（rev N）清单 ② 集群现状 ③ 目标 revision 3 的清单，算出 patch 应用（Helm 4 新 release 为 SSA apply）。本质是"用旧清单做一次 upgrade"——它**不是简单地删除/重建**，而是把集群状态往 revision 3 的清单收敛，**保留你 chart 之外的手动改动**（除非那些改动在 revision 3 里不存在）。
 5. **post-rollback Hook**。
 6. **--wait ready**。
 7. **更新 Secret**：rev N → superseded，rev N+1（内容同 rev3）→ deployed。
@@ -135,10 +135,10 @@ $ helm uninstall myrelease -n prod          # 或 --keep-history
 |---|---|---|---|---|
 | 目标 | 首次部署 | 换 chart/values | 回到历史 revision | 移除 |
 | revision 变化 | 创 1 | N → N+1 | N → N+1（内容=目标版） | 删除所有 |
-| 用到的清单 | 本次渲染 | 本次渲染（三方合并） | **历史 revision 的清单** | 当前 deployed 清单（用于删） |
+| 用到的清单 | 本次渲染 | 本次渲染（三方合并 / SSA） | **历史 revision 的清单** | 当前 deployed 清单（用于删） |
 | 人工改动 | 无（新建） | **保留**（三方合并） | 保留 | 删除（Helm 管的） |
 | 失败状态 | failed/pending-install | failed/pending-upgrade | failed/pending-rollback | 仍可能残留 |
-| `--atomic`（自动回滚） | N/A | ✅ 强烈建议 | N/A | N/A |
+| `--atomic`（自动回滚；Helm 4 更名 `--rollback-on-failure`） | N/A | ✅ 强烈建议 | N/A | N/A |
 | `--wait` 等待 ready | 可选 | 推荐 | 推荐 | 可选 |
 
 ## 4.7 典型故障与定位
@@ -146,7 +146,7 @@ $ helm uninstall myrelease -n prod          # 或 --keep-history
 | 症状 | 原因 | 处理 |
 |---|---|---|
 | upgrade 后手动 scale 的副本被改回 | 用了 `--reuse-values` 且新 values 没带副本；或二方合并工具 | 三方合并本应保留；确认是 Helm v3 而非 `kubectl apply` |
-| release 卡 `pending-upgrade` | upgrade 中途崩溃（CI 被杀、网络断） | `helm rollback myrelease <last-good>`；或手动改 Secret annotation（第 8 章） |
+| release 卡 `pending-upgrade` | upgrade 中途崩溃（CI 被杀、网络断） | `helm rollback myrelease 上一个好版本`；或手动改 Secret annotation（第 8 章） |
 | `helm upgrade` 报 "has been updated" 不生效 | 默认 `--reset-values` 丢了配置 | 显式带 `-f values-prod.yaml` 或 `--reuse-values` |
 | uninstall 后 PVC 被删 | Chart 没给 PVC 加 `helm.sh/resource-policy: keep` | Chart 里加该注解；或用 StatefulSet volumeClaimTemplates + retention policy |
 | 渲染出的清单有 `<no value>` 或空行导致 YAML 解析失败 | 模板没做空白修剪、`--set` 给了空值 | 用 <code v-pre>{{- -}}</code> 修剪、`required` 强制必填 |
@@ -155,7 +155,7 @@ $ helm uninstall myrelease -n prod          # 或 --keep-history
 
 ## 本章小结
 
-Helm 的四条核心命令各有清晰时序：`install`（加载→合并 values→渲染→pre-install hook→写 pending Secret→apply→post hook→wait→deployed）、`upgrade`（读上一版清单→三方合并 Patch→apply→`--atomic` 失败自动回滚→旧版 superseded / 新版 deployed）、`rollback`（取目标 revision 清单，本质上是用旧清单做一次 upgrade，会新增 revision 而非"指针回拨"）、`uninstall`（按逆序删资源，跳过 `resource-policy: keep`，删 release Secret）。核心机制是**三方合并 Patch**——升级/回滚都保留 chart 之外的手动改动。关键易错点：默认 `--reset-values` 会覆盖上次配置（生产永远显式带 `-f`）、`--atomic`+`--wait` 是生产升级标配、rollback 会新增 revision、卡 `pending-*` 要先 rollback 救援。把这四条命令的时序和故障模式记牢，日常发布就稳了。
+Helm 的四条核心命令各有清晰时序：`install`（加载→合并 values→渲染→pre-install hook→写 pending Secret→apply→post hook→wait→deployed）、`upgrade`（读上一版清单→apply 变更→`--atomic`/`--rollback-on-failure` 失败自动回滚→旧版 superseded / 新版 deployed）、`rollback`（取目标 revision 清单，本质上是用旧清单做一次 upgrade，会新增 revision 而非"指针回拨"）、`uninstall`（按逆序删资源，跳过 `resource-policy: keep`，删 release Secret）。核心机制是升级的 apply 模型：Helm 3 为**三方合并 Patch**（升级/回滚都保留 chart 之外的手动改动），Helm 4 新 release 默认 **Server-Side Apply**（字段所有权在 apiserver，老 release 闩锁原方式）。关键易错点：默认 `--reset-values` 会覆盖上次配置（生产永远显式带 `-f`）、`--atomic`（Helm 4 起 `--rollback-on-failure`）+`--wait` 是生产升级标配、rollback 会新增 revision、卡 `pending-*` 要先 rollback 救援。把这四条命令的时序和故障模式记牢，日常发布就稳了。
 
 **参考来源**
 

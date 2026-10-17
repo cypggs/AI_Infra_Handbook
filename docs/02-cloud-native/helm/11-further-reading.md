@@ -10,6 +10,7 @@
 | [Chart Template Guide](https://helm.sh/docs/chart_template_guide/) | Go template + 内置对象 + Sprig 函数全表 | ★★★ |
 | [Chart Best Practices Guide](https://helm.sh/docs/chart_best_practices/) | 命名、labels、values、模板的官方约定 | ★★★ |
 | [Helm CLI Reference](https://helm.sh/docs/helm/helm/) | 每个子命令的完整参数 | ★★ |
+| [Helm 4 Overview & Changelog](https://helm.sh/docs/overview/) | Helm 4 的新特性与完整变更记录（当前稳定线 4.3.x） | ★★★ |
 | [FAQ & Tips](https://github.com/helm/helm/blob/main/docs/faq.md) | 三方合并、`lookup`、调试技巧 | ★★ |
 | [Helm v3 迁移指南](https://helm.sh/docs/topics/v2_v3_migration/) | Tiller 移除、Secret 存储的来龙去脉 | ★★ |
 
@@ -19,6 +20,8 @@
 
 - **[Helm 3 的三方合并 Patch 机制](https://github.com/helm/helm/blob/main/pkg/kube/client.go)** —— `pkg/kube/client.go` 的 `Patch` 实现，是第 3.4 节、第 7 章三方合并的源头。结合 K8s 的 [strategic-merge-patch 文档](https://kubectl.docs.kubernetes.io/references/kustomize/glossary/#strategic-merge-patch) 理解 list 的 merge key 行为。
 - **[Helm 3 预览博客系列](https://helm.sh/blog/helm-3-preview-pt0/)**（官方 2019）—— 逐篇讲清 Tiller 移除、Release 存储改 Secret、命名空间隔离的设计决策。第 3 章架构演进的史料。
+- **[Helm 4 发布博客（官方）](https://helm.sh/blog/helm-4-released/)** 与 **[HIP-0023：Server-Side Apply](https://helm.sh/community/hips/hip-0023/)** —— 2025-11 Helm 4.0 GA 的官方说明与 SSA 设计提案，第 3.4.1 节的出处；迁移细节见 [Helm 4 Migration Guide（社区）](https://www.matthewswong.com/en/blog/helm-4-migration-guide/)。
+- **[Helm v4 解读（Jimmy Song，中文）](https://jimmysong.io/blog/helm-4-delivery-and-plugin-rebuild/)** —— 从交付范式、插件重建、供应链治理三个角度解读 Helm 4，中文社区的高质量综述。
 - **[Helm 3 支持 OCI 仓库](https://helm.sh/blog/stable-charts-are-here/)** —— OCI 作为 chart 分发主流的官方说明，配合 cosign 签名（第 5.9 节）。
 - **[helm/helm 仓库源码](https://github.com/helm/helm)** —— 代码可读性极高，建议按第 6 章的"三条主线"读：`cmd/helm/install.go` → `pkg/action/install.go` → `pkg/kube`。
 
@@ -90,6 +93,7 @@ Helm 不是孤岛，它在 AI 基础设施栈里有明确位置。下表是继�
 | 卸载后 PVC/权重没了？ | 7.4 场景 7、9.4 保留策略 |
 | 该用 Helm 还是 Kustomize？ | 1.4 对比表、9.6 选型、10.3 Q23 |
 | GitOps 下 Helm 怎么用？ | 8.3 GitOps、10.3 Q21 |
+| Helm 4 有什么变化、怎么迁移？ | 1.4 Helm 4、3.4.1 SSA、8.9 迁移清单、10.3 Q25 |
 | 三方合并失效怎么排查？ | 10.3 Q20、Q24 |
 
 ## 本章小结

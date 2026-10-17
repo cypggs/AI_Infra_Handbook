@@ -35,21 +35,26 @@ entries:
 helm package mychart/                      # 生成 mychart-1.4.2.tgz
 helm push mychart-1.4.2.tgz oci://registry.example.com/charts
 
-# 拉/装
+# 拉/装（按版本 tag）
 helm pull oci://registry.example.com/charts/mychart --version 1.4.2
 helm install myrelease oci://registry.example.com/charts/mychart --version 1.4.2
+
+# Helm 4 新增：按 digest 安装（内容寻址，防 tag 被篡改，供应链推荐）
+helm install myrelease oci://registry.example.com/charts/mychart@sha256:9f2b...
 ```
 
 OCI 的优势（相对传统 repo）：
 
 - **复用现有 registry**（Harbor/ACR/ECR/GHCR/自建 distribution），统一镜像与 chart 的存储/权限/复制/扫描/签名。
-- **内容寻址 + 可复制**：registry 间的复制、签名（cosign/Sigstore）、漏洞扫描都现成。
+- **内容寻址 + 可复制**：registry 间的复制、签名（cosign/Sigstore）、漏洞扫描都现成；Helm 4 的 digest 安装让"按内容寻址引用 chart"成为一等能力。
 - **更好的多租户/权限**：registry 的 RBAC 直接管 chart 访问。
 - **更稳定**：不依赖一个 `index.yaml` 大文件，按 chart/版本分片。
 
-`helm registry login` 鉴权，`helm push`/`pull` 推拉。**官方已把 OCI 作为推荐分发方式**，传统 Chart 仓库仍支持但不再获得新能力。
+`helm registry login` 鉴权，`helm push`/`pull` 推拉。**官方已把 OCI 作为推荐分发方式**，传统 Chart 仓库仍支持但不再获得新能力；2025 年以来生态加速向 OCI 迁移（ACR 下架传统 chart 仓库、Harbor 弃用 ChartMuseum、Istio chart 迁 GHCR，见第 2 章 2.5）。
 
-> **生态导航**：搜现成 Chart 用 [Artifact Hub](https://artifacthub.io/)（CNCF 的包中心，聚合各 repo/OCI 的 chart）。
+> **Helm 4 迁移坑**：`helm registry login` 在 Helm 4 里**只接受纯域名**（`helm registry login registry.example.com`，不再接受 `https://registry.example.com/charts` 这种带 scheme/path 的 URL）——CI 脚本里凡是传完整 URL 的登录命令都要改。
+
+> **生态导航**：搜现成 Chart 用 [Artifact Hub](https://artifacthub.io/)（CNCF 的包中心，聚合各 repo/OCI 的 chart；已支持 OCI 仓库索引与 Verified Publisher 认证）。Bitnami 许可证变更后，社区出现了 MIT 协议的 **HelmForge** 作为替代 chart 源（OCI 发布 + cosign 签名，见 [Portainer 社区的讨论](https://github.com/orgs/portainer/discussions/13130)）。
 
 ## 5.2 依赖解析（组合层）
 
@@ -181,6 +186,15 @@ Data:
 | `helm upgrade --install` | "存在则升级，不存在则装"（CI/CD 幂等） |
 | `helm diff upgrade ...`（helm-diff 插件） | 渲染并 diff 两个版本清单（发布前 review 必备） |
 
+**Helm 4 标志变更**（旧标志在 4.0 仍可用但打印弃用警告，计划在后续小版本移除，CI 脚本尽快迁移）：
+
+| Helm 3 标志 | Helm 4 新名 | 说明 |
+|---|---|---|
+| `--atomic` | `--rollback-on-failure` | 失败/超时自动回滚 |
+| `--force` | `--force-replace` | 删除重建而非 patch |
+
+另外 Helm 4 新增 `--server-side`（对老 release 一次性切换到 SSA apply）与 `--force-conflicts`（SSA 冲突时强制接管字段所有权），见第 3 章 3.4.1。
+
 ## 5.7 Hook 与 `helm test`（一次性动作与测试）
 
 ### Hook
@@ -229,12 +243,37 @@ spec:
 
 它是"模板引擎做不到时的逃生舱"，但也让发布流程更难审计（多了一步外部逻辑），生产用要纳入 review。
 
+> **Helm 4 重大变化**：post-renderer **不再接受可执行文件路径**，必须实现为 **Wasm 插件**（插件类型 `post-renderer`），`--post-renderer` 传的是插件名。这是 Helm 4 插件系统重建的一部分（见下节 5.8.1）——动机是安全：旧机制等于"让 chart 调用方在本机执行任意程序"，Wasm 沙箱把这一步隔离起来。
+
+### 5.8.1 Helm 4 的 Wasm 插件系统
+
+Helm 4 把插件机制重建为 **WebAssembly 沙箱**（基于 Extism 运行时），启动时可选启用，三类插件：
+
+| 类型 | 作用 | 例子 |
+|---|---|---|
+| CLI 插件 | 给 `helm` 加子命令 | `helm diff`、`helm unittest` 类工具 |
+| getter 插件 | 自定义 chart 来源协议 | 从内部制品系统拉 chart |
+| post-renderer 插件 | 渲染后处理清单 | 注入 sidecar、套 Kustomize |
+
+legacy（Helm 3 时代的脚本）插件在 Helm 4 中**仍兼容**，但生态正在向 Wasm 插件迁移——对平台团队而言，自研 post-renderer/插件应尽快改成 Wasm 形式，别等旧机制退役。
+
 ## 5.9 Chart Signing（完整性）
 
 两种机制：
 
-1. **Helm 原生 provenance**：`helm package --sign --key KEY` 生成 `.prov` 文件（ detached PGP 签名），`helm verify` 校验。`--verify` 安装时校验。传统 repo 时代用，依赖 GPG key 分发。
-2. **OCI + cosign/Sigstore**：OCI chart 用 **cosign** 签名（keyless via Fulcio/Rekor，见容器运行时第 8 章），准入控制器（如 Sigstore Policy Controller / Kyverno）在部署侧强制"只许运行已签名 chart"。**这是供应链安全的当前推荐**。
+1. **Helm 原生 provenance（传统，渐成遗留）**：`helm package --sign --key KEY` 生成 `.prov` 文件（ detached PGP 签名），`helm verify` 校验。`--verify` 安装时校验。传统 repo 时代的方案，依赖 GPG key 分发，灵活性和生态都弱于 cosign。
+2. **OCI + cosign/Sigstore（当前推荐）**：OCI chart 用 **cosign** 签名——2026 年的主流做法是 **keyless 签名**：CI（如 GitHub Actions OIDC）自动获取短期证书（Fulcio）并记录到透明日志（Rekor），无需管理长期私钥：
+
+   ```bash
+   helm push mychart-1.4.2.tgz oci://registry.example.com/charts
+   cosign sign registry.example.com/charts/mychart:1.4.2
+   # 消费侧（人或准入控制器）校验：
+   cosign verify registry.example.com/charts/mychart:1.4.2 \
+     --certificate-identity-regexp "https://github.com/myorg/.*" \
+     --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+   ```
+
+   配合 **SBOM / SLSA provenance attestation**（`cosign attest` / `cosign verify-attestation`）与 **digest 钉版**（第 8 章），并在部署侧用准入控制器（Sigstore Policy Controller / Kyverno / Flux 的 `verify` 配置）强制"只许运行已签名 chart"——这是 Helm 供应链安全的当前标准姿势（第 8 章 8.3 的 CI 流水线即按此组织）。
 
 ## 5.10 模块全景对照
 
@@ -260,11 +299,14 @@ spec:
 
 ## 本章小结
 
-Helm 的核心模块按"分发→组合→参数→渲染→扩展→发布→记录→完整性"分层：**Chart 仓库/OCI registry** 分发（OCI 是当前推荐，复用 registry 的权限/复制/扫描/签名），**依赖解析**用 `Chart.yaml dependencies` 组合子 chart（父子 values 隔离、`global` 共享、condition 开关、import-values 导出），**模板引擎**是 Go template + Sprig + Helm 扩展（注意 `default`/`quote`/`required`/`lookup`/`tpl` 的易错语义，`lookup` 会破坏 GitOps 纯净需慎用），**values 合并**是深合并（map 递归、list 整体替换，优先级 `yaml < -f < --set < --set-string`），**Release 存储**是 Secret（`history-max` 防膨胀），**CLI** 提供 lint/template/install/upgrade/rollback/test 等子命令，**Hook/test** 注解驱动时序动作与冒烟测试，**post-renderer** 是渲染后逃生舱，**Chart Signing** 从 PGP provenance 演进到 OCI+cosign。把这十个模块的功能与边界记牢，遇到任何 Helm 行为都能定位到对应模块。
+Helm 的核心模块按"分发→组合→参数→渲染→扩展→发布→记录→完整性"分层：**Chart 仓库/OCI registry** 分发（OCI 已是事实标准——ACR 下架传统仓库、Harbor 弃用 ChartMuseum；Helm 4 支持按 digest 安装、`registry login` 只收域名），**依赖解析**用 `Chart.yaml dependencies` 组合子 chart（父子 values 隔离、`global` 共享、condition 开关、import-values 导出），**模板引擎**是 Go template + Sprig + Helm 扩展（注意 `default`/`quote`/`required`/`lookup`/`tpl` 的易错语义，`lookup` 会破坏 GitOps 纯净需慎用），**values 合并**是深合并（map 递归、list 整体替换，优先级 `yaml < -f < --set < --set-string`），**Release 存储**是 Secret（`history-max` 防膨胀），**CLI** 提供 lint/template/install/upgrade/rollback/test 等子命令（Helm 4 更名 `--rollback-on-failure`/`--force-replace`），**Hook/test** 注解驱动时序动作与冒烟测试，**post-renderer** 是渲染后逃生舱（**Helm 4 起必须为 Wasm 插件**，插件系统重建为 CLI/getter/post-renderer 三类沙箱扩展），**Chart Signing** 从 PGP provenance 演进到 OCI + cosign keyless 签名 + SBOM/attestation + 准入校验。把这十个模块的功能与边界记牢，遇到任何 Helm 行为都能定位到对应模块。
 
 **参考来源**
 
 - [Helm 命令参考](https://helm.sh/zh/docs/helm/)
+- [Helm 4 Changelog](https://helm.sh/docs/changelog/)
+- [OCI for Helm](https://helm.sh/zh/docs/topics/registries/)
+- [Artifact Hub 的 OCI Helm 仓库文档](https://artifacthub.io/docs/topics/repositories/helm-charts/)
 - [OCI for Helm](https://helm.sh/zh/docs/topics/registries/)
 - [依赖管理](https://helm.sh/zh/docs/helm/helm_dependency/)
 - [Chart Hooks](https://helm.sh/zh/docs/charts_hooks/) / [Chart Tests](https://helm.sh/zh/docs/chart_tests/)

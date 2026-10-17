@@ -125,7 +125,7 @@ Git 仓库（声明式）
 **为什么 GitOps + Helm 是天作之合**：
 
 1. **每次变更可审计**：`git log` 就是部署历史，比 `helm history` 更可信（`helm history` 能被 `helm rollback` 改写，git 不能）。
-2. **三方合并的价值被放大**：GitOps 控制器频繁 sync，三方合并确保它不会冲掉 HPA/控制器做的弹性伸缩——这正是 GitOps "声明式 + 不破坏现场"的根基。
+2. **apply 语义收敛**：GitOps 控制器频繁 sync，Helm 的 apply 模型（三方合并 / Helm 4 的 SSA）确保它不会冲掉 HPA/控制器做的弹性伸缩——SSA 让字段所有权在 apiserver 显式化后，多控制器共存的可诊断性更好。2026 年起 Flux 2.8 已在 Helm 集成中支持 Helm v4 的 Server-Side Apply，Argo CD 与 Helm v4 的组合也是当前生产主流。
 3. **漂移检测**：Argo CD 能检测"集群现状 ≠ Git 声明"，发出告警。
 
 > **避坑**：GitOps 下**不要**再让人在集群里 `kubectl scale` 或 `helm upgrade`——两个真相源打架。要改副本数，改 Git 里的 `values.yaml`。
@@ -294,17 +294,49 @@ helm get manifest inference -n prod              # 当前渲染清单
 | chart 改不动某字段 | 该字段被 `lookup` 或外部控制器锁定 | `helm get manifest` 对比；用 post-renderer 改 |
 | list 型字段（如 env）升级后部分丢失 | strategic-merge-patch 按 merge key 合并，你的 list 缺 key | 给 list 项加稳定的 name 作为 merge key |
 
+## 8.9 Helm 3 → 4 迁移清单（2025-11 起生产必备）
+
+Helm 4.0 于 2025-11-12 GA，当前稳定线 4.3.x（4.3.1 发布于 2026-10-14）；Helm 3 只剩安全修复（官方原计划至 2026-11-11，2026 年 6 月据报延长至 2027-02-10，以 helm/helm 仓库公告为准）。迁移本身很轻——**chart 不用改、release 不用迁**（Helm 4 直接读 Helm 3 的 release Secret），工作量几乎全在 CLI 脚本与插件：
+
+**升级前检查（按踩坑频率排序）**：
+
+1. **全文搜 CI 脚本**：`--atomic` → `--rollback-on-failure`、`--force` → `--force-replace`（旧名在 4.0 仍可用但打印弃用警告，后续小版本会移除）。
+2. **`helm registry login` 只传纯域名**：`helm registry login https://registry.example.com/charts` 会报错，改成 `helm registry login registry.example.com`。
+3. **post-renderer 可执行文件路径**：Helm 4 不再接受，必须改成 Wasm 插件（插件类型 post-renderer，`--post-renderer` 传插件名）；顺带盘点 legacy 插件，规划向 Wasm 迁移。
+4. **插件 hook 名**：`install`/`delete` 改为 `pre-install`/`post-install` 等标准名。
+5. **Go SDK 使用者**：import 路径 `helm.sh/helm/v3` → `helm.sh/helm/v4`，包版本化（`pkg/chart/v2`、`pkg/release/v1`），日志接口换 slog。
+6. **集群版本**：Kubernetes ≥ 1.27；Helm 自身先升到 3.14+ 再切 4。
+
+**升级后预期行为变化**：
+
+- **新装的 release 默认 SSA**：字段冲突会**报错而非静默覆盖**（报错会指明占着字段的 manager），必要时 `--force-conflicts` 强制接管；老 release（Helm 3 装的）闩锁保持三方合并，想统一可 `helm upgrade --server-side=true` 逐一切换。
+- **`--wait` 基于 kstatus**：等待语义更标准，可用 `helm.sh/readiness-success` / `helm.sh/readiness-failure` 注解定制就绪条件（对大模型加载场景友好，见第 3 章 3.6）。
+- **构建可复现**：`helm package` 输出按内容哈希确定，配合 cosign 签名做可验证发布更顺。
+
+## 8.10 AI 应用交付中的 Helm：LLM 推理与 AI 网关的打包事实标准
+
+在 AI 平台侧，Helm 在 2025-2026 年进一步巩固了"AI 应用交付的打包格式"地位：
+
+- **推理服务**：vLLM、Triton、TGI 等的生产部署普遍以 Helm chart 分发；大模型场景的典型 chart 参数（GPU 数、并行策略、模型路径、KV cache 配置）正是本主题 8.4 节 wrapper chart 模式的应用。
+- **LLM 路由 / AI 网关**：[llm-d](https://llm-d.ai/) 项目的 Router 以 OCI chart 发布（`oci://ghcr.io/llm-d/charts/llm-d-router-standalone` 等，支持 Gateway API），LiteLLM、Bifrost、Kong AI Gateway 等也都有官方 Helm chart——AI 网关层的安装方式与基础设施组件完全同构。
+- **GPU 与调度生态**：GPU Operator、Kueue、Volcano 等继续以 Helm chart 为首选安装方式；云厂商的 AI 平台组件（如阿里云 ACK 的 `ack-dify`、`ack-arena` 等）同样以 chart 目录分发。
+
+> 对 AI 平台工程师的含义：**Helm 是 AI 基础设施各层（GPU 调度 → 推理引擎 → 网关）共同的"安装语言"**，掌握本主题的 chart 设计、values 治理与 OCI 分发，等于拿到了组装整套 AI 平台的通用工具。
+
 ## 本章小结
 
 - **多环境用分层 values，不复制**：基线 + `values/<env>.yaml` 差异叠加；`prod` 永远钉死镜像 tag。
 - **敏感数据用 External Secrets Operator**：chart 只引用，明文不进 Git；轮换靠 ESO 定时刷新。
-- **GitOps（Argo CD / Flux）+ Helm 是生产标配**：Git 是唯一真相源，三方合并让 GitOps 的频繁 sync 不破坏 HPA/控制器做的弹性伸缩——这正是 Helm 在 GitOps 下的根本价值。
+- **GitOps（Argo CD / Flux）+ Helm 是生产标配**：Git 是唯一真相源；三方合并 / Helm 4 SSA 让 GitOps 的频繁 sync 不破坏 HPA/控制器做的弹性伸缩——这是 Helm 在 GitOps 下的根本价值。
 - **三个 AI 落地案例**：vLLM/Triton 推理服务（wrapper chart + 上游依赖）、Ray 集群（依赖顺序 + CRD 保留策略）、多租户 GPU 配额（一 chart 多 release）。
 - **版本铁律**：永不覆盖已发布的 chart 版本；金丝雀/蓝绿靠多 release + 流量切换实现。
+- **Helm 4 迁移**：chart/release 零迁移，改的是 CI 脚本（`--rollback-on-failure`、registry login 域名）、post-renderer 插件化、SDK import 路径；新 release 默认 SSA 后字段冲突会显式报错。
 
 **参考来源**
 
 - [Argo CD + Helm 官方文档](https://argo-cd.readthedocs.io/en/stable/user-guide/helm/)
+- [Helm 4 发布博客（官方）](https://helm.sh/blog/helm-4-released/)
+- [Helm 4 Migration Guide（社区）](https://www.matthewswong.com/en/blog/helm-4-migration-guide/)
 - [External Secrets Operator](https://external-secrets.io/)
 - [vLLM Helm Chart](https://github.com/vllm-project/vllm-operators)
 - [RayCluster Helm Chart](https://docs.ray.io/en/latest/cluster/kubernetes/index.html)

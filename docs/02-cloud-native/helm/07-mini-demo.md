@@ -19,6 +19,8 @@
 - **零依赖、即跑即看**——不用搭 K8s，不用装 Helm，不用 PyYAML，`python3 -m helm_mini.demo` 直接出结果。
 - **代码可读**——每个模块对应 Helm 一个 `pkg/*`，命名一致，读完能反推真实 Helm 的代码地图（见第 6 章）。
 
+> **版本语义说明**：本 demo 模拟的是 **Helm 3 的客户端三方合并**语义（第 3 章 3.4）。**Helm 4 新安装的 release 默认改为 Server-Side Apply**（字段所有权在 apiserver，见 3.4.1）——apply 模型的"人味"从客户端启发式变成了服务端 field manager 机制，但 Release 状态机、revision 递增、Secret 存储等本 demo 展示的行为在 Helm 4 中完全不变，demo 依然是对理解 Helm 内核最有效的缩微模型。
+
 ## 7.2 目录结构
 
 ```

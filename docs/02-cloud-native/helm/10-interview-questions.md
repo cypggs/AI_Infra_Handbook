@@ -1,6 +1,6 @@
 # 10. 面试题精讲：从概念到生产
 
-> 一句话理解：本章用 24 道题（初级 8、中级 9、高级 7）覆盖 Helm 的概念、机制、实现与生产落地——每题不只给"答案"，更给"为什么这样设计"的推理路径，帮你把前 9 章的知识点连成可应试、可深聊的体系。
+> 一句话理解：本章用 25 道题（初级 8、中级 9、高级 8）覆盖 Helm 的概念、机制、实现与生产落地——每题不只给"答案"，更给"为什么这样设计"的推理路径，帮你把前 9 章的知识点连成可应试、可深聊的体系。
 
 ## 10.1 初级：概念与基本用法
 
@@ -56,7 +56,7 @@ v3 的解法：**移除 Tiller，完全客户端渲染**。Helm CLI 用调用者
 
 v2 用 ConfigMap，v3 改用 Secret，原因：①values 里常有敏感信息（密码、token），ConfigMap 明文不安全；②Secret 的访问受 RBAC 更严格控制。Secret 名字固定：`sh.helm.release.v1.<release>.v<revision>`，type `helm.sh/release.v1`。内容是 gzip + base64 + protobuf 编码的整个 Release 对象（含渲染后的清单）。每个 revision 一个 Secret，组成"undo log"。
 
-**Q11. ★ 三方合并是什么？为什么 Helm 要三方而不是两方？请举例。**
+**Q11. ★ 三方合并是什么？为什么 Helm 要三方而不是两方？请举例。Helm 4 有什么变化？**
 
 `kubectl apply` 是两方合并（live vs new）：用新清单覆盖集群。问题是**会冲掉 chart 之外的手动改动**。比如人工 `kubectl scale` 把副本从 2 改到 10，下次 `apply`（chart 里还是 2）会把 10 冲回 2。
 
@@ -67,6 +67,8 @@ Helm 三方合并同时参考 **old**（上一版 chart 渲染的）、**live**�
 - chart **删除**的字段：若 live 被人工改过则保留，否则删除。
 
 举例（第 7 章场景 3）：人工扩容 replicas 2→10，`helm upgrade` 只换镜像（chart 的 replicas 没变），三方合并保留 replicas=10。这就是 Helm 相比裸 apply 的根本安全优势（详见第 3.4 节）。
+
+**Helm 4 的变化**（加分项）：新安装的 release 默认改用 **Server-Side Apply**（HIP-0023）——合并决策从客户端搬到 apiserver，Helm 以 field manager `helm` 注册字段所有权，冲突时报错而不是静默猜测（`--force-conflicts` 强制接管）；升级/回滚"闩锁"沿用 release 之前的 apply 方式，Helm 3 的老 release 仍是三方合并，可显式 `--server-side` 切换（详见第 3.4.1 节）。
 
 **Q12. Helm 是怎么实现三方合并的？list 怎么合并？**
 
@@ -100,10 +102,10 @@ Hook 是带 `helm.sh/hook` 注解的资源，在 release 生命周期的特定�
 传统 chart 仓库是个静态 HTTP 服务 + `index.yaml`， OCI（2022 GA）把 chart 当成普通镜像存：
 
 - **统一基础设施**：和容器镜像用同一套 registry（Harbor/ACR/ECR）、同一套权限、同一套扫描。
-- **不可变 + 签名**：OCI digest 不可变，配合 cosign 签名验证来源（`helm install --verify`）。
+- **不可变 + 签名**：OCI digest 不可变，Helm 4 支持**按 digest 安装**（`oci://.../chart@sha256:...`），配合 cosign keyless 签名在 CI/准入侧验证来源（`cosign verify`）。
 - **更快的分层拉取**、更好的镜像缓存命中。
 
-现在官方推荐用 OCI（`helm push/pull oci://...`），传统 HTTP 仓库逐步淡出。
+现在官方推荐用 OCI（`helm push/pull oci://...`），传统 HTTP 仓库正在退出历史舞台（ACR 已下架、Harbor 弃用 ChartMuseum，见第 2 章 2.5）；Helm 4 的一个 breaking change 是 `helm registry login` 只接受纯域名。
 
 ## 10.3 高级：实现与生产落地
 
@@ -177,12 +179,24 @@ AI 平台多数场景（推理服务、Ray、配额）参数多、有条件分�
 5. 若是 list 字段部分丢失 → 检查是否缺 merge key（strategic-merge 退化成整体替换）。
 6. 检查 `helm history` 和 `get values --revision`，确认升级真的用了你以为的 values（`--reuse-values` 陷阱）。
 
+**Q25. Helm 4.0 带来了哪些重大变化？迁移要注意什么？**
+
+Helm 4.0 于 2025-11-12 GA（六年来的首个大版本），核心变化五条：
+
+1. **Apply 模型**：新安装默认 **Server-Side Apply**（HIP-0023），字段所有权交给 apiserver；升级/回滚闩锁沿用原 release 的 apply 方式；Helm 3 老 release 仍可显式 `--server-side` 切换；冲突用 `--force-conflicts` 处理。
+2. **插件系统重建**：Wasm 沙箱插件（CLI / getter / post-renderer 三类），legacy 插件兼容但生态在向 Wasm 迁移。
+3. **post-renderer 插件化**：不再接受可执行文件路径，必须做成插件。
+4. **`--wait` 基于 kstatus**，支持 `helm.sh/readiness-success`/`readiness-failure` 注解；OCI 支持按 digest 安装。
+5. **工程面**：可复现构建、内容寻址缓存、slog 结构化日志、SDK 版本化（module 变为 `helm.sh/helm/v4`）。
+
+迁移要点（第 8.9 节清单）：**chart 和 release 零迁移**（v2 chart 兼容，直接读 Helm 3 的 release Secret），要改的是 CI 脚本——`--atomic`→`--rollback-on-failure`、`--force`→`--force-replace`、`helm registry login` 只传域名，前置 K8s 1.27+ / Helm 3.14+。
+
 ## 本章小结
 
 - **初级**抓概念边界：Chart/Release/Repository、version/appVersion/apiVersion、values 优先级、状态机。
-- **中级**抓核心机制：Tiller 为何移除、Secret 存储、**三方合并（最高频考点）**、Hook、resource-policy、OCI。
-- **高级**抓链路与生产：完整 install 链路、崩溃恢复、三方合并失效模式、GitOps 交互、chart 架构设计、排查方法。
-- **三方合并是 Helm 面试的"皇冠"**：务必能讲清"为什么三方而非两方"+ 具体例子 + list 的 merge key 行为 + 失效场景。
+- **中级**抓核心机制：Tiller 为何移除、Secret 存储、**三方合并（最高频考点，Helm 4 起需答出 SSA 的演进）**、Hook、resource-policy、OCI。
+- **高级**抓链路与生产：完整 install 链路、崩溃恢复、三方合并/SSA 失效模式、GitOps 交互、chart 架构设计、排查方法，以及 **Helm 4 迁移**这一 2025-2026 新考点。
+- **三方合并是 Helm 面试的"皇冠"**：务必能讲清"为什么三方而非两方"+ 具体例子 + list 的 merge key 行为 + 失效场景；再补一句 Helm 4 的 SSA 改造，就是满分答案。
 
 **参考来源**
 

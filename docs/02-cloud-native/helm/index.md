@@ -18,12 +18,12 @@ Helm 正是解决这四件事的：**Chart（打包）→ values（参数化）�
 阅读完本主题后，你应该能够：
 
 1. 解释 Helm 的核心抽象：Chart、values、template（Go template + Sprig）、Release、Revision、Repository、Library Chart、Subchart/依赖。
-2. 画出 Helm v3 的架构（CLI → 渲染 → 调 kube-apiserver 的三方合并 Patch），说清"为什么 Helm v3 删掉了 Tiller"、release 元数据存哪里（namespace 内的 Secret）。
+2. 画出 Helm 的架构（v3 客户端三方合并 → v4 新安装默认 Server-Side Apply），说清"为什么 Helm v3 删掉了 Tiller"、release 元数据存哪里（namespace 内的 Secret）。
 3. 写一个生产级 Chart：`Chart.yaml`/`values.yaml`/`templates/` 结构，模板里用 <code v-pre>{{ .Values.x }}</code>、<code v-pre>{{ include }}</code>、命名约定、`_helpers.tpl`、`tpl` 函数、按条件渲染（`if`/`range`/`with`）。
 4. 理解 Helm 的 **Release 生命周期**：install → upgrade（三方合并 Patch）→ rollback → uninstall，以及为什么"升级后手动 kubectl 改的东西 Helm 下次不一定覆盖"。
 5. 掌握 values 的分层与覆盖顺序：`values.yaml` < `values.yaml` 里的子 chart < `-f values-prod.yaml` < `--set` < `--set-string`，以及全局值 `global`。
 6. 区分 Helm 与 **Kustomize**（无模板的 overlay 叠加），知道各自适用场景与"何时该用哪个、何时都不该用"。
-7. 理解高级特性：Hook（pre-install/post-upgrade/helm test）、post-renderer（渲染后再改一道的"逃生舱"）、OCI registry（Chart 当 OCI 制品）、Chart Signing（provenance）/Cosign、延迟绑定（lookup）、`helm.sh/resource-policy: keep`。
+7. 理解高级特性：Hook（pre-install/post-upgrade/helm test）、post-renderer（渲染后再改一道的"逃生舱"，Helm 4 起必须做成 Wasm 插件）、OCI registry（Chart 当 OCI 制品，Helm 4 支持按 digest 安装）、Chart Signing（provenance）/Cosign、延迟绑定（lookup）、`helm.sh/resource-policy: keep`。
 8. 跑通并扩展本主题的 Mini Demo——一个纯 Python、无需真实集群的"微型 Helm"：Chart 结构 + 简化模板引擎 + values 合并 + Release 状态机（install/upgrade/rollback）+ 三方合并 Diff。
 9. 回答生产实践与面试题：私有 Chart 仓库/OCI 选型、CI/CD 与 GitOps（ArgoCD/Flux 与 Helm 集成）、Chart 版本与镜像版本策略、values 安全（Secret 不进 values）、helm release 卡在 pending-upgrade 如何救。
 
@@ -44,9 +44,9 @@ Helm 正是解决这四件事的：**Chart（打包）→ values（参数化）�
 
 ## 本章结构
 
-1. [背景](01-background) — 从手写 YAML 到包管理的演进，Helm 的历史（v1/v2 Tiller → v3），它解决的核心问题，与 Kustomize 的关系。
+1. [背景](01-background) — 从手写 YAML 到包管理的演进，Helm 的历史（v1/v2 Tiller → v3 无 Tiller → 4.0 SSA + Wasm 插件），它解决的核心问题，与 Kustomize 的关系。
 2. [核心思想](02-core-ideas) — Chart、values、template（Go template + Sprig 函数）、Release/Revision、Repository、依赖/Library Chart。
-3. [架构设计](03-architecture) — Helm v3 架构（CLI 渲染 → kube-apiserver），为什么删 Tiller，release 存储演进（ConfigMap → Secret），三方合并 Patch。
+3. [架构设计](03-architecture) — Helm 架构（CLI 渲染 → kube-apiserver）：为什么删 Tiller，release 存储演进（ConfigMap → Secret），三方合并 Patch，以及 Helm 4 的 Server-Side Apply 模型。
 4. [Release 工作流程](04-release-workflow) — install/upgrade/rollback/uninstall 全时序，三方合并怎么算"该改什么"，Hook 与生命周期。
 5. [核心模块](05-core-modules) — Chart 仓库/OCI、template 引擎、values 合并、Release 存储、CLI 子命令、Hook/Test、post-renderer、Chart 依赖解析、Chart Signing。
 6. [源码分析](06-source-analysis) — `helm/helm` 仓库结构，`pkg/action`（动作）、`pkg/engine`（模板引擎）、`pkg/releaseutil`、`pkg/lint`、`pkg/cli`、`pkg/kube`（与 apiserver 交互与三方合并）。
@@ -58,4 +58,4 @@ Helm 正是解决这四件事的：**Chart（打包）→ values（参数化）�
 
 ## 一句话总结
 
-Helm 不是一个"运行时"，而是 **Kubernetes 应用的"编译器 + 包管理器 + 发布工具"三合一**：它用 Go template + values 把"参数化的模板"编译成"具体清单"，把一整套对象打包成 Chart 分发复用，并以 Release 的版本化记录让你能安全升级、一键回滚；理解了"Chart = 模板 + 默认值，Release = 一次带版本的渲染结果，三方合并 = Helm 用你上次的 chart、上次的 values、这次的 chart+values 算出最小 diff"，你就理解了 Helm 的全部——剩下的都只是 Sprig 函数与 CLI 语法。
+Helm 不是一个"运行时"，而是 **Kubernetes 应用的"编译器 + 包管理器 + 发布工具"三合一**：它用 Go template + values 把"参数化的模板"编译成"具体清单"，把一整套对象打包成 Chart 分发复用，并以 Release 的版本化记录让你能安全升级、一键回滚；理解了"Chart = 模板 + 默认值，Release = 一次带版本的渲染结果，三方合并（Helm 4 新 release 为 Server-Side Apply）= Helm 用你上次的 chart、上次的 values、这次的 chart+values 算出最小 diff"，你就理解了 Helm 的全部——剩下的都只是 Sprig 函数与 CLI 语法。

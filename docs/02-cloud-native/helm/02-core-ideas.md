@@ -50,7 +50,7 @@ dependencies:                         # 依赖的子 chart
 |---|---|---|
 | `version` | **Chart 自己的版本**（模板/默认值改了就要升） | Helm 用它做依赖解析、仓库索引 |
 | `appVersion` | **被打包应用/镜像的版本** | 只是字符串给人读，Helm 计算时**不读它**；很多人误以为改 appVersion 就换了镜像，其实镜像 tag 是 `values.yaml` 里的 `image.tag` |
-| `apiVersion` | **Chart 格式版本**（v1 = Helm 1 旧格式，v2 = Helm 3） | 不是 K8s 的 apiVersion |
+| `apiVersion` | **Chart 格式版本**（v1 = Helm 1/2 旧格式，v2 = Helm 3 起的格式） | 不是 K8s 的 apiVersion；Helm 4 还引入了实验性的 chart API v3，尚未稳定，生产 chart 仍用 v2 |
 
 > **踩坑预警**：改了镜像却没生效，第一个查的是 `values.yaml` 的 `image.tag`，而不是 `Chart.yaml` 的 `appVersion`。`appVersion` 是装饰性的。
 
@@ -219,7 +219,7 @@ metadata:
 两种形态：
 
 1. **传统 Chart 仓库**：一个 HTTP server，根目录放 `index.yaml`（列出所有 chart 及其版本、各版本的 `.tgz` URL/SHA256），`.tgz` 包放任意位置。`helm repo add` 注册仓库 URL，`helm search repo` 在 index 里搜。
-2. **OCI registry**（2022 GA）：把 Chart 直接当 OCI 制品推到任意兼容 OCI 的 registry（Harbor、ACR、ECR、GHCR、自建 distribution）。引用形如 `oci://registry.example.com/charts/mychart`，带签名/扫描/复制等所有 OCI 能力。**这是当前推荐方向**，传统 Chart 仓库逐渐被取代。
+2. **OCI registry**（2022 GA）：把 Chart 直接当 OCI 制品推到任意兼容 OCI 的 registry（Harbor、ACR、ECR、GHCR、自建 distribution）。引用形如 `oci://registry.example.com/charts/mychart`，带签名/扫描/复制等所有 OCI 能力。**这已是事实标准**：Azure ACR 于 2025 年 3 月下架了传统 chart 仓库功能，Harbor 自 2.6 起弃用 ChartMuseum 后端，Istio 自 1.31 起把 chart 迁到 GHCR 的 OCI 仓库，Bitnami 许可证变更后社区还出现了 MIT 协议的 HelmForge 作为替代源——传统 Chart 仓库正在快速退出历史舞台（Helm 4 进一步支持按 digest 安装 OCI chart，见第 5 章）。
 
 `helm pull` / `helm push`（OCI 用 `helm push chart.tgz oci://...`）用于取/存 chart 包。
 

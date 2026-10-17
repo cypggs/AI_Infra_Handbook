@@ -91,7 +91,7 @@ Helm（"舵"，呼应 Kubernetes 的航海主题）的核心思路是借鉴传�
 - **依赖**：`Chart.yaml` 里声明依赖（`dependencies`），Helm 自动按拓扑顺序安装；Chart 仓库统一版本。
 - **复用**：团队共享一个 Chart，各环境只填不同 values。
 
-## 1.4 Helm 的历史：v1 → v2（Tiller）→ v3（无 Tiller）
+## 1.4 Helm 的历史：v1 → v2（Tiller）→ v3（无 Tiller）→ 4（SSA + Wasm）
 
 理解 Helm v3 为什么长这样，必须知道它的前两代。
 
@@ -114,7 +114,7 @@ Tiller 的设计动机是"让 CI/CD 等无集群管理员权限的系统也能�
 
 这是 v2 最大的痛点。CNCF 社区花了几年也难以彻底解决，最终在 v3 里**直接删掉了 Tiller**。
 
-### Helm v3（2019-11 至今）：客户端渲染，无 Tiller
+### Helm v3（2019-11 ～ 2025-11）：客户端渲染，无 Tiller
 
 v3 是一次重大重写，核心变化：
 
@@ -129,7 +129,32 @@ v3 是一次重大重写，核心变化：
 
 > **一句话记住 v3 的本质**：Helm v3 不再是一个"集群里的服务"，而只是一个**客户端工具**——它读 Chart、用 values 渲染出 YAML，然后用你的 kubeconfig 把这些 YAML `apply` 到 apiserver。它没有自己的特权，也不常驻集群。这也意味着：**Helm 做的所有事，`kubectl apply` 原则上都能做，Helm 只是把"渲染 + 版本化记录"自动化了**。
 
-v3 之后 Helm 进入稳定演进期，没有 v4 的计划。近年的重要增量（在本主题对应章节详述）：OCI registry 支持（Chart 当 OCI 制品，`helm install oci://...`，2022 GA）、post-renderer、Chart Signing、Library Chart、Lookup 函数、`helm install --take-ownership`。
+### Helm 4（2025-11 至今）：Server-Side Apply + Wasm 插件
+
+2025 年 11 月 12 日，Helm 4.0 在 KubeCon North America 上 GA——距 Helm 3 发布整整 6 年（Helm 项目本身也在 2025 年 10 月满 10 岁）。这是六年磨一剑的大版本，核心变化：
+
+| 维度 | Helm 3 | Helm 4 |
+|---|---|---|
+| Apply 模型 | 客户端三方合并（strategic merge patch） | **新安装默认 Server-Side Apply（SSA，HIP-0023）**：字段所有权交给 apiserver；升级/回滚"闩锁"沿用该 release 之前的 apply 方式；Helm 3 装的 release 仍是客户端合并，除非显式传 `--server-side`；新增 `--force-conflicts` |
+| 插件系统 | 任意可执行脚本 | **Wasm 沙箱插件**（CLI / getter / post-renderer 三种类型），安全隔离、跨语言；legacy 插件仍兼容 |
+| post-renderer | 任意可执行文件路径 | **必须做成插件**（传插件名，不再接受可执行路径） |
+| `--wait` | 自实现资源状态轮询 | 基于 **kstatus** 的标准化健康判断，支持 `helm.sh/readiness-success` / `helm.sh/readiness-failure` 注解自定义就绪条件 |
+| OCI | 基本推拉 | 支持**按 digest 安装**（`oci://.../mychart@sha256:...`，供应链不可变）；`helm registry login` 只接受纯域名（不再接受带 scheme/path 的 URL） |
+| 构建/缓存 | 打包含时间戳，缓存按 name/version | **可复现构建**（内容哈希），本地内容寻址缓存 |
+| 日志 / SDK | 传统日志，SDK 包结构多年累积 | **slog 结构化日志**；SDK 版本化分包（`pkg/chart/v2`、`pkg/release/v1`…），Go module 路径变为 `helm.sh/helm/v4` |
+
+迁移时最疼的 breaking changes（详见第 8 章迁移清单）：
+
+- `--atomic` → `--rollback-on-failure`、`--force` → `--force-replace`（4.0 里旧标志仍可用但打印弃用警告，计划在后续小版本移除——CI 脚本里的旧标志要趁现在改掉）。
+- `helm registry login` 只收域名，以前传完整 URL 的 CI 脚本会报错。
+- 插件的 `install`/`delete` hook 名废弃，统一用 `pre-install`/`post-install` 等标准 hook 名。
+- 直接 import Helm Go SDK 的工具（如自研部署器）要改 import 路径与版本化包名。
+
+好消息：**Chart 本身不用迁**——`apiVersion: v2` 的 chart 完全兼容，Helm 4 直接读取 Helm 3 存的 release Secret（无 release 存储迁移）；前置要求 Kubernetes 1.27+、Helm 3.14+。另有一个实验性的 chart API v3 格式随 Helm 4 引入，尚未稳定。
+
+Helm 3 随之进入维护期：官方原公告为 bug 修复至 2026-07-08、安全修复至 2026-11-11（期间仅 backport K8s 客户端库更新以支持新 K8s 版本）；2026 年 6 月社区把时间线延长——最后的功能性更新（K8s 客户端库）推迟到 2026-09-09，安全支持据报延长至 2027-02-10（具体以 helm/helm 仓库公告为准）。当前稳定线为 **Helm 4.3.1（2026-10-14 发布）**，4.1 / 4.2 / 4.3 分别于 2026 年上半年至 9 月陆续发布，4.4.0 已排期 2027 年 1 月。
+
+> 注意：本主题 1.5 节之后的经典设计（Release 存储、values 合并、模板引擎、Hook、Chart 依赖）在 Helm 4 中**全部沿用**，真正变化的是 apply 模型与插件/post-renderer 机制，深入见第 3 章 3.4.1、第 5 章 5.8。
 
 ## 1.5 Helm vs Kustomize：模板 vs 叠加
 
@@ -173,11 +198,14 @@ K8s 配置管理还有另一个事实标准：**Kustomize**（Google 出品，�
 
 ## 本章小结
 
-裸 `kubectl apply` 在 demo 够用，但管理"多环境、多版本、可回滚、可复用"的整套 K8s 应用清单时会陷入四宗罪：环境差异靠复制、升级无版本无回滚、依赖靠手动按序 apply、复用靠 sed。Helm 借鉴操作系统包管理器，把"一整套清单"提升为"带参数、带版本、带依赖的软件包（Chart）"，用 Release 记录每次发布并可一键回滚，从根本上解决这四件事。Helm 经历 v1（无模板）→ v2（Go template + 集群内 Tiller，但 Tiller 是高权限后门）→ **v3（删 Tiller，纯客户端渲染，受调用者 RBAC 约束，Release 存 namespace 内 Secret）** 三代，v3 是当前稳定版本。它与 Kustomize（无模板 overlay 叠加）是两种哲学，常混用。在 AI 平台，从 GPU Operator、KubeRay、KServe、Volcano 到内部推理/训练模板，Helm 是应用分发与发布的通用语言。
+裸 `kubectl apply` 在 demo 够用，但管理"多环境、多版本、可回滚、可复用"的整套 K8s 应用清单时会陷入四宗罪：环境差异靠复制、升级无版本无回滚、依赖靠手动按序 apply、复用靠 sed。Helm 借鉴操作系统包管理器，把"一整套清单"提升为"带参数、带版本、带依赖的软件包（Chart）"，用 Release 记录每次发布并可一键回滚，从根本上解决这四件事。Helm 经历 v1（无模板）→ v2（Go template + 集群内 Tiller，但 Tiller 是高权限后门）→ **v3（删 Tiller，纯客户端渲染，受调用者 RBAC 约束，Release 存 namespace 内 Secret）** 三代；2025-11 发布的 **Helm 4** 把新安装的 apply 模型换成 Server-Side Apply、插件系统重建为 Wasm 沙箱，是当前稳定版本（4.3.x），Helm 3 仅维护安全修复。它与 Kustomize（无模板 overlay 叠加）是两种哲学，常混用。在 AI 平台，从 GPU Operator、KubeRay、KServe、Volcano 到内部推理/训练模板，Helm 是应用分发与发布的通用语言。
 
 **参考来源**
 
 - [Helm 官方文档](https://helm.sh/zh/docs/)
+- [Helm 4 发布博客（官方）](https://helm.sh/blog/helm-4-released/)
+- [Helm 4 Overview](https://helm.sh/docs/overview/)
+- [HIP-0023：Server-Side Apply](https://helm.sh/community/hips/hip-0023/)
 - [Helm 架构（v3）](https://helm.sh/zh/docs/topics/architecture/)
 - [Helm v3 删除 Tiller 的设计说明](https://helm.sh/zh/docs/faq/#removal-of-tiller)
 - [Kustomize 官方](https://kustomize.io/)

@@ -1,6 +1,6 @@
-# 3. 架构设计：客户端渲染、Release 存储、三方合并
+# 3. 架构设计：客户端渲染、Release 存储、三方合并与 Server-Side Apply
 
-> 一句话理解：Helm v3 的架构极其简单——**它就是一个客户端 CLI**：加载 Chart → 合并 values → 本地渲染出 YAML → 用你的 kubeconfig 调 kube-apiserver（受 RBAC 约束）→ 把结果存成 namespace 内的 Secret 作为 Release。没有常驻服务端、没有自己的权限。它的"架构"难点不在组件，而在**三方合并 Patch**（升级时怎么算"该改哪些字段"）和 **Release 存储模型**这两件事。
+> 一句话理解：Helm 的架构极其简单——**它就是一个客户端 CLI**：加载 Chart → 合并 values → 本地渲染出 YAML → 用你的 kubeconfig 调 kube-apiserver（受 RBAC 约束）→ 把结果存成 namespace 内的 Secret 作为 Release。没有常驻服务端、没有自己的权限。它的"架构"难点不在组件，而在 **apply 模型**——Helm 3 的**三方合并 Patch**（升级时怎么算"该改哪些字段"）与 Helm 4 默认的 **Server-Side Apply**（字段所有权交给 apiserver）——以及 **Release 存储模型**这两件事。
 
 ## 3.1 一句话架构与全景图
 
@@ -122,6 +122,27 @@ Secret 的名字：`sh.helm.release.v1.<release-name>.v<revision>`，类型 `hel
 
 实现上，Helm v3 用 `pkg/kube` 调用 client-go，对每个资源用 K8s 的 **strategic-merge-patch**（有 schema 的结构化 patch，知道 `containers` 是 list、用 name 当 key）或 **JSON merge patch**（无 schema 时退化）来做三方合并。
 
+### 3.4.1 Helm 4 的变化：Server-Side Apply（SSA）成为新安装的默认
+
+三方合并是 Helm 3 的招牌，但它有一个结构性短板：**合并发生在客户端，字段所有权不清晰**。当 Helm 与 HPA、GitOps 控制器、运维人员同时"拥有"一个对象的同一字段时，客户端合并只能靠启发式规则猜测"谁改了什么"，冲突时行为难解释，偶尔还会静默覆盖（Helm 4 开发初期就修过一个 SSA 升级中新资源被记成 `Update` 导致后续冲突的 bug，见 helm/helm #31515/#31516）。
+
+Helm 4 通过 **HIP-0023** 引入 **Server-Side Apply**：apply 时把"字段清单 + 字段所有者"交给 **apiserver** 决策（Helm 以 `helm` 作为 field manager 注册它拥有的字段），合并逻辑从客户端搬到服务端。行为规则：
+
+| 场景 | Helm 4 的 apply 方式 |
+|---|---|
+| **全新安装**（Helm 4 创建的新 release） | **默认 SSA** |
+| 升级 / 回滚已有 release | **"闩锁"（latch）**：沿用该 release 之前的 apply 方式，不会中途切换 |
+| Helm 3 时代装的 release | 仍是客户端三方合并，除非显式 `helm upgrade --server-side=true` 一次性切换 |
+| SSA 遇到字段所有权冲突 | 报错；`--force-conflicts` 让 Helm 强制接管冲突字段的所有权 |
+
+SSA 的意义：
+
+1. **字段所有权显式化**：apiserver 记录每个字段由谁（`helm`、HPA、kubectl、控制器）管理，冲突可诊断（报错会告诉你哪个 manager 占着字段），而不是客户端黑盒猜测。
+2. **与 GitOps/多控制器共存更稳**：这是 K8s 生态（`kubectl apply`、Argo CD、Flux）正在收敛的统一 apply 语义——Flux 2.8 起已在 Helm 集成中支持 Helm v4 的 SSA。
+3. **Release 存储、values 合并、模板引擎完全不变**——变的是"渲染出的清单怎么写进集群"这一步。
+
+> **备考/面试要点**：Helm 3 = 客户端三方合并（old chart / live / new chart）；Helm 4 = 新安装默认服务端合并（字段所有权在 apiserver）。两者并存于 Helm 4：老 release 保持原方式直到显式切换。第 7 章 mini-demo 模拟的是 Helm 3 的客户端三方合并语义，Helm 4 下新 release 的对应行为由 apiserver 的 field manager 机制保证。
+
 ## 3.5 渲染引擎：Go template + Sprig + Helm 扩展
 
 渲染发生在客户端 `pkg/engine`，三层叠加：
@@ -140,12 +161,12 @@ Secret 的名字：`sh.helm.release.v1.<release-name>.v<revision>`，类型 `hel
 
 Helm 自己**不直接操作 etcd**，而是通过 client-go 调 apiserver。它复用了 K8s 的"声明式 apply"语义：
 
-- `helm install`：把渲染出的所有清单**创建**到集群。
-- `helm upgrade`：对每个资源做**三方合并 patch**。
-- `helm rollback`：取目标 revision 的清单，再走一遍 upgrade 路径（本质是"用旧版清单做一次三方合并"）。
+- `helm install`：把渲染出的所有清单**创建**到集群（Helm 4 新 release 走 SSA）。
+- `helm upgrade`：对每个资源做**三方合并 patch**（老 release）或 **SSA apply**（Helm 4 新 release / 已切换的 release）。
+- `helm rollback`：取目标 revision 的清单，再走一遍 upgrade 路径（本质是"用旧版清单做一次三方合并/SSA apply"）。
 - `helm uninstall`：删除 Helm 管理的所有资源（按逆序：先删 workloads 后删依赖），删完再删 release Secret。标了注解 `helm.sh/resource-policy: keep` 的资源**不被删**（常用于 PVC——卸载应用但保留数据）。
 
-> **等待 ready**：`helm install --wait` 会让 Helm 在 apply 后**阻塞等待**所有资源到达 ready（Deployment 副本数达标、Job 完成、PVC bound），超时（`--timeout`）则标记 release failed。不加 `--wait` 则 apply 完立即返回（资源还在异步创建）。生产 CI/CD 几乎总是带 `--wait --timeout 5m`。
+> **等待 ready**：`helm install --wait` 会让 Helm 在 apply 后**阻塞等待**所有资源到达 ready（Deployment 副本数达标、Job 完成、PVC bound），超时（`--timeout`）则标记 release failed。不加 `--wait` 则 apply 完立即返回（资源还在异步创建）。生产 CI/CD 几乎总是带 `--wait --timeout 5m`。**Helm 4 起等待逻辑改为基于 kstatus 的标准化健康判断**（与 `kubectl wait --for=condition` 同一套语义），并支持 `helm.sh/readiness-success` / `helm.sh/readiness-failure` 注解自定义资源的就绪/失败条件——大模型加载这类"Pod ready 但模型未加载完"的场景，可以用 readiness 注解让 `--wait` 等到真正可服务。
 
 ## 3.7 Hook：在声明式 apply 里塞"一次性动作"
 
@@ -161,15 +182,17 @@ K8s 是声明式 + 最终一致，但有些事是**一次性、有时序的**：
 ## 3.8 Library Chart 与 post-renderer：扩展点
 
 - **Library Chart**（`type: library`）：只提供命名模板，不产出资源。被 `dependencies` 引入后，父 chart 用 `include "libchart.helper" .` 复用其模板。解决"模板复用"（label/name 生成、公共 ConfigMap 片段）。
-- **post-renderer**（`helm install --post-renderer ./my-renderer`）：Helm 渲染完清单后、apply 之前，**把全部清单文本经一个外部可执行文件处理一遍**再 apply。是"逃生舱"：当模板引擎做不到的需求（注入 sidecar、套 Kustomize patch、注入 OPA/Gatekeeper 注解、按集群动态改）可以在这里做。常用组合：`--post-renderer kustomize`。
+- **post-renderer**（`helm install --post-renderer ./my-renderer`）：Helm 渲染完清单后、apply 之前，**把全部清单文本经一个外部可执行文件处理一遍**再 apply。是"逃生舱"：当模板引擎做不到的需求（注入 sidecar、套 Kustomize patch、注入 OPA/Gatekeeper 注解、按集群动态改）可以在这里做。常用组合：`--post-renderer kustomize`。**注意：Helm 4 起 post-renderer 不再接受可执行文件路径，必须实现为 Wasm 插件**（插件类型 `post-renderer`，传插件名调用），见第 5 章 5.8。
 
 ## 本章小结
 
-Helm v3 的架构核心是"**无服务端、纯客户端**"：CLI 本地完成"加载 Chart → 合并 values → Go template 渲染 → 三方合并 Patch → 通过 kubeconfig 调 kube-apiserver → 把 release 存成 namespace 内 Secret"。删掉 v2 的 Tiller 让鉴权回归 K8s RBAC（受调用者权限约束）、消除了集群内高权限后门、release 作用域天然落到 namespace（支持多租户）。Release 存储从 ConfigMap（v2/v3.0）改为 **Secret（v3.1+ 默认）** 以防渲染清单里的敏感数据明文进 etcd，名字 `sh.helm.release.v1.<name>.v<rev>`，是 Helm 的 undo log。架构上最该理解的是**三方合并 Patch**：升级时同时参考"上一版清单 + 集群现状 + 本次清单"，保留 chart 之外的手动改动，只应用 chart 自身变化——这是 Helm 升级安全性的根本。此外，渲染引擎（Go template + Sprig + Helm 扩展如 `lookup`/`required`）、Hook（声明式 apply 里塞一次性时序动作）、Library Chart（模板复用）、post-renderer（渲染后逃生舱）是四个关键扩展点。理解了"客户端渲染 + Secret 存储 + 三方合并"，Helm 的架构就通透了。
+Helm 的架构核心是"**无服务端、纯客户端**"：CLI 本地完成"加载 Chart → 合并 values → Go template 渲染 → 调 kube-apiserver → 把 release 存成 namespace 内 Secret"。删掉 v2 的 Tiller 让鉴权回归 K8s RBAC（受调用者权限约束）、消除了集群内高权限后门、release 作用域天然落到 namespace（支持多租户）。Release 存储从 ConfigMap（v2/v3.0）改为 **Secret（v3.1+ 默认，Helm 4 沿用）** 以防渲染清单里的敏感数据明文进 etcd，名字 `sh.helm.release.v1.<name>.v<rev>`，是 Helm 的 undo log。架构上最该理解的是 **apply 模型的两代演进**：Helm 3 的**三方合并 Patch**（升级时同时参考"上一版清单 + 集群现状 + 本次清单"，保留 chart 之外的手动改动，只应用 chart 自身变化）与 Helm 4 的 **Server-Side Apply**（HIP-0023，新安装默认；字段所有权交给 apiserver，冲突可诊断；老 release 闩锁原方式、可显式切换）。此外，渲染引擎（Go template + Sprig + Helm 扩展如 `lookup`/`required`）、Hook（声明式 apply 里塞一次性时序动作）、Library Chart（模板复用）、post-renderer（渲染后逃生舱，Helm 4 起必须为 Wasm 插件）是四个关键扩展点。理解了"客户端渲染 + Secret 存储 + apply 模型（三方合并/SSA）"，Helm 的架构就通透了。
 
 **参考来源**
 
 - [Helm 架构](https://helm.sh/zh/docs/topics/architecture/)
+- [HIP-0023：Server-Side Apply](https://helm.sh/community/hips/hip-0023/)
+- [Helm 4 Overview](https://helm.sh/docs/overview/)
 - [三方合并与升级](https://helm.sh/zh/docs/intro/using_helm/#help-options)
 - [Helm v3 FAQ：删除 Tiller](https://helm.sh/zh/docs/faq/#removal-of-tiller)
 - [Release 存储（Secret）](https://helm.sh/zh/docs/topics/v2_v3_migration/)
