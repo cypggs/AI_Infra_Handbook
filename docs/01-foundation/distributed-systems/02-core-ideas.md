@@ -104,6 +104,17 @@ AI Infra 例子：
 - 对象存储按 key 前缀分片；
 - 分布式训练按数据并行/模型并行/流水线并行切分计算和参数。
 
+### 2.6.3 无冲突复制数据类型（CRDT）
+
+**CRDT（Conflict-free Replicated Data Type）**是一类可以在任意副本上并发修改、无需协调即可自动合并的数据结构。它把“冲突解决”从协议层下沉到数据层：
+
+- **Op-based CRDT（CmRDT）**：广播操作，要求可靠广播；
+- **State-based CRDT（CvRDT）**：广播全量状态，依靠满足交换律、结合律、幂等性的 join 操作合并。
+
+常见类型：G-Counter（只增计数器）、PN-Counter、OR-Set（可观察删除集合）、RGA（文本序列）。
+
+2024-2026 年 CRDT 明显“出圈”：Figma 的多人协同、Linear 的同步引擎、Bluesky 的 AT Protocol、Automerge 等本地优先（local-first）软件栈都在生产中使用 CRDT 或其变体。在 AI Infra 中，CRDT 适合**多副本、弱一致的元数据与缓存**（如会话状态、推理前缀缓存索引、边缘配置合并），但不适合强一致的调度与计费状态。
+
 ## 2.7 Quorum
 
 Quorum 是复制系统中的一种投票机制。设副本总数为 N，写需要 W 个副本确认，读需要 R 个副本确认：
@@ -132,10 +143,16 @@ Dynamo 使用 `N=3, W=2, R=2` 作为默认配置。
 - **ZAB**：ZooKeeper 使用；
 - **Viewstamped Replication (VR)**：早期复制状态机协议。
 
+截至 2026 年的工程现状是：**Raft 仍是生产系统的绝对主流**，创新集中在三个方向：
+
+1. **工程优化而非更换协议**：批量提交、流水线复制、租约读（lease read，心跳保证现任 leader 合法性从而跳过共识的本地读）、灵活 Quorum（Flexible Paxos）等，持续压低延迟和尾抖动。etcd 3.6 把 Raft 库拆分为独立模块 `go.etcd.io/raft/v3`，3.7 的 raft v3.7.0 又修复了 ReadIndex 的过期读问题（见 [etcd 3.6 变更日志](https://github.com/etcd-io/etcd/blob/main/CHANGELOG/CHANGELOG-3.6.md)、[etcd 3.7 发布公告](https://etcd.io/blog/2026/announcing-etcd-3.7/)）。
+2. **无主导者协议的推进与停滞**：EPaxos 等无领导者 Paxos 变体 median 延迟更低，但 *EPaxos Revisited*（NSDI'21）实测在写冲突负载下尾延迟比 Multi-Paxos 差 4 倍以上，且长期缺少 snapshot、成员变更、垃圾回收等生产配套——至今没有大规模工业部署。
+3. **绕过共识的复制协议**：CURP（FAST'19，被开源项目 Xline 采用）利用操作的交换性，让没有冲突的写只需 1 个 RTT 即可提交；Amazon Aurora DSQL（2024-12 预览，2025 GA）则用独立的 Journal（跨区域多副本日志）+ Adjudicator（全局时间戳与冲突裁决）架构替代“单点共识 + 2PC”的传统设计。
+
 AI Infra 中的共识：
 
-- etcd 用 Raft 维护 K8s 状态；
-- Kafka 用类 Raft 协议选 controller；
+- etcd 用 Raft 维护 K8s 状态（3.6 起 raft 拆分为独立模块 `go.etcd.io/raft/v3`）；
+- Kafka 用类 Raft 协议（KRaft）选 controller，Kafka 4.0 起 ZooKeeper 模式已被彻底移除；
 - MongoDB/TiDB 用 Raft 做复制集。
 
 ## 2.9 FLP 不可能性与工程妥协
@@ -157,7 +174,8 @@ FLP 结果（Fischer-Lynch-Paterson, 1985）指出：
 - **物理时钟**：NTP/PTP，但仍有漂移；
 - **逻辑时钟**：Lamport 时间戳，能判断 happens-before 关系；
 - **向量时钟**：每个节点维护一个向量，能精确判断并发事件；
-- **TrueTime**：Spanner 用原子钟 + GPS 提供有界误差的全局时间。
+- **混合逻辑时钟（HLC）**：物理时钟 + Lamport 计数器，既接近物理时间又能排序，CockroachDB、YugabyteDB 用它实现不依赖原子钟的外部一致性；
+- **TrueTime**：Spanner 用原子钟 + GPS 提供有界误差的全局时间，至今仍是唯一大规模部署的“全局时钟服务”。
 
 AI Infra 中，逻辑时钟和向量时钟常用于事件溯源、日志排序、冲突检测。
 

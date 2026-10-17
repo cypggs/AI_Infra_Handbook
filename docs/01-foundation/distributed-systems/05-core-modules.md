@@ -56,6 +56,8 @@ AI Infra 例子：
 - **Phi Accrual**：根据历史心跳延迟动态调整阈值（Cassandra 使用）；
 - **Gossip 协议**：通过多节点间接传播存活信息。
 
+AI 训练场景还演化出专用手段：NCCL watchdog 在集合通信超时后主动 abort 并上报；结合硬件遥测（GPU Xid 错误码、ECC、温度）做**预测性隔离**——在掉卡之前就把节点摘出训练池，把“检测到失败”提前为“预测到失败”。
+
 ## 5.4 领导者选举
 
 领导者选举解决“多个节点中谁负责决策”的问题。
@@ -130,7 +132,8 @@ sequenceDiagram
 - **Saga**：把长事务拆成多个本地事务，通过补偿回滚；
 - **TCC（Try-Confirm-Cancel）**：预留资源再确认；
 - **Percolator / Spanner**：基于 MVCC + 2PC + TrueTime；
-- **分布式 KV 的跨分片事务**：TiDB、CockroachDB。
+- **分布式 KV 的跨分片事务**：TiDB、CockroachDB；
+- **绕过 2PC 的新架构**：Amazon Aurora DSQL（2024-12 预览，2025 GA）用独立的 Journal（跨区域多副本日志）+ Adjudicator（全局时间戳与冲突裁决）实现跨区域 active-active 强一致——说明“事务一致性 ≠ 必须 2PC”仍在快速演进。
 
 AI Infra 中，分布式事务常用于：
 

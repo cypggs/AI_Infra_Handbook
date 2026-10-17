@@ -20,7 +20,7 @@ flowchart LR
     API --> STORE
 ```
 
-etcd 把 Raft 作为独立模块实现（`go.etcd.io/etcd/raft/v3`），上层 etcd server 通过 `Node` 接口与之交互。这种分层设计让 Raft 库可以被 TiKV、CockroachDB 等复用。
+etcd 把 Raft 作为独立模块实现。2025 年发布的 etcd 3.6 进一步把 raft 从 etcd 代码库中拆分为独立模块 `go.etcd.io/raft/v3`（见 [CHANGELOG-3.6](https://github.com/etcd-io/etcd/blob/main/CHANGELOG/CHANGELOG-3.6.md)），让 raft 库可以脱离 etcd 更快演进，也被 TiKV、CockroachDB 等复用。
 
 ## 6.2 Raft 模块核心接口
 
@@ -157,6 +157,8 @@ etcd 的线性一致读通过 `ReadIndex` 实现：
 4. 在本地状态机读到该读请求对应 commit index 之后的数据，返回结果。
 
 这样即使 leader 网络分区，也不会读到过期数据。
+
+工程上这里出过真实事故类别：etcd 3.6.9 修复了“read index 与 leader 变更的竞态”和“进程暂停导致的过期读”；raft v3.7.0 进一步为只读请求注入唯一的 heartbeat-context ID，把 ReadIndex 与心跳显式关联，彻底堵住 stale read（见 [etcd 3.7 发布公告](https://etcd.io/blog/2026/announcing-etcd-3.7/)）。这提醒我们：**线性一致读的实现细节远比论文描述复杂，租约读的每一个边界都值得用模型或故障注入验证**。
 
 ## 6.9 与 Kubernetes 的关系
 

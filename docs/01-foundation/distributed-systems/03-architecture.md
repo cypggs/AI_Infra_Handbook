@@ -59,6 +59,8 @@ flowchart LR
 优点：简单、一致性强。
 缺点：Leader 是单点写入瓶颈，故障时需要选举新 Leader。
 
+工程优化：几乎所有生产系统（etcd、TiKV、CockroachDB）都在 Leader-Follower 之上叠加了**租约读（lease read）**——leader 只要按时收到多数派心跳，就能直接在本地服务只读请求，绕过一轮共识，把读延迟从两个 RTT 降到接近零。代价是读可能短暂过期，etcd 3.6/3.7 多次修复的正是这类过期读边界情况（见源码分析章）。
+
 代表系统：MySQL 主从、Redis Sentinel、Kafka partition leader、Raft 集群。
 
 ## 3.3 Multi-Leader
@@ -80,7 +82,7 @@ flowchart LR
 
 - 最后写入者胜（LWW）；
 - 向量时钟 / 版本向量；
-- CRDT（无冲突复制数据类型）。
+- CRDT（无冲突复制数据类型）——2024 年后生产案例明显增多：Figma 的多人协同、Linear 的同步引擎、Bluesky 的 AT Protocol 都采用 CRDT 或其变体解决多端并发编辑。
 
 代表系统：Couchbase、TIDB 部分场景、PostgreSQL logical replication。
 
@@ -178,7 +180,17 @@ AI Infra 例子：
 - 分片独立故障；
 - 降级开关（circuit breaker）防止级联失败。
 
-## 3.9 架构选型速查表
+## 3.9 云原生新形态：Actor、Serverless 与 Durable Execution
+
+2024-2026 年，分布式架构出现一组“把状态收敛到单写者单元”的新形态，绕开了共享状态 + 分布式锁的经典路线：
+
+- **Actor / 虚拟对象**：Cloudflare Durable Objects 把每个实体（房间、文档、会话）映射到一个全局唯一、单线程执行的 worker，状态由 SQLite 单写者持久化（SQLite-backed 存储于 2025 年 GA），Azure Orleans 的 Virtual Actor 思想与之同源。由于任意时刻只有一个执行者，**冲突在结构上不可能发生**，一致性问题是“不存在”而不是“被解决”。
+- **Durable Execution**：Temporal 等工作流引擎把长时间运行的业务逻辑本身变成持久化状态，进程崩溃后从上一次完成的活动恢复，把崩溃恢复从应用代码下沉到框架。
+- **Serverless GPU**：Modal、RunPod Serverless、Replicate 等平台把推理副本的弹性伸缩、排队、路由、冷启动全部下沉到平台层，用户面对的几乎是一个“单机的幻觉”。
+
+对 AI Infra 的启示：推理会话、Agent 记忆、多轮对话上下文都可以建模为 Durable Object / Actor，从而避开多副本 KV Cache 共享一致性的泥潭——这是“故障域”与“爆炸半径”思想在应用架构层面的延续。
+
+## 3.10 架构选型速查表
 
 | 需求 | 推荐架构 | 代表系统 |
 |---|---|---|
@@ -187,7 +199,8 @@ AI Infra 例子：
 | 低延迟写、可容忍冲突 | Leaderless / Multi-Leader | Dynamo、Cassandra |
 | 全局低延迟读 | 副本 + 就近路由 | CDN、S3 跨区域复制 |
 | 线性扩展计算 | 分片 + 无状态 worker | Ray、FSDP |
+| 会话/Agent 状态 | 单写者 Actor | Durable Objects、Temporal Workflow |
 
-## 3.10 一句话总结
+## 3.11 一句话总结
 
 **分布式系统架构的本质，是把“状态、计算、协调”拆成可独立复制、分片和容错的单元，并通过 Leader-Follower、分片、quorum、共识等模式，在一致性、可用性和性能之间取得平衡。**

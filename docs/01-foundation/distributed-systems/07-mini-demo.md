@@ -168,6 +168,7 @@ if replicated_count >= quorum:
 | 规模 | 3 节点 | 数千节点、数百万请求 |
 | 故障模型 | crash-stop / 分区 | crash-recovery、Byzantine、硬件故障 |
 | 优化 | 无 | snapshot、batch、pipeline、lease |
+| 验证手段 | pytest + FakeClock | TLA+ 模型检测、Jepsen 审计、确定性模拟测试（FoundationDB） |
 
 ## 7.7 测试结果示例
 

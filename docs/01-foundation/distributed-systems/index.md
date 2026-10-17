@@ -19,10 +19,11 @@
 2. 区分故障模型（fail-stop / crash-recovery / Byzantine）并选择合适的容错策略；
 3. 理解 CAP / PACELC 定理，并能在 AI Infra 场景中做出一致性 vs 可用性的 trade-off；
 4. 掌握一致性谱系：线性一致性、顺序一致性、因果一致性、最终一致性；
-5. 理解复制、分区、quorum、共识算法（Raft / Paxos）的基本原理；
+5. 理解复制、分区、quorum、共识算法（Raft / Paxos）的基本原理，以及 2025-2026 年的工程现状（etcd 3.6/3.7、CURP、Aurora DSQL 等新架构）；
 6. 理解分布式事务（2PC / 3PC）、分布式锁、幂等性与去重；
-7. 理解分布式系统中的时间、顺序与因果（逻辑时钟、向量时钟）；
-8. 与 Kubernetes、Ray、存储系统、案例研究形成知识闭环。
+7. 理解分布式系统中的时间、顺序与因果（逻辑时钟、向量时钟、HLC）；
+8. 了解 CRDT 的生产化应用、万卡级训练容错（Gemini / Oobleck / DiLoCo）与形式化验证（TLA+ / Jepsen / Verus）的工程化进展；
+9. 与 Kubernetes、Ray、存储系统、案例研究形成知识闭环。
 
 ## 本章与手册其他主题的关系
 
@@ -40,14 +41,14 @@
 按手册统一结构，本章包含 11 节：
 
 1. [背景](01-background) — 为什么 AI Infra 工程师必须懂分布式系统
-2. [核心思想](02-core-ideas) — 故障模型、CAP、一致性谱系、复制、分区、共识
-3. [架构设计](03-architecture) — 分层架构、Leader-Follower、分片、复制拓扑、故障域
-4. [分布式工作流程](04-distributed-workflow) — 一次分布式 AI 训练 job 的完整链路
+2. [核心思想](02-core-ideas) — 故障模型、CAP、一致性谱系、复制、分区、quorum、共识、CRDT
+3. [架构设计](03-architecture) — 分层架构、Leader-Follower、分片、复制拓扑、故障域、Actor/Serverless 新形态
+4. [分布式工作流程](04-distributed-workflow) — 一次分布式 AI 训练 job 的完整链路（含三级 checkpoint 与 WAN 训练）
 5. [核心模块](05-core-modules) — RPC、成员发现、失败检测、领导者选举、复制日志、分布式事务
-6. [源码分析](06-source-analysis) — etcd Raft 核心调用链
+6. [源码分析](06-source-analysis) — etcd Raft 核心调用链（含 3.6/3.7 最新变化）
 7. [工程实践](07-mini-demo) — CPU 可运行的分布式机制模拟器
-8. [企业生产实践](08-production-practice) — AI 集群中的分布式系统实践
-9. [最佳实践](09-best-practices) — 设计检查清单与 CAP 决策树
+8. [企业生产实践](08-production-practice) — 万卡训练容错、PD 分离推理、etcd 调优、多 AZ 存储
+9. [最佳实践](09-best-practices) — 设计检查清单、CAP 决策树、混沌工程与形式化验证
 10. [面试题](10-interview-questions) — 初/中/高级分布式系统面试题
 11. [延伸阅读](11-further-reading) — 书籍、论文、官方文档与交叉引用
 

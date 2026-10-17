@@ -27,6 +27,16 @@
 | *Large-scale cluster management at Google with Borg* | Verma et al., EuroSys'15 | 超大规模调度与状态管理 |
 | *Ray: A Distributed Framework for Emerging AI Applications* | Moritz et al., OSDI'18 | AI 场景分布式运行时 |
 | *Falcon: Replacing Fragmented Datasets with Distributed Shared Memory* | Kim et al., NSDI'24 | AI 训练中的分布式共享内存 |
+| *There Is More Consensus in Egalitarian Parliaments (EPaxos)* | Moraru et al., SOSP'13 | 无主导者共识的理论上限 |
+| *EPaxos Revisited* | NSW/Stanford, NSDI'21 | 为什么 EPaxos 没进生产：尾延迟与写冲突 |
+| *Exploiting Commutativity For Practical Fast Replication (CURP)* | Park & Ousterhout, FAST'19 | 1 RTT 复制的工程路径（Xline 采用） |
+| *Paxos vs Raft: Have We Reached Consensus on Distributed Consensus?* | Howard et al., PaPoC'20 | Raft 诞生十年后的客观复盘 |
+| *Oobleck: Resilient Distributed Training of Large Models Using Pipeline Templates* | Jia et al., SOSP'23 | LLM 训练局部回滚 |
+| *Gemini: Fast Failure Recovery in Distributed Training with In-Memory Checkpoints* | Google, SOSP'24 | 内存检查点，生产验证 |
+| *MegaScale: Scaling Large Language Model Training to More Than 10,000 GPUs* | ByteDance, NSDI'24 | 万卡生产训练的容错账单 |
+| *The Llama 3 Herd of Models* | Meta, 2024 | 466 次中断：真实容错成本 |
+| *DiLoCo: Distributed Low-Communication Training of Language Models* | DeepMind, 2023 | WAN 训练的异步梯度范式 |
+| *OpenDiLoCo* | Prime Intellect, 2024 | 跨洲异构云训练 1.1B 模型的实测 |
 
 ## 11.3 官方文档与源码
 
@@ -39,6 +49,10 @@
 | [Kubernetes 官方文档](https://kubernetes.io/docs/home/) | etcd、controller、scheduler 设计 |
 | [NCCL 文档](https://docs.nvidia.com/deeplearning/nccl/) | GPU 集合通信 |
 | [MLflow Tracking Server](https://mlflow.org/docs/latest/tracking/server.html) | 分布式实验追踪 |
+| [etcd 3.7 发布公告](https://etcd.io/blog/2026/announcing-etcd-3.7/) | 2026 年 Raft 与存储层的最新工程进展 |
+| [Cloudflare Durable Objects 文档](https://developers.cloudflare.com/durable-objects/) | Actor + 单写者 SQLite 的 Serverless 架构样本 |
+| [TigerBeetle](https://tigerbeetle.com/) / [Verus](https://verus-lang.github.io/verus/) | 形式化验证工程化的两个代表案例 |
+| Ultra Ethernet Consortium / UALink Consortium 官网 | AI 集群互联新标准：scale-out 以太网与 scale-up 开放互连 |
 
 ## 11.4 相邻主题交叉引用
 
@@ -54,10 +68,10 @@
 
 ## 11.5 推荐学习路径
 
-1. **第 1 周**：精读本章 01-05 节，理解 CAP、一致性谱系、Raft、quorum、2PC。
+1. **第 1 周**：精读本章 01-05 节，理解 CAP、一致性谱系、Raft、quorum、2PC、CRDT。
 2. **第 2 周**：读 06 源码分析 + 07 Mini Demo；本地运行分布式系统模拟器。
-3. **第 3 周**：读 08-09 生产实践与最佳实践；结合你所在的 K8s / 训练 / 推理平台做 CAP 决策树练习。
-4. **第 4 周**：读 10 面试题；挑 3-5 题用白板或文档写出完整答案；阅读 DDIA 相关章节和 Raft 论文。
+3. **第 3 周**：读 08-09 生产实践与最佳实践；重点消化“万卡容错工程”与“形式化验证”两节，结合你所在的 K8s / 训练 / 推理平台做 CAP 决策树练习。
+4. **第 4 周**：读 10 面试题；挑 3-5 题用白板或文档写出完整答案；按 11.2 选读 Raft、Gemini、EPaxos Revisited 至少三篇论文。
 
 ## 11.6 一句话总结
 

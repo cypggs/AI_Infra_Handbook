@@ -42,7 +42,7 @@ flowchart LR
 ## 4.2 阶段 1：Job 提交与资源调度
 
 1. 用户通过 `kubectl apply -f training-job.yaml` 或 `torchrun --nproc_per_node=8 train.py` 提交 job；
-2. 调度器根据 GPU、显存、网络拓扑、优先级决定把 job 放在哪些节点；
+2. 调度器根据 GPU、显存、网络拓扑、优先级决定把 job 放在哪些节点（Kubernetes 生态由 Volcano / Kueue / KubeRay 提供 gang 调度与排队）；
 3. 调度结果写入控制面（K8s apiserver / Ray GCS / Slurm controller）；
 4. 每个 worker 被拉起，获得唯一的 rank、world size、master address。
 
@@ -110,13 +110,24 @@ barrier 的实现依赖底层通信库或分布式协调服务：
 
 - 每个 worker 保存自己负责的 shard（模型并行）或副本（数据并行）；
 - 需要保存“元数据”记录每个 shard 属于哪个 rank；
-- 写入过程必须原子：要么全部成功，要么回滚；
-- 通常使用分布式事务或两阶段提交保证一致性。
+- 写入过程必须原子：要么全部成功，要么整体不可见。
 
-常见做法：
+现代实现普遍用 **manifest + 原子重命名（rename）** 代替传统两阶段提交：先把所有 shard 写完，最后原子更新一个 manifest 文件指向新版本；恢复时读取最新 manifest 即可。这避免了 2PC 的协调者单点与锁开销。
+
+2024 年后的主流做法已经演进成“三级 checkpoint 体系”，用空间换恢复时间：
+
+| 层级 | 介质 | 用途 |
+|---|---|---|
+| L1 内存检查点 | 冗余 GPU / CPU 显存 | 秒级恢复（Google Gemini，SOSP'24） |
+| L2 本地 NVMe | 节点本地 SSD | 节点级故障恢复 |
+| L3 对象存储 | 跨区域持久存储 | 机架 / 集群级灾难恢复 |
+
+配合 **PyTorch Distributed Checkpoint（DCP）的异步保存**，训练主线程不阻塞，后台线程把状态逐级搬到 CPU DRAM、本地盘和远端存储。
+
+常见做法对比：
 
 - **同步 checkpoint**：所有 worker 同时保存，简单但会造成停顿；
-- **异步 checkpoint**：后台线程保存，训练继续，但恢复时需要处理不一致；
+- **异步 checkpoint**：后台线程保存，训练继续，配合 manifest 版本号保证恢复点正确；
 - **增量 checkpoint**：只保存变化的部分，减少 IO。
 
 ## 4.8 阶段 7：故障检测与回滚
@@ -137,8 +148,17 @@ barrier 的实现依赖底层通信库或分布式协调服务：
 现代训练框架越来越强调**弹性训练**：
 
 - PyTorch Elastic Training：允许 worker 动态加入/退出；
-- Kubernetes + Volcano：自动重新调度失败 pod；
+- Kubernetes + Volcano / Kueue：gang 调度保证要么全部拉起要么不启动，失败后快速补位；
 - Ray Train：自动容错与 lineage 重建。
+
+在万卡级集群中，故障不再是“异常”而是“常态”：Meta 在 Llama 3 405B 训练（16,384 张 H100，单个 run 54 天）中共发生 **466 次任务中断，约 78% 与硬件有关**（[The Llama 3 Herd of Models](https://arxiv.org/abs/2407.21783)，2024）。设计目标随之从“尽量不出错”变成“出错后分钟级恢复（MTTR）”：
+
+- **快速检测**：NCCL watchdog 超时上报 + 硬件遥测（GPU Xid 错误、ECC、温度）预测性隔离；
+- **局部回滚**：只重放受影响的流水线 stage，而不是整个任务（如 Oobleck 的流水线模板，SOSP'23）；
+- **Straggler 缓解**：慢节点检测后动态摘除，避免 all-reduce 被单个慢节点拖住；
+- **抢占处理**：共享集群中 spot/抢占式实例回收时的状态保护与热迁移。
+
+另一条路线是**异步 / WAN 训练**：DeepMind 的 DiLoCo 让每个 worker 用本地优化器独立跑数百步、周期性同步伪梯度，把通信频率降低约百倍；Prime Intellect 的 [OpenDiLoCo](https://www.primeintellect.ai/blog/opendiloco) 用 DHT（libp2p，无中心节点）做成员发现，在横跨两大洲、多家云、32 张 H100、worker 间带宽不足 1 Gbps 的环境下训练 1.1B 模型，保持了 90-95% 的算力利用率。它放弃了“所有梯度每步强一致”，换取跨地域、异构、易失资源的可用性——这是 CAP 权衡在训练通信上的直接体现，详见生产实践章。
 
 ## 4.9 推理服务的分布式工作流
 
