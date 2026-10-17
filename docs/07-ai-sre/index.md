@@ -9,6 +9,7 @@ AI SRE 负责让 AI 系统在生产环境中跑得稳、看得清、修得快。
 ## 子主题
 
 - [Benchmark + Evaluation](./benchmark-evaluation/) — Agent / LLM / RAG 的可复现评测框架，覆盖 trace-based eval、benchmark 数据集、CI 评估门与生产回归检测。
+- [GPU 故障与大规模训练可靠性工程](./training-reliability/) — 万卡训练的可靠性账本：故障 taxonomy 与统计（Llama 3 的 466 次中断）、SDC 三态模型、checkpoint 间隔优化（Daly vs 网格精确解）、冷/热/超热三条恢复路径、straggler 缓解与热备经济学。
 
 ## 学习目标
 

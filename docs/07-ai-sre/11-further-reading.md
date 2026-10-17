@@ -134,6 +134,7 @@
 | Google 案例研究 | /09-case-study/google/ | 超大规模同步训练可用率标杆：NSDI'24 healthd + preflight 四层检测、reconfigure/reroute 双路径恢复、99.98% 可用率、OCS 把主机可用率要求从 99.9% 降到 99%。 |
 | DeepSeek 案例研究 | /09-case-study/deepseek/ | 开源 LLM 服务的生产可观测与故障恢复实践参照：推理集群 HAI-LLM 可观测、V3.1 灰度降级与 Fire-Flyer 文件系统容错。 |
 | xAI 案例研究 | /09-case-study/xai/ | Colossus 超算集群（20 万卡）的故障注入演练、训练中断自愈与 RDMA 网络治理是 AI SRE 容量与韧性治理的参照。 |
+| [GPU 故障与大规模训练可靠性工程](/07-ai-sre/training-reliability/) | 本篇子主题：万卡训练故障 taxonomy、SDC、checkpoint 经济学与恢复路径的系统化展开。 |
 
 ## 推荐学习路径
 

@@ -71,6 +71,7 @@
 - **[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）** — Agent / LLM / RAG 的可复现评测框架：trace-based eval、benchmark 数据集、CI 评估门与生产回归检测
 - **[安全](/08-security/)（已上线）**
 - **[AI 供应链与模型安全](/08-security/model-supply-security/)（已上线）** — 模型工件/数据/Agent 工具链三条供应链线的威胁建模与 G1-G4 门禁：pickle 扫描、Sigstore 签名、MCP 完整性校验、沙箱与水印
+- **[GPU 故障与大规模训练可靠性工程](/07-ai-sre/training-reliability/)（已上线）** — 万卡训练的可靠性账本：Llama 3 的 466 次中断、SDC 三态模型、checkpoint 间隔优化、冷/热/超热恢复路径与热备经济学
 - OpenTelemetry 与可观测性
 - SLO / Error Budget
 - AIOps 与事件响应
@@ -139,6 +140,7 @@
 43. [端侧与边缘推理基础设施](/04-llmops/edge-inference/) — 理解端侧推理的三本账：带宽账、异构账、隐私账
 44. [Cursor 案例研究](/09-case-study/cursor/) — 通过 Cursor 理解"不拥有模型"的工程纵深：延迟预算、模型阶梯与在线 RL
 45. [AI 供应链与模型安全](/08-security/model-supply-security/) — 理解模型工件、训练数据与 Agent 工具链的供应链威胁与门禁体系
+46. [GPU 故障与大规模训练可靠性工程](/07-ai-sre/training-reliability/) — 理解万卡训练的可靠性账本：故障统计、checkpoint 经济学与有效训练时间
 
 ## 面试准备
 
