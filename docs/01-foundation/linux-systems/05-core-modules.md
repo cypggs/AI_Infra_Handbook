@@ -40,6 +40,32 @@ nice 只影响 CFS 内部权重，不影响实时任务。
 
 AI 训练常把数据加载线程绑定到特定 NUMA 节点，避免跨 NUMA 访问内存。
 
+### sched_ext：用 BPF 写调度器
+
+从 6.12 开始，CPU 调度多了一条全新路线：把调度策略本身做成 BPF 程序。
+
+```mermaid
+flowchart TD
+    A[加载 scx 调度器<br/>bpftool / sched_ext] --> B[BPF 程序实现调度回调]
+    B --> C[select_cpu]
+    B --> D[enqueue / dispatch]
+    B --> E[cgroup 分层]
+    C --> F[运行队列决策]
+    D --> F
+    E --> F
+```
+
+社区已有一系列生产可用的调度器（scx 仓库）：
+
+| 调度器 | 思路 | 适用场景 |
+|---|---|---|
+| scx_rusty | 缓存亲和 + 负载均衡 | 通用延迟优化 |
+| scx_layered | 按任务分层分配 CPU（如“推理层”独占大核） | AI 推理混部 |
+| scx_bpfland | vruntime 优先 + 交互式提升 | 桌面/低延迟服务 |
+| Google BPF-CCX | 针对 AMD Zen 核心复合体（CCX）优化放置 | 云厂商超大规模部署 |
+
+2026 年 sched_ext 的主线方向是为它加上 SCHED_DEADLINE server 和层级 cgroup 子调度器（可按租户定制调度），同时大量安全加固（6.17 支持了 cgroup 带宽控制接口，并能在 BPF 调度器卡死时自动将其弹出）。
+
 ## 5.2 内存管理
 
 ### 虚拟内存与页表
@@ -117,6 +143,19 @@ AI 场景：
 - 数据集通常很大，page cache 装不下，需要直接 I/O（`O_DIRECT`）或预读策略；
 - checkpoint 写入大文件时，page cache 回写策略会影响 I/O 抖动。
 
+### GPU 时代的内存协同（2025-2026）
+
+AI 负载让内存管理多出一条主线：**GPU 显存（HBM）和主机内存（DRAM）如何高效协同**。
+
+| 机制 | 作用 | 内核依赖 |
+|---|---|---|
+| **GPUDirect RDMA** | NIC 直接读写显存，绕过主机内存 bounce buffer | DMA-BUF、设备地址映射 |
+| **GPUDirect Storage（GDS）** | 存储（NVMe/并行文件系统）直接读写显存，吞吐可达 40+ GB/s | nvidia-fs 内核模块、DMA、O_DIRECT 语义 |
+| **GDRCopy** | CPU↔显存低延迟零拷贝（用于控制面小数据、KV-cache 元数据） | 显存映射到用户空间 |
+| **drm_gpusvm** | 主线通用 GPU Shared Virtual Memory 框架，统一 GPU/CPU 共享虚拟内存管理 | DRM/GEM、mm 子系统（2026 年持续完善中，AMD 已有原型实现） |
+
+2025-2026 年的行业基线是 **GDS + GDRCopy + HugePages + NUMA 本地 NVMe/RDMA**：NVIDIA 在 2025 年 11 月进一步提出 SCADA 倡议，试图把存储控制路径也卸载到 GPU，彻底移除 I/O 中的 CPU 参与。对 AI Infra 工程师而言，这意味着“GPU 利用率低”的排查清单上要加一条：**数据是否还在经过 CPU 内存中转**。
+
 ## 5.3 文件系统
 
 ### VFS 回顾
@@ -131,7 +170,7 @@ VFS 提供统一接口：`open`、`read`、`write`、`close`、`mmap`、`fsync`�
 | xfs | 大文件、高并发 I/O 性能好，适合 AI 训练数据 |
 | btrfs | Copy-on-Write，快照功能强，但大文件性能一般 |
 
-AI 训练数据通常是很多大文件，xfs  often 更受欢迎。
+AI 训练数据通常是很多大文件，xfs 往往更受欢迎。2025-2026 年另一个值得关注的点是：大模型权重加载和 KV-cache offload 场景下，**GPUDirect Storage** 依赖文件系统支持 `O_DIRECT` 语义的裸设备路径，存储选型时需要确认 GDS 兼容性。
 
 ### Direct I/O 与 Buffered I/O
 
@@ -174,7 +213,7 @@ TCP / UDP
 
 | 技术 | 特点 |
 |---|---|
-| XDP | 内核早期包处理，可 drop/redirect，延迟低 |
+| XDP | 内核早期包处理，可 drop/redirect，延迟低；经 Cilium 成为 K8s 网络主流 |
 | DPDK | 用户态轮询网卡，完全 bypass 内核 |
 | RDMA | 网卡直接读写远程内存，CPU 不参与数据搬运 |
 
@@ -264,18 +303,25 @@ systemd unit 可以和 cgroup 资源限制结合，也可以配置日志、依�
 | strace | 跟踪系统调用 |
 | numactl / numastat | NUMA 信息和绑定 |
 | sysctl | 查看/修改内核参数 |
+| **/proc/pressure/** | **PSI（Pressure Stall Information）：CPU/内存/I/O 资源紧缺导致的停顿时间，排查抖动很好用** |
+| **libbpf-tools / bcc 附工具** | **runqlat、offcputime、tcpretrans 等开箱即用的 eBPF 诊断脚本** |
+| **Grafana Beyla / Pixie** | **零代码 eBPF 自动埋点，2025 年 Beyla 已捐赠给 OpenTelemetry** |
+| **Pyroscope / Parca** | **eBPF 驱动的持续 profiling** |
+| **Kepler** | **用 eBPF 估算容器/Pod 能耗，GPU 节点能效分析** |
+
+eBPF 工具链的成熟是 2025-2026 年可观测性领域最大的变化：过去需要埋点或采样 profiler 才能拿到的数据，现在可以用无侵入方式持续采集。
 
 ## 5.9 本节小结
 
 | 子系统 | 核心关注点 |
 |---|---|
-| CPU | CFS、nice、负载均衡、CPU 亲和性 |
-| 内存 | 虚拟内存、页表、TLB、NUMA、HugePages、swap、OOM、page cache |
-| 文件系统 | VFS、ext4/xfs、buffered/direct I/O |
+| CPU | CFS、nice、负载均衡、CPU 亲和性、sched_ext |
+| 内存 | 虚拟内存、页表、TLB、NUMA、HugePages、swap、OOM、page cache、GPU 显存协同 |
+| 文件系统 | VFS、ext4/xfs、buffered/direct I/O、GDS 兼容性 |
 | 网络 | socket、NAPI、RPS/RFS/XPS、XDP/DPDK/RDMA |
 | cgroup | v1/v2、CPU weight/max、memory max/high/min |
 | namespace | 视图隔离、容器基础 |
 | systemd | 服务管理、日志、资源限制 |
-| 工具 | top、vmstat、iostat、mpstat、perf、bpftrace、strace |
+| 工具 | top、vmstat、iostat、mpstat、perf、bpftrace、PSI、eBPF profiling |
 
 下一节，我们通过一个系统调用的完整链路，看看这些子系统是怎么协作的。

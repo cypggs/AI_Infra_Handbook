@@ -136,10 +136,12 @@ OOM score 主要由 RSS 决定，运行时间长、nice 低的进程会被保护
 | 模拟器 | 真实 Linux |
 |---|---|
 | Python 对象模拟进程 | `task_struct` + `sched_entity` |
-| 优先队列模拟运行队列 | `cfs_rq` + 红黑树 + 负载均衡 |
+| 优先队列模拟运行队列 | `cfs_rq` + 红黑树 + 负载均衡（或用 sched_ext 换成 BPF 调度器） |
 | 简化的 LRU 列表 | 复杂页回收算法 + 多级页表 |
-| 离散事件 I/O 调度 | `bio` + I/O scheduler + 设备驱动 |
+| 离散事件 I/O 调度 | `bio` + I/O scheduler + 设备驱动（或 io_uring 提交/完成队列） |
 | 简化 CPU/memory 限制公式 | cgroup v2 `cpu.weight/max` + `memory.max/high/low` |
+
+> **模拟器未覆盖的新机制**：sched_ext（BPF 可编程调度）、io_uring（异步 I/O）、GPUDirect Storage（存储直读显存）是 2025-2026 年最重要的内核进展，机制较新且依赖真实硬件，不适合用 Python 模拟，请阅读[背景](01-background)和[核心模块](05-core-modules)中的相应章节。
 
 ## 7.8 本节小结
 

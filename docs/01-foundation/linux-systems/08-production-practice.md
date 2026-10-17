@@ -27,8 +27,12 @@
 | CPU 亲和性 | `taskset -c 0-31` | 减少缓存抖动 |
 | NUMA 绑定 | `numactl --cpunodebind=0 --membind=0` | 本地内存访问 |
 | 提升进程优先级 | `nice -n -5` 或 `chrt` | 减少被抢占 |
+| **GPUDirect Storage** | `cuFile` API / nvidia-fs | **数据从 NVMe/并行文件系统直接进显存，绕开 CPU 内存中转，吞吐可提升 1.5-7 倍** |
+| NUMA 本地部署 NVMe | NVMe 插在与 GPU 同 NUMA 节点的 PCIe 插槽 | GDS/RDMA 路径不跨 NUMA |
 | 使用 SSD / 并行文件系统 | — | 提升 I/O 吞吐 |
 | 预取数据集到内存/本地 SSD | `cp` / `torch.utils.data` | 减少网络文件系统依赖 |
+
+2025-2026 年的实践趋势：当数据集是超大模型权重或海量样本时，“DataLoader → page cache → 显存”的 CPU 中转路径已经成为瓶颈，**GDS + NUMA 本地 NVMe** 正在取代传统加载路径。判断要不要上 GDS 的方法很简单：用 `iostat -x` 看磁盘吞吐，同时用 `pidstat` 看 dataloader 进程的 CPU 占用——如果两边都很高，说明 CPU 在帮数据“搬家中转”。
 
 ## 8.2 推理场景：Latency 抖动
 
@@ -53,9 +57,20 @@
 | CPU 隔离 | `isolcpus=8-15` + taskset | 避免其他任务干扰 |
 | 禁用 CPU limit 或提高 limit | K8s `resources.limits.cpu` | 减少 throttle |
 | 实时调度 | `SCHED_FIFO` 慎用 | 降低被抢占概率 |
+| **BPF 调度器（sched_ext）** | scx_layered 等：给推理任务独占一组核 | **内核 6.12+，无需重启即可生效，比 RT 调度更可控** |
 | 中断绑定 | `/proc/irq/<n>/smp_affinity` | 把网卡中断绑定到非业务 CPU |
 | 使用 HugePages | `hugetlbfs` / THP | 减少 TLB miss |
-| 减少系统调用 | `vLLM` 的 zero-copy、batching | 降低内核态开销 |
+| 减少系统调用 | `vLLM` 的 zero-copy、batching、io_uring | 降低内核态开销 |
+
+排查 P99 抖动时，先看 **PSI**（Pressure Stall Information）：
+
+```bash
+cat /proc/pressure/cpu       # 资源不足导致的任务停顿
+cat /proc/pressure/memory    # 内存回收导致的停顿
+cat /proc/pressure/io        # I/O 导致的停顿
+```
+
+如果 `memory` 或 `io` 的 `some avg10` 持续大于 0，说明抖动大概率来自资源竞争而不是应用自身。
 
 ## 8.3 OOM 与内存问题
 
@@ -136,7 +151,33 @@ Kubernetes 1.25+ 默认 cgroup v2。迁移时需要注意：
 - 不再有 `memory.kmem.limit_in_bytes`；
 - 某些老旧的监控脚本需要更新路径。
 
-## 8.7 常用排查流程
+## 8.7 eBPF 可观测性落地（2025-2026）
+
+到 2026 年，eBPF 已经不是“高级玩家的玩具”，而是 AI 平台的默认可观测手段：
+
+| 场景 | 工具 | 说明 |
+|---|---|---|
+| 零代码应用指标 | Grafana Beyla | 2025 年捐赠给 OpenTelemetry，自动产出 HTTP/RPC RED 指标 |
+| K8s 集群持续观测 | Pixie | eBPF 采集全集群指标和请求流，无需修改应用 |
+| 持续 profiling | Pyroscope / Parca | 低开销 CPU profiling，定位“哪个函数在吃 CPU” |
+| 网络观测 | Cilium Hubble | 基于 eBPF 的流级别的网络可观测 |
+| GPU 能耗 | Kepler | 用 eBPF 估算 Pod 能耗，配合 GPU 指标做能效优化 |
+| 安全运行时 | Tetragon / Falco | 检测容器逃逸、可疑系统调用 |
+
+落地建议：
+
+1. 先在监控体系里加 PSI 指标（`node_pressure_*`），成本几乎为零；
+2. 再对延迟敏感服务启用 Beyla 类零代码埋点，拿到 RED 指标；
+3. 深度排障时再用 bpftrace 写 ad-hoc 脚本，例如查看 off-cpu 时间：
+
+```bash
+# 统计各进程的运行队列延迟（runqueue latency）分布
+bpftrace -e 'tracepoint:sched:sched_wakeup /pid != 0/ { @start[args->pid] = nsecs; }
+             tracepoint:sched:sched_switch { $ns = @start[args->next_pid];
+               if ($ns != 0) { @latency_ns[args->next_comm] = hist(nsecs - $ns); delete(@start[args->next_pid]); } }'
+```
+
+## 8.8 常用排查流程
 
 遇到性能问题时，建议按这个顺序排查：
 
@@ -146,16 +187,18 @@ Kubernetes 1.25+ 默认 cgroup v2。迁移时需要注意：
 3. iostat -x 1     → 磁盘 I/O 瓶颈
 4. mpstat -P ALL 1 → 单个 CPU 核心是否热点
 5. sar -n DEV 1    → 网络吞吐
-6. perf top        → 热点函数
-7. bpftrace        → 动态追踪具体事件
+6. cat /proc/pressure/* → 资源竞争导致的停顿（PSI）
+7. perf top        → 热点函数
+8. bpftrace        → 动态追踪具体事件
 ```
 
-## 8.8 本节小结
+## 8.9 本节小结
 
-- AI 训练要关注 CPU-GPU 协同、I/O、NUMA；
-- AI 推理要关注延迟抖动、CPU 抢占、中断绑定；
+- AI 训练要关注 CPU-GPU 协同、I/O、NUMA，超大权重/数据集考虑 GPUDirect Storage；
+- AI 推理要关注延迟抖动、CPU 抢占、中断绑定，内核 6.12+ 可评估 sched_ext BPF 调度器；
 - OOM 排查要结合 cgroup、系统日志、进程状态；
 - checkpoint 和网络问题往往和 Linux I/O、网络子系统有关；
+- eBPF 零代码可观测（Beyla/Pixie/Pyroscope）应先于 bpftrace 深度追踪落地；
 - 调优前先观测，用工具链定位瓶颈。
 
 下一节总结系统化的性能分析方法论。

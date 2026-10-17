@@ -3,8 +3,17 @@
 ## 官方文档
 
 - [The Linux Kernel Documentation](https://www.kernel.org/doc/html/latest/) — 最权威的内核文档，涵盖 sched、mm、block、networking、cgroup。
+- [sched_ext 官方文档](https://docs.kernel.org/scheduler/sched-ext.html) — 用 BPF 写调度器的框架说明与 ABI 约定。
+- [scx 调度器仓库](https://github.com/sched-ext/scx) — scx_rusty / scx_layered / scx_bpfland 等生产级 BPF 调度器。
 - [Linux man pages](https://man7.org/linux/man-pages/) — 系统调用和库函数手册。
 - [systemd 官方文档](https://systemd.io/) — systemd、cgroup 集成、unit 文件。
+- [io_uring 官方资料与 liburing](https://github.com/axboe/liburing) — 异步 I/O 用户态库与新特性说明。
+
+## 版本与动态
+
+- [KernelNewbies — Linux 6.17](https://kernelnewbies.org/Linux_6.17) / [Linux 6.18](https://kernelnewbies.org/Linux_6.18) — 每个大版本的新特性盘点（6.18 是 2025-11 发布的最新 LTS）。
+- [LWN.net](https://lwn.net/) — 高质量 Linux 内核深度文章，CFS、cgroup v2、memory management、sched_ext 等主题必读。
+- [Phoronix Kernel / BPF 板块](https://www.phoronix.com/search/BPF) — 内核开发动态追踪。
 
 ## 性能分析
 
@@ -17,10 +26,14 @@
 - [BPF Performance Tools](https://www.brendangregg.com/bpf-performance-tools-book.html) — Brendan Gregg 的 eBPF 工具书。
 - [bcc 工具集](https://github.com/iovisor/bcc) — Python/C 编写的 eBPF 工具。
 - [bpftrace](https://github.com/iovisor/bpftrace) — 高级追踪脚本语言。
+- [eBPF Applications Landscape](https://ebpf.io/applications/) — eBPF 生态全景（Cilium、Beyla、Pixie、Tetragon、Kepler 等）。
+- [Grafana Beyla 与 OpenTelemetry eBPF](https://grafana.com/oss/beyla/) — 零代码自动埋点。
 
-## 内核文章
+## GPU 与 AI 场景的 Linux 优化
 
-- [LWN.net](https://lwn.net/) — 高质量 Linux 内核深度文章，CFS、cgroup v2、memory management 等主题必读。
+- [NVIDIA GPUDirect Storage 文档](https://docs.nvidia.com/gpudirect-storage/) — GDS 架构、cuFile API 与部署指南。
+- [NVIDIA Magnum IO](https://developer.nvidia.com/magnum-io) — GPUDirect RDMA / GDS / GDRCopy 全家桶。
+- [CUDA 文档](https://docs.nvidia.com/cuda/) — CUDA 运行时与 Linux 驱动交互细节（见 [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/)）。
 
 ## 相关主题
 

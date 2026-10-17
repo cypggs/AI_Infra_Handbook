@@ -72,6 +72,10 @@ vruntime += delta_exec * (NICE_0_LOAD / weight)
 
 实时调度优先级高于 CFS。AI 场景里，某些延迟敏感的推理服务可能会考虑 `SCHED_FIFO`，但要非常小心：如果高优先级任务死循环，低优先级任务可能永远拿不到 CPU。
 
+### sched_ext：可以热替换的调度器
+
+6.12 合入主线的 **sched_ext** 把调度器本身变成了可扩展点：一个 BPF 程序实现 `select_cpu`、`enqueue`、`dispatch` 等回调，就能完全接管普通进程的调度决策，且可以运行时加载/卸载，无需重启。2026 年的主线开发重点包括 SCHED_DEADLINE server（让 sched_ext 任务也能享受 deadline 保证）、层级 cgroup 子调度器（按租户/优先级分层调度）和大量安全加固。对 AI 平台而言，它意味着“给推理进程更多 CPU”这件事可以做成一个 50 行的 BPF 调度器，而不是升级整个内核。
+
 ### CPU 亲和性
 
 `taskset` 和 `sched_setaffinity()` 可以把进程绑定到特定 CPU 核心。
@@ -179,6 +183,7 @@ WantedBy=multi-user.target
 - 进程生命周期：`fork`/`clone` → `execve` → 运行/阻塞/就绪 → `exit`/`wait`；
 - CFS 用 vruntime 和红黑树实现公平调度；
 - 实时调度 `SCHED_FIFO`/`SCHED_RR`/`SCHED_DEADLINE` 用于特殊场景；
+- sched_ext 允许用 eBPF 热替换整个调度器；
 - 系统调用涉及用户态/内核态切换、VFS、文件系统、page cache；
 - `strace` 是定位系统调用问题的利器；
 - systemd 把服务和 cgroup 资源限制绑定在一起。

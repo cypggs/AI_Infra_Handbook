@@ -20,8 +20,9 @@
 3. 理解虚拟内存、页表、TLB、HugePages、NUMA、swap、page cache 的协作方式；
 4. 理解 VFS、ext4/xfs、块层、I/O 调度器、page cache 与 direct I/O 的差异；
 5. 理解 cgroup v1/v2、namespace 在资源隔离与限制中的作用；
-6. 掌握 Linux 性能分析的基本工具链：top、vmstat、iostat、mpstat、perf、bpftrace；
+6. 掌握 Linux 性能分析的基本工具链：top、vmstat、iostat、mpstat、perf、bpftrace、PSI；
 7. 在 AI 训练/推理场景中做基础的系统调优：NUMA 绑定、HugePages、IRQ affinity、kernel boot params；
+8. 了解 2025-2026 年的三条技术主线：eBPF（含 sched_ext 可编程调度）、io_uring、GPUDirect Storage，以及它们如何重塑 AI 平台的 Linux 底座；
 8. 与容器运行时、Kubernetes、AI SRE 主题形成知识闭环。
 
 ## 本章与手册其他主题的关系

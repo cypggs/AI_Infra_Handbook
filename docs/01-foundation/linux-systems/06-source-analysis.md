@@ -22,7 +22,8 @@ linux/
 
 AI Infra 工程师读源码时，重点看：
 
-- `kernel/sched/`：调度器；
+- `kernel/sched/`：调度器（含 `ext.c` 中的 sched_ext 框架）；
+- `io_uring/`：异步 I/O 核心实现；
 - `mm/`：内存管理；
 - `fs/`：文件系统；
 - `kernel/cgroup/`：cgroup 实现。
@@ -170,6 +171,8 @@ blk_qc_t submit_bio(struct bio *bio)
 
 最后，`ksys_read` 返回读取的字节数，控制权回到 glibc，再返回给用户程序。
 
+> 对比：io_uring 路径不走 `do_syscall_64` 分发，而是把 `io_uring_enter` 作为唯一系统调用入口，之后在内核中直接消费提交队列里的 SQE，完成时写入 CQE。读源码时可以从 `io_uring/io_uring.c` 的 `io_submit_sqes()` 入手。
+
 ## 6.3 CFS 核心数据结构
 
 ### sched_entity
@@ -249,7 +252,24 @@ CPU 控制器在 `kernel/sched/core.c` 附近与调度器交互；memory 控制�
 4. CFS 调度器在运行时检查该 cgroup 的 quota 是否用完；
 5. 用完则 throttle，让出 CPU。
 
-## 6.5 阅读内核源码的建议
+## 6.5 sched_ext：把调度器导出成回调
+
+sched_ext 的巧妙之处在于，它没有把调度逻辑搬进 BPF，而是定义了一组调度回调（`kernel/sched/ext.c`）：
+
+```c
+// include/linux/sched/ext.h（简化）
+struct sched_ext_ops {
+    s32 (*select_cpu)(struct task_struct *p, s32 prev_cpu, u64 wake_flags);
+    void (*enqueue)(struct task_struct *p, u64 enq_flags);
+    void (*dispatch)(s32 cpu, struct task_struct *prev);
+    void (*runnable)(struct task_struct *p, u64 enq_flags);
+    ...
+};
+```
+
+BPF 程序实现这些回调，框架负责与 CFS 运行队列、负载均衡、cgroup 的交互。这个“框架在内核、策略在 BPF”的分层，是理解现代内核可扩展性设计的一个好例子。
+
+## 6.6 阅读内核源码的建议
 
 1. **抓主线**：不要陷入每个宏和分支；
 2. **用工具**：LXR、elixir.bootlin.com、GitHub 搜索；
@@ -257,11 +277,12 @@ CPU 控制器在 `kernel/sched/core.c` 附近与调度器交互；memory 控制�
 4. **配合文档**：Kernel Documentation 比源码更容易入门；
 5. **动手实验**：改一个内核参数或 bpftrace 脚本，验证你的理解。
 
-## 6.6 本节小结
+## 6.7 本节小结
 
 - `read()` 系统调用的链路：glibc → syscall → do_syscall_64 → vfs_read → ext4 → page cache → 块层 → 设备驱动；
 - CFS 核心：sched_entity、cfs_rq、红黑树、vruntime；
 - cgroup v2：统一层级、控制器注册、cfs_bandwidth 控制 CPU quota；
+- sched_ext：调度逻辑以 BPF 回调形式导出，“框架在内核、策略在 BPF”；
 - 读内核源码要抓主线，配合文档和工具，不要陷入细节。
 
 下一节进入工程实践：用 Python 写一个 Linux 机制模拟器。

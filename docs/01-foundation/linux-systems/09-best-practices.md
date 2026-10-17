@@ -84,7 +84,13 @@ Kubernetes 的 CPU limit 通过 cgroup quota 实现，过低的 limit 会导致 
 
 ## 9.7 eBPF 现代追踪
 
-eBPF 让你可以安全地在内核里运行小程序，动态追踪事件。
+eBPF 让你可以安全地在内核里运行小程序，动态追踪事件。到 2026 年，这条技术线已经高度成熟：
+
+- **bpftrace**：脚本式追踪，适合 ad-hoc 排障；
+- **bcc / libbpf-tools**：开箱即用的诊断脚本（runqlat、offcputime、tcpretrans）；
+- **CO-RE（Compile Once, Run Everywhere）**：基于 BTF 的类型信息，BPF 程序一次编译到处运行，不再绑定内核版本——这是 2022 年后 BPF 工具能大规模分发的前提；
+- **签名 BPF 程序**：6.18 开始支持，BPF 程序可以像内核模块一样被签名和审计，为生产环境“受控开放 BPF”铺路；
+- **平台化工具**：Grafana Beyla（已捐赠 OpenTelemetry）、Pixie、Pyroscope、Cilium Hubble、Kepler 等把 eBPF 包装成零侵入的持续观测平台。
 
 常用工具：
 
@@ -96,10 +102,11 @@ eBPF 让你可以安全地在内核里运行小程序，动态追踪事件。
 AI 场景可以用 eBPF 追踪：
 
 - 系统调用耗时；
-- 上下文切换；
+- 上下文切换与 runqueue 延迟；
 - TCP 重传；
 - 文件系统 I/O；
-- cgroup throttle 事件。
+- cgroup throttle 事件；
+- GPU 相关进程的内核等待（结合 nvidia-smi 排查 CPU-GPU 协同问题）。
 
 ## 9.8 配置管理
 
@@ -117,6 +124,7 @@ AI 场景可以用 eBPF 追踪：
 - USE 方法分析资源瓶颈，Red Method 分析应用；
 - 不要迷信通用优化参数；
 - 关注 P99、NUMA、cgroup throttle；
+- 用 PSI（/proc/pressure/）快速判断“抖动是不是资源竞争引起的”；
 - eBPF 是现代化内核追踪的利器；
 - 用配置管理工具固化调优结果。
 

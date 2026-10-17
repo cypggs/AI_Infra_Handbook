@@ -81,6 +81,22 @@ HugePages 减少页表项数量和 TLB miss。大模型访问的内存地址空�
 - GPU：利用率、显存、PCIe 带宽；
 - 用 Prometheus + Grafana 持续采集，配合 `perf` / `bpftrace` 做深入分析。
 
+### Q16：什么是 sched_ext？为什么它重要？
+
+sched_ext 是 6.12 合入主线的可扩展调度类：内核把调度决策导出为一组 BPF 回调，用户编写的 BPF 调度器可以热加载、热替换，无需重启或改内核代码。重要性在于：延迟敏感的 AI 推理混部场景，可以用 scx_layered 之类的 BPF 调度器给推理任务独占 CPU 分组，把“调度调优”从内核开发问题变成应用配置问题。2025-2026 年它持续加入 cgroup 带宽控制、SCHED_DEADLINE server、层级子调度器等能力。
+
+### Q17：io_uring 和 epoll 有什么区别？
+
+epoll 是“事件通知”机制：socket ready 后通知你，你还需要再发起 `read`/`write` 系统调用真正搬运数据。io_uring 是“提交-完成”队列模型：把 I/O 请求批量写入 SQ，内核批量执行，完成结果写回 CQ——一次收割成百上千个结果，还支持 multishot recv（一次注册多次收割）和内核轮询。对高并发推理网关，io_uring 能显著降低系统调用次数和请求延迟。
+
+### Q18：什么是 GPUDirect Storage？解决什么问题？
+
+GDS 让存储设备（NVMe/并行文件系统）绕过 CPU 内存，直接通过 DMA 读写 GPU 显存。传统路径是“磁盘 → page cache → CPU 内存 → 显存”，CPU 要参与两次数据搬运；GDS 把 CPU 从数据面彻底移出，实测吞吐提升 1.5-7 倍。大模型权重加载、KV-cache 下沉到 NVMe 是最典型的受益场景，落地时需要 NUMA 本地 NVMe + HugePages 配合。
+
+### Q19：PSI 是什么？怎么用？
+
+PSI（Pressure Stall Information）是内核通过 `/proc/pressure/{cpu,memory,io}` 暴露的资源竞争指标：`some` 表示有任务因资源不足停顿的时间比例，`full` 表示所有非空闲任务都停顿的时间比例。排查延迟抖动时先看 PSI：如果 `memory` 或 `io` 的 `some avg10` 持续非零，说明抖动大概率来自系统资源竞争，而不是应用代码问题。
+
 ## 本节小结
 
 面试题覆盖了从概念到系统调用、调度、内存、I/O、网络、cgroup 和生产排障的多个层次。理解机制比背命令更重要。
