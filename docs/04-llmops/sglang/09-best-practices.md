@@ -10,6 +10,8 @@ SGLang 适合以下场景：
 - 多轮对话中长 system prompt 或历史上下文复用率高。
 - 需要原生、高性能的结构化输出（JSON Schema、Function Calling、EBNF）。
 - 希望用统一的 Python API 表达控制流，而不是手写多次 HTTP 调用。
+- 需要 PD / EPD 分离部署或 HiCache 分层缓存来支撑长上下文、高并发。
+- 需要为 RL 后训练提供高吞吐、可热更新权重的 rollout 引擎。
 - 愿意接受较快的版本迭代，以换取新特性。
 
 ## 什么时候不使用 SGLang？
@@ -54,9 +56,10 @@ SGLang 适合以下场景：
 
 ### 缓存相关
 
-- 启用 RadixAttention（默认开启）。
+- RadixAttention 默认开启（v0.5.19 起为统一 Radix Tree 实现，v0.5.21 起默认走 Rust 核心）。
 - 根据 prompt 长度分布调整 Radix Tree 容量。
-- 使用 HiCache / UnifiedRadixTree 时配置 SSD offload。
+- 使用 HiCache 时：L2 主机内存适合实例私有温缓存；L3（Mooncake Store / 3FS）适合跨实例共享的长前缀，需评估网络带宽与预取策略（best_effort / wait_complete / timeout）。
+- PD 分离部署时，decode 侧同样保留 Radix Tree 前缀复用，不要把缓存只配在 prefill 侧。
 
 ### 结构化生成
 
@@ -84,6 +87,7 @@ SGLang 适合以下场景：
 | 优化方向 | 收益 | 代价 |
 |---|---|---|
 | RadixAttention | 降低重复 prefill | 树结构维护复杂 |
+| HiCache 分层缓存 | 缓存容量扩展一个数量级 | 层间预取/回写策略需要调优 |
 | 结构化生成 | 输出可控 | 约束编译与 mask 计算开销 |
 | 投机解码 | 降低 TPOT | 需要 draft model / 额外显存 |
 | 量化 | 降低显存、提升吞吐 | 可能损失精度/格式正确率 |

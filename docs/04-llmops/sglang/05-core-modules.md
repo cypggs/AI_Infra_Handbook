@@ -139,7 +139,9 @@ SGLang 的控制中心，连接编译器、调度器、缓存和执行后端。
 
 ### 扩展方式
 
-2026 年的 HiCache / UnifiedRadixTree 支持 SSD offload、SWA、更大规模的分布式缓存。
+- **HiCache / UnifiedRadixTree**（v0.5.12 起）：支持 SSD offload、SWA 模型，L2 主机内存缓存可动态挂载/卸载，L3 兼容 Mooncake Store、3FS、NIXL、AIBrix 等多种后端。
+- **统一 Radix Tree**（v0.5.19 起）成为所有模型的默认缓存，替代原先按模型类型区分的多套实现。
+- **Rust 核心**（v0.5.21 起）成为前缀缓存默认实现，提升大规模并发下的树操作性能。
 
 ---
 
@@ -193,8 +195,9 @@ SGLang 的控制中心，连接编译器、调度器、缓存和执行后端。
 
 ### 关键后端
 
-- **XGrammar-2**：SGLang 当前主推，支持 JSON、EBNF、regex。
+- **XGrammar-2**：SGLang v0.5.11 起的默认后端，支持 JSON、EBNF、regex；mask 生成与 GPU 推理重叠，并支持 jump-forward decoding。
 - **Outlines**：社区常用，提供 FSM-based 约束。
+- **Llguidance**：可选后端，可通过 `--grammar-backend` 切换。
 
 ---
 
@@ -202,9 +205,9 @@ SGLang 的控制中心，连接编译器、调度器、缓存和执行后端。
 
 ### 实现选项
 
-- FlashAttention
-- FlashInfer
-- MLA / FlashMLA
+- FlashAttention / FlashInfer
+- MLA / FlashMLA（DeepSeek 系列）
+- DSA 稀疏后端：`flashmla_sparse` / `flashmla_sparse_q8` / `fa3` / `tilelang` / `trtllm`（DeepSeek-V3.2）
 - 自定义 kernel（如 CuteDSL prefill kernel for Blackwell）
 
 ### 选择逻辑
@@ -226,6 +229,8 @@ graph LR
     MR --> Sampler
     MR --> CS[Constrained Sampler]
     RC --> GPU[GPU Memory]
+    RC --> Host[Host DRAM]
+    RC --> L3[Mooncake / 3FS]
     AB --> GPU
 ```
 

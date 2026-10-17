@@ -55,13 +55,43 @@ graph TD
     u3 --> a3
 ```
 
+#### 演进：HiCache 三层分层缓存（2025-2026）
+
+论文中的 RadixAttention 只管理 GPU 显存内的 KV Cache。2025 年 9 月起，SGLang 把它扩展为 **HiCache** 分层体系：Radix Tree 作为全局索引（HiRadixTree），KV 数据可以分布在三层存储上，由调度器驱动层间预取与回写。
+
+```mermaid
+flowchart LR
+    subgraph L1["L1：GPU HBM"]
+        gpu["Radix Tree 热前缀<br/>访问最快、容量最小"]
+    end
+    subgraph L2["L2：主机内存 DRAM"]
+        host["实例私有冷缓存<br/>容量大、走 PCIe / CXL"]
+    end
+    subgraph L3["L3：分布式存储"]
+        moon["Mooncake Store / 3FS / NIXL<br/>跨实例共享、RDMA 传输"]
+    end
+    req["新请求"] --> L1
+    L1 -- miss --> L2
+    L2 -- miss --> L3
+    L3 -- 命中后预取 --> L2
+    L2 -- 预热 --> L1
+```
+
+LMSYS 的实测显示，前缀密集型负载下 HiCache 最高带来约 6 倍吞吐提升、TTFT 最多降低 80%；与 Mooncake Store 对接的多轮对话基准中，缓存命中率从 18% 提升到 78%，平均 TTFT 下降约 56%（来源：[LMSYS HiCache 博客](https://www.lmsys.org/blog/2025-09-10-sglang-hicache/)、[Mooncake HiCache 基准](https://kvcache-ai.github.io/Mooncake/performance/sglang/sglang-hicache-benchmark-results-v1.html)）。
+
 ### 3. Structured Generation（结构化生成）
 
 通过正则表达式、JSON Schema、EBNF 或函数签名约束模型输出，使模型每一步只能生成合法的 token。实现上通常依赖：
 
 - **FSM（有限状态机）**：把约束编译成状态转移图。
 - **Token Mask**：每步根据当前 FSM 状态，把不合法的 token 的 logits 置为 `-inf`。
-- **XGrammar-2**：SGLang 当前主推的结构化解码后端，支持 JSON、EBNF、regex。
+- **XGrammar-2**：SGLang 当前默认的结构化解码后端（v0.5.11 起），支持 JSON、EBNF、regex。
+
+2025-2026 年的关键优化：
+
+- **Jump-forward Decoding**：当 FSM 处于“只能输出唯一合法 token”的状态时，直接跳过模型前向，把确定性 token 注入序列，可减少约 10~30% 的前向次数。
+- **Mask 计算与 GPU 推理重叠**：XGrammar 在 CPU 上增量维护语法状态，合法 token mask 的生成与 GPU forward 并行进行，约束开销可压到 6% 以内。
+- **XGrammar-2 面向 Agent 动态约束**：针对工具调用等“每轮语法都在变”的场景重设计，grammar 编译从约 1000ms 降到约 10ms，mask 生成比 llguidance 快约 6 倍（来源：[XGrammar-2 论文](https://arxiv.org/abs/2601.04426)）。
 
 ### 4. Compiler + Runtime
 
@@ -78,6 +108,7 @@ SGLang 的 Frontend 把用户程序编译成中间表示（IR），Runtime 负�
 |---|---|---|
 | LLM Program 抽象 | 复杂交互难以表达 | 增加学习成本 |
 | Radix Tree 缓存 | 多轮/多分支前缀重复计算 | 树结构维护比 Block Table 复杂 |
+| HiCache 分层缓存 | 显存放不下长前缀缓存 | 层间一致性、预取策略复杂 |
 | 结构化生成 | 输出不可控、后校验浪费 | 约束编译可能增加延迟 |
 | Compiler + Runtime | 多次调用之间缺乏全局优化 | 调试链路变长 |
 

@@ -1,6 +1,6 @@
 # 6. 源码分析
 
-本章基于 SGLang GitHub 源码，分析其目录结构、模块划分、入口函数与调用链。内容基于 2026 年 7 月主分支（v0.5.14 前后）。
+本章基于 SGLang GitHub 源码，分析其目录结构、模块划分、入口函数与调用链。内容基于 2026 年 10 月主分支（v0.5.21 前后）。
 
 ## 仓库结构
 
@@ -32,9 +32,12 @@ sglang/
 │   │   └── utils.py
 │   └── test/
 ├── sgl-kernel/               # 自定义 CUDA kernel
+├── rust/                     # Rust 高性能组件（v0.5.21 起前缀缓存默认走 Rust 核心）
 ├── cpp/                      # C++ 高性能组件（Radix Tree、cache 等）
 └── docs/
 ```
+
+需要留意的演进：v0.5.19 起统一 Radix Tree（`unified_radix_cache.py` 等）成为所有模型的默认缓存；v0.5.21 起前缀缓存的默认实现进一步迁移到 Rust 核心，旧的 Python Radix Cache 实现已被移除，阅读源码时以 `unified` 系列与 `rust/` 目录为准。
 
 ## 关键入口函数
 

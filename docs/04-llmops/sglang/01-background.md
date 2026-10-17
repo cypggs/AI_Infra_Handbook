@@ -13,9 +13,14 @@
 
 ### SGLang 的诞生
 
-SGLang 由 LMSYS 团队开发，2023 年底发表 NeurIPS 2023 论文 [SGLang: Efficient Execution of Structured Language Model Programs](https://arxiv.org/abs/2312.07104)。它提出把 LLM 调用抽象为 **Structured Language Model Programs**，并通过 **RadixAttention** 和 **Runtime 编译优化** 来提升执行效率。
+SGLang 由 LMSYS 团队开发，论文 [SGLang: Efficient Execution of Structured Language Model Programs](https://arxiv.org/abs/2312.07104) 于 2023 年 12 月发布在 arXiv，后收录于 NeurIPS 2024。它提出把 LLM 调用抽象为 **Structured Language Model Programs**，并通过 **RadixAttention** 和 **Runtime 编译优化** 来提升执行效率。
 
-截至 2026 年 7 月，SGLang 已发展到 [v0.5.14](https://github.com/sgl-project/sglang/releases)，支持 200+ 模型、XGrammar-2 结构化输出、DeepSeek-V4 / Llama 4 / Qwen3 等 Day-0 支持，以及 PD 分离、投机解码、扩散模型服务（SGLang-Diffusion）等高级特性。
+截至 2026 年 10 月，SGLang 已发展到 [v0.5.21](https://github.com/sgl-project/sglang/releases)，支持 200+ 模型，主要进展包括：
+
+- **缓存体系升级**：HiCache 三层分层 KV 缓存（GPU HBM → 主机内存 → Mooncake / 3FS 等分布式存储）成熟落地，v0.5.19 起统一 Radix Tree 成为所有模型的默认缓存，v0.5.21 起前缀缓存默认迁移到 Rust 核心。
+- **分离式部署**：PD 分离支撑了 96 张 H100 上 DeepSeek-V3/R1 的大规模专家并行部署（约 5 倍于朴素 TP）；2026 年初进一步推出面向多模态的 EPD（Encoder-Prefill-Decode）分离；v0.5.21 支持 prefill / decode 实例运行时互换角色。
+- **Day-0 模型支持**：DeepSeek-V3.2（稀疏注意力 DSA）官方推荐推理引擎，以及 DeepSeek-V4.x、GLM-5.x、Kimi-K2.x、Qwen3.8 等新模型首发支持。
+- **RL 后训练**：提供 sleep / wake-up 显存卸载、`/update_weights_from_tensor` 权重热更新等能力，成为 veRL 等 RL 框架的事实标准 rollout 引擎。
 
 ## 没有 SGLang 会怎样？
 
@@ -33,7 +38,7 @@ SGLang 提供了一种开源、易用、对结构化程序友好的方案。
 | 维度 | SGLang | vLLM | TensorRT-LLM | TGI |
 |---|---|---|---|---|
 | 开源协议 | Apache 2.0 | Apache 2.0 | NVIDIA 专有 | Apache 2.0 / 商业 |
-| 维护状态 | 活跃，v0.5.14 | 活跃，V1 默认 | NVIDIA 持续更新 | 2025-12 起维护模式 |
+| 维护状态 | 活跃，v0.5.21 | 活跃，V1 默认 | NVIDIA 持续更新 | 2025-12 起维护模式 |
 | 核心抽象 | LLM Program + RadixAttention | PagedAttention + Continuous Batching | 高度优化的 CUDA Kernel | Continuous Batching |
 | 结构化生成 | 原生深度集成（XGrammar-2） | 通过后端支持 | 有限 | 有限 |
 | 前缀复用 | 自动 Radix Tree | Block-level Prefix Caching | 有限 | 有限 |

@@ -165,3 +165,37 @@ RadixAttention 是 SGLang 提出的 KV Cache 管理机制，使用 Radix Tree（
 - **TensorRT-LLM**：NVIDIA 专有、极致性能。适合 NVIDIA 全栈、对延迟/吞吐要求极高、模型固定的场景。
 
 选择策略：先按场景初选，再实测业务指标（TTFT、TPOT、格式正确率、成本），避免单纯看 benchmark。
+
+---
+
+## 2025-2026 新进展
+
+### Q14: HiCache 与 RadixAttention 是什么关系？为什么需要分层缓存？
+
+**参考答案：**
+
+RadixAttention 用 Radix Tree 管理 GPU 显存内的 KV Cache 并自动复用前缀，但显存容量有限，长上下文或多轮场景下热点前缀容易被 LRU 淘汰。HiCache 把 Radix Tree 升级为全局索引（HiRadixTree），KV 数据分布到三层：L1 GPU HBM、L2 主机内存、L3 分布式存储（Mooncake Store / 3FS / NIXL）。调度器负责层间预取与回写，L3 还支持跨实例共享。实测多轮对话命中率可从 18% 提升到 78%，平均 TTFT 下降约 56%。
+
+---
+
+### Q15: SGLang 的 PD 分离与 EPD 分离有什么区别？
+
+**参考答案：**
+
+- **PD 分离**：把 prefill（计算密集）和 decode（带宽密集）拆到不同实例池，KV Cache 通过 Mooncake / NIXL 以 RDMA 传输。SGLang 在 96 张 H100 上用 PD 分离 + 大规模专家并行部署 DeepSeek-V3/R1，达到约 5 倍于朴素 TP 的吞吐。
+- **EPD 分离**：面向多模态模型，再把视觉编码器（Encoder）独立出来成为可水平扩展的 Encoder 池，通过 ZMQ 或 Mooncake GPU-direct 传输视觉 embedding，并支持视觉 embedding 缓存，解决多模态场景编码器资源浪费与扩展性问题。
+
+---
+
+### Q16: 为什么 SGLang 会成为 RL 后训练的主流 rollout 引擎？
+
+**参考答案：**
+
+RL 后训练（GRPO / PPO / DAPO 等）需要 rollout 引擎具备以下能力，而 SGLang 恰好都有：
+
+1. **高吞吐生成**：RadixAttention 复用多轮 rollout 中的公共前缀，大规模 batch 调度成熟。
+2. **显存共存**：sleep / wake-up 机制可把推理显存（含 CUDA Graph）卸载到 CPU，与训练进程共享同一批 GPU。
+3. **权重热更新**：`/update_weights_from_tensor` 支持训练侧新权重直接推送，不重启服务。
+4. **确定性推理**：保证 rollout 与训练前向数值一致，避免 KL 散度失真。
+
+因此 `veRL + SGLang` 成为 2025-2026 年大模型 RL 后训练的常见组合。

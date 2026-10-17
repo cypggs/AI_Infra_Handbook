@@ -1,6 +1,6 @@
 # SGLang
 
-[SGLang](https://github.com/sgl-project/sglang) 是由 LMSYS 团队开发的开源大语言模型推理引擎，主打 **LLM Program 的高效执行**、**RadixAttention 自动前缀缓存** 与 **结构化生成（Structured Generation）**。截至 2026 年 7 月，SGLang 已发展到 [v0.5.14](https://github.com/sgl-project/sglang/releases)，在 Agent、多轮对话、JSON / Function Calling 等场景中具有显著优势。
+[SGLang](https://github.com/sgl-project/sglang) 是由 LMSYS 团队开发的开源大语言模型推理引擎，主打 **LLM Program 的高效执行**、**RadixAttention 自动前缀缓存** 与 **结构化生成（Structured Generation）**。截至 2026 年 10 月，SGLang 已发展到 [v0.5.21](https://github.com/sgl-project/sglang/releases)，并在 2025-2026 年完成了从“结构化程序执行引擎”到“全场景推理运行时”的演进：**HiCache 三层分层 KV 缓存**、**PD / EPD 分离式部署**、**DeepSeek-V3.2 稀疏注意力官方推荐引擎**、**面向 RL 后训练的 rollout 支持** 等，在 Agent、多轮对话、JSON / Function Calling 等场景中具有显著优势。
 
 ## 一句话理解
 
@@ -28,6 +28,7 @@
 
 - 解释 SGLang 与 vLLM 在设计哲学上的差异
 - 说明 RadixAttention 如何利用 Radix Tree 自动复用前缀
+- 描述 HiCache 三层分层 KV 缓存（GPU HBM / 主机内存 / 分布式存储）的设计动机
 - 描述结构化生成（regex / JSON schema / EBNF）的基本原理
 - 画出 SGLang Runtime 的核心架构
 - 定位 SGLang 源码中的关键模块与调用链

@@ -55,19 +55,29 @@ SGLang 的发源地 LMSYS 在其服务后端中大量使用 SGLang，主要收�
 
 ### 月之暗面 / Mooncake
 
-SGLang 与 Mooncake（Kimi 开源的 KVCache-centric 分离式推理架构）集成：
+SGLang 与 Mooncake（Kimi 开源的 KVCache-centric 分离式推理架构）深度集成：
 
-- 通过 Mooncake store 把 KV Cache offload 到 SSD 或远程存储。
-- 支持更大规模的 Radix Tree 缓存和 PD 分离。
-- 2026 年 SGLang v0.5.12 的 HiCache / UnifiedRadixTree 明确支持 Mooncake store。
+- **Mooncake Store 作为 HiCache L3**：通过 RDMA 零拷贝把 KV Cache 扩展到分布式存储，支持 write-through / write-back 策略和多种预取模式，跨实例共享缓存。
+- **实测收益**：蚂蚁集团在生产环境的 DeepSeek-R1-671B PD 分离部署中，缓存命中时 TTFT 降低 84%；多轮对话基准中缓存命中率从 18% 提升到 78%，平均 TTFT 下降约 56%，输入吞吐提升约 2.3 倍（来源：[Mooncake HiCache 基准](https://kvcache-ai.github.io/Mooncake/performance/sglang/sglang-hicache-benchmark-results-v1.html)）。
+- **SSD Offloading**：Mooncake 于 2026 年 4 月发布 SSD Offloading，把 KV Cache 进一步下沉到 NVMe SSD，形成 GPU HBM → 主机内存 → SSD 的完整分层体系。
+- SGLang 侧需要 v0.5.13+ 才能稳定使用 Mooncake Store 后端。
 
 ### DeepSeek / 大模型推理
 
-SGLang 在 DeepSeek-V3 / V4 系列模型上的优化：
+SGLang 是 DeepSeek 官方推荐的推理部署引擎之一，在 DeepSeek 系列模型上的优化包括：
 
-- MoE load balancing（Waterfill、LPLB）配合 DeepEP 专家并行。
-- NVFP4 MoE、FlashMLA head64 decode、FP8 量化优化。
-- v0.5.14 官方宣称 DeepSeek-V4 在 GB300 上“同交互度下 5x 吞吐”。
+- **Day-0 支持**：DeepSeek-V3.2 发布当天即支持其稀疏注意力（DSA），提供 Lightning Indexer 快速打分、NSA 后端（FlashMLA + FlashAttention-3 Sparse）和 128K 上下文缓存优化，官方称推理成本降低 50% 以上（来源：[LMSYS 博客](https://www.lmsys.org/blog/2025-09-29-deepseek-V32/)）。
+- **大规模专家并行**：PD 分离 + DeepEP 在 96 张 H100 上达到与 DeepSeek 官方公布的性能持平（每节点 52.3K 输入 / 22.3K 输出 token/s），约 5 倍于朴素 TP。
+- **MoE 优化**：负载均衡（Waterfill、LPLB）、NVFP4 MoE、FlashMLA head64 decode、FP8 量化；v0.5.21 起 DeepSeek-V4.1 长 prompt 首 token 延迟进一步降低 22%。
+
+### RL 后训练 rollout
+
+2025-2026 年 SGLang 的重要新定位：成为 RL 后训练（RLHF / GRPO / DAPO 等）的**事实标准 rollout 引擎**，与 veRL 等训练框架深度集成：
+
+- **sleep / wake-up**：训练与 rollout 共存同一批 GPU 时，可把推理引擎显存（含 CUDA Graph）卸载到 CPU，训练时让出显存，rollout 时秒级唤醒。
+- **权重热更新**：`/update_weights_from_tensor` 等端点支持训练侧新权重直接推送到推理进程，无需重启服务。
+- **确定性推理**：保证 rollout 与训练前向的数值一致性，避免 KL 散度失真。
+- 典型组合：`veRL（训练）+ SGLang（rollout）+ FSDP`，支撑 GLM-4.6、Qwen3 等模型的 RL 后训练（来源：[SGLang for RL 文档](https://docs.sglang.ai/advanced_features/sglang_for_rl.html)）。
 
 ### 国内云厂商与创业公司
 
@@ -92,9 +102,10 @@ SGLang 在 DeepSeek-V3 / V4 系列模型上的优化：
 
 SGLang 在 2026 年持续强化 Speculative Decoding：
 
-- v0.5.12 引入 Speculative Decoding V2（默认开启）。
-- 支持 EAGLE-3、Kimi K2.5 EAGLE-3 MLA、Gemma 3/4 + EAGLE-3。
-- 在延迟敏感场景可显著降低 TPOT。
+- v0.5.12 引入 Speculative Decoding V2（默认开启），支持 EAGLE-3、MTP（DeepSeek 系列）、NGRAM 等多种 draft 方式。
+- 官方基准：LLaMA-3.1-8B 在单张 H100 上从 158 token/s（基线）提升到 EAGLE-2 244 token/s、EAGLE-3 373 token/s（2.36 倍）。
+- **自适应投机解码**（2026 年 10 月文档更新）：根据接受率和 batch 大小动态调整 draft 步数与 draft token 数，避免大 batch 下投机反而降速。
+- 在延迟敏感场景可显著降低 TPOT；与 PD 分离、HiCache 兼容。
 
 ### 4. 量化
 
@@ -126,4 +137,8 @@ SGLang 在生产环境中的成功取决于场景选择：它特别适合 Agent�
 
 - [SGLang GitHub Releases](https://github.com/sgl-project/sglang/releases)
 - [Mooncake: A KVCache-centric Disaggregated Architecture](https://github.com/kvcache-ai/Mooncake)
+- [Mooncake x SGLang HiCache 系统设计](https://kvcache-ai.github.io/Mooncake/design/hicache-design.html)
+- [SGLang Day-0 Support for DeepSeek-V3.2 with Sparse Attention](https://www.lmsys.org/blog/2025-09-29-deepseek-V32/)
+- [SGLang HiCache: Fast Hierarchical KV Caching](https://www.lmsys.org/blog/2025-09-10-sglang-hicache/)
+- [SGLang for RL Systems 官方文档](https://docs.sglang.ai/advanced_features/sglang_for_rl.html)
 - LMSYS / SGLang 团队技术博客与演讲

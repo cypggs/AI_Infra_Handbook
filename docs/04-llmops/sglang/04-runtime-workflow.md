@@ -51,6 +51,8 @@ sequenceDiagram
 
 如果该程序是某次多轮对话的延续，通常能匹配到 system prompt + 历史对话的完整前缀；如果使用了 `fork`，多个分支会共享父节点前缀。
 
+开启 HiCache 时，匹配会沿 L1（GPU）→ L2（主机内存）→ L3（Mooncake / 3FS 等分布式存储）逐层查找：L1  miss 触发下层预取，命中后由调度器在计算前把 KV 回填到 GPU，整个过程对用户透明。
+
 ## 阶段三：调度（Schedule）
 
 6. Scheduler 根据 token budget、显存预算和当前 batch 状态，决定本轮要计算哪些 token。
