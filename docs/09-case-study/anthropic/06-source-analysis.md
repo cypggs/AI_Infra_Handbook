@@ -36,7 +36,9 @@ def sae_loss(z, W_enc, W_dec, b_enc, b_dec, l1):
 | 单义特征 | Towards Monosemanticity | 1 层模型，~数千特征 |
 | 规模化 | Scaling Monosemanticity | Claude 3 Sonnet，数百万特征 |
 | 应用 | Features as Classifiers / On the Biology of an LLM | 用特征做安全相关解释 |
-| 追踪 | Circuit Tracing | 单 prompt 上的电路级信息流追踪 |
+| 追踪 | Circuit Tracing（2025-05 `circuit-tracer` 开源） | 单 prompt 上的电路级信息流追踪 |
+| 人格空间 | The Assistant Axis（2026-01） | 用 activation capping 抑制人格化越狱 |
+| 自然语言化 | Natural Language Autoencoder（2026-05） | 把激活翻译成文本，支撑内部独白监控 |
 
 ## 2. Constitutional AI 算法（公开）
 
@@ -69,6 +71,7 @@ Anthropic 的 API 设计（`/v1/messages`）体现了几个工程取舍，值得
 - **`content` 为数组**：单条 message 可含多个 block（text / image / tool_use / tool_result / thinking），天然支持多模态与工具循环。
 - **`cache_control` 字段**：自动缓存放顶层、显式断点放 block 上；与 usage 字段配合，成本可计量。
 - **`thinking` block 与 `effort` / task budget**：把测试时计算作为一等参数暴露。
+- **缓存友好的协议演化（2026）**：新型号支持对话中途追加 `system` 消息、`inline-tools-2026-09-15` 头允许中途增改工具——都在"不破坏已缓存前缀"的前提下扩展协议。
 - **`stop_reason`**：`end_turn` / `max_tokens` / `stop_sequence` / `tool_use` 等明确区分，便于 fallback 编排。
 - **usage 三段式**：`cache_read_input_tokens` + `cache_creation_input_tokens` + `input_tokens`，让"哪些 token 走了缓存"完全透明。
 
@@ -98,11 +101,12 @@ def process(blocks, breakpoint_idx, cache, ttl):
 
 | 类别 | 资料 | 用途 |
 |---|---|---|
-| 可解释性 | transformer-circuits.pub 系列论文与代码 | 学习 SAE / dictionary learning / circuit tracing |
+| 可解释性 | transformer-circuits.pub 系列论文与代码、circuit-tracer、Neuronpedia、NLA 预训练权重 | 学习 SAE / circuit tracing / 内部独白监控 |
 | 对齐 | Constitutional AI 论文 | 复现 RLAIF 思路 |
-| 治理 | RSP、Frontier Safety Roadmap、Risk Reports | 设计企业级安全发布门禁 |
-| API | Claude Platform Docs | prompt caching、extended thinking、tool/computer use |
+| 治理 | RSP v3.x、Frontier Safety Roadmap、Risk Reports（含 2026-08 CB-1/CB-2 版） | 设计企业级安全发布门禁 |
+| API | Claude Platform Docs | prompt caching、extended thinking、tool/computer use、Managed Agents |
 | 生态 | Anthropic SDK（Python/TS）、Cookbook、Skills、MCP 官方实现 | 集成与扩展 |
+| 协议 | MCP 2026-07-28 规范（Linux 基金会 AAIF 治理） | 工具/资源协议标准（详见 [MCP 详解](/05-agent/mcp/)） |
 
 ## 5. 从源码/资料学到的工程模式
 
@@ -113,4 +117,4 @@ def process(blocks, breakpoint_idx, cache, ttl):
 
 ## 小结
 
-Anthropic 的开源虽不如 Meta（Llama）"重"，但极有特色：transformer-circuits 让可解释性可复现，Constitutional AI 让对齐可工程化，Claude API 让推理优化可计量，RSP 让安全治理可审计。下一章通过 Mini Demo 动手复现其中两个核心机制。
+Anthropic 的开源虽不如 Meta（Llama）"重"，但极有特色：transformer-circuits 让可解释性可复现（已演进到 circuit-tracer 与 NLA 权重），Constitutional AI 让对齐可工程化，Claude API 让推理优化可计量，RSP 让安全治理可审计。下一章通过 Mini Demo 动手复现其中两个核心机制。

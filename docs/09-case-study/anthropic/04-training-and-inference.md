@@ -69,7 +69,7 @@ flowchart LR
 
 - 生成 Model Card / System Card 风格的安全与能力报告。
 - 三云灰度：先 API，再 Bedrock / Vertex / Foundry；按 tier、区域、流量比例放量。
-- 版本化命名（`claude-opus-4-8`、`claude-sonnet-5` 等），支持回滚。
+- 版本化命名（`claude-opus-5-5`、`claude-sonnet-5-5`、`claude-fable-5-1` 等），支持回滚；旧模型有明确的退役时间表（如 Fable 5 承诺至少可用到 2027-06）。
 
 ## 推理流水线
 
@@ -106,12 +106,14 @@ flowchart LR
 Anthropic 推理最具辨识度的工程：
 
 - **缓存层级**：按 `tools → system → messages` 顺序构建前缀。
-- **断点机制**：自动缓存（顶层 `cache_control`，自动落在最后一个可缓存块）或显式断点（在单个 block 上标 `cache_control`，最多 4 个）。
-- **命中判定**：在断点处计算 prefix hash，向前回看最多 **20 个 block**，寻找之前写过的匹配条目。
-- **TTL**：默认 5 分钟，可选 1 小时（成本为 base input 的 2 倍）。
-- **成本**：5m 写入 = base ×1.25；1h 写入 = base ×2；读 = base ×0.1。
-- **隔离**：组织间隔离；Claude API / Foundry 上进一步做到 **workspace 级隔离**（2026-02 起）。
-- **预热**：用 `max_tokens=0` 提前写入 system/tools 缓存，消除首次 TTFT 惩罚。
+- **断点机制**：自动缓存（顶层 `cache_control`，自动落在最后一个可缓存块）或显式断点（在单个 block 上标 `cache_control`，最多 4 个；自动缓存与显式断点混用时也占一个名额）。
+- **命中判定**：在断点处计算 prefix hash，向前回看最多 **20 个 block**（连续的 tool_use / tool_result 块计为一个位置），寻找之前写过的匹配条目。
+- **TTL**：默认 5 分钟，可选 1 小时（成本为 base input 的 2 倍）；TTL 从请求**开始**计时，流式传输时间也占用窗口。
+- **成本（2026-10 官方价）**：5m 写入 = base ×1.25；1h 写入 = base ×2；读 = base ×0.1（Opus 5.5 / Sonnet 5.5 为 ×0.05，Fable 5.1 / Mythos 5.1 为 ×0.025）。
+- **最小可缓存长度**：按模型分档（512 / 1024 / 2048 / 4096 token），低于阈值静默不缓存、不报错。
+- **隔离**：Claude API / Claude Platform on AWS / Microsoft Foundry 为 **workspace 级**；Bedrock / Google Cloud 为 org 级。
+- **预热**：用 `max_tokens=0` 提前写入 system/tools 缓存，消除首次 TTFT 惩罚（2026 起为官方正式用法，替代旧的 `max_tokens=1` 技巧）。
+- **2026 新能力**：新型号支持对话中途追加 `system` 消息而不破坏缓存；`inline-tools-2026-09-15` beta 头允许中途增改工具而不重排已缓存前缀。
 - **计费可见**：响应 `usage` 含 `cache_creation_input_tokens` / `cache_read_input_tokens` / `input_tokens`。
 
 ### 3. 推理执行
@@ -125,6 +127,7 @@ Anthropic 推理最具辨识度的工程：
 - 解析 `tool_use` / `tool_result`，按 schema 校验并执行（通常在沙箱内）。
 - computer use 需要屏幕/鼠标/键盘动作的执行后端与权限边界。
 - 多步工具调用构成 Agent 循环，每步都可受益于 prompt caching。
+- 2026 年起可进一步托管到 **Claude Managed Agents**：由 Anthropic 提供沙箱执行、OAuth 凭据、会话 checkpoint 与审计追踪，客户端从"驱动循环"变为"下达目标"（见 [企业生产实践](08-production-practice)）。
 
 ### 5. 后处理与安全
 

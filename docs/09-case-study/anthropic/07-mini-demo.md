@@ -6,7 +6,7 @@
 
 一个名为 `anthropic-mini` 的包提供：
 
-1. **Prompt Cache 模拟器**（`cache.py`）：忠实复现 Claude 官方的缓存命中模型——缓存只在断点写入、读取向前回看 20 个 block、5m/1h 双 TTL、workspace 级隔离，并按官方定价倍率（读 0.1x / 5m 写 1.25x / 1h 写 2x）计算成本。
+1. **Prompt Cache 模拟器**（`cache.py`）：忠实复现 Claude 官方的缓存命中模型——缓存只在断点写入、读取向前回看 20 个 block、5m/1h 双 TTL、workspace 级隔离，并按官方定价倍率（读 0.1x / 5m 写 1.25x / 1h 写 2x）计算成本。注：2026-09 起官方对 5.5 系列（读 0.05x）与 Fable/Mythos 5.1（读 0.025x）下调了缓存读倍率，模拟器仍取默认 0.1x 作为基线。
 2. **Constitutional critique-revise**（`constitution.py`）：给定一组宪法原则，对模型回答做 critique 并 revise（确定性、规则化，无需 LLM key）。
 3. **Anthropic 风格 `/v1/messages` 端点**（`server.py`）：FastAPI 服务，用 `x-api-key` 认证，支持顶层 `cache_control`（自动缓存）与 block 级断点，返回带 `cache_creation_input_tokens` / `cache_read_input_tokens` 的 `usage`。
 

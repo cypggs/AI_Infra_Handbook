@@ -46,6 +46,8 @@ flowchart TB
             prefix hash / TTL)]
         ET[Extended Thinking]
         CU[Computer / Tool Use]
+        MA[Agent Infra
+            Managed Agents / 沙箱 / checkpoint]
     end
 
     subgraph Governance["安全治理层 (RSP/ASL)"]
@@ -80,6 +82,7 @@ flowchart TB
     ENG --> PC
     ENG --> ET
     ENG --> CU
+    ENG --> MA
     ENG --> API
     API --> BR
     API --> VT
@@ -93,13 +96,13 @@ Anthropic 的算力层是整个案例中最具特色的部分——它主动选�
 ### Trainium 主力（AWS）
 
 - **Project Rainier**：与 AWS 合作的专用超算集群，目前使用 **>100 万 Trainium2 芯片**，是"世界上最大的计算集群之一"。
-- **规模承诺**：未来 10 年向 AWS 投入超 **$100B**，最高 **5GW** 电力，覆盖 Trainium2 → Trainium3 → Trainium4，以及 Graviton CPU。
-- **节奏**：Trainium2 于 2026 上半年放量，到 2026 年底 Trainium2 + Trainium3 合计接近 1GW。
+- **规模承诺**（2026-04 官方扩大合作）：未来 10 年向 AWS 投入超 **$100B**，最高 **5GW** 电力，覆盖 Trainium2 → Trainium3 → Trainium4，以及 Graviton CPU；Amazon 同时追加投资（$5B 立即 + 最高 $20B 里程碑对赌）。
+- **节奏**：Trainium2 容量 2026 Q2 大规模上线，Trainium3（re:Invent 2025 发布，约 2x Trainium2 算力、144GB HBM3e）于 2026 年内放量；到 2026 年底 Trainium2 + Trainium3 合计接近 1GW。
 - **软件栈**：AWS Neuron SDK（编译、运行时、分布式训练），与 PyTorch 集成。
 
 ### NVIDIA GPU 补充（Colossus）
 
-- **Colossus**：通过 SpaceXAI 合作租用的 **22 万 GPU 集群**（H100/H200，计划引入 Blackwell GB200），用于训练未来 Claude 模型的峰值算力补充。
+- **Colossus 1**：与 SpaceXAI 合作租用的 **22 万 GPU 集群**（H100/H200，300+MW）；2026-05 Code with Claude 大会宣布获得 Colossus 1 的**独家算力接入**，用于训练未来 Claude 模型与支撑 Claude Code 的限流扩容。
 - **意义**：芯片多元化降低单一供应链风险，也提升与供应商的议价能力。
 
 ### 网络与存储
@@ -122,25 +125,26 @@ Anthropic 的算力层是整个案例中最具特色的部分——它主动选�
 
 ### 接入层
 
-- **认证**：`x-api-key` 头、organization / workspace 隔离（prompt caching 已从 org 级迁移到 workspace 级隔离）。
-- **限流**：按 tier、模型、token budget、并发；cache 命中不计入限流额度。
+- **认证**：`x-api-key` 头、organization / workspace 隔离（prompt cache 在 Claude API、Claude Platform on AWS 与 Microsoft Foundry 上为 workspace 级隔离；Bedrock 与 Google Cloud 仍为 org 级）。
+- **限流**：按 tier、模型、token budget、并发；cache 命中不计入限流额度。2026-05 起 Claude Code 各套餐五小时限流额度翻倍。
 - **三云入口**：Claude API、Bedrock、Vertex AI、Azure Foundry——同一模型多云托管。
 
 ### 推理引擎层
 
 - **Continuous Batching / In-flight Batching**：提高芯片利用率、降低平均延迟。
-- **KV Cache 管理**：分页式管理、长上下文。
-- **Prompt Caching**：产品级 prefix cache（prefix hash + 20-block lookback + 5m/1h TTL），是 Anthropic 最具辨识度的推理工程。
+- **KV Cache 管理**：分页式管理、长上下文（1M token 已成为 4.5 系列以来的标配）。
+- **Prompt Caching**：产品级 prefix cache（prefix hash + 20-block lookback + 5m/1h TTL），是 Anthropic 最具辨识度的推理工程；2026 年起缓存读按模型分档计价（0.1x / 0.05x / 0.025x）。
 - **Extended Thinking**：测试时计算（thinking budget），并在 Opus 4.5+/Sonnet 4.6+ 上默认保留 thinking block 以利于缓存复用。
 - **Computer Use / Tool Use**：智能体能力的执行后端，需要沙箱、权限与长程状态管理。
+- **Agent 基础设施**：2026-04 起提供 Claude Managed Agents（public beta）——托管沙箱执行、OAuth 凭据管理、会话 checkpoint、长时会话（Dreaming / Outcomes / 多智能体编排），把智能体从"客户端循环"升级为"托管运行时"。
 
 ## 安全治理层（RSP / ASL）
 
 治理层是"什么能训/什么能发"的控制平面：
 
 - **Capability Eval**：在训练前后评估模型是否触及 CBRN、网络、说服、自主性等能力阈值。
-- **ASL 判定**：根据评估结果判定当前应满足的 AI Safety Level（1~5）。
-- **防护执行**：ASL-3 对应输入/输出分类器、加强的权重安全等；ASL-2 为常规 moderation。
+- **阈值判定**：RSP v3.4（2026-08）起以 **CB-1 / CB-2** 能力阈值表述生物风险等级（取代早期 ASL-2/3 命名），并含"AI 研发自动化"阈值（AI 可归因的能力进步速度翻倍）；当前模型被评估为已达 CB-1、接近 CB-2 边界。
+- **防护执行**：达阈模型对应输入/输出分类器、加强的权重安全等；低阶为常规 moderation。Fable 5 系列还在 API 入口内置分类器，把可疑请求路由到 Opus 4.8 处理。
 - **Risk Reports**：每 3–6 个月发布，含能力、威胁模型、缓解措施与残余风险，必要时由第三方专家审查。
 
 > 详见 [核心模块](05-core-modules) 与 [企业生产实践](08-production-practice)。
@@ -159,10 +163,10 @@ Anthropic 自身聚焦模型与平台，把底层算力与全球分发交给云�
 - **AWS**：主力训练与云提供商，Trainium 集群 + Bedrock + Claude Platform on AWS（同账户、同控制、同计费）。
 - **Google Cloud**：Vertex AI 托管 Claude，Org 级 cache 隔离。
 - **Microsoft Azure**：Azure Foundry 托管 Claude。
-- **SpaceXAI**：Colossus 算力租约（非托管，算力供给）。
+- **SpaceXAI**：Colossus 1 独家算力接入（2026-05 起，非托管，算力供给）。
 
 Claude 因此成为"唯一在三朵最大云上都可用的前沿模型"。
 
 ## 小结
 
-Anthropic 的架构 = **异构算力（Trainium + GPU）+ 宪法对齐层 + 推理优化（prompt caching / extended thinking）+ RSP/ASL 治理层**，在"三云"上承载同一套 Claude 能力。下一章拆解训练与推理两条流水线的具体环节。
+Anthropic 的架构 = **异构算力（Trainium + GPU）+ 宪法对齐层 + 推理优化（prompt caching / extended thinking）+ 托管智能体运行时（Managed Agents）+ RSP/CB 治理层**，在"三云"上承载同一套 Claude 能力。下一章拆解训练与推理两条流水线的具体环节。
