@@ -486,6 +486,24 @@ export const sidebar: DefaultTheme.Sidebar = [
         ],
       },
       {
+        text: '多模态与语音推理基础设施',
+        collapsed: false,
+        items: [
+          { text: '总览', link: '/04-llmops/multimodal-inference/' },
+          { text: '1. 背景', link: '/04-llmops/multimodal-inference/01-background' },
+          { text: '2. 核心思想', link: '/04-llmops/multimodal-inference/02-core-ideas' },
+          { text: '3. 架构设计', link: '/04-llmops/multimodal-inference/03-architecture' },
+          { text: '4. 工作流程', link: '/04-llmops/multimodal-inference/04-runtime-workflow' },
+          { text: '5. 核心模块', link: '/04-llmops/multimodal-inference/05-core-modules' },
+          { text: '6. 生态与源码分析', link: '/04-llmops/multimodal-inference/06-source-analysis' },
+          { text: '7. Mini Demo', link: '/04-llmops/multimodal-inference/07-mini-demo' },
+          { text: '8. 企业生产实践', link: '/04-llmops/multimodal-inference/08-production-practice' },
+          { text: '9. 最佳实践', link: '/04-llmops/multimodal-inference/09-best-practices' },
+          { text: '10. 面试题', link: '/04-llmops/multimodal-inference/10-interview-questions' },
+          { text: '11. 延伸阅读', link: '/04-llmops/multimodal-inference/11-further-reading' },
+        ],
+      },
+      {
         text: '模型量化与压缩基础设施',
         collapsed: false,
         items: [

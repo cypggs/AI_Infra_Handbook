@@ -70,6 +70,7 @@ export default withMermaid(
             { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
             { text: 'AI 编译器与 Kernel 生成', link: '/04-llmops/ai-compiler/' },
             { text: 'LLM 推理缓存与 KV Cache 管理', link: '/04-llmops/kv-cache/' },
+            { text: '多模态与语音推理基础设施', link: '/04-llmops/multimodal-inference/' },
             { text: '模型量化与压缩基础设施', link: '/04-llmops/model-quantization/' },
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
             { text: 'RL Post-Training 基础设施', link: '/04-llmops/rl-post-training/' },

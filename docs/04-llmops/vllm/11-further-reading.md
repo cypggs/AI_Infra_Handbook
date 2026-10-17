@@ -57,6 +57,7 @@
 - [Triton Inference Server 详解](/04-llmops/triton/)
 - [LLM Gateway 详解](/04-llmops/llm-gateway/)
 - [LLM 推理缓存与 KV Cache 管理详解](/04-llmops/kv-cache/) — KV 分层、PD 分离传输与 prefix 复用的基础设施视角，与 vLLM KV connector/BlockTable 互为表里。
+- [多模态与语音推理基础设施详解](/04-llmops/multimodal-inference/) — multi_modal_data 占位符、内容哈希缓存与视觉编码器调度的基础设施视角。
 - [模型量化与压缩基础设施详解](/04-llmops/model-quantization/) — AWQ/GPTQ/FP8 等量化方案的支持矩阵、精度-性能权衡与工具链，从压缩视角补全 vLLM 推理成本优化地图。
 - [KServe 详解](/03-ai-platform/kserve/) — Kubernetes 模型服务平台，vLLM 是其核心 LLM runtime 之一，了解 KServe 可补全"从容器到服务"的平台视角。
 - [Ray 详解](/03-ai-platform/ray/) — Ray Serve LLM 默认以 vLLM 作为推理后端，了解 Ray 可补充分布式服务与训练视角。

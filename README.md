@@ -57,7 +57,7 @@ docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU/CUDA、分布式系统、大模型从 0 到 1
 ├── 02-cloud-native/    # Docker、Kubernetes、容器运行时、Helm、Operator、CNI/CSI、AI 集群网络
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow、Airflow、特征平台
-├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton、LLM Gateway、RL Post-Training、AI 编译器、KV Cache 管理
+├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton、LLM Gateway、RL Post-Training、AI 编译器、KV Cache、多模态推理、量化
 ├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS、Personal AI Agent
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG、向量数据库
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
@@ -128,6 +128,7 @@ pnpm docs:preview
 - [向量数据库与 Embedding 基础设施详解](docs/06-rag/vector-db/) — 覆盖 ANN 不可能三角、HNSW/IVF-PQ/DiskANN-Vamana、量化（SQ/PQ/RaBitQ）、Milvus 2.6/Qdrant ACORN/pgvector 等 9 系统对比、GPU 索引 CAGRA、Embedding 服务（TEI/Infinity/BGE-M3/Qwen3-Embedding）、纯 Python Mini Demo（Flat/IVF/HNSW + 量化 + 玩具 embedding 服务，69 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [GraphRAG 与知识图谱检索详解](docs/06-rag/graphrag/) — 覆盖向量检索盲区与图检索三范式、GraphRAG 分层社区索引（v3.3.0）、LightRAG（EMNLP'25，论文编号已更正）/HippoRAG 2（ICML'25）/LazyGraphRAG/KAG 生态对比、实体抽取与 Leiden 社区检测、local/global/多跳查询、成本优化（LazyGraphRAG 索引 0.1%）、纯 Python Mini Demo（抽取 + 图构建 + 社区摘要 + 多跳查询 + 成本对比，78 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [模型量化与压缩基础设施详解](docs/04-llmops/model-quantization/) — 覆盖 PTQ/QAT/QAFT、GPTQ/AWQ/SmoothQuant/QuIP# 算法、FP8/FP4/NVFP4/MXFP4 格式（Blackwell Microscaling、OCP MX v1.0）、GGUF 规范、llm-compressor v0.13.0/Quark（NVIDIA Model Optimizer）/GPTQModel/llama.cpp 工具链、vLLM/SGLang/TRT-LLM 量化支持矩阵（AutoAWQ 已归档）、纯 Python Mini Demo（量化误差 + GPTQ 补偿 + SmoothQuant α 扫描 + KV 分组量化 + FP4 块浮点，45 测试）、生产实践与面试题（内容更新至 2026-10-17）
+- [多模态与语音推理基础设施详解](docs/04-llmops/multimodal-inference/) — 覆盖模态爆炸与延迟预算、统一 token 序列调度、VLM 推理（动态分辨率/视觉 token 账/encoder 重叠）、实时语音链路（三段式 vs 端到端、VAD/打断/双工状态机、first-audio 600ms SLO 分解）、OpenAI Realtime（WebRTC/WebSocket）/Gemini Live/LiveKit 契约、纯 Python Mini Demo（多模态调度 + 语音预算模型 + codec token 账 + 双工状态机，60 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [AI SRE 详解](docs/07-ai-sre/) — 覆盖 AI 系统可观测性、OpenTelemetry GenAI 语义约定、SLI/SLO/Error Budget、Burn Rate 告警、AIOps、事故响应与复盘、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Benchmark + Evaluation 详解](docs/07-ai-sre/benchmark-evaluation/) — 覆盖 Agent / LLM / RAG 的可复现评测框架：评测维度（正确性、工具使用、延迟、成本、鲁棒性）、trace-based eval、benchmark 数据集、LLM-as-judge 与规则评估器、离线/在线评测、CI 评估门与生产回归检测，含 CPU 可运行 Mini Demo（确定性 ReAct Agent + tool use + tracer + evaluators，15 测试）（内容更新至 2026-07-04）
 - [安全详解](docs/08-security/) — 覆盖 AI 系统安全、IAM/AuthN/AuthZ、Secrets 管理、Zero Trust、Guardrails、合规与隐私治理、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
