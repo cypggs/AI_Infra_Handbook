@@ -74,6 +74,7 @@ Triton 作为统一服务层，承接上游请求并分发到不同 backend。�
 - 通过 instance group 控制每卡实例数，避免 OOM。
 - Prometheus 监控 queue duration、compute infer、显存。
 - KServe 做 Kubernetes 层面的自动扩缩与蓝绿发布。
+- 如果 LLM 规模大到需要 prefill/decode 分离与跨节点 KV 传输，在架构中引入 NVIDIA Dynamo，由它编排底层引擎，Triton 继续承载其他模型。
 
 ### Q9：Triton 的 Python backend 是如何避免 GIL 影响 core 并发的？
 
@@ -93,6 +94,24 @@ Python backend 把 Python 执行逻辑放到独立的子进程中，Triton core 
 4. 看 `nv_gpu_memory_used_bytes` 是否接近上限：显存紧张会触发 swapping 或 OOM。
 5. 开启 tracing，定位具体请求在各阶段的耗时。
 
+### Q11：NVIDIA Dynamo-Triton 和 NVIDIA Dynamo 有什么区别？什么时候从 Triton 切换到 Dynamo？
+
+**参考答案**：
+
+Dynamo-Triton 就是原来的 Triton Inference Server，2026 年起更名并归入 NVIDIA Dynamo 平台，定位是**通用多框架推理服务层**：model repository、多 backend、dynamic/sequence/ensemble 调度、单机或少量节点上的多模型混部。Dynamo 是**面向 AI Factory 的分布式 LLM 推理框架**（2026 年 3 月 1.0 GA），提供 Triton 没有的能力：prefill/decode disaggregated serving、KV-cache 感知路由、NIXL 低延迟 KV 传输、分层 KV cache 卸载（GPU→CPU→SSD）、GPU Planner。
+
+切换信号：单节点 Triton 的吞吐/延迟无法满足、需要 prefill 与 decode 资源池独立扩缩、跨节点 KV 传输成为瓶颈、多节点大模型（如大规模 MoE）部署。此时应在 Triton 层之上或之外引入 Dynamo，由 Dynamo 编排 vLLM / SGLang / TensorRT-LLM 引擎；Triton 继续服务非 LLM 模型与中小规模 LLM。
+
+### Q12：2026 年以来 Triton 有哪些值得关注的版本变化？
+
+**参考答案**：
+
+- 26.06：修复多个高危 CVE（含 CVE-2026-47627 路径穿越），正式移除 Windows 支持。
+- 26.07：PyTorch backend 支持 PyTorch 2 batching、NV Embedding 与 HSTU 生成式推荐（AOTI）；TensorRT backend 支持多 GPU 推理。
+- 26.08：修复 dynamic batcher 饥饿与 `preserve_ordering` 顺序问题；新增 C/Python 日志回调 API；**起不再附带 TensorRT-LLM backend 容器镜像**。
+- 26.09：初步支持 Rubin GPU 架构；构建迁移至 C++20；OpenAI 前端改进流式取消；vLLM 0.29.0。
+- 品牌层面：Triton 更名 Dynamo-Triton，NVIDIA 的 LLM 分布式推理重心转移到 Dynamo。
+
 ## 本章小结
 
 面试中关于 Triton 的问题通常集中在四个方向：**`config.pbtxt` 配置**、**调度策略对比**、**backend 架构与生命周期**、**生产部署与调优**。掌握本章问题，基本可以覆盖大部分 Triton 相关面试场景。
@@ -102,3 +121,5 @@ Python backend 把 Python 执行逻辑放到独立的子进程中，Triton core 
 - [Triton User Guide — Architecture](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html)
 - [Triton Backend API](https://github.com/triton-inference-server/backend/blob/main/README.md)
 - [Triton Model Management](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_management.html)
+- [NVIDIA Dynamo-Triton 官方主页](https://developer.nvidia.com/dynamo-triton)
+- [NVIDIA Dynamo 官方主页](https://developer.nvidia.com/dynamo)

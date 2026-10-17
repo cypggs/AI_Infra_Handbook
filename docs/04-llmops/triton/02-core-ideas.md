@@ -93,13 +93,18 @@ Backend 是 Triton 与具体推理引擎之间的接口。Triton 会把调度后
 
 | Backend | 适用场景 |
 |---|---|
-| **TensorRT** | 极致性能的 CNN/Transformer，需要提前编译成 plan |
-| **TensorRT-LLM** | NVIDIA GPU 上的大语言模型推理 |
+| **TensorRT** | 极致性能的 CNN/Transformer，需要提前编译成 plan；26.07 起支持多 GPU 推理 |
+| **TensorRT-LLM** | NVIDIA GPU 上的大语言模型推理，内部实现 In-flight Batching 与 disaggregated serving；注意 26.08 起 NGC 不再附带其容器镜像，且纯 Python 的 `gpt` runtime 已被废弃，只剩 C++ backend |
 | **ONNX Runtime** | 跨框架模型，支持 CPU/GPU |
-| **PyTorch (LibTorch)** | TorchScript 模型 |
-| **Python** | 自定义前后处理、embedding、reranker、实验模型 |
-| **vLLM** | 通过 vLLM backend 把 vLLM 接入 Triton |
-| **OpenVINO / TensorFlow / DALI** | 其他生态 |
+| **PyTorch (LibTorch / PT2 AOTI)** | TorchScript 与 AOT Inductor 模型；26.04 起支持 PT2，26.07 起支持 PyTorch 2 batching 与生成式推荐（HSTU）场景 |
+| **Python** | 自定义前后处理、embedding、reranker、实验模型；也是接入 SGLang 等非官方引擎的通用方式 |
+| **vLLM** | 通过 vLLM backend 把 vLLM 接入 Triton，支持 `GPU_DEVICE_IDS` 绑定设备 |
+| **OpenVINO / TensorFlow / DALI / FIL** | 其他生态；OpenVINO 已支持 ARM SBSA |
+
+两点值得注意：
+
+- **没有官方的 SGLang backend**：SGLang 是 Python 原生引擎，社区通常通过 Python backend 把 `sglang` 的 Runtime 包进 Triton，以获得统一入口与监控；但单模型场景直接跑 `sglang.launch_server` 更简单。大规模部署则考虑 NVIDIA Dynamo（原生编排 SGLang）。
+- **Backend 不等于引擎**：Triton 的 vLLM / TensorRT-LLM backend 本质是把引擎包装成 Triton 模型，引擎内部的 continuous batching、KV cache 管理仍然由引擎自己负责。
 
 Backend 的接口对上层调度器是透明的：调度器只关心“把输入张量传下去、把输出张量拿回来”。
 
@@ -166,3 +171,4 @@ Triton 的核心思想可以概括为：**用 model repository 解决“模型�
 - [Triton User Guide — Dynamic Batching](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/model_configuration.html#dynamic-batcher)
 - [Triton User Guide — Business Logic Scripting](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/business_logic_scripting.html)
 - [Triton User Guide — Metrics](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/metrics.html)
+- [NVIDIA Dynamo-Triton 官方主页](https://developer.nvidia.com/dynamo-triton)

@@ -1,5 +1,7 @@
 # Triton Inference Server
 
+> 2026 年起，NVIDIA 将 Triton Inference Server 更名为 **NVIDIA Dynamo-Triton**，作为 Dynamo 平台下的通用推理服务组件；面向大规模 LLM 的多节点分布式推理由 **NVIDIA Dynamo** 承接。本文仍沿用社区习惯的 "Triton" 称呼，两者指同一软件。
+
 [Triton Inference Server](https://github.com/triton-inference-server/server) 是 NVIDIA 开源的**多框架、高性能推理服务软件**。它通过统一的 model repository、`config.pbtxt` 与可插拔 backend，把 TensorRT-LLM、vLLM、ONNX Runtime、PyTorch、Python 等推理引擎整合成可观测、可扩展的生产级在线服务。
 
 ## 一句话理解
@@ -45,3 +47,7 @@
 | 解决的主要问题 | 单模型高吞吐 | LLM Program 高效执行 | NVIDIA 硬件极致性能 | 多模型、多框架、可扩展、可观测服务 |
 
 建议先阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/) 与 [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)，再理解 Triton 如何作为“服务层”把这些引擎组织起来。
+
+## 与 NVIDIA Dynamo 的关系
+
+2026 年 3 月 NVIDIA Dynamo 1.0 GA 后，Triton 与 Dynamo 的分工逐渐清晰：**Triton（Dynamo-Triton）守住通用多框架服务层**（视觉、语音、传统 ML、多模型混部、中小规模 LLM），**Dynamo 承接 AI Factory 级的大规模 LLM 推理**（prefill/decode 分离、KV-cache 感知路由、NIXL 传输、分层 KV 卸载）。如果你的集群规模到了需要 disaggregated serving 的程度，应该评估 Dynamo 而不是在 Triton 上硬扛；详见 [背景 · Triton 在 LLM 时代的定位变化](01-background)。

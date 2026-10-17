@@ -7,7 +7,7 @@ NVIDIA 提供官方 NGC 镜像，是生产部署的首选：
 ```bash
 docker run --gpus all --rm -p 8000:8000 -p 8001:8001 -p 8002:8002 \
   -v $(pwd)/model_repository:/models:ro \
-  nvcr.io/nvidia/tritonserver:24.05-py3 \
+  nvcr.io/nvidia/tritonserver:26.09-py3 \
   tritonserver --model-repository=/models
 ```
 
@@ -19,8 +19,12 @@ docker run --gpus all --rm -p 8000:8000 -p 8001:8001 -p 8002:8002 \
 
 对于 LLM 场景，通常使用带 backend 的专用镜像：
 
-- `nvcr.io/nvidia/tritonserver:24.05-trtllm-python-py3`：含 TensorRT-LLM backend。
-- `nvcr.io/nvidia/tritonserver:24.05-vllm-python-py3`：含 vLLM backend。
+- `nvcr.io/nvidia/tritonserver:26.07-trtllm-python-py3`：含 TensorRT-LLM backend。
+- `nvcr.io/nvidia/tritonserver:26.07-vllm-python-py3`：含 vLLM backend。
+
+> **注意（2026）**：从 26.08 起，NGC 不再随月度发布提供 TensorRT-LLM backend 容器镜像；TRT-LLM 用户需要自行基于 `tensorrtllm_backend` 仓库构建，或评估 NVIDIA Dynamo。另外 26.09 起镜像基于 CUDA 13.4.1，并初步支持 Rubin GPU 架构，老驱动（R555 及更早）不在前向兼容范围内，升级前需核对驱动版本。
+
+> **安全（2026）**：NVIDIA 2026 年 8 月安全公告修复了多个高危漏洞（含 CVE-2026-47627 路径穿越，CVSS 9.8，影响 26.05 及更早版本），生产环境务必升级到 26.06 以上，且不要把 Triton 的 HTTP/gRPC 端口直接暴露到不可信网络。
 
 ## Kubernetes / KServe 集成
 
@@ -47,6 +51,8 @@ spec:
 - 配置 HPA 基于 GPU 利用率或自定义 metrics（如 queue size）自动扩缩。
 - 为 Triton 容器配置 `resources.limits.nvidia.com/gpu`。
 - 使用 `readinessProbe` 与 `livenessProbe` 检查 `/v2/health/ready`。
+- KServe 还提供了面向 LLM 的 `LLMInferenceService` CRD（可对接 vLLM / Triton 等 runtime）；纯传统模型继续用 `InferenceService` + Triton runtime 即可。
+- 注意 Knative scale-to-zero 对 LLM 会带来明显的冷启动延迟，LLM 服务通常禁用 scale-to-zero，改用电厂式常驻副本 + 基于 KV cache / decode 吞吐信号的扩缩容。
 
 ## TensorRT-LLM Backend 配置要点
 
@@ -85,6 +91,8 @@ parameters: {
 - 引擎文件需要在相同 GPU 架构上构建。
 - TensorRT-LLM backend 内部已经实现了 In-flight Batching，因此 Triton 层通常**不需要再开 dynamic batching**。
 - 通过 `parameters` 控制 KV cache 大小、beam width、end id 等。
+- **Disaggregated serving**：TensorRT-LLM backend 支持分离部署 context（prefill）与 generation（decode）worker，通过 `kv_cache_transfer_lib`（如 NIXL、UCX）传输 KV cache，由 orchestrator 统一调度；这是单机内做 prefill/decode 分离的方式。跨节点、大规模分离部署应改用 NVIDIA Dynamo。
+- **容器现状（2026）**：26.08 起 NGC 不再提供 TRT-LLM backend 容器；同时 backend 中纯 Python 的 `gpt` runtime 已被废弃（只剩 C++ backend），TensorRT-LLM 自身也在向 PyTorch 执行后端收敛。新项目建议评估 Dynamo 或 vLLM backend 路线。
 
 ## vLLM Backend 配置要点
 
@@ -228,6 +236,9 @@ NVIDIA 提供官方 Triton Grafana dashboard 模板，可直接导入。
 - [Triton NGC Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tritonserver)
 - [Triton User Guide — Deploying on Kubernetes](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/kubernetes_deploy.html)
 - [Triton TensorRT-LLM Backend](https://github.com/triton-inference-server/tensorrtllm_backend)
+- [TensorRT-LLM Disaggregated Serving](https://github.com/NVIDIA/TensorRT-LLM/blob/main/docs/source/features/disagg-serving.md)
 - [Triton vLLM Backend](https://github.com/triton-inference-server/vllm_backend)
 - [KServe Triton Runtime](https://kserve.github.io/website/latest/modelserving/v1beta1/triton/)
+- [KServe LLMInferenceService 入门](https://kserve.github.io/website/docs/getting-started/genai-first-llmisvc)
+- [NVIDIA Dynamo-Triton 官方主页](https://developer.nvidia.com/dynamo-triton)
 - [Triton Metrics](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/metrics.html)

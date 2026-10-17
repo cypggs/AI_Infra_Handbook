@@ -5,10 +5,13 @@
 | 场景 | 推荐方案 |
 |---|---|
 | 单一 LLM 模型，快速上线，团队规模小 | 裸部署 vLLM / SGLang，或 Triton vLLM backend |
-| 多模型、多框架、需要统一入口与监控 | **Triton Inference Server** |
-| 极致 NVIDIA GPU 性能，模型固定 | TensorRT-LLM backend |
+| 多模型、多框架、需要统一入口与监控 | **Triton（Dynamo-Triton）Inference Server** |
+| 极致 NVIDIA GPU 性能，模型固定 | TensorRT-LLM backend（注意 26.08 起需自行构建容器） |
+| 数十到数百张 GPU 的 LLM 集群，需要 prefill/decode 分离与 KV 感知路由 | **NVIDIA Dynamo**，而不是在 Triton 上硬扛 |
 | 强 Kubernetes 生态，需要自动扩缩与 A/B 测试 | KServe + Triton runtime |
 | 高度自定义路由、计费、权限 | 自研网关 + Triton 作为 backend 层 |
+
+> 2026 年的判断逻辑：Triton 负责“把多种模型统一服务好”，Dynamo 负责“把一个大 LLM 在集群上跑出极致效率”。两者互补，不是替代关系；Triton 已更名 Dynamo-Triton 并入 Dynamo 平台。
 
 ## Backend 选择
 

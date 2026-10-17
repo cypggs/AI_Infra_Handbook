@@ -33,6 +33,14 @@
 ## NVIDIA 资源
 
 - [NVIDIA Triton Inference Server 主页](https://developer.nvidia.com/triton-inference-server)
+- [NVIDIA Dynamo-Triton 官方主页](https://developer.nvidia.com/dynamo-triton)
+  - Triton 更名后的官方入口（formerly Triton Inference Server）。
+- [NVIDIA Dynamo 官方主页](https://developer.nvidia.com/dynamo)
+  - 面向大规模 LLM 的分布式推理框架，Triton 的互补组件。
+- [NVIDIA DYNAMO FAQ](https://forums.developer.nvidia.com/t/nvidia-dynamo-faq/327484)
+  - 官方对 Dynamo-Triton 更名、与 Dynamo 分工的说明。
+- [Triton Release Notes](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/)
+  - 每个 NGC 月度版本（YY.MM）的详细变更。
 - [NGC Triton Container Catalog](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tritonserver)
   - 官方 Docker 镜像与版本说明。
 - [NVIDIA Deep Learning Examples — Triton](https://github.com/NVIDIA/DeepLearningExamples/tree/master/Triton)
@@ -58,6 +66,7 @@
 3. 尝试把 vLLM 或 TensorRT-LLM 模型接入 Triton。
 4. 阅读 `server` 仓库的 `src/core/dynamic_batch_scheduler.cc` 与 `ensemble_scheduler.cc`。
 5. 用 Triton Model Analyzer 自动搜索最优配置。
+6. 如果负责大规模 LLM 集群，继续阅读 [NVIDIA Dynamo](https://developer.nvidia.com/dynamo) 与 [TensorRT-LLM Disaggregated Serving](https://github.com/NVIDIA/TensorRT-LLM/blob/main/docs/source/features/disagg-serving.md)，理解 prefill/decode 分离与 KV 传输。
 
 ## 本章小结
 

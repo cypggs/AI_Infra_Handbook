@@ -26,7 +26,7 @@ Triton 通过 **model repository + `config.pbtxt` + backend abstraction** 的三
 
 ## Triton 的版本演进（2025–2026）
 
-截至 2026 年 7 月，Triton 已发布到 **26.06（GitHub Release 2.70.0，2026-06-26）**，版本号跟随 NGC 容器标签的 `YY.MM` 格式。近两年值得关注的方向：
+截至 2026 年 10 月，Triton 已发布到 **26.09（GitHub Release 2.73.0）**，版本号跟随 NGC 容器标签的 `YY.MM` 格式。近两年值得关注的方向：
 
 | 时间 | 版本/事件 | 关键变化 |
 |---|---|---|
@@ -36,14 +36,50 @@ Triton 通过 **model repository + `config.pbtxt` + backend abstraction** 的三
 | 2026-02 | 26.02 / 2.66.0 | **最后一个 Jetson GitHub release** |
 | 2026-04 | 26.04 / 2.68.0 | PyTorch backend 支持 AOT Inductor / PT2；ONNX backend 支持 bfloat16；Python backend 新增 `is_ready()` |
 | 2026-05 | 26.05 / 2.69.0 | Azure Managed Identity 访问存储；新增 Rust gRPC client；vLLM backend 支持 `GPU_DEVICE_IDS` |
-| 2026-06 | 26.06 / 2.70.0 | TensorRT backend 支持多 GPU 推理；PyTorch backend 支持 PyTorch 2 dynamic batching；**正式移除 Windows 支持** |
+| 2026-06 | 26.06 / 2.70.0 | TensorRT backend 支持多 GPU 推理；PyTorch backend 支持 PyTorch 2 dynamic batching；**正式移除 Windows 支持**；修复多个高危安全漏洞（含 CVE-2026-47627 路径穿越） |
+| 2026-07 | 26.07 / 2.71.0 | PyTorch backend 支持 NV Embedding 与 HSTU 生成式推荐模型（AOTI 路径）；OpenAI 前端增加流式 tool-call 缓冲限制；容器内含 TRT-LLM release/1.2.1 与 vLLM 0.24.0 |
+| 2026-08 | 26.08 / 2.72.0 | 修复 dynamic batcher 饥饿（`waiting_consumer_count` 漂移）与 `preserve_ordering` 顺序问题；新增 C/Python 日志回调 API；升级 CUDA 13.4.1 / TensorRT 11.2；**起不再附带 TensorRT-LLM backend 容器** |
+| 2026-09 | 26.09 / 2.73.0 | DLFW 容器**初步支持 NVIDIA Rubin GPU 架构**；构建迁移至 C++20；OpenAI 前端改进流式取消；TensorRT 11.3 / vLLM 0.29.0；废弃 developer_tools C API wrapper |
 
 近两年 Triton 的演进主线非常清晰：
 
-1. **LLM serving 深化**：持续加大对 vLLM 与 TensorRT-LLM backend 的投入，包括 OpenAI 兼容前端、embeddings 端点、tool calling、LoRA、GPU 设备绑定等。
-2. **OpenAI-compatible API 成熟**：从 beta 到 stable，增加了认证、请求大小限制、错误码对齐等生产级能力。
-3. **安全加固**：修复多个 CVE， hardened Python backend 环境解压与文件路径处理，支持 Azure Managed Identity。
-4. **平台收敛**：Windows 支持被废弃并移除，Jetson 的 GitHub release 终止，企业级部署更聚焦 Linux + 数据中心 GPU。
+1. **品牌并入 Dynamo 平台**：2026 年起 NVIDIA 将 Triton Inference Server 更名为 **NVIDIA Dynamo-Triton**，作为 Dynamo 平台下的通用推理服务组件；面向大规模 LLM 的多节点分布式推理则由 **NVIDIA Dynamo**（2026 年 3 月发布 1.0）承接。详见下文「Triton 在 LLM 时代的定位变化」。
+2. **LLM serving 深化**：持续加大对 vLLM 与 TensorRT-LLM backend 的投入，包括 OpenAI 兼容前端、embeddings 端点、tool calling、LoRA、GPU 设备绑定等。
+3. **OpenAI-compatible API 成熟**：从 beta 到 stable，增加了认证、请求大小限制、错误码对齐、流式取消等生产级能力。
+4. **安全加固**：修复多个 CVE，hardened Python backend 环境解压与文件路径处理，支持 Azure Managed Identity。2026 年 8 月 NVIDIA 发布安全公告，修复了包括 CVE-2026-47627（路径穿越，CVSS 9.8）在内的多个漏洞，**强烈建议升级到 26.06 及以上版本**。
+5. **平台收敛**：Windows 支持被废弃并移除，Jetson 的 GitHub release 终止，企业级部署更聚焦 Linux + 数据中心 GPU；**从 26.08 起 NGC 不再随月度发布提供 TensorRT-LLM backend 容器镜像**，TRT-LLM 用户需自行构建或转向 NVIDIA Dynamo。
+
+## Triton 在 LLM 时代的定位变化：Dynamo-Triton 与 NVIDIA Dynamo
+
+2026 年 Triton 最重要的变化不是某个功能，而是**它在 NVIDIA 推理版图中的位置**：
+
+```mermaid
+flowchart TB
+    subgraph Platform["NVIDIA Dynamo 平台"]
+        DT["Dynamo-Triton\n（原 Triton Inference Server）\n通用多框架推理服务"]
+        D["NVIDIA Dynamo\n分布式 LLM 推理框架\n1.0 GA（2026-03）"]
+    end
+
+    DT -->|"TensorRT / ONNX / PyTorch /\nOpenVINO / Python / vLLM"| Models1["CNN / 传统 ML / 语音 /\n多模型混部"]
+    D -->|"vLLM / SGLang / TensorRT-LLM"| Models2["大规模 LLM\nprefill / decode 分离"]
+
+    style DT fill:#e8f4e8
+    style D fill:#e8eaf4
+```
+
+- **Dynamo-Triton（原 Triton）**：继续承担**通用、多框架、单节点为主**的推理服务——视觉、语音、传统 ML、embedding、reranker 以及中小规模 LLM。API、model repository、`config.pbtxt` 基本不变，存量部署不受影响。
+- **NVIDIA Dynamo**：面向 **AI Factory 级的大规模 LLM 推理**，核心能力是 Triton 没有的：**disaggregated serving**（prefill / decode 分离部署、独立扩缩）、**KV-cache 感知路由**（把请求路由到已缓存上下文的 GPU）、**NIXL**（NVLink / InfiniBand 上的低延迟 KV 传输）、**分层 KV cache 卸载**（GPU → CPU → SSD）。Dynamo 1.0 于 2026 年 3 月 GA，引擎无关，可编排 vLLM、SGLang、TensorRT-LLM。
+
+对团队的实际含义：
+
+| 你的场景 | 推荐 |
+|---|---|
+| 一台或几台服务器，服务多个模型 / 多种框架 | Dynamo-Triton（原 Triton） |
+| 单一大 LLM，单机部署 | vLLM / SGLang 裸部署，或 Triton vLLM backend |
+| 数十到数百张 GPU 的 LLM 集群，需要 prefill/decode 分离 | NVIDIA Dynamo |
+| Kubernetes 上的统一发布与扩缩 | KServe（Triton runtime 或 vLLM runtime）+ 上述引擎 |
+
+> 一句话：Triton 没有被废弃，但 NVIDIA 的 LLM 投入重心已经转移到 Dynamo；Triton 退守“通用推理服务层”这个它最擅长的位置。
 
 ## 没有 Triton 会怎样？
 
@@ -59,15 +95,15 @@ Triton 的价值在于：它介于“裸 backend”与“完整 MLOps 平台”�
 
 ## Triton 与替代方案的对比
 
-| 维度 | Triton Inference Server | 裸部署 vLLM / TRT-LLM | KServe | 自研网关 |
-|---|---|---|---|---|
-| 核心定位 | 多框架推理服务入口 | 单模型高性能推理 | Kubernetes 上的模型服务框架 | 自定义请求路由与治理 |
-| 支持后端 | TensorRT、TRT-LLM、ONNX、PyTorch、Python、vLLM、TensorFlow 等 | 自身引擎 | 多种 runtime（可通过 Triton 集成） | 取决于实现 |
-| 调度能力 | Dynamic Batching、Sequence Batching、Ensemble、Rate Limiter | Continuous / In-flight Batching | 依赖底层 runtime | 需自行实现 |
-| 协议支持 | HTTP/REST、gRPC、C API、Vertex AI / SageMaker 兼容 | 通常 HTTP / 内部 API | HTTP/gRPC | 自定义 |
-| 可观测性 | Prometheus 指标、Tracing、日志 | 部分自带 | 依赖 Istio / 平台层 | 需自行实现 |
-| 模型版本与热更新 | 原生支持 | 不支持或需 wrapper | 支持 | 需自行实现 |
-| 学习曲线 | 中（config.pbtxt 细节多） | 低 | 中 | 高 |
+| 维度 | Triton / Dynamo-Triton | 裸部署 vLLM / TRT-LLM | NVIDIA Dynamo | KServe | 自研网关 |
+|---|---|---|---|---|---|
+| 核心定位 | 多框架推理服务入口 | 单模型高性能推理 | 分布式 LLM 推理框架（AI Factory 级） | Kubernetes 上的模型服务框架 | 自定义请求路由与治理 |
+| 支持后端 | TensorRT、TRT-LLM、ONNX、PyTorch、Python、vLLM、TensorFlow 等 | 自身引擎 | vLLM、SGLang、TensorRT-LLM | 多种 runtime（可通过 Triton 集成） | 取决于实现 |
+| 调度能力 | Dynamic Batching、Sequence Batching、Ensemble、Rate Limiter | Continuous / In-flight Batching | Disaggregated serving、KV 感知路由、GPU Planner | 依赖底层 runtime | 需自行实现 |
+| 协议支持 | HTTP/REST、gRPC、C API、OpenAI 兼容、Vertex AI / SageMaker 兼容 | 通常 HTTP / 内部 API | OpenAI 兼容 | HTTP/gRPC | 自定义 |
+| 可观测性 | Prometheus 指标、Tracing、日志 | 部分自带 | Prometheus + 推理感知指标 | 依赖 Istio / 平台层 | 需自行实现 |
+| 模型版本与热更新 | 原生支持 | 不支持或需 wrapper | 依赖底层引擎 | 支持 | 需自行实现 |
+| 学习曲线 | 中（config.pbtxt 细节多） | 低 | 中高（分布式组件多） | 中 | 高 |
 
 > 一句话：如果你已经在用 NVIDIA GPU，并且需要在一个集群里服务多种模型、多种框架，Triton 通常是最省力的统一服务层。
 
@@ -79,9 +115,13 @@ Triton Inference Server 不是又一个推理引擎，而是**模型与业务之
 
 - [Triton Inference Server User Guide — Architecture](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/architecture.html)
 - [triton-inference-server/server GitHub Releases](https://github.com/triton-inference-server/server/releases)
-- [Triton Inference Server Release 25.05 — NVIDIA Docs](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/rel-25-05.html)
-- [Triton Inference Server Release 25.04 — NVIDIA Docs](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton-inference-server-2610/release-notes/rel-25-04.html)
+- [Triton Inference Server Release 26.08 — NVIDIA Docs](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/rel-26-08.html)
+- [Triton Inference Server Release 26.09 — NVIDIA Docs](https://docs.nvidia.com/deeplearning/triton-inference-server/release-notes/rel-26-09.html)
+- [Security Bulletin: NVIDIA Triton Inference Server — August 2026](https://nvidia.custhelp.com/app/answers/detail/a_id/5860/~/security-bulletin%3A-nvidia-triton-inference-server---august-2026)
 - [Triton Inference Server PB October 2025 (PB 25h2) — NVIDIA NGC](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tritonserver-pb25h2)
 - [Triton vLLM Backend](https://github.com/triton-inference-server/vllm_backend)
 - [Triton TensorRT-LLM Backend](https://github.com/triton-inference-server/tensorrtllm_backend)
+- [NVIDIA Dynamo-Triton 官方主页](https://developer.nvidia.com/dynamo-triton)
+- [NVIDIA Dynamo 官方主页](https://developer.nvidia.com/dynamo)
+- [NVIDIA DYNAMO FAQ（含 Dynamo-Triton 更名说明）](https://forums.developer.nvidia.com/t/nvidia-dynamo-faq/327484)
 - [KServe 官方文档](https://kserve.github.io/website/)
