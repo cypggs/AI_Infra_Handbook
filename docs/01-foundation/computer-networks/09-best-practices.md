@@ -8,11 +8,14 @@
 
 | 检查项 | 建议 |
 |---|---|
+| Scale-Up 设计 | 明确 TP 是否依赖超节点（NVLink 域 / UALink Pod）；规划机柜级 Scale-Up 域与 Scale-Out 网络的边界。 |
 | 拓扑选择 | 中小型集群 Spine-Leaf；超大规模考虑 fat-tree / 3D-torus + OCS。 |
-| 网络类型 | 预算充足选 InfiniBand；追求性价比选 RoCEv2；推理入口用标准 TCP/IP。 |
+| 网络类型 | 新建集群优先评估 RoCE/以太网 + UEC 路线（生态与成本）；追求现成工具链和极致抖动控制选 InfiniBand。 |
+| 速率代际 | 400G 为主力，800G 新建首选；1.6T 关注 802.3dj 标准化与光模块成熟度。 |
 | 收敛比 | 非阻塞或接近非阻塞；训练场景收敛比 ≥ 1:1。 |
 | MTU | 全链路 Jumbo frame（9000/9216）。 |
 | 路由对称 | 避免 ECMP 非对称导致 PFC/ECN 异常。 |
+| 拥塞控制 | 无损方案要求交换机/网卡/操作系统三方 PFC+ECN 配置一致；关注 UEC 有损传输能力的落地。 |
 | 多租户隔离 | 物理 fabric 隔离优于 VLAN；训练/推理/存储分平面。 |
 
 ### 9.1.2 Kubernetes 网络
@@ -74,6 +77,7 @@ curl -o /dev/null -s -w '\nDNS: %{time_namelookup}s\nConnect: %{time_connect}s\n
 |---|---|---|
 | 物理层 | 端口 up/down、光功率、温度 | 交换机 SNMP、Redfish |
 | 链路层 | 带宽利用率、PFC pause 次数 | `ethtool -S`、交换机 CLI |
+| 遥测层 | INT/IOAM 逐跳延迟、丢包事件（WJH） | gNMI 订阅、Arista WJH、Prometheus |
 | 网络层 | 丢包、延迟、RTT、ECN 标记 | `ss -tin`、`tcpdump` |
 | 传输层 | TCP retrans、cwnd、RTO | `sar -n TCP`、`bcc` |
 | RDMA 层 | bandwidth、retry、out-of-order | `ibstat`、`perftest` |
@@ -94,8 +98,11 @@ curl -o /dev/null -s -w '\nDNS: %{time_namelookup}s\nConnect: %{time_connect}s\n
 
 | 选择 | 收益 | 代价 |
 |---|---|---|
-| InfiniBand | 最高性能、最低抖动 | 昂贵、供应商锁定 |
-| RoCEv2 | 复用以太网、成本可控 | 需精细调优 PFC/ECN |
+| InfiniBand | 最高性能、最低抖动、开箱即用 | 昂贵、供应商锁定、生态份额下降 |
+| RoCEv2（PFC 无损） | 复用以太网、成本可控、当前最稳 | 需精细调优 PFC/ECN，规模大时工程量大 |
+| UEC / 有损以太网 RDMA | 摆脱 PFC 死锁风险、多厂商互操作 | 标准与产品仍在成熟中（2026 年 1.1 规范阶段） |
+| NVLink 超节点 | TP 通信带宽天花板 | 专有生态、机柜级供电散热要求高 |
+| UALink 开放超节点 | 避免 NVIDIA 锁定、多厂商可选 | 落后 NVLink 1—2 代，2027 年前后才有成熟产品 |
 | 单平面网络 | 简单、省钱 | 训练/推理/存储互相干扰 |
 | 多平面网络 | 隔离性好、可独立扩容 | 硬件和运维成本翻倍 |
 |  Overlay（VXLAN） | 灵活、跨机房 | 额外头部开销、影响 RDMA |

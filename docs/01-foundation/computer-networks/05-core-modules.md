@@ -18,9 +18,10 @@ NIC（Network Interface Card）是服务器连接网络的硬件。现代 NIC �
 
 ### RDMA NIC
 
-- 支持 RDMA 的网卡，如 NVIDIA ConnectX-6/7；
--  bypass 内核，直接读写远程内存；
-- 需要支持 RoCE 或 InfiniBand 的交换机。
+- 支持 RDMA 的网卡，如 NVIDIA ConnectX-7（400G）、ConnectX-8 SuperNIC（800G，2025 年发布）；
+- bypass 内核，直接读写远程内存；
+- 需要支持 RoCE 或 InfiniBand 的交换机；
+- 下一代将直接支持 UEC 的增强传输能力（包喷洒、乱序交付、增强重传）。
 
 ## 5.2 Linux 网络协议栈
 
@@ -78,7 +79,7 @@ ibv_poll_cq();        // 轮询完成队列
 | RoCEv1 | 二层（Ethernet） | 不需要 IP，但无法跨三层路由 |
 | RoCEv2 | 三层（UDP/IP） | 可路由，主流选择 |
 
-RoCEv2 需要网络支持 **PFC（Priority Flow Control）** 和 **ECN（Explicit Congestion Notification）** 来避免丢包和死锁。
+RoCEv2 需要网络支持 **PFC（Priority Flow Control）** 和 **ECN（Explicit Congestion Notification）** 来避免丢包和死锁。行业趋势是：通过 UEC 的增强传输能力（包喷洒、乱序交付、增强重传），让 RDMA 逐步摆脱对 PFC 的强依赖（见 3.8 节）；在此之前，生产环境仍以 PFC + ECN 的无损方案为主。
 
 ## 5.4 CNI 插件
 
@@ -170,6 +171,17 @@ AI 推理服务常用 Envoy 做 L7 网关。
 | perftest | RDMA 性能测试 |
 | bpftool / bcc / bpftrace | eBPF 动态追踪 |
 
+### 网络遥测的新范式
+
+传统网络排障靠“登录设备看计数器”，现代 AI 集群的网络遥测已经走向**流式、带内、开箱即用**：
+
+- **INT / IOAM**：交换机在转发路径上把每跳延迟、队列深度写进包头的遥测字段，实现逐 hop 的延迟定位；
+- **gNMI 流式订阅**：通过 gNMI Subscribe 持续推送端口计数器、队列水位，替代轮询 SNMP；
+- **“刚刚发生了什么”（WJH）类事件遥测**：交换机直接上报“这个包为什么被丢/被 pause”，例如 Arista WJH、SONiC 的带内遥测；
+- **RDMA 专用计数器**：NVIDIA 网卡暴露 `hw_counters`（重传、out-of-order、pause 帧），是定位 RoCE 问题的第一手数据。
+
+在 51.2T/102.4T 的 AI 网络里，抓包成本越来越高，**带内遥测 + 流式指标 + 事件上报**正在取代 tcpdump 成为主要排障手段。
+
 ## 5.8 本节小结
 
 | 模块 | 核心关注点 |
@@ -180,6 +192,6 @@ AI 推理服务常用 Envoy 做 L7 网关。
 | CNI | bridge/Calico/Cilium/Multus |
 | DNS | 解析流程、CoreDNS、TTL |
 | 负载均衡 | kube-proxy、Ingress/Gateway API、Envoy/Istio |
-| 可观测 | ping、tcpdump、iperf、nccl-tests、perftest、bcc |
+| 可观测 | ping、tcpdump、iperf、nccl-tests、perftest、bcc、INT/IOAM、gNMI、WJH |
 
 下一节，我们通过源码分析深入一个具体机制。

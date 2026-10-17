@@ -9,7 +9,8 @@
 ```mermaid
 flowchart TD
     A[PyTorch DDP] --> B[NCCL]
-    B --> C[libibverbs / RDMA driver]
+    B -->|机柜内：NVLink/UALink| NV[NVSwitch / UALink 交换机]
+    B -->|跨节点：RoCE/IB| C[libibverbs / RDMA driver]
     C --> D[RNIC]
     D --> E[Ethernet Switch]
     E --> F[对端 RNIC]
@@ -17,6 +18,8 @@ flowchart TD
     G --> H[对端 NCCL]
     H --> I[对端 PyTorch]
 ```
+
+注意上图的两个分支：NCCL 会**同时**使用两层网络——同一 Scale-Up 域（如 NVL72 机柜）内的梯度走 NVLink 直传，跨节点的梯度走 RoCE/InfiniBand。两层网络的带宽和延迟差一个数量级，NCCL 的拓扑感知算法（ring/tree 的通道编排）本质上就是在给流量分配这两层路径。
 
 ### 应用层：PyTorch DDP
 
@@ -146,7 +149,7 @@ Overlay 网络在现有物理网络之上再建一层虚拟网络。VXLAN 把二
 
 ## 4.7 本节小结
 
-- 分布式训练包路径：PyTorch → NCCL → libibverbs → RNIC → switch → 对端 RNIC → 对端 NCCL → 对端 PyTorch；
+- 分布式训练包路径：PyTorch → NCCL →（机柜内 NVLink / 跨节点 libibverbs）→ RNIC → switch → 对端 RNIC → 对端 NCCL → 对端 PyTorch；
 - 推理请求包路径：DNS → L4 LB → L7 Gateway → K8s Service → kube-proxy → Pod IP → 容器网卡 → vLLM；
 - TCP 需要三次握手建立连接；
 - ARP 负责 IP 到 MAC 解析；

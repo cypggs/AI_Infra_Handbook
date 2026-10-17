@@ -19,7 +19,7 @@
 2. 理解分组交换、电路交换、复用、端到端原则、带宽时延积、incast 等核心思想；
 3. 理解 TCP 可靠传输、滑动窗口、拥塞控制（Reno/CUBIC/BBR）的基本机制；
 4. 理解数据中心网络拓扑：Spine-Leaf、Clos、fat-tree、3D-torus、OCS；
-5. 理解 RDMA、InfiniBand、RoCE、NVLink 在分布式训练中的角色和 trade-off；
+5. 理解 RDMA、InfiniBand、RoCE、NVLink/UALink 在分布式训练中的角色和 trade-off，分清 Scale-Up 与 Scale-Out 两种网络；
 6. 理解 Kubernetes CNI、Service、kube-proxy、CoreDNS、Ingress/Gateway API 的网络原理；
 7. 理解 L4/L7 负载均衡、DNS、服务网格（Istio/Envoy）在 AI 推理服务中的应用；
 8. 掌握基础网络排障工具链：ping、traceroute、tcpdump、ss、iperf、nccl-tests；

@@ -59,13 +59,14 @@
 ### 13. 设计一个万卡 AI 训练集群的网络，你会怎么选型？
 
 **参考答案要点**：
-- 超大规模优先考虑 InfiniBand 或分 fabric 的 RoCE；
+- 先定 Scale-Up 边界：TP 是否需要 NVL72 级超节点，还是单机 8 卡 + Scale-Out 即可；
+- Scale-Out 优先评估 RoCE/以太网（成本、供应、生态），需要现成工具链与极致抖动再选 InfiniBand；关注 UEC 规范的产品落地；
 - 拓扑选 fat-tree 或 3D-torus + OCS；
 - 训练、存储、管理三平面物理隔离；
 - 收敛比 ≥ 1:1；
-- 全网 ECN/PFC 一致性；
-- 预留 NCCL SHARP 或交换机 in-network aggregation；
-- 可观测覆盖从 NIC 到交换机到 NCCL。
+- 全网 ECN/PFC 一致性，或采用 UEC 有损传输能力；
+- 预留交换机 in-network aggregation（SHARP / NVLink Switch / UALink INC）；
+- 可观测覆盖从 NIC hw_counters 到交换机遥测（INT/gNMI/WJH）到 NCCL。
 
 ### 14. 你如何定位 NCCL all-reduce 带宽不达标的问题？
 
@@ -99,9 +100,17 @@
 
 **参考答案**：QP（Queue Pair）是通信双方的发送/接收队列对；CQ（Completion Queue）用于接收完成通知；MR（Memory Region）是已注册到 RNIC 的内存，持有虚拟地址、物理地址和访问密钥。
 
+### 19. 什么是 UltraEthernet（UEC）？它要解决 RoCE 的什么问题？
+
+**参考答案**：UEC 是 2024 年 7 月成立的行业联盟，目标是把以太网改造成 AI/HPC 规模的开放后端网络。针对 RoCEv2 的痛点做改进：包喷洒解决 ECMP 极化；乱序交付 + 增强重传让 RDMA 摆脱对 PFC 无损的强依赖；新的拥塞控制框架替代表现不佳的 DCQCN；标准化遥测与管理面。截至 2026 年 10 月已发布 1.1 版规范。
+
+### 20. 什么是 Scale-Up 与 Scale-Out 网络？NVLink Fusion 和 UALink 有什么区别？
+
+**参考答案**：Scale-Up 把机柜内加速器连成逻辑大 GPU（NVLink/UALink，TB/s 级、亚微秒），服务张量并行；Scale-Out 连接成千上万节点（InfiniBand/RoCE/UEC），服务数据并行的 all-reduce。NVLink Fusion 是 NVIDIA 把 NVLink IP 半开放授权给 MediaTek、Marvell 等合作伙伴，但仍由 NVIDIA 主导、不向直接竞争对手开放；UALink 是完全开放的标准联盟规范（1.0 于 2025 年发布，单 Pod 最多 1,024 加速器，2026 年更新 Common 2.0 加入网络内计算），落后 NVLink 1—2 代，但让 AMD、Intel 等生态也能造超节点。CXL 则从 CPU—内存池化侧形成互补，三者分别覆盖内存墙、超节点、集群三个层次。
+
 ## 10.4 场景设计题
 
-### 19. 设计一个跨地域的 LLM 推理服务入口
+### 21. 设计一个跨地域的 LLM 推理服务入口
 
 **参考答案要点**：
 - DNS 用 Geo/_LATENCY 路由，如 Route53、Cloudflare GeoDNS；
@@ -110,7 +119,7 @@
 - 服务间用 mTLS；
 - 监控按 region、model、backend 多维下钻。
 
-### 20. 如何在多租户 GPU 集群里避免网络互相干扰？
+### 22. 如何在多租户 GPU 集群里避免网络互相干扰？
 
 **参考答案要点**：
 - 物理 fabric 隔离训练/推理/存储；

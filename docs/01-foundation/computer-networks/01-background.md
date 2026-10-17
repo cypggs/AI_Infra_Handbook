@@ -97,11 +97,12 @@ AI Infra 工程师需要理解从物理层到应用层的网络技术栈：
 网络层：IP / 路由 / ARP / NAT
 数据链路层：Ethernet / VLAN / VXLAN
 物理层：铜缆/光纤 / NIC / switch / RDMA / InfiniBand
+Scale-Up 层：NVLink / NVSwitch / UALink / CXL（机柜内互连）
 ```
 
 在不同的 AI 场景里，重点不同：
 
-- **分布式训练**：关注 RDMA/RoCE/InfiniBand、NCCL、数据中心拓扑、incast；
+- **分布式训练**：关注 Scale-Up 互连（NVLink/UALink 超节点）、RDMA/RoCE/InfiniBand、NCCL、数据中心拓扑、incast；
 - **推理服务**：关注 DNS、负载均衡、HTTP/gRPC、服务网格、TLS；
 - **Kubernetes 平台**：关注 CNI、Service、kube-proxy、CoreDNS、NetworkPolicy。
 

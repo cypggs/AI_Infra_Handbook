@@ -18,8 +18,12 @@
 - RFC 3168 — ECN
 - RFC 7348 — VXLAN
 - IEEE 802.1Qbb — PFC
+- IEEE 802.3df-2024 — 400G/800G 以太网（802.3dj 推进 1.6T）
 - InfiniBand Architecture Specification
 - RDMA Consortium Verbs Specification
+- [UltraEthernet Consortium 规范](https://ultraethernet.org/) — 截至 2026-10 已发布 1.1 版
+- [UALink Consortium 规范](https://ualinkconsortium.org/specification) — 200G 1.0、Common 2.0、Manageability 1.0 等
+- [CXL Consortium 规范](https://www.cxlconsortium.org/) — CXL 4.0（2025-11 发布）
 
 ## 11.3 官方文档
 
@@ -34,12 +38,15 @@
 
 | 主题 | 推荐材料 |
 |---|---|
-| Google 数据中心网络 | Jupiter Rising、NSDI'24 双路径恢复论文、Falcon 相关演讲 |
-| Meta AI 网络 | Meta 关于 RoCE 与 InfiniBand 双织物网络的博客与论文 |
+| Google 数据中心网络 | Jupiter Rising、NSDI'24 双路径恢复论文、Apollo OCS（SIGCOMM 2022）、Falcon 相关演讲 |
+| Meta AI 网络 | SIGCOMM 2024《RDMA over Ethernet for Distributed Training at Meta Scale》（24k GPU RoCE vs IB 双集群）、Meta 关于 RoCE 与 InfiniBand 双织物网络的博客 |
+| 以太网反超 InfiniBand | Dell'Oro / Broadcom 2025 年市场分析、UEC 1.1 规范 |
+| 开放 Scale-Up 互连 | UALink 1.0/2.0 规范、NVLink Fusion（Computex 2025）、AMD Helios / MI400 机柜架构 |
+| 内存互连 | CXL 4.0 规范（SC25）、CXL 内存池化白皮书 |
 | OpenAI 训练集群 | 关于 Infiniband 大规模集群的演讲与采访 |
-| 拥塞控制 | DCTCP (SIGCOMM 2010)、BBR (ACM Queue 2016) |
-| 集合通信 | Bandwidth-Optimal All-reduce Algorithms、NCCL 论文 |
-| 可编程网络 | P4、SmartNIC、In-network Aggregation |
+| 拥塞控制 | DCTCP (SIGCOMM 2010)、BBR (ACM Queue 2016)、DCQCN (SIGCOMM 2015)、HPCC (SIGCOMM 2019) |
+| 集合通信 | Bandwidth-Optimal All-reduce Algorithms、NCCL 论文、in-network aggregation（SHARP / UALink INC） |
+| 可编程网络 | P4、SmartNIC、INT/IOAM 带内遥测 |
 
 ## 11.5 本手册相关主题
 
@@ -59,7 +66,8 @@
 ## 11.6 社区与会议
 
 - ACM SIGCOMM / NSDI / EuroSys：网络与系统顶会。
-- NVIDIA GTC：NCCL、RDMA、AI 网络最佳实践。
+- OCP Summit / OFC：AI 数据中心网络、光互联最新动向的第一发布渠道。
+- NVIDIA GTC：NCCL、RDMA、NVLink、Spectrum-X/Quantum-X 最佳实践。
 - KubeCon + CloudNativeCon：Cilium、eBPF、Gateway API。
 - Linux Plumbers Conference：内核网络、eBPF、RDMA。
 

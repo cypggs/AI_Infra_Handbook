@@ -86,6 +86,8 @@ TCP/IP 中，端口号就是传输层的复用/解复用标识：同一个 IP �
 
 但 AI 基础设施里也有很多“网络内智能”：PFC/ECN、RDMA offloading、智能网卡、交换机上做集合通信。这是性能和灵活性的 trade-off。
 
+2025—2026 年，“网络内计算”还在加速：NVIDIA NVLink Switch 的 in-network reduction、InfiniBand SHARP、UALink Common 2.0 规范引入的 In-Network Compute，都允许交换芯片直接参与 all-reduce 等集合通信，把“端到端原则”进一步向性能侧倾斜。
+
 ## 2.5 可靠传输
 
 网络会丢包、乱序、重复。TCP 通过以下机制保证可靠传输：
@@ -115,8 +117,9 @@ TCP/IP 中，端口号就是传输层的复用/解复用标识：同一个 IP �
 | CUBIC | Linux 默认，窗口按三次函数增长，适合高 BDP 链路 |
 | BBR | 基于带宽和 RTT 测量，不依赖丢包，适合高带宽+低延迟链路 |
 | DCTCP | 数据中心 TCP，利用 ECN 精确控制窗口，减少缓冲区占用 |
+| DCQCN | RoCE 标配的基于 ECN/CNP 的 RDMA 拥塞控制 |
 
-AI 训练常用 RDMA 或 RoCE，它们 bypass 内核 TCP，但同样面临拥塞控制问题（PFC/ECN）。
+AI 训练常用 RDMA 或 RoCE，它们 bypass 内核 TCP，但同样面临拥塞控制问题（PFC/ECN）。**2024—2026 年的一个重要教训是：现成 DCQCN 在 400G/800G 高速率下收敛慢、行为不可预测**。Meta 在 24,576 GPU RoCE 集群上的做法是自研与集合通信库联动的拥塞控制（SIGCOMM 2024）；行业标准方向则是 UEC 的新拥塞控制框架 + 包喷洒 + 乱序交付，让以太网即使不依赖 PFC 也能高效承载 RDMA（见 3.8 节）。
 
 ## 2.7 带宽时延积（BDP）
 

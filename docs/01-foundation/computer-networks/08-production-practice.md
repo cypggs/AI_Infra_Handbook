@@ -12,7 +12,9 @@ AI 集群的网络生产实践，核心是**在带宽、延迟、成本和稳定
 | 成本 | 高（专用交换机和网卡） | 低（复用数据中心以太网） |
 | 运维复杂度 | 封闭生态，工具链成熟 | 需要 PFC/ECN 精细调参 |
 | 扩展性 | 单集群可达数万卡 | 通常数千卡，需分 fabric |
-| 典型用户 | OpenAI、xAI、超算中心 | 多数云厂商和互联网公司 |
+| 生态趋势 | 份额被以太网侵蚀 | 2025 年起新增部署反超 IB，UEC 持续增强 |
+
+**2025—2026 年的选型背景**：以太网/RoCE 已经成为新建 AI 集群的主流（Dell'Oro、Broadcom 口径），InfiniBand 仍保留在最追求低抖动、紧耦合 HPC 与现成工具链的场景。Meta 用 24,576 GPU 的 RoCE 集群实际训练了 Llama 3.1 405B，证明调优到位的 RoCE 性能可以对标 IB（出处：SIGCOMM 2024《RDMA over Ethernet for Distributed Training at Meta Scale》）；UltraEthernet（UEC）则正在把这类实践标准化为开放规范（截至 2026-10 已发布 1.1 版）。
 
 ### 8.1.2 RoCE 的无损以太网三板斧
 
@@ -38,6 +40,19 @@ flowchart LR
 - PFC 优先级与 NIC VLAN/CoS 对齐。
 - 开启 `collective buffer` / adaptive routing（IB/SHARP 或交换机支持）。
 - BIOS 关闭 C-states，CPU 频率锁定，NUMA 对齐（网卡和 GPU 在同一 NUMA）。
+
+### 8.1.4 大规模 RoCE 的实战教训（Meta 案例）
+
+Meta 的 24,576 GPU RoCE 集群（SIGCOMM 2024）把“RoCE 上大规模训练”的坑趟了一遍，值得直接抄作业：
+
+| 踩过的坑 | 解法 |
+|---|---|
+| 现成 DCQCN 在 400G 下收敛不可预测 | 自研与集合通信库联动的拥塞控制 |
+| ECMP HASH 极化导致链路利用不均 | 拓扑感知的 rank 分配，让通信模式匹配网络拓扑 |
+| NIC PCIe credit 配置不当拖慢单流 | 深度调优 NIC 寄存器与 relaxed ordering |
+| all-reduce 同步 burst 打爆缓冲区 | PFC 无损 + 大缓冲区 + 集合通信节奏协同 |
+
+**有损 vs 无损的争论新结论**：传统观点认为 RDMA 必须跑无损网络（PFC），但 PFC 配置复杂、可能死锁、还会造成 Head-of-Line 阻塞。2024—2026 年的趋势是：**短期生产仍以 PFC + ECN 无损方案为主（这是当前最稳的路线），中长期看 UEC 的增强传输（包喷洒、乱序交付、增强重传）会让“有损以太网跑 RDMA”成为可互操作的标准能力**——Google 的 Falcon 等自研协议早已证明有损网络 + 上层恢复的可行性。
 
 ## 8.2 Kubernetes 网络实战
 
@@ -126,6 +141,7 @@ NCCL 是 NVIDIA 集合通信库，参数调优直接影响多机训练吞吐。
 | 推理 P99 延迟高 | DNS 慢、LB 不均衡、长连接倾斜 | `dig`、`ss -tin`、`curl -w` |
 | Pod 间偶发不通 | CNI 插件 bug、IP 冲突、安全组 | `ping`、`tcpdump`、`cilium connectivity test` |
 | 交换机丢包 | buffer 不足、incast | 交换机 CLI、SNMP、sFlow |
+| RDMA 重传高但无丢包表象 | 物理层误码、PFC 风暴、链路 flap | `ethtool -S` 看 NIC hw_counters、交换机 WJH/遥测 |
 
 ### 8.5.1 一条常用的端到端验证命令
 
@@ -143,6 +159,7 @@ ib_write_bw -d mlx5_0 --report_gbits -F <server_ip>
 - [ ] 同交换机下 `ib_write_bw` 达到线速 90% 以上。
 - [ ] 跨 Spine `ib_write_bw` 带宽符合预期。
 - [ ] `nccl-tests` all_reduce_bus_bandwidth 达到理论值 80% 以上。
+- [ ] 网卡 `hw_counters`（重传、out-of-order）基线清零并记录。
 - [ ] DNS 解析 Service 延迟 < 5ms。
 - [ ] Pod 跨节点 ping RTT 稳定。
 
