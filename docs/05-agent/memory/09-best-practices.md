@@ -16,6 +16,8 @@
 
 核心原则：**记忆的寿命、检索方式与一致性要求决定了它的存储形态**。
 
+2025 年后的补充原则：**记忆“是否会随时间变化”决定了是否需要图/时序模型**。如果业务中大量存在“用户偏好会变”“组织关系会变”这类演进事实（例如“用户以前住在北京，现在住在上海”），单纯向量 + 覆盖更新会丢掉历史，应考虑引入时序图谱或至少为记忆记录 `valid_from` / `valid_until` 字段（参见 [核心思想 §5](/05-agent/memory/02-core-ideas) 与 [核心模块 §14 Graph Store](/05-agent/memory/05-core-modules)）。
+
 ## 2. 控制上下文长度
 
 再强大的 LLM 也有上下文限制，回注记忆时必须精打细算。
@@ -126,6 +128,8 @@ class PrivacyFilter:
 - 人工抽查长期记忆，评估质量。
 - 在真实任务中对比“有记忆”与“无记忆”的表现差异。
 - 用影子运行做回归测试。
+- 使用公开基准做横向对比：**LoCoMo**（超长多会话对话记忆）、**LongMemEval / LongMemEval-V2**（长期交互记忆，含时序推理与知识更新）、**BEAM**（记忆质量综合评估）。
+- 对厂商报告的数字保持怀疑：2025 年 Zep 与 Mem0 曾就 LoCoMo 评测配置公开争执。基准分数只能作为初筛，最终选型必须用自有数据做 bake-off，并把“每次查询注入的 token 数”和“p95 检索延迟”纳入核心指标。
 
 ## 7. 不要过度设计
 
@@ -176,6 +180,8 @@ Agent Memory 的最佳实践围绕“分层、检索、遗忘、隐私、评测�
 **参考来源**
 
 - [Mem0 Best Practices](https://docs.mem0.ai)
+- [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [LangGraph Production Concepts](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Letta Memory Guidelines](https://docs.letta.com)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

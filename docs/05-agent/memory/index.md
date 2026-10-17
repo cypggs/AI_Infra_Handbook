@@ -18,7 +18,7 @@
 3. 描述记忆从感知到遗忘的完整生命周期。
 4. 画出 Agent Memory 的分层架构，并说明与 Agent Runtime、RAG、MCP 的边界。
 5. 理解 embedding、向量检索、摘要压缩、TTL、隐私过滤等核心机制。
-6. 对比 Letta（MemGPT）、LangGraph Persistence/Store、OpenAI Agents SDK Sessions、Mem0 等主流实现。
+6. 对比 Letta（MemGPT）、Mem0、Zep/Graphiti、LangGraph Persistence/Store、OpenAI Agents SDK Sessions、MemOS 等主流实现。
 7. 知道如何为自己的 Agent 选择存储后端、embedding 模型与检索策略。
 8. 跑通并扩展本主题的 Mini Demo，理解多层记忆的写入与检索。
 9. 回答关于记忆分类、向量检索、长期记忆与 RAG 区别、多租户隔离等面试问题。
@@ -66,5 +66,8 @@ Agent Memory 是 Agent 基础设施中承上启下的一层：它向上为 Agent
 
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)
 - [MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560)
+- [A-MEM: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [MemOS: An Operating System for Memory-Augmented Generation](https://arxiv.org/abs/2505.22101)
 - [Letta Documentation](https://docs.letta.com)
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
+- [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)

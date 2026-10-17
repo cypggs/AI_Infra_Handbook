@@ -121,17 +121,37 @@
 - **记忆覆盖**：用户偏好/事实被成功记住的比例。
 - **污染率**：错误、幻觉、低质量记忆的比例。
 - **业务价值**：有记忆 vs 无记忆的任务成功率、用户满意度。
-- **性能**：检索/写入延迟 P50/P99、存储成本。
+- **性能**：检索/写入延迟 P50/P99、存储成本、每次查询注入的 token 数。
 - **隐私合规**：敏感信息拦截率、用户删除响应时间。
+- **基准工具**：LoCoMo、LongMemEval、BEAM；厂商自报分数要谨慎，应自有数据 bake-off。
+
+### Q13：向量记忆和时序知识图谱记忆有什么区别？什么时候选后者？
+
+**参考答案**：
+
+- 向量记忆把记忆编码为稠密向量，擅长语义模糊召回，但表达不了“实体之间的关系”和“事实何时为真”。
+- 时序知识图谱（如 Graphiti）把记忆建模为实体 + 关系 + 双时序属性（生效时间/失效时间），新事实到来时旧事实被“失效”而不是删除。
+- 选型判断：如果业务事实大量随时间演进（用户偏好变化、组织关系调整、状态流转），且需要回答“以前是什么”“什么时候变的”，选时序图谱；如果只是静态偏好与 FAQ 式事实，向量记忆足够。
+- 两者可以组合：向量负责粗召回，图谱负责实体对齐、多跳遍历与时序过滤。
+
+### Q14：什么是 sleep-time compute？它解决了记忆系统的什么问题？
+
+**参考答案**：
+
+- Sleep-time compute 由 Letta / UC Berkeley 提出（arXiv:2504.13171）：让 Agent 在空闲时运行后台 LLM 调用，预处理输入、整理记忆，从而降低测试时（请求路径）计算量（论文报告约 5 倍）。
+- 对记忆系统的意义：记忆整理（事实合并、冲突消解、core/archive 升降级）本来要在请求路径上做，延迟高、成本大；移到后台离线做之后，请求路径只需要轻量检索。
+- 本质是把记忆的“写入与整理”从同步路径解耦到异步路径，代价是需要维护一个后台 Agent 与触发调度。
 
 ## 本章小结
 
-Agent Memory 的面试问题通常集中在：**记忆分类与生命周期**、**向量检索策略**、**长期记忆与 RAG 的区别**、**多租户隔离**、**embedding 模型管理**、**遗忘与更新机制**、**隐私与安全**、**Memory 与 Runtime 的边界**。掌握本章问题，基本可以覆盖初级到高级面试场景。
+Agent Memory 的面试问题通常集中在：**记忆分类与生命周期**、**向量检索策略**、**长期记忆与 RAG 的区别**、**多租户隔离**、**embedding 模型管理**、**遗忘与更新机制**、**隐私与安全**、**Memory 与 Runtime 的边界**。2025 年后还会考察**向量 vs 图谱 vs 时序记忆的选型**与 **sleep-time compute / 后台记忆整理**等新范式。掌握本章问题，基本可以覆盖初级到高级面试场景。
 
 **参考来源**
 
 - [Letta Documentation](https://docs.letta.com)
 - [LangGraph Memory Concepts](https://docs.langchain.com/oss/python/langgraph/add-memory)
 - [Mem0 Documentation](https://docs.mem0.ai)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+- [Sleep-time Compute（arXiv:2504.13171）](https://arxiv.org/abs/2504.13171)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)
 - [MemGPT Paper](https://arxiv.org/abs/2310.08560)

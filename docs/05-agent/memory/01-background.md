@@ -103,11 +103,30 @@ flowchart LR
 
 | 项目 | 定位 | 核心抽象 | 适用场景 |
 |---|---|---|---|
-| **Letta（原 MemGPT）** | 面向 Agent 的分层记忆系统 | core memory / archival memory / recall memory | 长对话、需要显式记忆管理的 Agent |
+| **Letta（原 MemGPT）** | 面向 Agent 的分层记忆系统与有状态 Agent Runtime | core memory / archival memory / recall memory、sleep-time compute | 长对话、需要显式记忆管理与后台记忆整理的 Agent |
+| **Mem0** | 面向 AI 助手的记忆中间件 | user / session / memory，ADD/UPDATE/DELETE/NOOP 事实操作 | 个性化助手、用户偏好记忆，快速集成 |
+| **Zep / Graphiti** | 时序知识图谱记忆引擎 | 双时序（bi-temporal）知识图谱、episode/entity/community 三层子图 | 事实随时间变化的关系型记忆、企业级治理 |
 | **LangGraph Persistence / Store** | 生产级状态与记忆持久化 | checkpoint / store / memory | 有状态工作流、跨会话记忆 |
 | **OpenAI Agents SDK Sessions** | OpenAI 生态的会话管理 | session / state / memory | OpenAI-only、快速落地 |
-| **Mem0** | 面向 AI 助手的记忆层 | memory / user / session | 个性化助手、用户偏好记忆 |
+| **MemOS（MemTensor）** | “记忆操作系统”（Memory-Augmented Generation） | MemCube 抽象、MemScheduler、记忆生命周期管理 | 需要统一管理多类型记忆与跨 Agent 共享记忆的平台 |
+| **LangMem** | LangGraph 原生的记忆 SDK | 扁平 KV + 向量记忆、prompt 优化 | LangChain 生态内的个性化与长期记忆 |
 | **Chroma / Weaviate / Milvus / pgvector** | 向量数据库 | collection / index / embedding | 语义检索、长期记忆存储后端 |
+
+这三类代表性的记忆系统代表了三种不同的设计哲学：
+
+- **Agent 管理型**（Letta）：记忆编辑暴露为工具，Agent 自己决定记什么、忘什么，配合 sleep-time compute 在空闲时后台整理记忆。
+- **自动抽取中间件型**（Mem0）：LLM 管道自动把对话蒸馏成事实与偏好，对上层 Agent 透明，接入成本最低。
+- **时序图谱平台型**（Zep/Graphiti）：以双时序知识图谱为核心，擅长“事实何时为真”的推理与治理。
+
+## 2025–2026 年的关键演进
+
+进入 2025 年下半年后，Agent Memory 从一个“加分项”变成了 Agent 基础设施的共识组件，出现了几个值得关注的趋势：
+
+1. **混合记忆成为默认架构**：生产 Agent 普遍采用“向量（快速模糊召回）+ 图（实体/时序推理）+ 情景缓冲区”的组合，而不是押注单一存储。Mem0g 在向量层之上叠加 Neo4j 图谱，Graphiti 以时序图谱为核心，都是这一趋势的体现。
+2. **记忆评估基准成型**：LoCoMo、LongMemEval 及其扩展 LongMemEval-V2、BEAM 成为评估记忆系统的事实标准；ICLR 2026 还开设了 MemAgents（Memory for LLM-Based Agentic Systems）专题研讨会。同时厂商自报基准分数屡有争议（如 Zep 公开反驳 Mem0 的 LoCoMo 配置），社区共识是“自己跑 bake-off，不信厂商数字”。
+3. **记忆管理走向后台化（sleep-time compute）**：Letta 把“睡眠时计算”从论文（arXiv:2504.13171，可降低约 5 倍测试时计算量）产品化，后台 Agent 在空闲时扫描历史、整理与升降级记忆，记忆整理不再占用用户请求的延迟。
+4. **记忆服务协议化**：Graphiti 的一等公民 MCP Server、Mem0 成为 AWS Agent SDK 的独家记忆提供方，说明记忆层正在从“内嵌库”演变为可通过 MCP 等标准协议接入的独立服务。
+5. **“记忆操作系统”出现**：MemOS 提出 MemCube 抽象，把参数记忆、激活记忆与明文记忆统一纳管，并配套 MemScheduler、MemLifecycle 等“OS 级”组件，代表了把记忆提升为第一类基础设施资源的探索。
 
 ## 本章小结
 
@@ -120,3 +139,6 @@ Agent Memory 的产生是 Agent 从“一次性问答”走向“长期服务”
 - [Letta Documentation](https://docs.letta.com)
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [OpenAI Agents SDK Sessions](https://openai.github.io/openai-agents-python/sessions/)
+- [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+- [MemOS GitHub（MemTensor）](https://github.com/MemTensor/MemOS)

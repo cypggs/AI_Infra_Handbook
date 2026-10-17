@@ -14,6 +14,12 @@
   - OpenAI 生态的会话与记忆管理。
 - [Mem0 Documentation](https://docs.mem0.ai)
   - 面向 AI 助手的记忆层，重点看 user/session/memory 抽象。
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+  - 时序知识图谱记忆引擎，重点看双时序模型、episode/entity/community 子图与 MCP Server。
+- [MemOS GitHub（MemTensor）](https://github.com/MemTensor/MemOS)
+  - “记忆操作系统”实现，重点看 MemCube 抽象与 MemScheduler。
+- [LangMem GitHub](https://github.com/langchain-ai/langmem)
+  - LangGraph 生态的原生记忆 SDK，扁平 KV + 向量记忆与 prompt 优化。
 
 ## 向量数据库文档
 
@@ -30,6 +36,20 @@
 
 - [MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560)
   - Agent 分层记忆的奠基论文，必读。
+- [A-MEM: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+  - 2025 年代表性记忆架构：原子化 note、自动建立 note 间链接、记忆随时间演化，在 LoCoMo 基准上对比 MemGPT、MemoryBank 等基线。
+- [Sleep-time Compute: Beyond Inference Scaling at Test-time](https://arxiv.org/abs/2504.13171)
+  - Letta / UC Berkeley 提出“睡眠时计算”，把记忆整理移出请求路径，约 5 倍降低测试时计算量。
+- [MemOS: An Operating System for Memory-Augmented Generation](https://arxiv.org/abs/2505.22101)
+  - “记忆操作系统”：MemCube 统一封装参数/激活/明文记忆，配 MemScheduler、MemLifecycle 等 OS 式组件。
+- [Zep: A Temporal Knowledge Graph Architecture for Agent Memory（Rasmussen et al., 2025）](https://arxiv.org/abs/2501.13956)
+  - 双时序知识图谱记忆引擎的技术报告，理解 episode/entity/community 三层子图与混合检索。
+- [LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory](https://arxiv.org/abs/2410.10819)
+  - 长期交互记忆基准，覆盖时序推理、知识更新与拒答。
+- [LoCoMo: Evaluating Very Long-Term Conversational Memory](https://arxiv.org/abs/2402.17753)
+  - 超长多会话对话记忆基准，目前社区使用最广，也伴随厂商评测争议。
+- [Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)
+  - 长上下文不等于好记忆的经典证据，理解为什么外部记忆仍然必要。
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
   - Agent Runtime 的基础范式，理解 Runtime 如何调用 Memory。
 - [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)

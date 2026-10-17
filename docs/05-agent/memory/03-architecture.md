@@ -53,11 +53,11 @@ flowchart TB
 
 | 层级 | 职责 | 典型组件 |
 |---|---|---|
-| **接入层** | 接收 Runtime 的记忆读写请求 | Memory Service API、gRPC/HTTP |
+| **接入层** | 接收 Runtime 的记忆读写请求（HTTP/gRPC 或 MCP） | Memory Service API、gRPC/HTTP、MCP Server |
 | **编排层** | 感知、路由、过滤、生命周期管理 | Memory Service、Privacy Filter、Summarizer |
 | **记忆层** | 按类型保存不同寿命的记忆 | Working / Short-term / Semantic / Episodic / Procedural Memory |
-| **编码层** | 文本向量化、摘要、结构化 | Embedder、Summarizer、Entity Extractor |
-| **存储层** | 持久化与索引 | Vector Store、KV Store、Document Store、对象存储 |
+| **编码层** | 文本向量化、摘要、结构化、实体/关系抽取 | Embedder、Summarizer、Entity & Relation Extractor |
+| **存储层** | 持久化与索引 | Vector Store、Graph Store、KV Store、Document Store、对象存储 |
 | **可观测层** | trace、metrics、审计日志 | OpenTelemetry、Prometheus、审计日志 |
 
 ## 核心模块协作
@@ -126,6 +126,7 @@ flowchart TB
     subgraph SL[存储层]
         KV[KV Store / Redis]
         VS[Vector Store]
+        GS[Graph Store<br/>时序知识图谱]
         DOC[Document Store]
         OBJ[Object Store]
     end
@@ -134,11 +135,15 @@ flowchart TB
     STM --> KV
     SM --> VS
     EM --> VS
+    SM -.实体关系.-> GS
     PM --> DOC
     KV --> OBJ
     VS --> OBJ
+    GS --> OBJ
     DOC --> OBJ
 ```
+
+生产实践中，Semantic Memory 常采用“向量 + 图谱”双后端：向量负责快速模糊召回，图谱负责实体对齐、多跳关系与时序推理（详见 [核心思想 §4 图谱检索](02-core-ideas)）。Episodic Memory 也可以把“episode 事件”存文档库、把“实体/关系”投影到图谱，形成 episode → entity → community 三层子图，这也是 Graphiti 的图组织方式。
 
 ## 部署形态
 
@@ -166,7 +171,18 @@ Agent Runtime → Memory Service → Vector Store / KV Store
 
 ### 形态 4：Serverless / 托管
 
-使用云厂商托管的向量数据库与记忆服务，例如 Pinecone、Weaviate Cloud、Zilliz Cloud。
+使用云厂商托管的向量数据库与记忆服务，例如 Pinecone、Weaviate Cloud、Zilliz Cloud、Zep Cloud、Letta Cloud、Mem0 Platform。
+
+### 形态 5：MCP Server
+
+2025 年后出现的新形态：把记忆系统封装成 MCP Server，通过 `remember/recall/search` 等工具暴露给任意支持 MCP 的 Agent（如 Cursor、Claude Code、LangGraph Agent）。Graphiti 的 MCP Server 于 2025 年 Q1 发布 1.0，成为 Thoughtworks 技术雷达 2026 年将 Graphiti 从“评估”上调为“试验”的考量因素之一。
+
+```text
+Agent Runtime ←MCP 协议→ Memory MCP Server → Vector/Graph Store
+```
+
+优点：协议标准化、Agent 框架无关、可插拔。
+缺点：协议层能力边界（工具粒度、上下文长度）需要额外设计。
 
 ## 与 Agent Runtime 的关系
 
@@ -212,11 +228,13 @@ flowchart LR
 
 ## 本章小结
 
-Agent Memory 的架构核心是“一次感知、多层存储、统一检索、按需回注”。Memory Service 作为 Runtime 与存储后端之间的编排层，把感知到的事件分发给工作记忆、短期记忆、语义记忆、情景记忆与程序性记忆；编码层负责 embedding 与摘要；存储层提供向量、KV、文档等多种后端；控制面管理策略与生命周期，数据面执行高并发的编码与检索。部署形态可以是库、独立服务、Sidecar 或托管，选择取决于延迟、隔离和可扩展需求。
+Agent Memory 的架构核心是“一次感知、多层存储、统一检索、按需回注”。Memory Service 作为 Runtime 与存储后端之间的编排层，把感知到的事件分发给工作记忆、短期记忆、语义记忆、情景记忆与程序性记忆；编码层负责 embedding、实体关系抽取与摘要；存储层提供向量、图、KV、文档等多种后端；控制面管理策略与生命周期，数据面执行高并发的编码与检索。部署形态可以是库、独立服务、Sidecar、托管服务或 MCP Server，选择取决于延迟、隔离和可扩展需求。
 
 **参考来源**
 
 - [Letta Architecture Documentation](https://docs.letta.com)
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Mem0 Platform Documentation](https://docs.mem0.ai)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+- [Thoughtworks Technology Radar — Graphiti](https://www.thoughtworks.com/en-gb/radar/platforms/graphiti)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

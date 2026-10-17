@@ -209,6 +209,12 @@ importance(t) = importance_0 * exp(-λ * t) + access_count * boost
 - 发现冲突时做版本管理。
 - 根据反馈调整记忆的权重或标签。
 
+2025 年后主流实现把更新做成了显式算子：
+
+- **mem0 风格**：LLM 抽取新事实时，同时输出 ADD / UPDATE / DELETE / NOOP 决策，先判定与现有记忆的关系再写入，避免重复与矛盾。
+- **Graphiti 风格（时序失效）**：新事实到来时，不为旧事实打“删除”标记，而是写入失效时间戳（invalidation）；旧事实保留在图中，支持“当前为真”与“历史上为真”两种查询模式，兼顾审计与时序推理。
+- **Letta sleep-time 风格**：把记忆整理（合并重复、升降级、归档）放在后台 Agent 中离线执行，避免占用请求路径的延迟预算。
+
 ### 遗忘决策流程
 
 ```mermaid
@@ -243,5 +249,7 @@ Agent Memory 的生命周期包括感知、编码、存储、索引、检索、�
 
 - [MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560)
 - [Letta Memory Lifecycle](https://docs.letta.com)
+- [Letta — Sleep-time Compute](https://www.letta.com/blog/sleep-time-compute/)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [LangGraph Add Memory](https://docs.langchain.com/oss/python/langgraph/add-memory)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

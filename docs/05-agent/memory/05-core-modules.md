@@ -15,6 +15,7 @@ flowchart TB
         PM[Procedural Memory]
         EMB[Embedder]
         VS[Vector Store]
+        GS[Graph Store]
         RET[Retriever]
         SUM[Summarizer]
         STO[Storage Backend]
@@ -32,6 +33,7 @@ flowchart TB
     EM --> EMB
     EMB --> VS
     VS --> RET
+    GS --> RET
     WM --> STO
     STM --> STO
     PM --> STO
@@ -278,6 +280,44 @@ event_types = [
 ]
 ```
 
+## 14. Graph Store（图记忆）
+
+职责：以“实体 + 关系 + 时序属性”的形式保存记忆，支撑关系推理与“事实何时为真”的时序查询。
+
+核心接口：
+
+```python
+class GraphStore:
+    def add_episode(self, episode_text: str, metadata: dict) -> None: ...
+    def search(self, query: str, center_node: str = None) -> List[GraphRecord]: ...
+    def invalidate(self, edge_id: str, invalidated_at: datetime) -> None: ...
+```
+
+生产要点：
+
+- 2025 年后以 Graphiti（Zep 开源引擎）为代表的实现采用**双时序模型**：每条关系记录生效时间（valid time）与系统记录时间（transaction time），更新事实时旧边失效而非删除。
+- 写入路径通常包含 LLM 实体/关系抽取，写入成本与延迟显著高于向量写入，需要异步化与批量处理。
+- 图检索与向量检索是互补关系：向量负责粗召回，图负责实体对齐、多跳遍历与时序过滤。
+- 图后端可选 Neo4j、FalkorDB、Kuzu、Amazon Neptune 等；轻量场景可用嵌入式图库或 Postgres 递归查询近似。
+
+## 15. Temporal Index（时序索引）
+
+职责：为记忆提供时间维度的过滤与排序能力，支撑“最近”“当前为真”“历史版本”三类查询。
+
+```python
+{
+  "created_at": "2026-07-01T10:00:00Z",
+  "valid_from": "2026-07-01T10:00:00Z",
+  "valid_until": null,          # null 表示当前仍为真
+  "last_accessed_at": "2026-10-15T09:30:00Z"
+}
+```
+
+生产要点：
+
+- 长期记忆 Schema 应包含 `valid_from` / `valid_until` 字段，而不是只记 `created_at`。
+- 时序索引与衰减策略正交：前者回答“事实何时为真”，后者回答“哪条更优先”。
+
 ## 模块协作原则
 
 1. **Memory Service 是统一入口**：Runtime 不直接访问存储后端。
@@ -288,11 +328,12 @@ event_types = [
 
 ## 本章小结
 
-Agent Memory 的核心模块包括 Memory Service、Working Memory、Short-term Memory、Semantic Memory、Episodic Memory、Procedural Memory、Embedder、Vector Store、Retriever、Summarizer、Storage Backend、Privacy Filter 与 Auditor。每个模块职责单一，通过统一接口协同。Memory Service 作为 Runtime 的入口屏蔽了底层复杂性；各类记忆按寿命与用途选择不同存储；Embedder 与 Vector Store 支撑语义检索；Retriever 负责多源融合；Privacy Filter 与 Auditor 保证安全与合规。
+Agent Memory 的核心模块包括 Memory Service、Working Memory、Short-term Memory、Semantic Memory、Episodic Memory、Procedural Memory、Embedder、Vector Store、Graph Store、Temporal Index、Retriever、Summarizer、Storage Backend、Privacy Filter 与 Auditor。每个模块职责单一，通过统一接口协同。Memory Service 作为 Runtime 的入口屏蔽了底层复杂性；各类记忆按寿命与用途选择不同存储；Embedder 与 Vector Store 支撑语义检索，Graph Store 与时序索引支撑关系与时序推理；Retriever 负责多源融合；Privacy Filter 与 Auditor 保证安全与合规。
 
 **参考来源**
 
 - [Letta Memory Modules](https://docs.letta.com)
 - [LangGraph Memory Store](https://docs.langchain.com/oss/python/langgraph/add-memory)
 - [Mem0 Architecture](https://docs.mem0.ai)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

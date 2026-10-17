@@ -77,6 +77,23 @@ Cold Archive: S3 / OSS
 - **需要模块化和 hybrid search**：Weaviate。
 - **超大规模、高并发**：Milvus 或 Zilliz Cloud。
 - **快速原型、教学 Demo**：Chroma。
+- **事实随时间演进、需要时序推理**：在向量库之外引入图后端（Neo4j、FalkorDB、Kuzu），或直接使用 Graphiti 这类时序图谱记忆引擎。
+
+## 记忆基准与选型 bake-off
+
+2025 年后，Agent Memory 有了相对公认的评测基准，选型时应该用自己的数据做 bake-off，而不是只看厂商宣传数字：
+
+| 基准 | 关注点 | 说明 |
+|---|---|---|
+| **LoCoMo** | 超长多会话对话记忆 | 多跳推理、信息聚合，社区使用最广，也是厂商争议最多的基准 |
+| **LongMemEval / LongMemEval-V2** | 长期交互记忆 | 覆盖信息抽取、时序推理、知识更新与拒答（abstention），V2 进一步拉长时间跨度 |
+| **BEAM** | 记忆质量综合评估 | 面向记忆系统的多维评测 |
+
+需要特别注意：
+
+- **厂商自报分数谨慎对待**：2025 年 Zep 公开反驳过 Mem0 的 LoCoMo 评测配置，双方各执一词。任何“在某基准上提升 XX%”的说法，都应在自己的数据上复现后再采信。
+- **延迟与成本比准确率更重要**：记忆系统的准确率差距往往在几个百分点内，但延迟（p95）与每次查询注入的 token 数差异可能相差一个数量级。生产选型建议以“准确率 × 延迟 × 每查询 token 成本”三维权衡。
+- **注入 token 数是关键指标**：同样的准确率，注入 6.9K token 的方案明显优于注入 25K token 的方案，它直接决定了每轮请求的推理成本。
 
 ## Embedding 模型管理
 
@@ -166,6 +183,8 @@ sequenceDiagram
     RT->>MS: remember(episode_summary)
 ```
 
+2025 年后，Memory Service 的接入方式多了一条标准化路径：把 `remember / recall / search` 封装为 MCP Server，Runtime 通过 [MCP](/05-agent/mcp/) 协议调用记忆工具。Graphiti 的 MCP Server 是这一模式的代表。好处是 Agent 框架无关、可插拔；代价是工具粒度与返回上下文长度需要在协议层额外设计。
+
 ## 可观测体系
 
 生产 Memory 系统需要：
@@ -196,6 +215,9 @@ sequenceDiagram
 | 敏感信息泄露 | 未做 PII 检测 | 存储前强制隐私过滤 |
 | 检索延迟高 | 索引未优化、无缓存 | HNSW 索引 + embedding 缓存 + 批量 |
 | 记忆无限增长 | 无 TTL 与遗忘策略 | 按类型设置 TTL + 衰减策略 |
+| 基准选型踩坑 | 只看厂商宣传分数 | 用 LoCoMo / LongMemEval + 自有数据做 bake-off，关注延迟与注入 token 数 |
+| 时序事实丢失 | 更新即覆盖旧事实 | 引入时序失效（valid_from/valid_until）或时序图谱 |
+| 写入路径拖慢请求 | 抽取/建图在同步路径执行 | 记忆抽取异步化、后台整理（sleep-time 模式） |
 
 ## 本章小结
 
@@ -206,6 +228,9 @@ sequenceDiagram
 - [Letta Production Deployment](https://docs.letta.com)
 - [LangGraph Persistence Production](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Mem0 Platform](https://docs.mem0.ai)
+- [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+- [LongMemEval（Wu et al., 2024）](https://arxiv.org/abs/2410.10819)
 - [Chroma Docs](https://docs.trychroma.com)
 - [Weaviate Docs](https://weaviate.io/developers/weaviate)
 - [Milvus Docs](https://milvus.io/docs)
