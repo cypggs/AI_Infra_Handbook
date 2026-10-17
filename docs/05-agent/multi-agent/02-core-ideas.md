@@ -72,6 +72,11 @@ flowchart TB
 
 Handoff 要求上下文完整移交；Round-Robin 要求明确的终止条件，否则容易陷入无尽讨论。
 
+2025-2026 年主流框架已经把 Handoff 做成了标准原语，两种典型实现：
+
+- **OpenAI Agents SDK**：handoff 本质是一个特殊的 tool call——模型输出 `transfer_to_xxx` 工具调用，Runner 负责切换当前 Agent 与 instructions，对话历史在切换时保留。
+- **LangGraph**：Agent 节点返回 `Command(goto=..., update={"active_agent": ...})`，图的活跃 Agent 记录在 State 中流转，配合 checkpointer（如 Postgres）实现跨轮次的“谁在处理这个会话”记忆，并衍生出专门的 `langgraph-supervisor`（集中式）与 `langgraph-swarm`（去中心化）两个多 Agent 库。
+
 ## 6. 共识与结果聚合
 
 多个 Agent 产出结果后，需要聚合：
@@ -110,6 +115,16 @@ Multi-Agent 的失败模式包括：
 - 状态不一致：通过 checkpoint 与黑板版本机制恢复。
 - 任务卡住：设置超时、心跳检测、强制终止或人工介入。
 
+工程实践中可以对照 **MAST 失败分类法**（NeurIPS 2025）做自检。MAST 对 1600+ 条真实执行轨迹的标注归纳出 14 种失败模式、3 大类：
+
+| 大类 | 典型失败模式 | 占比（约） |
+|---|---|---|
+| 规范与系统设计 | 不遵守角色/任务描述、步骤重复、丢失对话历史、不知道何时终止 | 42% |
+| Agent 间对齐 | 对话被重置、不主动澄清、任务跑偏、信息隐瞒、忽略其他 Agent 输入 | 37% |
+| 任务验证与终止 | 过早终止、验证不完整、验证错误 | 21% |
+
+其中“步骤重复”（15.7%）和“推理-行动不匹配”（13.2%）是最常见的两种。**这些失败大多可以通过更好的角色规范、明确的终止条件和消息契约预防**，而不是靠换更强的模型。
+
 ## 本章小结
 
 Multi-Agent 的八大核心思想——角色与技能、消息总线、协调器、共享黑板、Handoff 与轮询、共识聚合、追踪观测、失败恢复——共同构成多 Agent 协作的设计基础。它们让“多个 Agent 一起工作”从随机行为变成工程系统。
@@ -118,4 +133,7 @@ Multi-Agent 的八大核心思想——角色与技能、消息总线、协调�
 
 - [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation](https://arxiv.org/abs/2308.08155)
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
+- [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
+- [LangChain Docs — Handoffs](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)
+- [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)
 - [CrewAI — Core Concepts](https://docs.crewai.com/concepts)

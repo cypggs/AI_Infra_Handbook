@@ -69,12 +69,13 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 - **HITL**：高风险或分歧场景请求人工。
 - **评测**：固定测试集 + 影子运行 + A/B 测试。
 
-### Q9：LangGraph 与 AutoGen 在 Multi-Agent 上的主要区别是什么？
+### Q9：LangGraph 与 AutoGen 在 Multi-Agent 上的主要区别是什么？AutoGen 现在还能用于新项目吗？
 
 **参考答案**：
 
-- AutoGen 以“对话/群聊”为核心抽象，Agent 通过消息历史共享状态，适合探索性对话与代码执行场景。
-- LangGraph 以“状态图”为核心抽象，Agent 是图节点，共享显式 State，支持 checkpoint、条件边、人工介入，适合复杂生产工作流。
+- AutoGen 以“对话/群聊”为核心抽象，Agent 通过消息历史共享状态，适合探索性对话与代码执行场景；2025 年 10 月起进入维护模式，不建议新项目采用。
+- AutoGen 的两条演进线：社区分叉 AG2（v1.0 重写为 Network hub + 类型化 channel，不向后兼容）与微软官方继任者 Microsoft Agent Framework（合并 Semantic Kernel，1.0 GA，提供 typed-graph Workflows、Handoff、原生 MCP/A2A）。
+- LangGraph 以“状态图”为核心抽象，Agent 是图节点，共享显式 State，1.0 GA 后内置 durable execution（自动 checkpoint/恢复）、条件边、人工介入，适合复杂生产工作流。
 
 ### Q10：如何处理 Agent 之间的冲突？
 
@@ -96,6 +97,22 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 - Token 预算：为整个任务设置总 token 上限。
 - 避免过度协调：不要为简单任务引入过多 Agent。
 
+### Q12：A2A 与 MCP 有什么区别？A2A v1.0 有哪些关键特性？
+
+**参考答案**：
+
+- 定位：MCP 是 Agent↔工具的纵向协议（能力发现与调用），A2A 是 Agent↔Agent 的横向协议（跨框架、跨组织协作），两者互补，均由 Linux Foundation 旗下的 Agentic AI Foundation 治理。
+- A2A 核心概念：Agent Card（`/.well-known/agent-card.json`，描述能力、端点与认证方式）、Task（有状态工作单元，生命周期 submitted → working → completed/input-required/auth-required）、SSE 流式更新。
+- v1.0（2026 年 4 月）关键特性：签名 Agent Card（域名级身份验证）、多租户支持、gRPC 传输选项、OAuth 2.0/mTLS 认证、配套 Agent Payments Protocol（AP2）。
+
+### Q13：为什么 Multi-Agent 系统会失败？如何系统性排查？
+
+**参考答案**：
+
+- 参考 MAST 失败分类法（NeurIPS 2025，14 种失败模式 3 大类）：规范与系统设计失败（约 42%，如角色描述不清、步骤重复、丢失对话历史）、Agent 间对齐失败（约 37%，如任务跑偏、忽略他人输入）、验证与终止失败（约 21%）。
+- 核心洞察：失败多源于协调与规范，而非模型能力不足；Multi-Agent 甚至可能差于单 Agent 基线。
+- 排查方法：对失败执行轨迹做归因标注（可用 LLM-as-a-Judge 辅助）、按类别统计分布、优先修复占比最高的系统性问题（通常是角色规范与终止条件），并保留单 Agent 基线做持续对照。
+
 ## 本章小结
 
 面试中关于 Multi-Agent 的问题通常集中在：**与单 Agent 的区别**、**协作模式对比**、**消息总线与 Blackboard 设计**、**可观测**、**生产架构**、**框架对比**、**冲突解决**与**成本控制**。掌握本章问题，基本可以覆盖中级到高级面试场景。
@@ -106,3 +123,5 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
 - [CrewAI Documentation](https://docs.crewai.com/)
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
+- [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)

@@ -44,7 +44,7 @@ flowchart TB
 | **接入层** | 接收任务、鉴权、路由 | API Gateway、LLM Gateway |
 | **控制面** | Agent 注册、角色策略、权限、审计 | Agent Registry、Policy Store、Secret Manager |
 | **协调层** | 任务分配、Handoff、终止判定 | Coordinator、Planner、Aggregator |
-| **通信层** | 消息路由、收件箱、重试、顺序保证 | Message Bus、Inbox、Queue |
+| **通信层** | 消息路由、收件箱、重试、顺序保证、协议适配 | Message Bus、Inbox、Queue、A2A/MCP 协议适配器 |
 | **Agent 层** | 具体执行任务的 Agent | 多个带 Role/Skill 的 Runtime 实例 |
 | **记忆层** | 共享 Blackboard、跨 Agent 记忆 | Blackboard、Agent Memory、持久化存储 |
 | **可观测层** | 跨 Agent trace、metrics、logs | OpenTelemetry、LangSmith、Prometheus |
@@ -113,12 +113,12 @@ User → Coordinator Service → MQ → Agent Services → Blackboard Service
 优点：可独立扩缩、按角色优化资源。
 缺点：网络延迟增加，需要消息序列化与持久化。
 
-### 形态 3：Serverless / 云托管
+### 形态 3：云托管 + 跨组织 A2A 互联
 
-例如 Azure AI Agent Service、AWS Bedrock Multi-Agent Orchestration。
+单租户内可使用 Azure AI Foundry、AWS Bedrock Agents 等云托管 Agent 服务；当协作跨越组织边界时，2026 年的标准做法是通过 **A2A 协议**互联：每个 Agent 发布签名的 Agent Card（位于 `/.well-known/agent-card.json`），对端据此发现能力、认证方式与端点，任务以 Task 为粒度异步流转（submitted → working → completed/input-required/auth-required）。
 
-优点：按需计费、自动扩缩。
-缺点：供应商锁定、自定义协调策略受限。
+优点：按需计费、自动扩缩、跨供应商互通。
+缺点：供应商锁定（单租户托管部分）、协议能力边界内的自定义协调策略受限、跨组织认证与审计成本高。
 
 ## 与 Runtime、Memory、Gateway 的关系
 
@@ -135,6 +135,7 @@ User → LLM Gateway → Multi-Agent Coordinator → Agent Runtime → Tools
 - **Agent Runtime**：每个 Agent 的 ReAct 执行容器。
 - **Agent Memory / Blackboard**：提供共享或隔离的记忆。
 - **Observer**：记录跨 Agent 的 trace 与事件。
+- **A2A / MCP 适配层**：对内聚合工具（MCP），对外与其他组织的 Agent 互联（A2A）。
 
 ## 本章小结
 
@@ -144,4 +145,6 @@ Multi-Agent 架构通过五层设计把复杂的群体协作拆解为清晰的�
 
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
 - [AutoGen Architecture](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/architecture.html)
+- [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)
 - [CrewAI — Agents and Tasks](https://docs.crewai.com/concepts/agents)

@@ -34,6 +34,21 @@ Client → API Gateway → Coordinator Service
 适用：负载波动大、希望按需付费。
 要点：冷启动延迟、状态持久化、调试复杂度。
 
+### 拓扑 4：跨组织 A2A 联邦
+
+多个组织的 Agent 通过 A2A 协议互联：各方发布签名的 Agent Card，任务以 Task 为粒度跨组织流转，支持 SSE 流式更新与 gRPC 低延迟通道。
+
+```text
+组织 A                        组织 B
+┌──────────────┐   A2A    ┌──────────────┐
+│ Agent Card    │ ──────→ │ 发现 / 认证   │
+│ Orchestrator  │ ←────── │ Task 执行    │
+└──────────────┘          └──────────────┘
+```
+
+适用：供应链协同、跨平台客服、异构框架互联。
+要点：签名 Agent Card 与 OAuth 2.0/mTLS 认证、跨组织审计日志、Task 状态机（含 input-required / auth-required 中断态）的人工恢复。
+
 ## 并发与扩缩容
 
 - **按角色扩容**：搜索 Agent 压力大时只扩容搜索 Agent，不影响其他角色。
@@ -65,6 +80,8 @@ checkpoint.save(
 - 每个 Agent 的任务分配与执行进度。
 - 未完成的 HITL 请求。
 
+2025 年后 **durable execution** 成为框架级能力而非自研负担：LangGraph 1.0 把自动 checkpoint/恢复内置为标配（也有 Temporal 官方插件把图执行托管给 Temporal），Google ADK、Microsoft Agent Framework 同样提供会话级持久化。选型时优先使用框架内置机制，只在有自定义状态存储需求时才自行实现上面的 checkpoint 结构。
+
 ## 分布式消息队列
 
 生产环境不要把 Message Bus 放在内存中。常见选择：
@@ -92,6 +109,8 @@ checkpoint.save(
 - **批量消息**：多个小消息合并发送，降低网络开销。
 - **早停机制**：达到足够好的结果时提前终止，不跑满最大轮次。
 - **token 预算**：为整个 Multi-Agent 任务设置总 token 上限。
+- **消息与上下文压缩**：handoff 时用摘要而非全文传递历史；长会话启用事件压缩（如 ADK Event Compaction，官方称可降约 38% token、18% 延迟）。
+- **拓扑剪枝**：学术研究（AgentPrune、AgentDropout、SafeSieve 等）表明，剪掉冗余 Agent 与通信边可再省 30%~50% token；Q-KVComm 更进一步探索 Agent 之间直接传压缩 KV Cache 而非文本（5~6 倍压缩比），代表“表示级通信”的方向，尚未大规模工程化。
 
 ## 人机协同（HITL）
 
@@ -123,6 +142,7 @@ HITL 请求本身也是 Blackboard 的一条记录，所有相关 Agent 可见�
 | 成本爆炸 | 每个 Agent 都调强模型 | 模型分级、缓存、早停 |
 | 可观测缺失 | 没有跨 Agent trace | 从 Day 0 接入 OpenTelemetry |
 | 无限讨论 | Peer-to-Peer 无终止条件 | 最大轮次 + 共识判定 |
+| 步骤重复 / 角色漂移 | 角色描述含糊、Agent 不知该何时停（MAST 最常见失败模式） | 精确编写 role/instructions、显式终止条件、定期对执行轨迹做 MAST 式失败归因分析 |
 
 ## 本章小结
 
@@ -131,6 +151,10 @@ HITL 请求本身也是 Blackboard 的一条记录，所有相关 Agent 可见�
 **参考来源**
 
 - [LangGraph Production Concepts](https://langchain-ai.github.io/langgraph/concepts/production_concepts/)
+- [LangGraph v1 发布说明](https://docs.langchain.com/oss/python/releases/langgraph-v1)
 - [AutoGen — Production](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/)
 - [CrewAI — Enterprise](https://docs.crewai.com/enterprise/)
 - [OpenAI Agents SDK — Tracing](https://openai.github.io/openai-agents-python/tracing/)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [Q-KVComm: Efficient Multi-Agent Communication via Adaptive KV Cache Compression](https://arxiv.org/abs/2512.17914)
+- [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)

@@ -219,7 +219,7 @@ tests/test_skills.py::test_handoff_to_records_next_agent PASSED
 
 ## 本章小结
 
-Mini Demo 展示了一个零外部依赖、纯 Python 的 Multi-Agent 协作系统：通过 `Agent`、`MessageBus`、`Blackboard`、`MockLLMClient`、`Coordinator` 与 `Observer`，实现了角色分工、消息传递、共享状态、确定性调度与可观测 trace。虽然 LLM 与消息中间件都是教学级实现，但已经覆盖了生产 Multi-Agent 系统的 80% 核心概念。推荐阅读 [`mini-demo/README.md`](./mini-demo/README.md) 获取完整运行说明，并在生产环境中替换为真实的 LLM 客户端、消息队列与持久化存储。
+Mini Demo 展示了一个零外部依赖、纯 Python 的 Multi-Agent 协作系统：通过 `Agent`、`MessageBus`、`Blackboard`、`MockLLMClient`、`Coordinator` 与 `Observer`，实现了角色分工、消息传递、共享状态、确定性调度与可观测 trace。虽然 LLM 与消息中间件都是教学级实现，但已经覆盖了生产 Multi-Agent 系统的 80% 核心概念。推荐阅读 `mini-demo/README.md` 获取完整运行说明，并在生产环境中替换为真实的 LLM 客户端、消息队列与持久化存储。
 
 **参考来源**
 

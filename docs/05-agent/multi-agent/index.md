@@ -18,8 +18,8 @@
 3. 画出 Multi-Agent 分层架构，并区分控制面与数据面。
 4. 对比 Manager-Worker、Peer-to-Peer、Pipeline、Auction、Handoff 等协作模式。
 5. 理解 Agent Registry、Message Bus、Coordinator、Blackboard、Observer 等核心模块的职责。
-6. 对比 AutoGen、LangGraph multi-agent、CrewAI、OpenAI Agents SDK handoffs、CAMEL、MetaGPT 的设计取舍。
-7. 知道生产环境中 Multi-Agent 的部署、并发、持久化、隔离、可观测与失败恢复要点。
+6. 对比 AutoGen/AG2、LangGraph、CrewAI、OpenAI Agents SDK、Google ADK、Microsoft Agent Framework、CAMEL、MetaGPT 的设计取舍。
+7. 知道 A2A v1.0 与 MCP 在 Agent 互联协议栈中的分工，以及生产环境中 Multi-Agent 的部署、并发、持久化、隔离、可观测与失败恢复要点。
 8. 回答 Multi-Agent 选型、协作模式、冲突解决、可观测等面试问题。
 
 ## Multi-Agent 与其他主题的关系
@@ -34,8 +34,10 @@
 | [Agent OS](/05-agent/agent-os/) | 运行时操作系统 | Multi-Agent 运行在 Agent OS 提供的进程、调度、沙箱与消息总线之上 |
 | [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
 | RAG（后续主题） | 外部知识检索 | 多个 Agent 可共享 RAG 检索结果，Blackboard 中沉淀共同上下文 |
-| RAG | /06-rag/ | RAG 可作为 Multi-Agent 系统中共享的知识检索工具。 |
-| AI SRE | /07-ai-sre/ | AI SRE 监控多 Agent 协作的 trace 与团队级 SLO。 |
+| LLM Gateway | 多模型统一接入 | Multi-Agent 按角色路由到不同模型，由 Gateway 统一鉴权与计费 |
+| [MCP](/05-agent/mcp/) | 工具发现与调用协议 | Agent 可通过 [MCP](/05-agent/mcp/) 发现彼此能力，但 Multi-Agent 协作不依赖 MCP |
+| A2A（后续主题） | Agent 与 Agent 的横向协议 | A2A v1.0 已成为跨框架、跨组织 Agent 协作的事实标准，与 MCP 互补 |
+| AI SRE | Agent 系统可观测与运维 | AI SRE 监控多 Agent 协作的 trace 与团队级 SLO |
 
 上表可以概括为一句话：**Agent Runtime 决定“单个 Agent 怎么执行”，Multi-Agent 决定“多个 Agent 怎么协作”，Memory 决定“它们记得什么、共享什么”**。
 
@@ -46,7 +48,7 @@
 3. [架构设计](03-architecture) — 分层架构、控制面/数据面、部署形态、与 Runtime/Memory 集成。
 4. [协作模式](04-collaboration-patterns) — Manager-Worker、Peer-to-Peer、Pipeline、Auction、动态 Handoff 与生命周期。
 5. [核心模块](05-core-modules) — Agent Registry、Role & Skill、Message Bus、Coordinator、Blackboard、Observer、终止与冲突解决。
-6. [源码分析](06-source-analysis) — AutoGen、LangGraph multi-agent、CrewAI、OpenAI Agents SDK handoffs、CAMEL、MetaGPT。
+6. [源码分析](06-source-analysis) — AutoGen/AG2、Microsoft Agent Framework、LangGraph、CrewAI、OpenAI Agents SDK、Google ADK、CAMEL、MetaGPT。
 7. [工程实践](07-mini-demo) — 纯 Python Mini Demo 设计与运行说明。
 8. [企业生产实践](08-production-practice) — 部署拓扑、并发、持久化、消息队列、权限隔离、成本、HITL、失败恢复。
 9. [最佳实践](09-best-practices) — 角色设计、消息契约、避免过度协调、冲突解决、可观测优先、版本管理、评测、渐进落地。
@@ -63,9 +65,8 @@ Multi-Agent 是 Agent 基础设施的上一层编排：它依赖 Agent Runtime �
 
 **参考来源**
 
-- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/)
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
-- [CrewAI Documentation](https://docs.crewai.com/)
-- [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
-- [CAMEL Documentation](https://docs.camel-ai.org/)
-- [MetaGPT Documentation](https://docs.deepwisdom.ai/main/Main%20Guide/)
+- [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [Microsoft Agent Framework 文档](https://learn.microsoft.com/agent-framework/)
+- [AG2 文档](https://docs.ag2.ai/)

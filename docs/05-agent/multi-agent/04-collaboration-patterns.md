@@ -93,6 +93,43 @@ sequenceDiagram
 适用：客服、医疗分诊、技术支持等需要逐层升级的场景。
 风险：上下文移交不完整会导致接收 Agent 反复询问。
 
+## 6. Supervisor / Swarm / Hierarchical（2026 工程落地形态）
+
+上面的模式是“思想”，2025-2026 年主流框架把它们收敛成了三种工程实现：
+
+### Supervisor（集中式星型）
+
+一个 Supervisor Agent 用 LLM 决定下一步调用哪个 Worker（Worker 常被包装成 Supervisor 的工具）。集中式带来可审计的路由策略，但 Supervisor 的上下文随 Worker 结果不断膨胀，Agent 数超过 5 个左右时应改为分层。
+
+### Swarm（去中心化点对点）
+
+Agent 之间通过 handoff 工具直接移交控制权（LangGraph 中用 `Command` + `active_agent` 状态实现），没有中央路由器。通信开销低、适合长会话，但路由逻辑分散在各 handoff 工具描述里，全局审计困难；且必须配合持久化 checkpointer，否则系统会“忘记”当前由哪个 Agent 负责。
+
+### Hierarchical（分层嵌套）
+
+Supervisor 再管理子 Supervisor，叶节点可以是 Swarm。适合大型组织的多团队结构，也是 OpenAI Agents SDK、Google ADK、Microsoft Agent Framework 的推荐演进方向。
+
+```mermaid
+flowchart TB
+    subgraph 集中式
+        S1[Supervisor] --> W1[Worker A]
+        S1 --> W2[Worker B]
+    end
+    subgraph 去中心化
+        A1[Agent A] -->|handoff| A2[Agent B]
+        A2 -->|handoff| A3[Agent C]
+        A3 -->|handoff| A1
+    end
+    subgraph 分层
+        H1[顶层 Supervisor] --> H2[子 Supervisor 1]
+        H1 --> H3[子 Supervisor 2]
+        H2 --> H4[Worker]
+        H3 --> H5[Swarm 叶节点]
+    end
+```
+
+实践中常见**混合架构**：面向用户的会话层用 Swarm 获得流畅体验，后端批处理与合规检查用 Supervisor 收口。
+
 ## 模式对比
 
 | 模式 | 结构 | 通信方式 | 优点 | 缺点 | 典型场景 |
@@ -102,6 +139,7 @@ sequenceDiagram
 | Pipeline | 链式 | 阶段输出 → 下阶段输入 | 流程标准化 | 单点阻塞、回退复杂 | 软件开发、内容生产 |
 | Auction | 竞争 | 出价与中标 | 负载均衡、动态选择 | 额外开销、策略复杂 | 多专家竞选 |
 | Handoff | 阶段移交 | 上下文打包传递 | 体验自然、逐层升级 | 上下文丢失风险 | 客服、分诊 |
+| Supervisor / Swarm / Hierarchical | 星型 / 网状 / 树 | 路由决策或点对点 handoff | 工程原语成熟、可按场景混合 | 选型不当会放大延迟或审计成本 | 生产系统主流落地形态 |
 
 ## 协作生命周期
 
@@ -128,11 +166,13 @@ flowchart LR
 
 ## 本章小结
 
-Multi-Agent 没有万能协作模式。Manager-Worker 适合明确分工，Peer-to-Peer 适合协商讨论，Pipeline 适合标准化流程，Auction 适合资源竞争，Handoff 适合阶段移交。实际系统往往是多种模式的组合，关键是让协作生命周期“初始化 → 分配 → 执行 → 同步 → 聚合 → 终止”清晰可观测。
+Multi-Agent 没有万能协作模式。Manager-Worker 适合明确分工，Peer-to-Peer 适合协商讨论，Pipeline 适合标准化流程，Auction 适合资源竞争，Handoff 适合阶段移交。2026 年的工程落地收敛为 Supervisor（集中路由）、Swarm（去中心化移交）、Hierarchical（分层嵌套）三种形态，并常以前端 Swarm + 后端 Supervisor 的混合架构出现。实际系统的关键是让协作生命周期“初始化 → 分配 → 执行 → 同步 → 聚合 → 终止”清晰可观测。
 
 **参考来源**
 
 - [AutoGen — Conversation Patterns](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/conversation-patterns.html)
 - [LangGraph Multi-Agent](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
+- [LangChain Docs — Handoffs](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs)
+- [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/)
 - [CrewAI — Processes](https://docs.crewai.com/concepts/processes)
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)

@@ -4,8 +4,13 @@
 
 ## 官方文档
 
-- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/) — Microsoft 多 Agent 对话编排框架官方文档。
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/) — LangGraph 多 Agent 概念与实现指南。
+- [LangChain Docs — Handoffs](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs) — Handoff 机制（Command + active_agent）官方文档。
+- [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/) — Google ADK 多 Agent 编排官方文档。
+- [A2A Protocol 文档](https://a2a-protocol.dev/) — Agent2Agent 协议规范、Agent Card 与 Task 生命周期。
+- [Microsoft Agent Framework 文档](https://learn.microsoft.com/agent-framework/) — 微软官方 Agent 编排框架（AutoGen + Semantic Kernel 继任者）。
+- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/) — AutoGen 官方文档（维护模式，历史参考）。
+- [AG2 文档](https://docs.ag2.ai/) — AutoGen 社区分叉，活跃迭代中。
 - [CrewAI Documentation](https://docs.crewai.com/) — 角色驱动的 Multi-Agent 框架文档。
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/) — OpenAI Agents SDK 的 Handoff 机制文档。
 - [CAMEL Documentation](https://docs.camel-ai.org/) — 角色扮演与多 Agent 数据合成框架文档。
@@ -13,16 +18,18 @@
 
 ## 论文
 
+- [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657) — NeurIPS 2025，14 种多 Agent 失败模式分类法与 1600+ 条标注轨迹，生产排障必读。
 - [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation](https://arxiv.org/abs/2308.08155) — AutoGen 框架论文，提出 ConversableAgent 与 GroupChat 等抽象。
 - [MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework](https://arxiv.org/abs/2308.00352) — MetaGPT 论文，用 SOP 模拟软件公司协作。
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629) — ReAct 范式，是单 Agent 与 Multi-Agent 执行的基础。
 - [CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society](https://arxiv.org/abs/2303.17760) — CAMEL 角色扮演与数据合成论文。
+- [Q-KVComm: Efficient Multi-Agent Communication via Adaptive KV Cache Compression](https://arxiv.org/abs/2512.17914) — Agent 间通信压缩前沿：直接传压缩 KV Cache 而非文本。
 
 ## 工程文章
 
+- [LangGraph Blog — Multi-Agent Workflows](https://blog.langchain.dev/langgraph-multi-agent-workflows/) — LangGraph 多 Agent 工作流设计思路。
 - [Steve Kinney — Multi-Agent Systems](https://stevekinney.com/writing/multi-agent-systems) — Multi-Agent 系统设计思考。
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems) — Agent 记忆系统设计，与 Multi-Agent 共享状态密切相关。
-- [LangGraph Blog — Multi-Agent Workflows](https://blog.langchain.dev/langgraph-multi-agent-workflows/) — LangGraph 多 Agent 工作流设计思路。
 - [从 Function Call 到 MCP → SKILLS](https://crossoverjie.top/2026/02/03/AI/MCP-Skills-intro/) — 能力封装演进，对 Agent Skill 设计有参考价值。
 
 ## 相关主题
@@ -42,7 +49,7 @@
 1. **先理解单 Agent**：通读 [Agent Runtime](/05-agent/agent-runtime/) 与 [Agent Memory](/05-agent/memory/)，掌握 ReAct、工具、记忆、状态、可观测。
 2. **再理解协作思想**：阅读本主题 [核心思想](02-core-ideas) 与 [协作模式](04-collaboration-patterns)。
 3. **动手跑 Mini Demo**：按 [工程实践](07-mini-demo) 运行代码，观察 Registry、Message Bus、Blackboard、Coordinator 如何协作。
-4. **对比主流框架**：阅读 [源码分析](06-source-analysis)，理解 AutoGen、LangGraph、CrewAI 等框架的差异。
+4. **对比主流框架**：阅读 [源码分析](06-source-analysis)，理解 AutoGen/AG2、Microsoft Agent Framework、LangGraph、CrewAI、OpenAI Agents SDK、Google ADK 的差异与 2025-2026 年的格局变化。
 5. **思考生产问题**：阅读 [企业生产实践](08-production-practice) 与 [最佳实践](09-best-practices)，设计自己的 Multi-Agent 落地路径。
 
 ## 本章小结
@@ -51,13 +58,10 @@ Multi-Agent 的学习资源涵盖官方文档、论文、工程文章与本手�
 
 **参考来源**
 
-- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/)
-- [AutoGen Paper](https://arxiv.org/abs/2308.08155)
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
-- [CrewAI Documentation](https://docs.crewai.com/)
-- [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
-- [CAMEL Documentation](https://docs.camel-ai.org/)
-- [MetaGPT Documentation](https://docs.deepwisdom.ai/main/Main%20Guide/)
-- [MetaGPT Paper](https://arxiv.org/abs/2308.00352)
+- [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [Microsoft Agent Framework 文档](https://learn.microsoft.com/agent-framework/)
+- [AG2 文档](https://docs.ag2.ai/)
+- [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)
 - [Steve Kinney — Multi-Agent Systems](https://stevekinney.com/writing/multi-agent-systems)
-- [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

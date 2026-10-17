@@ -18,6 +18,8 @@ Agent Registry 是所有 Agent 的注册中心，解决“有哪些 Agent、它�
 
 Registry 支持动态发现：新 Agent 上线时自动注册，下线时自动摘除。
 
+跨组织场景下，Registry 的对外等价物是 **A2A Agent Card**：每个 Agent 在 `/.well-known/agent-card.json` 发布结构化描述（能力、技能端点、认证方式、支持的模式），对端 Agent 据此发现与调用。A2A v1.0 起 Agent Card 支持签名，可进行域名级身份验证。
+
 ## 2. Role & Skill
 
 Role 与 Skill 是 Agent 能力的声明式描述：
@@ -46,7 +48,7 @@ Message Bus 负责 Agent 之间的消息路由：
 - **请求-回复**：通过 `correlation_id` 关联请求与回复。
 - **优先级与 TTL**：避免消息堆积，过期消息自动丢弃。
 
-生产环境中，Message Bus 通常基于 Redis Streams、RabbitMQ、Kafka 或 NATS 实现，保证至少一次投递与顺序性。
+生产环境中，Message Bus 通常基于 Redis Streams、RabbitMQ、Kafka 或 NATS 实现，保证至少一次投递与顺序性。跨组织/跨供应商场景则通过 **A2A 协议**承载：Task 作为有状态工作单元异步流转，支持 SSE 流式更新；A2A v1.0 还增加了 gRPC 传输（面向高频协调的低延迟场景）与 OAuth 2.0/mTLS 认证。
 
 ## 4. Coordinator
 
@@ -142,5 +144,6 @@ Multi-Agent 的七大核心模块各司其职：Registry 管理 Agent 元数据�
 
 - [AutoGen — Core Components](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/core-components.html)
 - [LangGraph — StateGraph](https://langchain-ai.github.io/langgraph/concepts/low_level/)
+- [A2A Protocol 文档](https://a2a-protocol.dev/)
 - [CrewAI — Core Concepts](https://docs.crewai.com/concepts)
 - [MetaGPT — Roles](https://docs.deepwisdom.ai/main/Main%20Guide/roles/)
