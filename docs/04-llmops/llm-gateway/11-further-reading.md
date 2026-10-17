@@ -16,13 +16,30 @@
 ## 开源项目
 
 - [BerriAI/litellm](https://github.com/BerriAI/litellm)
-  - 100+ provider 抽象、Proxy Server、虚拟 key、预算管理。
+  - 100+ provider 抽象、Proxy Server、虚拟 key、预算管理，2025 年后内置 MCP Gateway 与 Guardrails hook。
 - [envoyproxy/ai-gateway](https://github.com/envoyproxy/ai-gateway)
-  - 基于 Envoy 的 AI 网关，与 Kubernetes Gateway API 集成。
+  - 基于 Envoy 的 AI 网关，v1.0（2026）提供稳定 CRD 与 MCP 工具级鉴权，与 Kubernetes Gateway API 集成（GA 后以 Agent Router 之名演进）。
 - [Kong/kong](https://github.com/Kong/kong)
-  - Kong AI Gateway 插件体系。
+  - Kong AI Gateway 插件体系，3.8 起含 ai-semantic-cache、ai-prompt-decorator。
+- [alibaba/higress](https://github.com/alibaba/higress)
+  - 云原生 AI 网关（CNCF Sandbox），Wasm 插件体系、MCP 网关与 Marketplace、推理扩展负载均衡。
+- [apache/apisix](https://github.com/apache/apisix)
+  - 云原生 API 网关，ai-proxy / ai-prompt-guard / ai-cache 插件全开源。
+- [Portkey AI Gateway](https://github.com/Portkey-AI/gateway)
+  - MIT 协议的开源 AI 网关（TypeScript），内置简单/语义双模缓存与 Guardrails。
+- [kubernetes-sigs/gateway-api-inference-extension](https://github.com/kubernetes-sigs/gateway-api-inference-extension)
+  - Gateway API 推理扩展：KV-cache 感知路由的标准 CRD 与 Endpoint Picker 参考实现。
+- [llm-d](https://github.com/llm-d/llm-d)
+  - Red Hat 主导的 Kubernetes 原生推理网关，prefix-cache 感知调度。
 - [mlflow/mlflow — AI Gateway](https://mlflow.org/docs/latest/llms/gateway/index.html)
   - MLflow 生态中的 LLM Gateway。
+
+## 协议与标准
+
+- [Model Context Protocol 规范](https://modelcontextprotocol.io/specification)
+  - Agent 访问工具的事实标准，2026 年演进为无状态 HTTP Tools 基线。
+- [OpenTelemetry GenAI 语义约定](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
+  - 网关 GenAI 指标与追踪的标准命名。
 
 ## 商业/托管方案
 
@@ -31,7 +48,11 @@
 - [NGINX AI Gateway](https://www.nginx.com/solutions/ai-gateway/)
   - NGINX 的 AI 网关解决方案。
 - [Kong AI Gateway](https://docs.konghq.com/gateway/latest/ai-gateway/)
-  - Kong 的企业级 AI 网关。
+  - Kong 的企业级 AI 网关（2026 年拆分为独立 2.x 产品）。
+- [OpenRouter](https://openrouter.ai/docs/guides/overview/models)
+  - 模型市场型网关：一个 OpenAI-compatible 端点接入 400+ 模型。
+- [Portkey 文档](https://docs.portkey.ai/docs/product/ai-gateway)
+  - 开源网关 + 商业治理平台（2026 年被 Palo Alto Networks 收购）。
 
 ## 相关主题
 
@@ -48,13 +69,15 @@
 1. 先通读 OpenAI API Reference，理解请求/响应格式。
 2. 本地用 LiteLLM Proxy 接入 OpenAI 与 vLLM，跑通 `/chat/completions`。
 3. 阅读 LiteLLM `router.py` 与 `proxy_server.py`，理解路由与限流实现。
-4. 学习 Envoy AI Gateway 的 filter 链与 Gateway API 集成。
-5. 用本主题的 [Mini Demo](./07-mini-demo) 手动扩展一个自定义 provider 或路由策略。
-6. 在生产环境中从独立 LiteLLM Proxy 开始，逐步引入 Redis、Vault、Prometheus。
+4. 学习 Envoy AI Gateway 的 CRD（AIGatewayRoute / BackendSecurityPolicy / MCPRoute）与 filter 链。
+5. 用 Higress 把一个存量 REST API 转成 MCP Server，体验 Agent 网关的治理粒度。
+6. 在 vLLM 集群上试验 Gateway API Inference Extension / llm-d，观察 prefix-cache 命中对 TTFT 的影响。
+7. 用本主题的 [Mini Demo](./07-mini-demo) 手动扩展一个自定义 provider 或路由策略。
+8. 在生产环境中从独立 LiteLLM Proxy 开始，逐步引入 Redis、Vault、Prometheus 与 Guardrails。
 
 ## 本章小结
 
-LLM Gateway 的生态系统正在快速演进。OpenAI API 已成为事实标准，LiteLLM 是最易落地的开源方案，Envoy/Kong 适合与现有基础设施深度集成，Cloudflare 等托管方案则适合希望零运维的团队。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 LLM Gateway。
+LLM Gateway 的生态系统正在快速演进。OpenAI API 已成为事实标准，LiteLLM 是最易落地的开源方案，Envoy AI Gateway 以 v1.0 GA 成为 Kubernetes 体系的标准答案，Higress 在 MCP 网关场景领先，Cloudflare / OpenRouter 等托管方案则适合希望零运维的团队；语义缓存、MCP 工具治理与 KV-cache 感知路由是 2025-2026 年的三条主线。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 LLM Gateway。
 
 **参考来源**
 
@@ -62,5 +85,8 @@ LLM Gateway 的生态系统正在快速演进。OpenAI API 已成为事实标准
 - [LiteLLM Docs](https://docs.litellm.ai)
 - [Envoy AI Gateway Docs](https://aigateway.envoyproxy.io/docs/)
 - [Kong AI Gateway Docs](https://docs.konghq.com/gateway/latest/ai-gateway/)
+- [Higress 官网](https://higress.ai/)
 - [Cloudflare AI Gateway Docs](https://developers.cloudflare.com/ai-gateway/)
 - [MLflow AI Gateway Docs](https://mlflow.org/docs/latest/llms/gateway/index.html)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [LiteLLM Release Notes](https://docs.litellm.ai/release_notes/)

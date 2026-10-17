@@ -168,6 +168,40 @@ providers:
 
 如果 Triton 暴露的是 gRPC，则 Gateway 需要额外做 gRPC ↔ HTTP 转换。
 
+### KV-Cache 感知路由（2025 后自托管集群推荐）
+
+自托管 vLLM 集群规模上来后，建议在网关上启用 **Gateway API Inference Extension**（GIE）风格的推理感知路由：
+
+1. vLLM 开启 prefix caching（`--enable-prefix-caching`，新版本默认开启），并让副本暴露指标（vLLM v0.10+ 支持 KV cache 事件流，可做“精确模式”路由）。
+2. 网关侧部署 Endpoint Picker（如 llm-d-inference-scheduler、NVIDIA Dynamo EPP，或阿里云推理扩展网关的托管实现）。
+3. 按“KV 前缀命中 + 队列深度”打分选副本；连续多轮 Agent 对话天然命中同一前缀，TTFT 收益显著（llm-d 报告热命中 TTFT 降低约 88%）。
+4. EPP 决策增加约 1~2ms 开销，需评估是否小于收益；小规模集群（个位数副本）用 AdaptiveScore 类打分负载均衡即可，不必上完整 EPP。
+
+## MCP Gateway 生产实践（2025-2026 新增）
+
+面向 Agent 的工具治理是今年生产落地的新重点：
+
+### 最小安全基线
+
+- **deny-by-default 工具白名单**：默认拒绝全部工具，按业务逐个放行；不要默认放开上游 MCP Server 的全部能力。
+- **工具级身份隔离**：每个调用方（应用 / 用户）使用独立虚拟 key，工具权限挂在 key 上而不是网关全局。
+- **关闭默认 master key，保持版本更新**：2026 年披露的 CVE-2026-59822（LiteLLM MCP 认证绕过，影响 < 1.84.0）表明 MCP 端点是新的攻击面，升级与 key 轮换必须进入常规运维。
+- **stdio MCP 默认关闭**：远程 Gateway 只暴露 HTTP 类 MCP Server；stdio 仅用于受信内网。
+- **工具调用审计**：按 `Mcp-Method` / 工具名记录调用日志，高危工具（支付、删除类）额外告警。
+
+### 协议与兼容
+
+- 新旧 MCP 协议（modern 无状态 HTTP Tools / legacy 握手 + 会话）并存期，用支持双向桥接的网关（Higress v2.2.4+、LiteLLM）避免 Agent 与 Server 协议错配。
+- 存量 REST API 可通过 Higress 的“零代码转 MCP Server”能力快速接入，避免为每个服务手写 MCP 封装。
+
+## 语义缓存生产实践（2025-2026 新增）
+
+- **先精确、后语义**：Redis 精确缓存成本几乎为零，语义缓存每次要付 embedding 费用；级联能省则省。
+- **阈值与场景匹配**：FAQ、摘要、代码解释等“答案稳定”的场景适合低阈值（0.85~0.9）；Agent 多轮对话、强上下文依赖的场景建议高阈值或禁用，防止“串味”。
+- **敏感请求不缓存**：按租户/请求头标记 `no-cache`，PII 与商业机密直接跳过两级缓存。
+- **观测命中率**：把 `cache_hit_total{mode="exact|semantic"}` 纳入大盘，命中率低于 10% 时反思场景是否适合。
+- **注意插件档位**：Kong 的 `ai-semantic-cache`、APISIX 的 `ai-cache` 等能力在不同版本/许可下可用性不同，选型前确认。
+
 ## 多区域与多供应商降级
 
 生产推荐设计 fallback 链：
@@ -234,6 +268,8 @@ Backup 3  : 自研 vLLM (on-prem)
 | 上游 429 导致重试风暴 | 没有 jitter / backoff | 指数退避 + jitter + 按 Retry-After 等待 |
 | 配置热更新导致状态不一致 | 部分实例先加载新配置 | 使用配置版本号 + 原子切换 |
 | 日志泄露敏感信息 | prompt 含 PII | 日志脱敏，只记录 token 长度与 hash |
+| MCP 工具被越权调用 | 默认放开上游全部工具 / 默认 master key 未关 | deny-by-default 白名单 + 虚拟 key 隔离 + 关闭 master key（参考 CVE-2026-59822） |
+| 语义缓存“串味” | 相似度阈值过低或场景上下文依赖强 | 提高阈值、按租户隔离缓存命名空间、敏感请求禁用缓存 |
 
 ## 本章小结
 
@@ -243,5 +279,8 @@ Backup 3  : 自研 vLLM (on-prem)
 
 - [LiteLLM Proxy — Deploy](https://docs.litellm.ai/docs/proxy/deploy)
 - [LiteLLM Production Guide](https://docs.litellm.ai/docs/proxy/production)
+- [LiteLLM MCP 文档](https://docs.litellm.ai/docs/mcp)
 - [Envoy AI Gateway — Backend](https://aigateway.envoyproxy.io/docs/)
+- [Kubernetes Gateway API Inference Extension](https://github.com/kubernetes-sigs/gateway-api-inference-extension)
+- [llm-d Prefix-Cache-Aware Routing](https://markellr-redhat.github.io/llm-d-prefix-cache-routing/)
 - [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/)

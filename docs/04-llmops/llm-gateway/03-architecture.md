@@ -119,6 +119,44 @@ Cloudflare AI Gateway 是典型代表，适合缓存、全球加速、边缘安�
 
 Envoy AI Gateway 通过 Envoy filter + Gateway API 实现，适合已经使用 Istio/Envoy 的团队。
 
+### 形态 5：MCP / Agent 网关（2025-2026 新形态）
+
+随着 Agent 应用爆发，网关的北向接口不再只有 `/v1/chat/completions`，还需要托管 MCP（Model Context Protocol）端点：向上为 Agent 提供统一的工具入口，向下聚合/转换多个 MCP Server 与存量 REST API。
+
+```text
+Agent --MCP (tools/list, tools/call)--> MCP Gateway --HTTP/REST--> 存量业务 API
+                                     \--MCP--> 上游 MCP Server
+```
+
+典型实现：LiteLLM MCP Gateway（聚合 + 工具白名单 + 虚拟 key 隔离）、Higress（REST API 零代码转 MCP Server + MCP Marketplace）、Envoy AI Gateway（MCPRoute / MCPRouteSecurityPolicy CRD + CEL 工具级鉴权）。
+
+## 网关 × 推理引擎集成的新范式：KV-Cache 感知路由
+
+传统架构里网关只按“哪台健康”做负载均衡。2025 年起，自托管 vLLM/SGLang 集群普遍采用 **Kubernetes Gateway API Inference Extension（GIE）**：数据面网关把“选哪个副本”的决策委托给一个独立的 Endpoint Picker（EPP）组件。
+
+```mermaid
+flowchart LR
+    Client --> GW[Envoy / Gateway]
+    GW -->|ext_proc 询问| EPP[Endpoint Picker<br/>llm-d / Dynamo EPP]
+    subgraph Fleet[vLLM 集群]
+        V1[副本 1<br/>KV 前缀: ABC, 队列 3]
+        V2[副本 2<br/>KV 前缀: ABX, 队列 0]
+        V3[副本 3<br/>KV 前缀: 空, 队列 1]
+    end
+    EPP -->|"前缀命中多 + 最空闲"| V2
+    EPP -.上报指标.-> Prom[(Prometheus<br/>vllm:kv_cache_usage 等)]
+```
+
+关键机制：
+
+- EPP 通过 vLLM 暴露的指标（如 `vllm:kv_cache_usage_perc`、队列深度，vLLM v0.10+ 支持 KV cache 事件流）维护每个副本的状态视图。
+- 路由目标从“最空闲”升级为“KV cache 前缀命中最多 + 最空闲”，相同前缀的连续请求落到同一副本，prefix caching 直接转化为 TTFT 收益（llm-d 报告热命中 TTFT 降低约 88%）。
+- 决策开销控制在毫秒级（GKE 实测约 1~2ms），Google 已在 1.7 万节点规模验证多集群 GIE 开销小于 1%。
+
+对应地，商业与半托管方案也在跟进：阿里云推理扩展网关提供估计模式（不依赖引擎改造）与精确模式（vLLM v0.10+ KV 事件）；NVIDIA Dynamo 提供兼容 GIE 的 EPP，并支持 prefill/decode 分离调度。
+
+> eBPF 的角色：2026 年 eBPF（以 Cilium 为代表）已承担网关数据面的 L3/L4 快速路径、负载均衡与可观测，LLM 语义决策（EPP、工具鉴权）仍跑在用户态。两者是“内核转发 + 用户态决策”的叠加关系，而非替代关系。
+
 ## 与 Service Mesh 的关系
 
 | 维度 | Service Mesh | LLM Gateway |
@@ -148,10 +186,14 @@ Client -> LB ────┼─ Gateway Pod 2
 
 ## 本章小结
 
-LLM Gateway 架构的核心是“统一入口 + 数据面快速决策 + 控制面集中治理”。无论是独立服务、Sidecar 还是边缘部署，都需要把认证、限流、路由、转换、重试、指标这些能力模块化、可配置化。
+LLM Gateway 架构的核心是“统一入口 + 数据面快速决策 + 控制面集中治理”。无论是独立服务、Sidecar、边缘部署还是 2025 年后兴起的 MCP/Agent 网关形态，都需要把认证、限流、路由、转换、重试、指标这些能力模块化、可配置化；而自托管推理集群则应通过 Gateway API Inference Extension 把 KV-cache 感知的路由决策下沉到独立的 Endpoint Picker。
 
 **参考来源**
 
 - [LiteLLM Architecture](https://docs.litellm.ai/docs/proxy/architecture)
 - [Envoy AI Gateway Architecture](https://aigateway.envoyproxy.io/docs/)
+- [Kubernetes Gateway API Inference Extension](https://github.com/kubernetes-sigs/gateway-api-inference-extension)
+- [llm-d 官网](https://www.llm-d.ai/)
+- [GKE Inference Gateway：KV-Cache-Aware 路由](https://www.spheron.network/blog/gke-inference-gateway-kv-cache-aware-llm-routing/)
+- [Higress v2.2.4：新版 MCP 与 Gateway API 推理扩展](https://higress.ai/blog/higress-mmse_awbbpb_qwo0xq9sf9bc9i21/)
 - [Kong AI Gateway Plugin](https://docs.konghq.com/hub/kong-inc/ai-proxy/)

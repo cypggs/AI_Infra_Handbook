@@ -40,6 +40,7 @@ vLLM、Triton、LiteLLM、SGLang 都支持 OpenAI-compatible 接口，这进一�
 | **Priority** | 主备模式，主失败才切备 | 成本优先，备用更贵 |
 | **Cost-based** | 选当前 cheapest 的 | 成本优先 |
 | **Content-based** | 按 prompt 长度/语言/安全等级路由 | 长文走低价、敏感走合规供应商 |
+| **KV-cache-aware**（2025 起新范式） | 按上游副本的 KV cache 前缀命中与队列深度路由 | 自托管 vLLM/SGLang 集群，显著提升 TTFT |
 
 ### 4. 负载均衡（Load Balancing）
 
@@ -98,7 +99,60 @@ Gateway 是统一观测点，必须输出：
 - **成功率/错误码**：2xx/4xx/5xx 分布。
 - **缓存命中率**：如果实现了 prompt 缓存。
 
-这些指标通常以 Prometheus 格式暴露，再由 Grafana 做大盘。
+这些指标通常以 Prometheus 格式暴露，再由 Grafana 做大盘。2025 年后，主流网关还把 GenAI 专属指标纳入标准导出：TTFT、TPOT、各类型 token 分开计量（input / output / cached / reasoning tokens），并对接 OpenTelemetry GenAI 语义约定与 OpenInference 追踪格式。
+
+## 2025-2026 新增的三类横切能力
+
+随着语义缓存、Guardrails 与 MCP 协议的普及，现代 LLM Gateway 的能力集在 8 大基础能力之上又长出了三个新模块。
+
+### 9. 语义缓存（Semantic Caching）
+
+传统缓存按 prompt 文本哈希做**精确匹配**；语义缓存则把 prompt 向量化后按**余弦相似度**命中近义请求：
+
+```text
+新请求 prompt
+   ├─ 1. 精确缓存查询（哈希）—— 命中直接返回
+   └─ 2. embedding → 向量库近邻搜索（阈值如 0.9）
+        ├─ 命中 → 返回缓存答案，延迟降低一个数量级
+        └─ 未命中 → 调上游，结果写回两级缓存
+```
+
+关键设计点：
+
+- **双层级联**：先精确、后语义，兼顾成本与命中率。
+- **相似度阈值**：过高则命中率低，过低则答案“串味”，通常 0.85~0.95 可调。
+- **敏感数据不缓存**：含 PII 或商业机密的请求应带跳过标记。
+- **流式缓存**：缓存与回放都要支持 SSE chunk 格式。
+
+典型实现：Kong `ai-semantic-cache`（3.8+）、APISIX `ai-cache`、Portkey simple+semantic 双模缓存、LiteLLM Redis 缓存。
+
+### 10. Guardrails 与内容安全
+
+网关从“可选插件”走向“策略执行点”，在请求和响应两侧做实时检测：
+
+- **输入侧**：PII 识别与脱敏、越狱 / Prompt Injection 检测、敏感词过滤。
+- **输出侧**：内容审核、敏感信息回显检查、引用来源校验。
+- **执行方式**：规则引擎（Kong `ai-prompt-guard`）、小型分类模型，或外接 Guardrails 服务（LiteLLM 的 guardrails hook、Portkey 50+ 内置规则）。
+
+与“认证授权”不同：认证回答“你是谁”，Guardrails 回答“这次对话的内容是否允许”。
+
+### 11. MCP 工具治理（MCP Gateway）
+
+当客户端从“人写的应用”变成“Agent”，网关需要理解 MCP 协议语义：
+
+- **工具注册表**：聚合多个上游 MCP Server 的工具列表，对外暴露统一入口。
+- **工具级鉴权**：deny-by-default 白名单，按虚拟 key / JWT claims 决定能调哪些工具（Envoy AI Gateway 的 `MCPRouteSecurityPolicy` 用 CEL 表达式实现）。
+- **工具级限流与计量**：按工具名（如 `create_order`）分别限流、计费、观测。
+- **协议适配**：新旧 MCP 协议转换（Higress 支持 modern↔legacy 双向桥接）。
+
+```mermaid
+flowchart LR
+    Agent[Agent / MCP Client] --> GW[LLM Gateway<br/>MCP Gateway 模块]
+    GW --> TAuth{工具级鉴权<br/>deny-by-default}
+    TAuth -->|允许| MCP1[MCP Server A<br/>账单工具]
+    TAuth -->|允许| MCP2[MCP Server B<br/>库存工具]
+    TAuth -->|拒绝| Deny[403 + 审计日志]
+```
 
 ## 控制面 vs 数据面
 
@@ -132,11 +186,13 @@ flowchart TB
 
 ## 本章小结
 
-LLM Gateway 的 8 大能力——Provider 抽象、统一 API、路由、负载均衡、限流、重试降级、认证、可观测——共同构成了 AI 控制面的最小可行集合。理解它们之间的边界与组合方式，是后续学习架构与源码的基础。
+LLM Gateway 的 8 大基础能力——Provider 抽象、统一 API、路由、负载均衡、限流、重试降级、认证、可观测——构成了 AI 控制面的最小可行集合；语义缓存、Guardrails、MCP 工具治理则是 2025-2026 年在成本与安全压力下长出的新标配。理解它们之间的边界与组合方式，是后续学习架构与源码的基础。
 
 **参考来源**
 
 - [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
 - [LiteLLM Proxy — Rate Limits](https://docs.litellm.ai/docs/proxy/rate_limiting)
-- [Envoy AI Gateway Concepts](https://aigateway.envoyproxy.io/docs/concepts/)
+- [LiteLLM Guardrails](https://docs.litellm.ai/docs/proxy/guardrails/quick_start)
+- [Kong ai-semantic-cache 插件](https://docs.konghq.com/hub/kong-inc/ai-semantic-cache/)
+- [Envoy AI Gateway MCP 文档](https://aigateway.envoyproxy.io/docs/)
 - [Kong AI Gateway Overview](https://docs.konghq.com/gateway/latest/ai-gateway/)

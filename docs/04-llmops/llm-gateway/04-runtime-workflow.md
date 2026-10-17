@@ -11,6 +11,8 @@ sequenceDiagram
     participant R as Rate Limiter
     participant Rt as Router
     participant T as Transformer
+    participant Cache as Cache
+    participant Guard as Guardrails
     participant CB as Retry/Fallback/CB
     participant P as Provider
     participant M as Metrics
@@ -27,6 +29,14 @@ sequenceDiagram
     end
     R->>Rt: 选择 provider
     Rt->>T: 转换请求体
+    T->>Cache: 查询精确 / 语义缓存
+    alt 缓存命中
+        Cache-->>C: 直接返回缓存响应
+    end
+    T->>Guard: Guardrails 输入检测（PII / 越狱）
+    alt 内容违规
+        Guard-->>C: 400 content_filter
+    end
     T->>CB: 发送上游请求
     CB->>CB: 检查熔断器
     alt 熔断开启
@@ -121,7 +131,20 @@ models:
 
 按 weighted random 选择后，还要经过负载均衡选出具体实例。
 
-### 5. 请求转换（Request Transformation）
+### 5. 缓存查询（2025 后常见）
+
+在真正调用上游前，Gateway 先查缓存，按“精确 → 语义”级联：
+
+1. **精确缓存**：对 prompt + 模型 + 参数做哈希，命中即返回（延迟接近 0）。
+2. **语义缓存**：把 prompt embedding 后去向量库做近邻搜索，相似度超过阈值（典型 0.85~0.95）即命中，返回时按当前请求参数（temperature 等）判断是否可复用。
+
+命中会记录 `cache_hit` 指标，用于评估缓存带来的成本节省。
+
+### 6. Guardrails 输入检测（2025 后常见）
+
+请求放行前进行内容安全检测：PII 脱敏、越狱 / Prompt Injection 识别、敏感词过滤。命中策略时直接返回 OpenAI 风格的 `400` + `content_filter` 原因码，不消耗上游调用。
+
+### 7. 请求转换（Request Transformation）
 
 如果上游是 OpenAI-compatible（如 vLLM、LiteLLM），通常直接透传。
 
@@ -131,7 +154,7 @@ models:
 - 把 `stream=true` 映射到 SSE 格式。
 - 把 temperature/top_p 等参数做适配。
 
-### 6. 上游调用与重试
+### 8. 上游调用与重试
 
 Gateway 调用选中的 provider：
 
@@ -153,7 +176,7 @@ Gateway 调用选中的 provider：
 - 重试风暴拖垮备用 provider。
 - 流式响应已经发送部分数据后无法重试。
 
-### 7. 熔断（Circuit Breaker）
+### 9. 熔断（Circuit Breaker）
 
 连续失败 N 次或失败率超过阈值后，熔断器打开：
 
@@ -167,7 +190,7 @@ CLOSED -> OPEN -> HALF-OPEN -> CLOSED
 
 熔断状态需要共享（Redis），否则多实例会重复触发。
 
-### 8. 响应转换
+### 10. 响应转换
 
 上游响应可能是：
 
@@ -192,7 +215,7 @@ Gateway 保证返回 OpenAI-compatible 格式：
 
 如果是流式，需要把 provider 的 SSE chunk 转发给客户端，必要时补 `data: [DONE]`。
 
-### 9. 指标记录
+### 11. 指标记录
 
 无论成功失败，都要记录：
 
@@ -203,7 +226,7 @@ Gateway 保证返回 OpenAI-compatible 格式：
 
 这些指标在 `/metrics` 端点以 Prometheus 文本暴露。
 
-### 10. 返回客户端
+### 12. 返回客户端
 
 最终响应：
 
@@ -232,12 +255,45 @@ X-Request-ID: req-xxx
 - 如果上游连接中断，Gateway 应优雅结束 SSE，而不是把错误 chunk 发给客户端。
 - 熔断判断通常只基于完整请求，不基于单个 chunk。
 
+## MCP 工具调用的生命周期（2025-2026 新增）
+
+当客户端是 Agent、走 MCP 协议时，网关的处理对象从“一次补全请求”变成“一次工具调用”：
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant GW as MCP Gateway
+    participant TAuth as Tool AuthZ
+    participant S as MCP Server
+
+    Agent->>GW: tools/list
+    GW-->>Agent: 聚合后的工具清单（按身份过滤）
+    Agent->>GW: tools/call create_order {...}
+    GW->>TAuth: 校验该 key/JWT 是否允许 create_order
+    alt 未授权
+        TAuth-->>Agent: 403 + 审计日志
+    end
+    GW->>GW: 按工具名限流 / 计量
+    GW->>S: 转发（必要时做协议转换）
+    S-->>GW: 工具结果
+    GW-->>Agent: 标准化响应
+```
+
+与 chat completions 流水线的差异：
+
+- **鉴权粒度**：从“模型级”细化到“工具级”，推荐 deny-by-default 白名单（LiteLLM、Envoy AI Gateway 的 `MCPRouteSecurityPolicy` 均支持）。
+- **限流粒度**：可按工具名单独限流（Higress 的 `cluster-key-rate-limit` 插件支持按工具名如 `create_order` 分别限流）。
+- **协议适配**：新旧 MCP 协议（有状态握手 vs 无状态 HTTP Tools）之间需要网关桥接，Higress v2.2.4 起支持 modern↔legacy 双向转换，并把 MCP 方法/工具名放入 HTTP Header 以便不解析 JSON Body 即可路由与计量。
+- **可观测**：按 `Mcp-Method` / 工具名聚合调用量、延迟与失败率，而不是只看模型维度。
+
 ## 本章小结
 
-LLM Gateway 的请求生命周期是“**先拒绝、再决策、后调用、终记录**”。认证和限流尽早拒绝无效流量，路由和转换决定去向与格式，重试/降级/熔断保证可用性，指标记录支撑成本与可观测。流式响应则把重试窗口压缩到首包之前。
+LLM Gateway 的请求生命周期是“**先拒绝、再决策、后调用、终记录**”。认证和限流尽早拒绝无效流量，路由和转换决定去向与格式，缓存与 Guardrails 在调用前拦截重复与违规请求，重试/降级/熔断保证可用性，指标记录支撑成本与可观测。流式响应把重试窗口压缩到首包之前，MCP 工具调用则把治理粒度细化到单个工具。
 
 **参考来源**
 
 - [OpenAI API — Chat Completions](https://platform.openai.com/docs/api-reference/chat/create)
 - [LiteLLM Proxy — Fallbacks](https://docs.litellm.ai/docs/proxy/reliability)
+- [LiteLLM MCP Gateway 文档](https://docs.litellm.ai/docs/mcp)
+- [Portkey 缓存文档](https://docs.portkey.ai/docs/product/ai-gateway/cache-simple-and-semantic)
 - [Envoy AI Gateway — Routing](https://aigateway.envoyproxy.io/docs/)

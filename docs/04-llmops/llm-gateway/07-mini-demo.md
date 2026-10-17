@@ -259,8 +259,10 @@ tests/test_server.py::test_chat_completions_e2e PASSED
 | 状态 | 内存 | Redis 共享限流/熔断状态 |
 | 上游 | mock server | OpenAI / Azure / vLLM / Triton / SGLang |
 | Secret | 明文配置 | Vault / KMS / 云 Secret Manager |
-| 可观测 | 内存指标 | Prometheus + Grafana + OpenTelemetry |
-| 安全 | 简单 key | OAuth2 / mTLS / PII 过滤 / 审计日志 |
+| 可观测 | 内存指标 | Prometheus + Grafana + OpenTelemetry GenAI 语义约定 |
+| 安全 | 简单 key | OAuth2 / mTLS / PII 过滤 / Guardrails / 审计日志 |
+| 缓存 | 未覆盖 | 精确缓存（Redis）+ 语义缓存（embedding + 向量库） |
+| 协议 | OpenAI chat only | 2025 年后还需托管 MCP 端点（工具级鉴权/限流） |
 
 ## 本章小结
 

@@ -57,9 +57,11 @@
 ## 8. 缓存策略
 
 - **Prompt 缓存**：对 FAQ、固定模板、重复查询效果显著。
-- **语义缓存**：用 embedding 缓存相似 prompt 的结果，命中更高。
+- **语义缓存**：用 embedding 缓存相似 prompt 的结果，命中更高。生产推荐“先精确、后语义”级联：精确查询几乎零成本，语义查询要算 embedding 账。
+- **阈值按场景调**：答案稳定的场景（FAQ、摘要）阈值可低（0.85 左右）；上下文敏感的 Agent 对话阈值要高或禁用，防止近义请求“串味”。
 - **注意缓存失效**。模型版本更新、上下文变化时要失效或版本化缓存。
-- **敏感数据不缓存**。涉及 PII 或商业机密的 prompt 应跳过缓存。
+- **敏感数据不缓存**。涉及 PII 或商业机密的 prompt 应跳过缓存，并考虑按租户隔离缓存命名空间。
+- **观测命中率**。`cache_hit_total{mode="exact|semantic"}` 进大盘，命中率长期过低说明场景不适合或阈值有问题。
 
 ## 9. 安全与合规
 
@@ -89,6 +91,20 @@
 - **混沌测试**：模拟上游 429/500/超时，验证 fallback 与熔断。
 - **负载测试**：验证限流与横向扩展能力。
 
+## 13. MCP / Agent 网关（2025-2026 新增）
+
+- **工具白名单 deny-by-default**：默认拒绝所有工具，按调用方逐个放行；比“黑名单”更能防住上游 MCP Server 的新增工具带来的越权。
+- **工具权限挂在虚拟 key 上**：不同应用/用户使用不同 key，工具可见性与配额随 key 走，便于审计与回收。
+- **高危工具单独治理**：支付、删除、写操作类工具单独限流并开启调用告警。
+- **保持网关版本与补丁更新**：MCP 端点是新攻击面（如 CVE-2026-59822），纳入常规漏洞管理流程。
+- **协议桥接交给网关**：modern / legacy MCP 协议错配期，不要让每个 Agent 自己处理兼容，由网关统一桥接。
+
+## 14. 与推理引擎协同
+
+- **自托管集群开启 prefix caching**，并在网关层用 KV-cache 感知路由（GIE / EPP 或 AdaptiveScore 打分），让多轮对话的前缀命中转化为 TTFT 收益。
+- **EPP 不是银弹**：副本数少、负载轻时，打分负载均衡就够了；引入 EPP 前评估其 1~2ms 决策开销是否值得。
+- **prefix 稳定的设计**：Agent 系统提示词与会话前缀尽量稳定且共享，命中率才上得去。
+
 ## 最佳实践速查表
 
 | 维度 | 推荐做法 |
@@ -101,15 +117,20 @@
 | Secret | Vault/KMS + virtual key + 定期 rotate |
 | 可观测 | Prometheus + Grafana + OpenTelemetry |
 | 安全 | PII 过滤 + 审计 + 数据驻留 |
+| 缓存 | 精确→语义级联 + 按场景阈值 + 敏感请求不缓存 |
+| MCP 网关 | 工具白名单 deny-by-default + 虚拟 key 隔离 + 高危工具单独治理 |
+| 引擎协同 | prefix caching + KV-cache 感知路由，EPP 按规模引入 |
 | 发布 | 金丝雀 + shadow traffic + 快速回滚 |
 | 配置 | Git 管理 + 热更新 + 分环境 |
 
 ## 本章小结
 
-LLM Gateway 的最佳实践覆盖了供应商管理、路由、限流、重试、熔断、可观测、安全、缓存、发布与配置管理十个方面。核心原则是：**用 Gateway 把复杂性与风险集中收敛，让业务方只关心“调用哪个 model alias”**。
+LLM Gateway 的最佳实践覆盖了供应商管理、路由、限流、重试、熔断、可观测、安全、缓存、MCP 工具治理、引擎协同、发布与配置管理等方面。核心原则是：**用 Gateway 把复杂性与风险集中收敛，让业务方只关心“调用哪个 model alias”、让 Agent 只关心“调用哪个工具”**。
 
 **参考来源**
 
 - [LiteLLM Best Practices](https://docs.litellm.ai/docs/proxy/enterprise)
+- [LiteLLM Caching](https://docs.litellm.ai/docs/proxy/caching)
+- [Portkey Semantic Cache](https://docs.portkey.ai/docs/product/ai-gateway/cache-simple-and-semantic)
 - [OpenAI API — Rate Limits](https://platform.openai.com/docs/guides/rate-limits)
 - [Google SRE Book — Reliability](https://sre.google/sre-book/table-of-contents/)

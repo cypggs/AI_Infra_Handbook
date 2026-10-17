@@ -15,14 +15,19 @@ flowchart TB
         LB[Load Balancer]
         Retry[Retry / Fallback / CB]
         Trans[Transformer]
+        Cache[Semantic Cache]
+        Guard[Guardrails]
+        MCPGW[MCP Gateway]
         Metrics[Metrics]
     end
 
     Client -- HTTP --> Auth
+    Agent -- MCP --> MCPGW
     Config --> Registry
     Config --> Router
     Config --> RL
-    Auth --> RL --> Router --> LB --> Retry --> Trans --> Provider[上游 Provider]
+    Auth --> RL --> Router --> LB --> Cache --> Guard --> Retry --> Trans --> Provider[上游 Provider]
+    MCPGW --> TAuth[工具级鉴权 / 限流]
     Provider --> Trans --> Metrics --> Client
 ```
 
@@ -159,7 +164,7 @@ providers:
 
 - **Round-robin**：简单公平。
 - **Least-connections**：避免长连接堆积。
-- **Least-queue / KV-cache-aware**：需要暴露实例内部队列长度或显存状态，较为高级。
+- **Least-queue / KV-cache-aware**：需要暴露实例内部队列长度或显存状态，较为高级。2025 年后这一档成为自托管集群的标配：通过 Gateway API Inference Extension 的 Endpoint Picker 读取 vLLM 各副本的 KV cache 前缀命中与队列深度做路由（详见 [架构设计](./03-architecture#网关--推理引擎集成的新范式kv-cache-感知路由)），Higress 的 AdaptiveScore 负载均衡也综合了首 Token 延迟、并发与失败率打分。
 
 ## 7. Retry / Fallback / Circuit Breaker
 
@@ -233,12 +238,53 @@ Policy Plugin 通常作为可插拔的 hook 链：
 request hook -> route -> upstream -> response hook -> return
 ```
 
+## 11. Semantic Cache（2025 后普及）
+
+职责：在上游调用前拦截重复/近义请求，直接降低延迟与成本。
+
+```text
+request ──► exact hash 查询 ──命中──► 返回
+              │
+              └未命中► embedding ──► 向量库近邻搜索 ──命中──► 返回
+                                          │
+                                          └未命中► 调上游 ──► 写回两级缓存
+```
+
+要点：
+
+- **两级级联**：精确缓存（Redis 哈希）成本极低，先做；语义缓存（embedding + 向量库）命中率高但每次都花 embedding 费用。
+- **相似度阈值**：典型 0.85~0.95，业务可配；对答案一致性要求高的场景应偏高或禁用。
+- **流式支持**：缓存与回放都按 SSE chunk 格式存储，命中时逐 chunk 回放。
+- **数据安全**：含 PII/机密内容的请求标记为不可缓存；缓存本身也要加密与设 TTL。
+
+## 12. Guardrails（2025 后普及）
+
+职责：请求与响应两侧的内容安全策略执行。
+
+- **输入**：PII 检测/脱敏、越狱与 Prompt Injection 识别、敏感词过滤、Token 用量预检（超长 prompt 直接拒绝）。
+- **输出**：内容审核、敏感信息回显检查、长度与格式约束。
+- **实现形态**：内置规则引擎（Kong `ai-prompt-guard`、APISIX `ai-prompt-guard`）、hook 外接（LiteLLM guardrails hook 可接 AWS Bedrock Guardrails、Lakera 等）、或内置 50+ 规则（Portkey）。
+- **性能**：检测在请求关键路径上，必须用异步或小模型做，避免成为延迟瓶颈。
+
+## 13. MCP Gateway（2025-2026 新增）
+
+职责：面向 Agent 的 MCP 协议接入与工具治理。
+
+- **工具聚合**：把多个上游 MCP Server 的工具列表聚合成统一入口，按调用方身份过滤可见工具。
+- **工具级鉴权**：deny-by-default 白名单 + 按虚拟 key / JWT claims 授权（Envoy AI Gateway 用 `MCPRouteSecurityPolicy` + CEL 表达式实现）。
+- **工具级限流与计量**：按工具名限流、计费、出指标。
+- **协议桥接**：modern（无状态 HTTP Tools）↔ legacy（握手 + 会话）双向转换；Higress v2.2.4 起在协议层把方法与工具名放入 HTTP Header，网关无需解析 JSON Body 即可路由与计量。
+- **存量 API 转化**：Higress 支持把存量 REST API “零代码”包装成 MCP Server，是存量系统接入 Agent 的低成本路径。
+
 ## 本章小结
 
-LLM Gateway 的 10 个核心模块——Config、Registry、Auth、Rate Limiter、Router、Load Balancer、Retry/Fallback/CB、Transformer、Metrics、Policy Plugin——覆盖了从配置到调用、从安全到观测的全链路。理解每个模块的职责边界，有助于在真实选型与自研时做出合理拆分。
+LLM Gateway 的核心模块——Config、Registry、Auth、Rate Limiter、Router、Load Balancer、Retry/Fallback/CB、Transformer、Metrics、Policy Plugin，加上 2025 年后普及的 Semantic Cache、Guardrails、MCP Gateway——覆盖了从配置到调用、从缓存到安全、从模型到工具的全链路。理解每个模块的职责边界，有助于在真实选型与自研时做出合理拆分。
 
 **参考来源**
 
 - [LiteLLM Proxy — Rate Limiting](https://docs.litellm.ai/docs/proxy/rate_limiting)
+- [LiteLLM Caching](https://docs.litellm.ai/docs/proxy/caching)
+- [Kong ai-semantic-cache 插件](https://docs.konghq.com/hub/kong-inc/ai-semantic-cache/)
+- [APISIX ai-proxy / ai-prompt-guard 插件](https://apisix.apache.org/docs/apisix/plugins/ai-proxy/)
 - [Envoy AI Gateway Filters](https://aigateway.envoyproxy.io/docs/)
 - [Prometheus Best Practices](https://prometheus.io/docs/practices/naming/)
