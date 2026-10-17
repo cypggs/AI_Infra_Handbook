@@ -72,6 +72,7 @@
 - [Kubernetes 详解](/02-cloud-native/kubernetes/)：容器编排底座、调度框架、extended resource 与 Device Plugin 通用机制；
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 编译型 LLM 推理引擎，大量依赖 Tensor Core 与 FP8；
 - [vLLM](/04-llmops/vllm/)：GPU 上的 LLM 推理服务与内存管理；
+- [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)：手写 CUDA 之上的算子编译与 kernel 自动生成（Triton、cuTile、TileLang）；
 - [Ray](/03-ai-platform/ray/)：分布式 AI 计算，底层调用 CUDA + NCCL；
 - [大模型从 0 到 1](/01-foundation/llm-from-zero/)：Transformer、训练、推理全链路；
 - [OpenAI / Meta / Google 案例研究](/09-case-study/)：超大规模 GPU 集群的工程实践。

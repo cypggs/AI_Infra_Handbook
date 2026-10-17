@@ -57,9 +57,9 @@ docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU/CUDA、分布式系统、大模型从 0 到 1
 ├── 02-cloud-native/    # Docker、Kubernetes、容器运行时、Helm、Operator、CNI/CSI
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow、Airflow
-├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway
-├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS
-├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG
+├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway、RL Post-Training、AI 编译器
+├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS、Personal AI Agent
+├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG、向量数据库
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
 ├── 08-security/        # IAM、Secrets、Zero Trust、合规
 ├── 09-case-study/      # OpenAI、Anthropic、Meta、Google、Cursor、Perplexity 等
@@ -103,6 +103,7 @@ pnpm docs:preview
 - [SGLang 详解](docs/04-llmops/sglang/) — 覆盖 LLM Program、RadixAttention、Structured Generation、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [TensorRT-LLM 详解](docs/04-llmops/tensorrt-llm/) — 覆盖 NVIDIA 编译型推理引擎、Builder/Engine/Runtime/Executor、In-flight Batching、Plugin、量化、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [Triton Inference Server 详解](docs/04-llmops/triton/) — 覆盖多框架推理服务、Model Repository、Backend 抽象、Dynamic/Sequence/Ensemble 调度、BLS、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
+- [AI 编译器与 Kernel 生成详解](docs/04-llmops/ai-compiler/) — 覆盖从 torch.compile/Inductor 到 Triton 语言编译器、NVIDIA cuTile/CUTLASS、TileLang、Mirage megakernel 的算子编译与 GPU Kernel 生成层：图捕获、算子融合、tiling/scheduling、auto-tuning、MLIR dialect、生态对比、纯 Python Mini Demo（计算图 IR + 融合 pass + autotuner + tile 模拟器，45 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [LLM Gateway 详解](docs/04-llmops/llm-gateway/) — 覆盖访问控制与抽象层、Provider 抽象、统一 OpenAI-compatible API、路由、负载均衡、限流、重试降级、认证、请求/响应转换、成本追踪、可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-02）
 - [RL Post-Training 基础设施详解](docs/04-llmops/rl-post-training/) — 覆盖 o1/R1 后 RL 成为大模型训练主战场：RLHF/RLVR 区别、PPO/GRPO/DPO 算法工程化、可验证奖励 vs Reward Model、Rollout/Train 分离三种拓扑（Co-located/Disaggregated/Hybrid）、权重同步（NCCL/量化/流水线）、长尾治理、Agentic RL 挑战、veRL/OpenRLHF 源码分析、DeepSeek/字节/阿里/Kimi 生产实践、纯 Python Mini Demo（bigram 模型 + GRPO + 权重版本同步 + Continuous Batching，28 测试）、最佳实践与面试题（内容更新至 2026-07-21）
 - [Ray 详解](docs/03-ai-platform/ray/) — 覆盖 Ray Core tasks/actors/objects、所有权模型、spillback 调度、Plasma 对象存储、引用计数、lineage 重建、Ray Serve/Train/Data/Tune/RLlib/KubeRay、源码与生态分析、Mini Demo（ownership + hybrid 调度 + object store spilling + lineage 重建 + autoscaler，25 测试）、生产实践与面试题（内容更新至 2026-07-03）
@@ -118,8 +119,10 @@ pnpm docs:preview
 - [MCP 详解](docs/05-agent/mcp/) — 覆盖 Model Context Protocol、Host/Client/Server 角色、Tools/Resources/Prompts、JSON-RPC 协议流程、Capability negotiation、Transport（stdio/SSE/HTTP）、官方 SDK 源码、Mini Demo、企业生产实践与面试题（内容更新至 2026-07-03）
 - [Planning 详解](docs/05-agent/planning/) — 覆盖 Agent 规划系统、任务分解范式、计划表示（列表/DAG/树/状态图）、Plan-Execute-Observe-Replan 循环、动态重规划、与 Runtime/Memory/Reflection/Multi-Agent/MCP 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Tool Use 详解](docs/05-agent/tool-use/) — 覆盖 Agent 工具调用、JSON Schema 工具定义、Tool Choice、并行调用、解析/校验/执行/结果格式化、OpenAI/Anthropic/Google/LangGraph/OpenAI Agents SDK/AutoGen/MCP 源码对比、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [Personal AI Agent 详解](docs/05-agent/personal-agent/) — 覆盖 2026 年爆火的个人智能体：Muse（Secure VM + Sentinel + eBPF 污染追踪）、OpenAI Dots、Grok Bot、Google Personal Intelligence、Apple Siri AI、Claude Cowork、国内豆包/夸克全景，个人数据连接器、记忆分层、主动感知循环、常驻执行、权限与隐私模型，纯 Python Mini Demo（记忆层 + 主动循环 + 连接器模拟，40 测试）（内容更新至 2026-10-17）
 - [Agent OS 详解](docs/05-agent/agent-os/) — 覆盖 Agent 运行时操作系统、进程/生命周期、调度、沙箱、Workspace、Capability/权限、Registry、MCP Host 与 A2A IPC、AIOS/Agent libOS/Quine 等源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [RAG 详解](docs/06-rag/) — 覆盖检索增强生成、Chunking、Embedding、Vector Store、Dense/Sparse/Hybrid 检索、RRF、Reranking、GraphRAG、评估体系、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
+- [向量数据库与 Embedding 基础设施详解](docs/06-rag/vector-db/) — 覆盖 ANN 不可能三角、HNSW/IVF-PQ/DiskANN-Vamana、量化（SQ/PQ/RaBitQ）、Milvus 2.6/Qdrant ACORN/pgvector 等 9 系统对比、GPU 索引 CAGRA、Embedding 服务（TEI/Infinity/BGE-M3/Qwen3-Embedding）、纯 Python Mini Demo（Flat/IVF/HNSW + 量化 + 玩具 embedding 服务，69 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [AI SRE 详解](docs/07-ai-sre/) — 覆盖 AI 系统可观测性、OpenTelemetry GenAI 语义约定、SLI/SLO/Error Budget、Burn Rate 告警、AIOps、事故响应与复盘、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Benchmark + Evaluation 详解](docs/07-ai-sre/benchmark-evaluation/) — 覆盖 Agent / LLM / RAG 的可复现评测框架：评测维度（正确性、工具使用、延迟、成本、鲁棒性）、trace-based eval、benchmark 数据集、LLM-as-judge 与规则评估器、离线/在线评测、CI 评估门与生产回归检测，含 CPU 可运行 Mini Demo（确定性 ReAct Agent + tool use + tracer + evaluators，15 测试）（内容更新至 2026-07-04）
 - [安全详解](docs/08-security/) — 覆盖 AI 系统安全、IAM/AuthN/AuthZ、Secrets 管理、Zero Trust、Guardrails、合规与隐私治理、源码与生态分析、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）

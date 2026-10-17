@@ -144,6 +144,7 @@
 | Agent OS | /05-agent/agent-os/ | 为 RAG 任务提供进程与资源隔离。 |
 | AI SRE | /07-ai-sre/ | 为 RAG 服务提供可观测性、SLO 与事故响应保障。 |
 | Benchmark + Evaluation | /07-ai-sre/benchmark-evaluation/ | RAG 流水线需要端到端评估：检索召回、生成事实性、延迟与成本。 |
+| 向量数据库与 Embedding 基础设施 | /06-rag/vector-db/ | RAG 的检索底座：HNSW/DiskANN 索引、向量库系统、GPU 索引与 Embedding 服务。 |
 
 ## 推荐学习路径
 

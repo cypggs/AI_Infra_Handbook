@@ -1,0 +1,20 @@
+[project]
+name = "ai-compiler-mini"
+version = "0.1.0"
+description = "微型 AI 编译器教学模拟器 —— 纯 numpy 重建 graph IR / 算子融合 / auto-tune / Triton-like tile 语义"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.22"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ai_compiler_mini*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -37,6 +37,7 @@
 - **Triton Inference Server（已上线）**
 - **LLM Gateway（已上线）**
 - **[RL Post-Training 基础设施（已上线）](/04-llmops/rl-post-training/)** — GRPO/PPO 算法工程化、Rollout/Train 分离架构、veRL/OpenRLHF 源码、Agentic RL、生产实践
+- **[AI 编译器与 Kernel 生成（已上线）](/04-llmops/ai-compiler/)** — torch.compile/Inductor 编译链路、Triton 语言与编译器、cuTile/CUTLASS、TileLang、Mirage megakernel，理解推理引擎之下的算子生成层
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
@@ -50,8 +51,9 @@
 - **[Planning](/05-agent/planning/)（已上线）**
 - **[Tool Use](/05-agent/tool-use/)（已上线）**
 - **[Agent OS](/05-agent/agent-os/)（已上线）**
+- **[Personal AI Agent](/05-agent/personal-agent/)（已上线）**
 - **[RAG](/06-rag/)（已上线）**
-- Embedding、Retriever、Hybrid Search
+- **[向量数据库与 Embedding 基础设施](/06-rag/vector-db/)（已上线）** — HNSW/IVF/DiskANN 索引、Milvus/Qdrant/pgvector 系统、GPU 索引与 Embedding 服务
 - GraphRAG 与评估体系
 
 ## 阶段五：AI SRE 与安全（持续）
@@ -104,13 +106,16 @@
 21. [Planning](/05-agent/planning/) — 理解 Agent 任务分解、计划表示与动态重规划
 22. [Tool Use](/05-agent/tool-use/) — 理解 Agent 工具调用、Schema、解析、执行与可观测
 23. [Agent OS](/05-agent/agent-os/) — 理解 Agent 运行时操作系统、进程调度、沙箱、Workspace 与多 Agent 治理
-24. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
-25. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
-26. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
-27. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
-24. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
-25. [Meta 案例研究](/09-case-study/meta/) — 通过 Meta 理解开放权重、硬件协同设计、双网络织物、同步训练可靠性（SDC 治理/>95% 有效训练时间）与 MTIA 自研硅
-26. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
+24. [Personal AI Agent](/05-agent/personal-agent/) — 理解面向个人用户的智能体：个人数据连接、跨会话记忆、主动服务、常驻执行与隐私权限模型
+25. [RAG](/06-rag/) — 理解外部知识检索、向量索引、混合检索与检索增强生成
+26. [AI SRE](/07-ai-sre/) — 理解 AI 系统可观测性、SLO、AIOps 与事故响应
+27. [安全](/08-security/) — 理解 AI 系统身份、密钥、零信任、Guardrails、合规与事件响应
+28. [OpenAI 案例研究](/09-case-study/openai/) — 通过 OpenAI 的演化理解训练/推理基础设施、安全对齐与产品化工程落地
+29. [Anthropic 案例研究](/09-case-study/anthropic/) — 通过 Anthropic 理解宪法对齐、机制可解释性、异构算力、prompt caching 与 RSP/ASL 安全治理
+30. [Meta 案例研究](/09-case-study/meta/) — 通过 Meta 理解开放权重、硬件协同设计、双网络织物、同步训练可靠性（SDC 治理/>95% 有效训练时间）与 MTIA 自研硅
+31. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
+32. [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/) — 理解 torch.compile/Inductor、Triton 语言、cuTile/CUTLASS 与 kernel 自动生成
+33. [向量数据库与 Embedding 基础设施](/06-rag/vector-db/) — 理解 HNSW/DiskANN、向量数据库系统、GPU 索引与 Embedding 服务
 
 ## 面试准备
 

@@ -8,6 +8,7 @@
 - [SGLang](/04-llmops/sglang/)：面向 LLM Program 的推理引擎，强调 RadixAttention 与结构化生成
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 高性能编译型 LLM 推理引擎
 - [Triton Inference Server](/04-llmops/triton/)：NVIDIA 开源多框架推理服务软件，统一承载多种推理后端
+- [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)：从 torch.compile/Inductor 到 Triton 语言、cuTile/CUTLASS、TileLang 与 Mirage——算子编译与 GPU Kernel 生成层
 - [LLM Gateway](/04-llmops/llm-gateway/)：位于客户端与推理后端之间的访问控制与抽象层
 - [RL Post-Training 基础设施](/04-llmops/rl-post-training/)：把强化学习闭环跑在千卡集群上的工程系统，覆盖 GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF 源码与生产实践
 

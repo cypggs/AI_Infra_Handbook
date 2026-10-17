@@ -67,6 +67,7 @@ export default withMermaid(
             { text: 'SGLang', link: '/04-llmops/sglang/' },
             { text: 'TensorRT-LLM', link: '/04-llmops/tensorrt-llm/' },
             { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
+            { text: 'AI 编译器与 Kernel 生成', link: '/04-llmops/ai-compiler/' },
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
             { text: 'RL Post-Training 基础设施', link: '/04-llmops/rl-post-training/' },
           ],
@@ -160,6 +161,7 @@ export default withMermaid(
             { text: 'Planning', link: '/05-agent/planning/' },
             { text: 'Tool Use', link: '/05-agent/tool-use/' },
             { text: 'Agent OS', link: '/05-agent/agent-os/' },
+            { text: 'Personal AI Agent', link: '/05-agent/personal-agent/' },
           ],
         },
         {
@@ -175,6 +177,7 @@ export default withMermaid(
             { text: '7. Mini Demo', link: '/06-rag/07-mini-demo' },
             { text: '8. 企业生产实践', link: '/06-rag/08-production-practice' },
             { text: '9. 最佳实践', link: '/06-rag/09-best-practices' },
+            { text: '向量数据库与 Embedding 基础设施', link: '/06-rag/vector-db/' },
           ],
         },
         {

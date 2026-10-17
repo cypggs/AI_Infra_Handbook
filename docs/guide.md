@@ -27,6 +27,7 @@
 - 想理解分布式系统基础与 AI 集群协调、一致性、容错：[分布式系统基础](/01-foundation/distributed-systems/)（已上线）
 - 想了解 LLM 推理引擎：从 [vLLM](/04-llmops/vllm/)、[SGLang](/04-llmops/sglang/)、[TensorRT-LLM](/04-llmops/tensorrt-llm/)、[Triton Inference Server](/04-llmops/triton/) 或 [LLM Gateway](/04-llmops/llm-gateway/) 开始
 - 想了解 RL Post-Training（GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF）：[RL Post-Training 基础设施](/04-llmops/rl-post-training/)（已上线）
+- 想了解 AI 编译器与 Kernel 生成（torch.compile/Inductor、Triton 语言、cuTile/CUTLASS、TileLang、Mirage）：[AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)（已上线）
 - 想了解容器编排底座：[Kubernetes](/02-cloud-native/kubernetes/)（已上线）
 - 想了解 K8s 之下的执行层（镜像、namespace/cgroup、containerd/runc、OCI）：[容器运行时](/02-cloud-native/container-runtime/)（已上线）
 - 想了解 K8s 包管理与部署（Chart、values、三方合并、GitOps）：[Helm](/02-cloud-native/helm/)（已上线）
@@ -47,7 +48,9 @@
 - 想了解 Agent Planning：[Planning](/05-agent/planning/)（已上线）
 - 想了解 Agent Tool Use：[Tool Use](/05-agent/tool-use/)（已上线）
 - 想了解 Agent OS：[Agent OS](/05-agent/agent-os/)（已上线）
+- 想了解 Personal AI Agent：[Personal AI Agent](/05-agent/personal-agent/)（已上线）
 - 想了解 RAG：[RAG](/06-rag/)（已上线）
+- 想了解向量数据库与 Embedding 基础设施（HNSW/DiskANN、Milvus/Qdrant/pgvector、Embedding 服务）：[向量数据库与 Embedding 基础设施](/06-rag/vector-db/)（已上线）
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 - 想了解 Benchmark + Evaluation（Agent / LLM / RAG 可复现评测框架）：[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）
 - 想了解安全：[安全](/08-security/)（已上线）

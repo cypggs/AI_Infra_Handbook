@@ -33,6 +33,10 @@ RAG 不是孤立的“向量搜索”，它需要与 LLM 服务、Agent 运行�
 | [存储系统](/01-foundation/storage-systems/) | 向量/embedding 存储、文档库、索引文件的持久化与分层是 RAG 的底座。 |
 | [安全](/08-security/) | RAG 的向量库、检索片段、Embedding 需要访问隔离、PII 脱敏、审计与合规治理。 |
 
+## 子主题
+
+- [向量数据库与 Embedding 基础设施](./vector-db/) — RAG 的检索底座：HNSW/IVF/DiskANN 索引、Milvus/Qdrant/pgvector 系统、GPU 索引与 Embedding 服务。
+
 ## 章节导航
 
 1. [背景：为什么需要 RAG](/06-rag/01-background) — 从 Prompt Engineering 到 Fine-tuning 再到 RAG 的演进，RAG vs 长上下文 2025 年论战的新结论，以及推理时代的 Agentic 检索。
