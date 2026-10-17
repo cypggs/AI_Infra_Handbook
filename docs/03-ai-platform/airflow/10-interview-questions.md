@@ -127,6 +127,14 @@
 - 人工核对语义变化：`data_interval_*` 默认值变化、`execution_date` → `logical_date`、`sla=` 被移除（改 Deadline Alerts，AIP-86）、SubDAG/pickling 移除。
 - `airflow config update` + `airflow db migrate`；新增 `dag-processor`、`api-server` 组件。
 
+### 24. Airflow 3.4（beta 2026-10）有哪些值得关注的演进？
+
+**答案**：
+
+- **Task Loops（AIP-111）**：装饰器任务组 `.loop()` 按运行期次数迭代，支持 `until` 条件（do-while）与 `max_iterations`；区别于 Dynamic Task Mapping 的无状态并行展开。
+- **Dag Importer（AIP-85，实验性）**：可插拔的非 Python DAG 导入框架——原生 YAML DAG 格式与 TypeScript/Go/Java SDK 编写的 DAG 可以像 Python DAG 一样被 DAG Processor 解析调度，意味着 DAG 定义不再绑定 Python。
+- **行为变化**：单资产/或表达式默认每个资产事件一个 DAG Run（`batch_asset_events` 控制）；`Dataset` 旧别名移除；psycopg3 成为元数据库默认驱动；新 XCom 行写入 `xcom_v2` 表（升级含表迁移，MySQL 降级不可回滚 DDL）。
+
 ## 10.4 场景题
 
 ### 21. 一个训练 DAG 每天凌晨 2 点运行，但最近经常因为上游数据延迟而失败，你会怎么优化？
@@ -156,7 +164,7 @@
 
 - 初级题聚焦概念：DAG、Operator、Task、TaskInstance、Executor、XCom。
 - 中级题聚焦机制：状态流转、Scheduler、Deferrable Operator、Executor 选型。
-- 高级题聚焦架构与源码：Airflow 3 的 Task SDK/Execution API/JWT、Edge Executor、2→3 迁移、高可用设计。
+- 高级题聚焦架构与源码：Airflow 3 的 Task SDK/Execution API/JWT、Edge Executor、2→3 迁移、3.4 新范式（Task Loops/Dag Importer）、高可用设计。
 - 场景题考察综合落地能力（数据驱动调度、扩容、AI 工作流边界）。
 
 **参考来源**

@@ -66,7 +66,7 @@ with DAG("demo", ...) as dag:
 - Airflow 3.0 已**彻底移除** SubDAG（2.x 中即标记废弃）。
 - 复用需求用 Task Group、Dynamic Task Mapping，或单独 DAG + TriggerDagRunOperator。
 
-## 9.4 动态任务映射
+## 9.4 动态任务映射与 Task Loops
 
 Airflow 2.3+ 支持 Dynamic Task Mapping：
 
@@ -84,6 +84,10 @@ with DAG("demo", ...) as dag:
 
 - 适合并行处理列表中的元素。
 - 避免手动生成大量相似 Task。
+
+### Task Loops（AIP-111，3.4）
+
+3.4 引入的 Task Loops 是动态映射的“串行版”：装饰器任务组可调用 `.loop()` 按运行期决定的次数重复执行，支持 `until` 条件（do-while 语义：至少执行一次）与 `max_iterations` 上限；每次迭代可使用上一次的结果，迭代内任务仍可并行。适合“迭代到收敛”的场景（如分页拉全量、重复训练直到指标达标），而 Dynamic Task Mapping 适合无状态并行展开。
 
 ## 9.5 传感器与 Defer 的最佳实践
 
@@ -212,6 +216,8 @@ ruff check dags/ --select AIR301,AIR302 --preview
 | 增量处理游标 | 自建 KV 表存水位 | Task/Asset 状态存储（AIP-103，3.3） |
 | 重试策略 | 每个任务写 retries/backoff | 可插拔重试策略（AIP-105，3.3） |
 | 补历史数据 | CLI backfill 黑盒 | Scheduler 托管 backfill：UI/API 可见可停（AIP-78） |
+| 资产事件消费（3.4+） | 默认一次 Run 吞掉所有排队事件 | 默认每个事件一个 DAG Run；确需批处理时显式 `batch_asset_events=True` |
+| 迭代到收敛 | 外挂脚本 + TriggerDagRun 循环 | Task Loops（AIP-111，3.4，`.loop()` + `until`/`max_iterations`） |
 
 ## 9.10 回填与补数
 
@@ -241,7 +247,7 @@ ruff check dags/ --select AIR301,AIR302 --preview
 ## 本章小结
 
 - DAG 按业务域拆分，任务粒度适中，依赖显式表达。
-- 优先使用 Task Group、Dynamic Task Mapping、Deferrable Operator。
+- 优先使用 Task Group、Dynamic Task Mapping（3.4 起还有串行迭代的 Task Loops）、Deferrable Operator。
 - XCom 只传小数据，大数据用对象存储。
 - 用 Pool、Queue、K8s 资源限制做资源隔离。
 - DAG 需要解析测试、Task 逻辑单元测试、CI 集成（3.x 加 ruff `AIR301`）。
@@ -251,6 +257,7 @@ ruff check dags/ --select AIR301,AIR302 --preview
 
 - [Apache Airflow — Best Practices](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html)
 - [Apache Airflow — Dynamic Task Mapping](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/dynamic-task-mapping.html)
+- [Apache Airflow — Task Loops (AIP-111, 3.4)](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/loops.html)
 - [Apache Airflow — Deferring](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/deferring.html)
 - [Apache Airflow — Task Groups](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html#task-groups)
 - [Apache Airflow — Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)

@@ -184,10 +184,12 @@ ssl_cert = /etc/airflow/cert.pem
 
 | 服务 | Airflow 3 支持现状 |
 |---|---|
-| **Astronomer Astro** | 最激进：Runtime 3.3-x 已搭载 Airflow 3.3.2；Airflow 2 延长支持至 2027-04；多云、scale-to-zero worker、零停机升级 |
-| **Amazon MWAA** | 已支持 Airflow 3.x（2.10 起步，3.x 滚动跟进），Celery Executor + 自动扩缩 |
-| **Google Cloud Composer 3** | 支持 2.x 与 3.x 滚动升级，GKE Autopilot 底座 |
+| **Astronomer Astro** | 最激进：Runtime 3.3-9（2026-10-08）已搭载 Airflow 3.3.2；开源 Airflow 2 EOL 后，Astro 平台把 Airflow 2 支持延长到 **2027-04**（含安全与关键修复，比自托管多一年迁移窗口）；多云、scale-to-zero worker、零停机升级 |
+| **Amazon MWAA** | 已支持 Airflow **3.3.1**（2026-09-01 上线，另有 3.2.1 / 3.0.6 / 2.11.2 等镜像），Celery Executor + Fargate worker 自动扩缩；注意 **MWAA 目前不支持 3.2 的 multi-team mode**（与 MWAA 认证、CeleryExecutor 不兼容） |
+| **Google Cloud Composer 3** | 2026-01 起支持 Airflow **3.1**（composer-3-airflow-3.1.x 镜像，初为 Preview），2.x 与 3.x 滚动升级，GKE Autopilot 底座 |
 | **Azure** | Data Factory 托管 Airflow 仍停留在 2.x，选型需注意 |
+
+> 托管服务跟进节奏差异很大：同样 3.3.2，Astro 在 GA 后数周即搭载（2026-10-08），MWAA 尚停在 3.3.1，Composer 在 3.1——锁定托管服务前先看其版本跟进 SLA 与升级窗口。
 
 ## 8.8 与 Kubeflow / MLflow / KServe 集成
 
@@ -245,7 +247,8 @@ airflow db migrate       # 数据库结构迁移
 ```
 
 5. **拓扑变化**：新增必跑组件 `airflow dag-processor`、`airflow api-server`（替代 webserver）；Celery/K8s Executor 改从 provider 安装。
-6. **灰度**：staging 全量验证 DAG → 备份 Metadata DB → 滚动升级 → 观察调度延迟与失败率。
+6. **3.3 → 3.4 额外注意**：升级含 `xcom_v2` 表迁移（官方按 3 亿行 XCom 表实测）；MySQL 上降级无法回滚 DDL，升级前必须备份元数据库。
+7. **灰度**：staging 全量验证 DAG → 备份 Metadata DB → 滚动升级 → 观察调度延迟与失败率。
 
 ### 常见运维问题
 
@@ -270,8 +273,10 @@ airflow db migrate       # 数据库结构迁移
 
 - [Apache Airflow — Production Deployment](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/production-deployment.html)
 - [Apache Airflow — Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)
+- [Apache Airflow — Version Support Policy](https://airflow.apache.org/docs/apache-airflow/stable/installation/supported-versions.html)
+- [Amazon MWAA — Apache Airflow versions](https://docs.aws.amazon.com/mwaa/latest/userguide/airflow-versions.html)
 - [Astronomer — Upgrading Airflow 2 to 3: A Checklist for 2026](https://www.astronomer.io/blog/upgrading-airflow-2-to-airflow-3-a-checklist-for-2026/)
 - [Astronomer — Astro Runtime release notes](https://www.astronomer.io/docs/runtime/runtime-release-notes)
 - [Apache Airflow — Kubernetes Executor](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/kubernetes.html)
 - [apache-airflow-providers-edge3 文档](https://airflow.apache.org/docs/apache-airflow-providers-edge3/stable/index.html)
-- [Airflow Release Notes (3.3.2)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- [Airflow Release Notes (3.3.2 / 3.4.0b1)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)

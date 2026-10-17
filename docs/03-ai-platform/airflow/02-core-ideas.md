@@ -235,6 +235,8 @@ def consumer():
 - 支持 `@asset` 装饰器（一个 DAG 对应一个产资产任务）、资产别名（AssetAlias）、资产附加信息（extras）。
 - **AND/OR 组合**：`schedule=a & b` 等待全部、`a | b` 任一即可，还有 `AssetOrTimeSchedule` 混合时间/事件。
 - **Asset 分区（3.2+，AIP-76）**：下游可按资产分区（如按天的 `s3://bucket/dt=2026-10-17/`）粒度触发，3.3 进一步提供 Rollup/FanOut 等分区映射器——这是增量数据管道的事件驱动基础。
+- **3.4 行为变化**：单资产与 `a | b` 表达式默认**每个资产事件触发一个 DAG Run**（不再把所有排队事件合并进一次 Run）；需要批处理时显式 `batch_asset_events=True`。多资产 AND 条件与 RollupMapper 分区调度仍默认批处理。
+- **3.4 清理**：`Dataset` 旧别名从 `airflow` 模块移除（此前从 `airflow.sdk` 导入 `Dataset` 已报弃用），统一用 `Asset`。
 
 ## 本章小结
 
@@ -244,7 +246,7 @@ def consumer():
 - **状态机**：TaskInstance 从 none → scheduled → queued → running → success / failed，支持重试和 defer。
 - **XCom**：任务间传小数据，默认存在 Metadata DB，大数据用自定义 backend。
 - **Deferrable Operator + Triggerer**：异步等待不占用 worker slot。
-- **Asset（原 Dataset）**：从时间驱动到数据驱动，3.2+ 支持分区粒度的事件触发。
+- **Asset（原 Dataset）**：从时间驱动到数据驱动，3.2+ 支持分区粒度的事件触发，3.4 起单资产/或表达式默认每事件一个 DAG Run。
 
 **参考来源**
 

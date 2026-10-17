@@ -144,6 +144,7 @@ Task Runner 接收命令
 
 - 默认：`xcom` 表（Metadata Database）。
 - 自定义：`XComBackend`（S3、GCS、Redis 等）。
+- **3.4 起**：新的 XCom 行写入独立的 `xcom_v2` 表（迁移按 3 亿行规模实测不影响 XCom 数据本身，但 MySQL 上降级无法回滚 DDL——升级前务必备份）。
 
 ### 关键限制
 

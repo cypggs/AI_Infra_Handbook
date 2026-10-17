@@ -224,8 +224,10 @@ class MyOperator(BaseOperator):
 - **Execution API**：早期在 `airflow/api_internal/`，后并入 `airflow/api_fastapi/execution_api/`——Worker/Task 通过它与核心通信，JWT 中间件统一鉴权。
 - **FastAPI 全面取代 Flask**：核心 REST API v2、React UI 后端、Execution API 都在 `api_fastapi/`；`www/`（Flask）与 REST v1 被删除。
 - **任务侧零 DB 直连**：`airflow.sdk.execution_time` 中的 client 是唯一通道；Hook 直连业务库不受影响，但任何访问 Metadata DB 的 hack（如用 PostgresHook 读写元数据库）在 3.x 不再可行且不受支持。
-- **多语言 Task SDK（AIP-108，3.3 实验性）**：Java/Go SDK 复用同一 Execution API，说明该 API 已成为稳定的多语言契约。
-- **airflowctl（AIP-94）**：新一代 CLI 客户端，逐步接管原有 `airflow` CLI 的远端操作。
+- **多语言 Task SDK（AIP-108，3.3 实验性）**：Java/Go SDK 复用同一 Execution API，说明该 API 已成为稳定的多语言契约；**Java SDK 1.0.0-beta1 已于 2026-07-13 单独发版**。
+- **Dag Importer（AIP-85，3.4 实验性）**：Task SDK 内新增可插拔 DAG 导入框架——每种格式注册一个 importer，DAG Processor 运行对应语言运行时后，YAML 格式及 TypeScript/Go/Java SDK 编写的 DAG 与 Python DAG 一样入库调度。这是“DAG 定义”从 Python-only 走向多语言的第一块源码级拼图。
+- **airflowctl（AIP-94）**：新一代 CLI 客户端（2026-06 已发布 0.1.5），逐步接管原有 `airflow` CLI 的远端操作。
+- **3.4 executor 内部重构**：各执行器的工作负载队列统一为 `BaseExecutor.executor_queues`（按 `WorkloadType` 键控，经 `trigger_workloads` 调度）；旧的 per-type 入口（`queued_tasks`、`trigger_tasks` 等）保留为兼容 shim 并发出 `RemovedInAirflow4Warning`——第三方 executor 需迁移到 `supported_workload_types` + `trigger_workloads`。
 
 ## 6.7 阅读源码的建议路径
 

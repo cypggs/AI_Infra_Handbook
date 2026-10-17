@@ -230,6 +230,7 @@ with DAG("consumer", schedule=[my_asset], ...):
 - 当 `my_asset` 被任意 DAG 的 `outlets` 更新后，下游 DAG 自动触发。
 - 支持 AND/OR 组合（`a & b`、`a | b`）、`AssetOrTimeSchedule` 混合调度。
 - **Asset 分区（3.2+）**：下游可按分区（如 `dt=2026-10-17`）粒度触发，配合 3.3 的分区映射器实现 rollup/fan-out——增量管道的事件驱动基础。
+- **3.4 行为变化**：单资产与 `a | b` 表达式默认**每个资产事件创建一个 DAG Run**（此前会把排队事件合并进一次 Run）；需要批处理时显式设置 `batch_asset_events=True`（多资产 AND 条件与 RollupMapper 分区仍默认批处理）。
 - HITL 任务（3.1+）则是另一种等待：进入 `awaiting_input`，由人工放行后继续。
 
 ## 本章小结

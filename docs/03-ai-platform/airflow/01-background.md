@@ -38,7 +38,7 @@ Airflow 的几个核心设计哲学：
 - **可观测性优先**：每个 DAG Run、每个 Task Instance 的状态、日志、时长都在 UI 上可见。
 - **可扩展**：通过 Operator、Hook、Sensor、Executor 插件化扩展。
 
-> **版本现状（2026-10）**：Airflow 3.0 于 2025-04-22 GA，完成服务化架构重构（Task SDK + Execution API、Edge Executor、Asset 调度、React UI）；当前稳定版为 **3.3.2（2026-09-17）**。**Airflow 2 已于 2026-04-22 EOL**，生产应基于 3.1+ 规划。
+> **版本现状（2026-10）**：Airflow 3.0 于 2025-04-22 GA，完成服务化架构重构（Task SDK + Execution API、Edge Executor、Asset 调度、React UI）；当前稳定版为 **3.3.2（2026-09-17）**；**3.4.0 首个 beta 已于 2026-10-13 发布**（GA 时间表面向 2026-11 初），引入 Task Loops（AIP-111，运行期循环的任务组）与 Dag Importer（AIP-85，实验性的非 Python DAG：原生 YAML 格式及 TypeScript/Go/Java SDK）。**Airflow 2 已于 2026-04-22 EOL**（2.11.2 为最后补丁，2026-03-14），生产应基于 3.1+ 规划。
 
 ## 1.3 Airflow 与相邻工具的对比
 
@@ -125,7 +125,7 @@ Airflow 在这个链路里负责**把多个异构步骤按依赖关系串起来*
 ## 本章小结
 
 - **痛点**：复杂依赖、失败处理、重试、回刷、可观测性是 Cron/脚本方案的瓶颈。
-- **定位**：Airflow 是用 Python 代码定义 DAG 的开源工作流编排平台；Airflow 3（2025-04 GA，当前 3.3.2）已完成服务化重构，Airflow 2 于 2026-04 EOL。
+- **定位**：Airflow 是用 Python 代码定义 DAG 的开源工作流编排平台；Airflow 3（2025-04 GA，当前 3.3.2，3.4 beta 已出）已完成服务化重构，Airflow 2 于 2026-04 EOL。
 - **对比**：比 Cron 强大；比 Kubeflow Pipelines 更通用；比 Prefect/Dagster 更成熟、生态更广，3.x 正在补齐资产化与事件驱动能力。
 - **价值**：把散落脚本变成可编排、可观测、可扩展、可审计的流水线；在 AI 时代承担 RAG/评估/门禁类批处理编排。
 
@@ -133,7 +133,7 @@ Airflow 在这个链路里负责**把多个异构步骤按依赖关系串起来*
 
 - [Apache Airflow — What is Airflow?](https://airflow.apache.org/docs/apache-airflow/stable/index.html)
 - [Apache Airflow — History](https://airflow.apache.org/docs/apache-airflow/stable/project.html)
-- [Apache Airflow — Release Notes (3.3.2)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- [Apache Airflow — Release Notes (3.3.2 / 3.4.0b1)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
 - [Airflow 3.0 GA 公告](https://airflow.apache.org/blog/airflow-three-point-oh-is-here/)
 - [Astronomer — Airflow Components](https://www.astronomer.io/docs/learn/airflow-components)
 - 本手册 [Kubeflow](../kubeflow/)、[MLflow](../mlflow/)

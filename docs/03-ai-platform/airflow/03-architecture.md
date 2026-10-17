@@ -6,11 +6,12 @@
 
 | 版本 | 发布日期 | 状态 | 要点 |
 |---|---|---|---|
-| Airflow 2.10/2.11 | 2024-08 / 2025-05 | **2.x 已于 2026-04-22 EOL** | 2.11 是最后一个 2.x 大版本，内置大量 3.0 迁移辅助 |
+| Airflow 2.10/2.11 | 2024-08 / 2025-05 | **2.x 已于 2026-04-22 EOL** | 2.11 是最后一个 2.x 大版本（2.11.2 为最后补丁，2026-03-14），内置大量 3.0 迁移辅助 |
 | Airflow 3.0 | 2025-04-22 | EOL（2025-09） | 服务化架构：Task SDK + Execution API（AIP-72）、Edge Executor（AIP-69）、Asset 调度（AIP-74/75）、React UI、REST API v2 |
 | Airflow 3.1 | 2025-09-25 | 维护中 | Human-in-the-Loop（AIP-82）、Deadline Alerts（AIP-86，SLA 替代）、React 插件系统（AIP-68） |
 | Airflow 3.2 | 2026-04-07 | 维护中 | Asset 分区调度（AIP-76）、多团队部署（AIP-67 首个里程碑）、PythonOperator 异步可调用、SQLAlchemy 2.0、Python 3.14 |
 | **Airflow 3.3** | **2026-07-06** | **当前稳定版（3.3.2，2026-09-17）** | Task/Asset 状态存储（AIP-103）、可插拔重试策略（AIP-105）、Java/Go 语言 Task SDK（AIP-108，实验性） |
+| Airflow 3.4 | beta 2026-10-13（GA 预计 2026-11 初） | 预览中 | Task Loops（AIP-111，运行期循环的任务组）、Dag Importer（AIP-85，实验性非 Python DAG：YAML 格式 + TypeScript/Go/Java SDK）、xcom_v2 表、psycopg3 默认驱动、Asset 默认单事件单 Run |
 
 **结论**：Airflow 2 已经 EOL，生产新部署应直接选 Airflow 3.1+（官方建议跳过 3.0，直接升 3.1 或更高）。
 
@@ -244,7 +245,7 @@ Edge Worker (任意位置)                中心 Airflow
 
 - Worker 只需安装 `apache-airflow-providers-edge3`（依赖自带 `apache-airflow-sdk`），**无需数据库连接串、无需开入站端口**，`airflow edge worker` 一条命令启动。
 - 适合：on-prem 机房、客户环境、数据主权受限区域、异构云。
-- Airflow 3.0 GA 时随核心发布，后拆分为独立 `edge3` provider 持续演进（截至 2026 年已发布到 5.x）。
+- Airflow 3.0 GA 时随核心发布，后拆分为独立 `edge3` provider 持续演进（2026-10 已发布 5.0.0）。
 
 ## 3.7 Triggerer
 
@@ -315,6 +316,7 @@ flowchart LR
 | 3.1（2025-09） | Human-in-the-Loop（审批任务，`awaiting_input` 由 Scheduler 直接管理）；Deadline Alerts（AIP-86）替代 SLA；React 插件系统（AIP-68）；Python 3.13 支持、放弃 3.9 |
 | 3.2（2026-04） | Asset 分区调度（AIP-76）；多团队部署首个里程碑（AIP-67，团队级配置/命名空间隔离）；SQLAlchemy 2.0；Python 3.14 |
 | 3.3（2026-07） | Task/Asset 状态存储（AIP-103）；可插拔重试策略（AIP-105）；Java/Go 语言 Task SDK（AIP-108，实验性）——同一 Execution API，多语言执行；Go 版 Edge Worker 已进入 beta |
+| 3.4（beta 2026-10） | Task Loops（AIP-111）：装饰器任务组 `.loop()` 按运行期次数迭代，支持 `until` 条件（do-while 语义）与 `max_iterations` 上限；Dag Importer（AIP-85，实验性）：Task SDK 内的可插拔 DAG 导入框架，原生 YAML DAG 格式与 TypeScript/Go/Java SDK 写的 DAG 可像 Python DAG 一样被 DAG Processor 识别；executor 工作负载队列统一为 `BaseExecutor.executor_queues`（旧的 per-type 入口转为兼容 shim，4.0 移除）；psycopg3 取代 psycopg2/asyncpg 成为元数据库默认驱动（事务模式 PgBouncer 开箱可用）；新的 XCom 行写入 `xcom_v2` 表 |
 
 ## 本章小结
 
@@ -322,13 +324,13 @@ flowchart LR
 - **Task Execution API + Task SDK（AIP-72）** 是 Airflow 3 最大的架构更新：任务零 DB 直连、JWT 短期凭证、SDK 独立发版。
 - Celery/Kubernetes Executor 移入 provider 包，新增 **Edge Executor**（AIP-69）把 Worker 推到任意网络位置。
 - DAG Bundle、DAG Versioning、Scheduler 托管回刷让 DAG 代码分发与历史可追溯。
-- Airflow 2 已于 2026-04-22 EOL，新部署应选 Airflow 3.1+。
+- Airflow 2 已于 2026-04-22 EOL，新部署应选 Airflow 3.1+；3.4（beta 2026-10-13）预览 Task Loops 与非 Python DAG，GA 后再评估升级。
 
 **参考来源**
 
 - [Apache Airflow 3.0 GA 公告](https://airflow.apache.org/blog/airflow-three-point-oh-is-here/)
 - [Apache Airflow — Architecture Overview (3.3)](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/overview.html)
-- [Apache Airflow — Release Notes (3.3.2)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- [Apache Airflow — Release Notes (3.3.2 / 3.4.0b1)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
 - [Apache Airflow — Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)
 - [apache-airflow-providers-edge3 文档](https://airflow.apache.org/docs/apache-airflow-providers-edge3/stable/index.html)
 - [Astronomer — Airflow 3.2 发布解读](https://www.astronomer.io/blog/apache-airflow-3-2-release/)

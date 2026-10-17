@@ -12,6 +12,7 @@
 | [Airflow 3.0 GA 公告](https://airflow.apache.org/blog/airflow-three-point-oh-is-here/) | 服务化架构的官方解读 |
 | [Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html) | 2→3 迁移官方指南（ruff AIR301、语义变化清单） |
 | [Airflow Providers](https://airflow.apache.org/docs/apache-airflow-providers/) | 官方 provider 包文档（standard / celery / cncf-kubernetes / edge3 / fab …） |
+| [Version Support Policy](https://airflow.apache.org/docs/apache-airflow/stable/installation/supported-versions.html) | 官方版本生命周期表（Airflow 2 已于 2026-04-22 EOL） |
 | [Astronomer 文档](https://www.astronomer.io/docs/) | 商业化托管与最佳实践 |
 
 ## 11.2 关键概念文档
@@ -51,6 +52,8 @@
 | 论文 | [Airbnb 博客 — Airflow 起源](https://medium.com/airbnb-engineering/airflow-a-workflow-management-platform-46318b977fd8) | Airflow 最初设计动机 |
 | 发布 | [Astronomer — Apache Airflow 3.2](https://www.astronomer.io/blog/apache-airflow-3-2-release/) | 3.2 Asset 分区与多团队官方解读 |
 | 发布 | [DataDriven — Airflow 3.3 状态存储与 Java/Go SDK](https://datadriven.io/blog/apache-airflow-33-state-store-and-javago-task-sdk) | AIP-103 / AIP-108 深度解读 |
+| 发布 | [Airflow 3.4.0b1 Release Notes](https://github.com/apache/airflow/releases/tag/3.4.0b1) | Task Loops（AIP-111）、Dag Importer（AIP-85）、xcom_v2、psycopg3 默认 |
+| 迁移 | [AWS — Best practices for migrating from Airflow 2.x to 3.x on MWAA](https://aws.amazon.com/blogs/big-data/best-practices-for-migrating-from-apache-airflow-2-x-to-apache-airflow-3-x-on-amazon-mwaa/) | 托管场景 2→3 迁移实操 |
 | 迁移 | [Astronomer — Upgrading Airflow 2 to 3: A Checklist for 2026](https://www.astronomer.io/blog/upgrading-airflow-2-to-airflow-3-a-checklist-for-2026/) | 生产迁移 checklist |
 | 实践 | [Astronomer — Airflow Best Practices](https://www.astronomer.io/docs/learn/airflow-best-practices/) | 企业级最佳实践 |
 | 对比 | [Prefect vs Airflow](https://www.prefect.io/compare/airflow-2) | 现代编排工具对比（含 2 EOL 视角） |
@@ -63,7 +66,7 @@
 1. **第 1 周**：精读本主题 01-05 章，运行 Mini Demo。
 2. **第 2 周**：读 06 源码分析 + 07-09 生产与最佳实践；用 LocalExecutor + PostgreSQL 本地部署 Airflow 3（`airflow api-server` / `dag-processor` / `scheduler` / `triggerer`）。
 3. **第 3 周**：写一个自己的 DAG，接入 MLflow/KServe 或 dbt/Spark；尝试 KubernetesExecutor 或 EdgeExecutor。
-4. **第 4 周**：读官方 [Release Notes](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html) 与 [Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)，用 ruff `AIR301` 演练一次 2→3 迁移；关注 Asset 分区、HITL、状态存储（AIP-103）与多语言 SDK 的演进。
+4. **第 4 周**：读官方 [Release Notes](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html) 与 [Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)，用 ruff `AIR301` 演练一次 2→3 迁移；关注 3.4 的 Task Loops（AIP-111）与 Dag Importer（AIP-85，非 Python DAG），以及 Asset 分区、HITL、状态存储（AIP-103）的演进。
 
 ## 11.6 一句话总结
 

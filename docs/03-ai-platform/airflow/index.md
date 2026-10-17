@@ -12,7 +12,7 @@
 4. 理解 Executor 的选型差异：Sequential、Local、Celery、Kubernetes、Edge（3.x），以及多 Executor。
 5. 理解 XCom 的作用、默认限制与自定义后端。
 6. 理解 Deferrable Operator / Triggerer 如何释放 worker 槽位。
-7. 了解 Airflow 3 的关键演进：Task SDK + Task Execution API（AIP-72）、Edge Executor（AIP-69）、Asset/分区调度、HITL（3.1）、状态存储（3.3），以及 2→3 迁移要点。
+7. 了解 Airflow 3 的关键演进：Task SDK + Task Execution API（AIP-72）、Edge Executor（AIP-69）、Asset/分区调度、HITL（3.1）、状态存储（3.3），3.4 预览（Task Loops AIP-111、Dag Importer AIP-85），以及 2→3 迁移要点。
 8. 动手跑一个本地 Airflow Mini Demo：定义 DAG、调度执行、状态流转、XCom、defer 触发器。
 9. 知道生产落地要点：数据库、Executor、监控、高可用、托管服务、与 Kubeflow/MLflow 集成。
 
