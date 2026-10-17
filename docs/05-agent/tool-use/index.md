@@ -9,9 +9,10 @@
 - 解释 Tool Use 与“让模型直接生成代码”的本质区别，以及它解决的核心问题（知识截止、幻觉、行动能力）。
 - 用 JSON Schema 定义工具，并理解 OpenAI、Anthropic、Google、MCP 在字段命名上的差异。
 - 描述一次完整工具调用的生命周期：注册发现 → 模型决策 → 解析校验 → 执行 → 格式化 → 反馈 → 下一轮。
-- 画出 Tool Use 子系统的模块关系图，明确 Tool Registry、Schema Manager、Executor、Parser/Validator、Permission/Policy 的分工。
+- 画出 Tool Use 子系统的模块关系图，明确 Tool Registry、Tool Retriever、Schema Manager、Executor、Parser/Validator、Permission/Policy 的分工。
+- 解释大规模工具集的渐进披露与工具检索模式，以及代码执行（CodeAct）与浏览器/计算机使用两类通用工具。
 - 对比 OpenAI Function Calling、Anthropic Tool Use、Google Gemini、LangGraph、OpenAI Agents SDK、AutoGen、MCP 的 API 形态与适用场景。
-- 在生产环境中落地工具调用时，能够处理版本管理、权限授权、超时重试、熔断降级、并发、可观测性、跨厂商兼容等问题。
+- 在生产环境中落地工具调用时，能够处理版本管理、权限授权、超时重试、非原子失败、熔断降级、供应链安全、可观测性、跨厂商兼容等问题。
 - 识别常见反模式，并给出工程化的检查清单。
 
 ## 与相邻主题的关系
@@ -31,15 +32,15 @@
 
 ## 章节导航
 
-1. [背景与动机](01-background.md) — 从纯文本生成到显式工具调用的演进，以及 Toolformer、Gorilla、BFCL 等学术线索。
-2. [核心概念](02-core-ideas.md) — 工具定义、JSON Schema 方言、Tool Choice、并行调用、结果格式、生命周期。
-3. [架构设计](03-architecture.md) — Tool Use 子系统的分层架构、控制面/数据面与模块边界。
-4. [工具调用工作流](04-tool-use-workflow.md) — 端到端生命周期、状态机、终止条件与失败分支。
-5. [核心模块详解](05-core-modules.md) — Registry、Schema Manager、Executor、Parser、Validator、Permission、Formatter、Tracer 的职责与接口。
-6. [源码与协议对比](06-source-analysis.md) — OpenAI / Anthropic / Google / LangGraph / OpenAI Agents SDK / AutoGen / MCP 的代码形态与差异。
+1. [背景与动机](01-background.md) — 从纯文本生成到显式工具调用的演进，CodeAct、BFCL v4、τ-bench、MCP 等 2024–2026 关键线索。
+2. [核心概念](02-core-ideas.md) — 工具定义、JSON Schema 方言、Tool Choice、并行调用、大规模工具集渐进披露、代码执行作为通用工具、结果格式、生命周期。
+3. [架构设计](03-architecture.md) — Tool Use 子系统的分层架构、Tool Retriever、Code Sandbox、控制面/数据面与模块边界。
+4. [工具调用工作流](04-tool-use-workflow.md) — 端到端生命周期、状态机、非原子失败与 verify-before-retry、终止条件与失败分支。
+5. [核心模块详解](05-core-modules.md) — Registry、Retriever、Schema Manager、Executor、Parser、Validator、Permission、Formatter、Tracer 的职责与接口。
+6. [源码与协议对比](06-source-analysis.md) — OpenAI / Anthropic / Google / LangGraph / OpenAI Agents SDK / AutoGen / MCP 的代码形态，代码执行与浏览器工具，MCP 规范演进。
 7. [Mini Demo 说明](07-mini-demo.md) — 配套示例的设计思路、目录结构、运行方式与关键代码片段。
-8. [生产落地](08-production-practice.md) — 多工具编排、版本、鉴权授权、成本/延迟、可观测性、故障模式与跨厂商兼容。
-9. [最佳实践与反模式](09-best-practices.md) — schema 设计、执行、校验、重试、沙箱、可观测性检查清单。
+8. [生产落地](08-production-practice.md) — 多工具编排、大规模工具集管理、供应链安全、版本、鉴权授权、成本/延迟、可观测性、故障模式与跨厂商兼容。
+9. [最佳实践与反模式](09-best-practices.md) — schema 设计、执行、校验、重试、沙箱、大规模工具集、供应链安全、可观测性检查清单。
 10. [面试题](10-interview-questions.md) — 按初级/中级/高级划分的思考题。
 11. [延伸阅读](11-further-reading.md) — 论文、规范、文档、博客与学习路径。
 

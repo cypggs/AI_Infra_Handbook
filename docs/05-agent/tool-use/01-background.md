@@ -48,6 +48,25 @@ UC Berkeley 的 Gorilla 项目通过在海量 API 文档上微调模型，使其
 ### ReAct / WebGPT / ACT-1
 这些工作从不同角度验证了“模型输出动作、环境返回观察、模型再决策”的循环可行。Tool Use 可以看作是 ReAct 的工程化、结构化升级。
 
+## 2024–2026：从单一调用到协议化生态
+
+2023 年之后，Tool Use 快速从“某个模型的 API 特性”演变为“整个 Agent 生态的基础设施”，出现了四条重要线索：
+
+### CodeAct：用代码代替 JSON 作为“动作语言”
+CodeAct（Wang et al., 2024）提出让模型直接编写并执行代码来完成动作——循环体内只有一个“执行代码”工具，其他能力全部以 Python 函数/库的形式被代码调用。2026 年的实证研究《The Bitter Lesson of Tool Calling》（arXiv 2608.06370）在 BFCL v4 上对比了 **programmatic tool calling（PTC，写代码调工具）** 与传统 JSON 原生工具调用，结论是：在 14 个受测模型中，PTC 在 11 个上持平或更优，并行扇出场景下 13 个模型持平或更优，且把顺序调用链折叠进单轮代码可将延迟降低约一半。其“苦涩教训”在于：随着模型代码能力增强，为工具调用专门设计的 JSON 协议可能不再是唯一正解——但 PTC 的收益与模型自身的代码能力正相关，弱模型上并不普适。
+
+### 评测基准：BFCL 与 τ-bench 家族
+- **BFCL**：Berkeley Function-Calling Leaderboard 从 v1 的单一函数调用，演进到 v2（多语言、多函数并行）、v3（多轮对话、长上下文、幻觉检测），再到 **v4**（2026 年主版本，覆盖 simple / multiple / parallel / live / multi-turn / web-search / memory / hallucination / format-sensitivity 等类别，强调真实可执行的函数调用）。头部模型整体准确率已进入 75%–88% 区间（第三方榜单快照，口径不一），但与生产要求的可靠性仍有差距。
+- **τ-bench / τ²-bench**（Sierra Research）：不把工具调用当孤立动作，而是评估“工具—Agent—用户”三方交互：Agent 与模拟用户对话、调用领域 API、操作数据库，按最终世界状态打分，核心指标是 **pass^k**（同一任务连续成功 k 次的概率，衡量可靠性而非运气）。τ²-bench（arXiv 2506.07982，2025-06）新增电信域与“双控”设定（用户侧也持有工具，建模为 Dec-POMDP），2025 下半年起又衍生出 Verified 修正版、银行知识域、全双工语音评测等变体。它揭示的一个残酷事实是：前沿模型的 pass@1 尚可，但 pass^k 与 pass@1 之间存在显著落差——**一致性是当前 Agent 可靠性的主要瓶颈**。
+
+### 协议化：MCP 成为工具接入事实标准
+2024 年 11 月 Anthropic 发布 Model Context Protocol（MCP）后，2025 年迅速成为连接模型与外部能力的开放协议事实标准：传输从 stdio 演进到 Streamable HTTP，鉴权引入 OAuth 2.1 资源服务器语义，能力上增加了工具注解（annotations）、服务端主动请求用户输入（elicitation）、结构化工具输出（structuredContent）等。到 2026 年，主流编码助手、Agent 框架与云平台普遍内建 MCP 客户端，“把内部能力封装成 MCP Server”成为企业落地 Tool Use 的主流路径之一。详见 [MCP](/05-agent/mcp/) 主题。
+
+### 代码执行与浏览器：两类“通用工具”的成熟
+2025–2026 年，两类通用工具从 demo 走向 GA：
+- **代码执行工具**：Anthropic 于 2025 年推出服务端代码执行工具，2026-01 版本（`code_execution_20260120`）支持 REPL 状态持久化与 programmatic tool calling，成为官方推荐版本；OpenAI 的 ChatGPT Agent、Codex 也把沙箱代码执行作为标配动作空间。
+- **浏览器/计算机使用工具**：从 Claude Computer Use、OpenAI CUA（Computer-Using Agent，Operator 已并入 ChatGPT Agent）到开源的 browser-use，Agent 获得了“操作真实 GUI/网页”的能力，2026 年 Anthropic 进一步推出面向视口的 `browser_toolset` 浏览器工具集，与完整的 Computer Use 形成分工。详见第 6 章。
+
 ## 小结
 
-Tool Use 的演进路径是：**从“模型只生成文本”到“模型生成结构化动作描述，由运行时执行”**。它不改变模型本身的知识边界，而是把模型变成一个“调度器”：理解意图、选择工具、构造参数、消费结果。下一章将从工程角度拆解它的核心概念。
+Tool Use 的演进路径是：**从“模型只生成文本”到“模型生成结构化动作描述，由运行时执行”，再到“代码即动作、协议化发现、大规模工具集按需检索”**。它不改变模型本身的知识边界，而是把模型变成一个“调度器”：理解意图、选择工具、构造参数、消费结果。下一章将从工程角度拆解它的核心概念。

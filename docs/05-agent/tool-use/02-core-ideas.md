@@ -26,6 +26,8 @@ Tool Use 的核心可以概括为一句话：**用结构化契约（JSON Schema�
 
 工程上建议建立一个 **Schema Manager**，把不同方言归一化为内部标准模型，再反向序列化为各厂商需要的格式。这样可以在切换模型时最小化改动。
 
+> 2025–2026 年的趋势是**受约束解码（constrained decoding）成为标配**：OpenAI 的 strict mode / structured outputs、主流厂商对 schema 遵循的持续强化、开源侧的 outlines / xgrammar 等约束解码库，使“模型输出必然合法 JSON”从奢望变成默认假设。工程重点相应地从“解析容错”转向“schema 设计质量”与“语义校验”。
+
 ## Tool Choice：谁来决定调不调用
 
 Tool Choice 控制模型是否有权调用工具、必须调用工具、或必须调用某个特定工具。主要模式包括：
@@ -37,7 +39,7 @@ Tool Choice 控制模型是否有权调用工具、必须调用工具、或必�
 | `none` / `NONE` | 禁止调用工具 | 只需要文本生成 |
 | forced / named | 强制调用指定工具 | 流程中已知必须用某工具 |
 
-OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropic 提供 `tool_choice` 和 `disable_parallel_tool_use`；Google 提供 `tool_config.function_calling_config.mode`。
+OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropic 提供 `tool_choice` 和 `disable_parallel_tool_use`；Google 提供 `tool_config.function_calling_config.mode`。2025–2026 年的一个趋势是把 Tool Choice 与**工具检索**结合起来：客户端不把所有工具塞进 Prompt，而是先按意图召回少量候选工具，再让模型在候选集上做决策（详见下文“大规模工具集”）。
 
 ## 并行工具调用（Parallel Tool Calls）
 
@@ -47,6 +49,37 @@ OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropi
 
 **不适用条件**：后续调用的参数依赖前一次调用的结果。例如先查用户 ID，再查订单。这种情况下需要 [Planning](/05-agent/planning/) 模块编排顺序，或采用 ReAct 式的多轮循环。
 
+> 工程提醒：并行调用是延迟优化，不是可靠性保证。研究（如 arXiv 2608.02645）表明，盲目并发共享状态的工具调用可能引入部分失败与重复副作用；执行失败后的默认策略应是**先验证外部状态、再决定是否重试**（verify-before-retry），而不是直接重放调用。小模型尤其容易把本应串行的调用错误地“批处理”在一起，需要在评测中对比并行与串行的实际收益。
+
+## 大规模工具集与渐进披露（Progressive Disclosure）
+
+当可用工具从几个增长到几十、几百甚至上万个时，“把所有 schema 全量注入 Prompt”在成本与质量上都不再可行：
+
+- **Token 成本爆炸**：第三方基准（Speakeasy，2025-11）显示，400 个工具静态全量加载约需 405K 初始 token，而渐进披露方案稳定在 2.5K 左右，约 **100 倍**的 token 削减。
+- **选择质量下降**：上下文过长会出现“中间遗忘”（lost in the middle），工具越多，模型选错工具的概率越高。业界经验值从早期的“每轮 8~32 个”演变为“每轮只注入与当前意图相关的 5~10 个候选工具”。
+
+2025 年形成的主流模式是**渐进披露 + 按需检索**，通常包含三层：
+
+```text
+第一层：工具元数据目录（名称 + 一句话描述，几十 token/个）
+    ↓ 按用户意图做 embedding 检索 / 规则预过滤
+第二层：候选工具 schema（Top-K，5~10 个，注入本轮 Prompt）
+    ↓ 模型决定调用
+第三层：调用时按需加载完整文档 / 示例 / 子工具说明
+```
+
+Anthropic 的 Claude Skills 把这一模式推广为“技能元数据常驻、SKILL.md 用时再加载”的开放标准（后交由 Agentic AI Foundation 治理）；Anthropic 同时提供 **tool search** 能力，客户端可以先检索再绑定工具子集。工程实现上通常需要一个 **Tool Retriever**（向量索引 + 关键词混合召回 + 领域预过滤）作为 Registry 与模型之间的组件，详见第 3、5 章。
+
+## 代码执行作为通用工具（Code-as-Tool）
+
+2025–2026 年，越来越多的 Agent 把“执行代码”本身注册为工具——模型在循环中只面对 `code_execution` 一个工具，通过编写代码来调用其他 SDK、处理数据、组合多个子调用。这条路线的代表：
+
+- **Anthropic Code Execution**：服务端沙箱中运行 Python，2026-01 版本（`code_execution_20260120`）支持 REPL 状态持久化（跨调用保留变量）与 programmatic tool calling，成为官方推荐版本。
+- **OpenAI**：ChatGPT Agent / Codex 把沙箱代码执行作为标配动作空间。
+- **学术侧**：CodeAct（2024）与 2026 年的《The Bitter Lesson of Tool Calling》证明，在代码能力强的模型上，“写代码调工具”可以显著压缩轮次（顺序链可折叠进单轮，延迟约减半）并更抗上下文退化。
+
+代价是：执行环境必须是强沙箱（无公网或白名单网络、资源限额、文件系统隔离），且模型生成的代码需要与普通工具参数同样经过校验与审计。详见第 6 章与 [Agent Runtime](/05-agent/agent-runtime/) 主题。
+
 ## 工具结果格式
 
 工具执行完成后，需要把结果包装成模型能理解的格式回传。不同厂商的结果格式不同：
@@ -54,7 +87,7 @@ OpenAI 提供 `tool_choice` 与 `parallel_tool_calls` 两个控制位；Anthropi
 - **OpenAI**：`role: "tool"` 消息，携带 `tool_call_id` 与 `content`（通常为字符串或 JSON 字符串）。
 - **Anthropic**：`tool_result` 内容块，携带 `tool_use_id` 与 `content`。
 - **Google Gemini**：`function_response` part，包含 `name` 与 `response`。
-- **MCP**：JSON-RPC 调用返回 `result` 或 `error`。
+- **MCP**：JSON-RPC 调用返回 `result` 或 `error`；2025-06 规范起支持 `structuredContent`（结构化输出）与结果中的资源链接。
 
 Result Formatter 的职责就是把这些结果映射回当前对话厂商需要的消息结构，并在必要时进行截断、摘要或压缩。
 

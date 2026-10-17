@@ -27,6 +27,11 @@ class ToolRegistry:
     def list(self, context: RequestContext, query: ToolQuery) -> list[ToolMetadata]: ...
     def get(self, name: str, version: str | None = None) -> ToolMetadata: ...
     def deregister(self, name: str, version: str | None = None) -> None: ...
+
+class ToolRetriever:
+    """大规模工具集的按需召回：向量 + 关键词混合检索 + 预过滤。"""
+    def build_index(self, tools: list[ToolMetadata]) -> None: ...
+    def retrieve(self, intent: str, context: RequestContext, k: int = 8) -> list[ToolMetadata]: ...
 ```
 
 **设计要点**：
@@ -34,6 +39,8 @@ class ToolRegistry:
 - 同名多版本工具需要版本号隔离，默认行为应可配置（最新版 / 显式指定）。
 - 动态发现时要校验 schema 合法性，防止恶意 MCP Server 注入非法定义。
 - 根据请求上下文过滤工具：不同租户、不同用户、不同会话可见的工具集可能不同。
+- **供应链防护**：2025 年以来 MCP 生态出现工具投毒（tool poisoning）、rug pull（通过审核后篡改工具描述）等攻击（如 CVE-2025-54136 “MCPoison”）。Registry 应对发现的工具做 schema/描述哈希存证，内容变更时重新审批或告警，不要把第三方 Server 的工具描述当作可信指令（见第 8 章）。
+- 工具数量达到数百以上时，Registry 应把元数据目录同步给 Tool Retriever 建索引，实现渐进披露（第 2 章）。
 
 ## Schema Manager
 
@@ -63,9 +70,10 @@ class SchemaManager:
 
 **设计要点**：
 
-- 严格模式（strict mode）会禁用模型对 schema 的“自由发挥”，但要求 schema 可被编译为 constrained grammar。复杂 schema 需要降级处理。
-- 对 description 进行压缩或分片，避免 prompt 过长导致工具选择质量下降。
-- 记录 schema 版本变更，支持向后兼容检测。
+- 严格模式（strict mode）会禁用模型对 schema 的“自由发挥”，但要求 schema 可被编译为 constrained grammar。复杂 schema 需要降级处理。2025–2026 年受约束解码已高度普及（OpenAI structured outputs、开源 outlines / xgrammar），“输出合法 JSON”不再是主要矛盾，重点转向语义校验。
+- 对 description 进行压缩或分片，避免 prompt 过长导致工具选择质量下降；大规模工具集应配合 Tool Retriever 做候选集注入（每轮 5~10 个）。
+- 记录 schema 版本变更，支持向后兼容检测；对动态发现的工具保留哈希快照，支持变更告警（防 rug pull）。
+- 若走 CodeAct 路线（代码执行作为通用工具），Schema Manager 还要为“以 Python 函数签名 + docstring 表示工具”的形态提供归一化能力。
 
 ## Parser / Validator
 
@@ -237,8 +245,10 @@ class ErrorHandler:
 **设计要点**：
 
 - 错误分类应基于错误类型与下游状态码，避免统一重试导致幂等性问题。
+- **Verify-before-retry**：对写操作，收到超时/5xx 后先通过只读调用核实外部状态，确认动作未生效再重试，防止重复副作用（非原子失败，见第 4 章）。
 - 对连续同类型错误应触发熔断或终止，防止无限循环。
 - 返回给模型的错误信息应简洁且包含可行动作，例如“参数 `city` 应为字符串，请修正”。
+- 现代自愈框架（self-healing）还会在错误率升高时触发 replanning、prompt 修正或更换备选工具，而不是让同一模型在同一状态上反复碰壁。
 
 ## 模块协作模式
 
