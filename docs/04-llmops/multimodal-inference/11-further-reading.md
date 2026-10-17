@@ -44,6 +44,7 @@
 | 模型量化与压缩 | [04-llmops/model-quantization](/04-llmops/model-quantization/) | 视觉塔/ASR/TTS 模型量化的降本杠杆 |
 | LLM Gateway | [04-llmops/llm-gateway](/04-llmops/llm-gateway/) | 长连接会话路由、媒体请求治理 |
 | AI 集群网络 | [02-cloud-native/ai-networking](/02-cloud-native/ai-networking/) | WebRTC 边缘接入、媒体面带宽与 QoS |
+| 端侧与边缘推理 | [04-llmops/edge-inference](/04-llmops/edge-inference/) | 端侧 VLM/ASR 推理、语音 codec 的功耗与内存预算、端云混合路由 |
 | 个人助理 Agent | [05-agent/personal-agent](/05-agent/personal-agent/) | 语音作为个人 Agent 入口的交互形态 |
 | RAG | [06-rag](/06-rag/) | 多模态检索（图/音/视频）与视觉 embedding 服务 |
 

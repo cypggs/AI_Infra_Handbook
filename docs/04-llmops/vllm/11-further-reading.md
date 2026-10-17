@@ -51,6 +51,7 @@
 ## 相关章节
 
 - [LLMOps 概述](/04-llmops/)
+- [端侧与边缘推理基础设施详解](/04-llmops/edge-inference/) — 云端引擎的端侧对照：llama.cpp/MLX 的带宽受限解码、异构调度与端云协同路由，与 vLLM 的数据中心视角互为表里。
 - [RL Post-Training 基础设施详解](/04-llmops/rl-post-training/) — vLLM 是 RL rollout 的事实标准引擎（Native RL API、`sharded_rdt` 权重同步），本主题补全训练侧视角。
 - [SGLang 详解](/04-llmops/sglang/)
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)

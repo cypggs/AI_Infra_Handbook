@@ -43,6 +43,7 @@
 - [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/) — Marlin/CUTLASS/DeepGEMM 的编译视角；FP8/FP4 的 tensor core 指令配合
 - [LLM 推理缓存与 KV Cache 管理](/04-llmops/kv-cache/) — KV 量化（FP8/INT4）是量化向运行时状态的延伸
 - [LLM Gateway](/04-llmops/llm-gateway/) — 量化版本的灰度路由与回退落地位置
+- [端侧与边缘推理基础设施](/04-llmops/edge-inference/) — GGUF/Q4_K_M 与 NPU 激活量化的消费侧；端侧 KV 量化（INT8/INT4）的容量账
 
 ### 基础层
 

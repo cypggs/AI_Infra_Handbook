@@ -57,6 +57,7 @@
 - 想了解 GraphRAG 与知识图谱检索（GraphRAG/LightRAG/HippoRAG、社区摘要、多跳查询）：[GraphRAG 与知识图谱检索](/06-rag/graphrag/)（已上线）
 - 想了解模型量化与压缩基础设施（GPTQ/AWQ/NVFP4、校准到部署管线）：[模型量化与压缩基础设施](/04-llmops/model-quantization/)（已上线）
 - 想了解多模态与语音推理基础设施（VLM 推理、Realtime 语音、打断与双工）：[多模态与语音推理基础设施](/04-llmops/multimodal-inference/)（已上线）
+- 想了解端侧与边缘推理基础设施（llama.cpp/MLX/ExecuTorch、内存受限解码、异构调度与端云协同）：[端侧与边缘推理基础设施](/04-llmops/edge-inference/)（已上线）
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 - 想了解 Benchmark + Evaluation（Agent / LLM / RAG 可复现评测框架）：[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）
 - 想了解安全：[安全](/08-security/)（已上线）

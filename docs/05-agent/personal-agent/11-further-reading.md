@@ -71,6 +71,7 @@
 - [Planning](/05-agent/planning/) — 长程任务分解与个人上下文注入。
 - [Tool Use](/05-agent/tool-use/) 与 [MCP](/05-agent/mcp/) — 连接器与工具的标准化接入。
 - [Multi-Agent](/05-agent/multi-agent/) — sub-agent 委派与权限继承。
+- [端侧与边缘推理基础设施](/04-llmops/edge-inference/) — 个人智能体的端侧载体：端云协同路由、隐私分级与 Private Cloud Compute 的工程化落地。
 - [Reflection](/05-agent/reflection/) — 从"反思任务"到"持续建模用户"。
 - [RAG](/06-rag/) — 个人文档/相册的语义检索。
 - [AI SRE](/07-ai-sre/) — 海量常驻 Agent 的可用性与成本运维。

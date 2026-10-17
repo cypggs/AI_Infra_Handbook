@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edge-inference-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of on-device & edge inference infrastructure: bandwidth-bound decode model, KV capacity planning, heterogeneous op placement & fallback, flash streaming/prefetch, LoRA hot-switch, speculative decoding acceptance model, edge-cloud routing"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["edge_inference_mini*"]
+
+[project.scripts]
+edge-inference-demo = "edge_inference_mini.demo:run_demo"

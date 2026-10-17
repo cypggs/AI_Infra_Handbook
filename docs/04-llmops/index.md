@@ -12,6 +12,7 @@
 - [LLM 推理缓存与 KV Cache 管理](/04-llmops/kv-cache/)：KV Cache 作为新兴存储对象的分层、迁移与复用——PD 分离、Mooncake/LMCache/NIXL、prefix 路由与卸载
 - [多模态与语音推理基础设施](/04-llmops/multimodal-inference/)：VLM 推理与实时语音链路——统一 token 调度、VAD/打断/双工、first-audio 延迟预算
 - [模型量化与压缩基础设施](/04-llmops/model-quantization/)：从校准到部署的量化工具链——GPTQ/AWQ/SmoothQuant、FP8/NVFP4/MXFP4 格式与 kernel 后端
+- [端侧与边缘推理基础设施](/04-llmops/edge-inference/)：把手机、PC、车载、AR 眼镜和边缘节点当作推理基础设施——llama.cpp/MLX/ExecuTorch/ONNX Runtime 生态、内存受限解码、异构算子调度与端云协同
 - [LLM Gateway](/04-llmops/llm-gateway/)：位于客户端与推理后端之间的访问控制与抽象层
 - [RL Post-Training 基础设施](/04-llmops/rl-post-training/)：把强化学习闭环跑在千卡集群上的工程系统，覆盖 GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF 源码与生产实践
 

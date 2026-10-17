@@ -42,6 +42,7 @@
 - **[LLM 推理缓存与 KV Cache 管理（已上线）](/04-llmops/kv-cache/)** — KV 分层/迁移/复用，PD 分离与 Mooncake/LMCache/NIXL 生态
 - **[模型量化与压缩基础设施（已上线）](/04-llmops/model-quantization/)** — PTQ/QAT 算法体系、NVFP4/MXFP4 格式、llm-compressor/Quark 工具链
 - **[多模态与语音推理基础设施（已上线）](/04-llmops/multimodal-inference/)** — VLM 推理、实时语音链路、VAD/打断/双工调度与延迟预算
+- **[端侧与边缘推理基础设施（已上线）](/04-llmops/edge-inference/)** — llama.cpp/MLX/ExecuTorch/ONNX Runtime 生态、内存受限解码、异构算子调度、端云协同与隐私边界
 - **[AI 集群网络（已上线）](/02-cloud-native/ai-networking/)** — scale-up/scale-out fabric、NVLink/UALink、IB/RoCE/UEC、集合通信流量工程
 
 ## 阶段四：Agent 与 RAG（4~6 周）
@@ -134,6 +135,7 @@
 40. [GraphRAG 与知识图谱检索](/06-rag/graphrag/) — 理解图索引、社区摘要与多跳推理检索
 41. [模型量化与压缩基础设施](/04-llmops/model-quantization/) — 理解 PTQ/QAT、GPTQ/AWQ 与 NVFP4 工具链
 42. [多模态与语音推理基础设施](/04-llmops/multimodal-inference/) — 理解 VLM 推理与实时语音链路的延迟预算工程
+43. [端侧与边缘推理基础设施](/04-llmops/edge-inference/) — 理解端侧推理的三本账：带宽账、异构账、隐私账
 
 ## 面试准备
 
