@@ -78,7 +78,7 @@
 
 ### 18. 什么是 Agentic RAG？相比单次 RAG 的收益与代价？
 
-**要点**：模型自主决定何时检索、检索什么、何时停止（Search-R1/ReSearch 用 RL 训练）。有行业评测显示多跳问答准确率可从 34% 提升到 78%，但 token 约 3 倍、延迟约 4 倍；工程上必须配路由、迭代预算与轨迹可观测，按 cost per correct answer 评估。
+**要点**：模型自主决定何时检索、检索什么、何时停止（Search-R1/ReSearch 用 RL 训练）。有行业评测显示多跳问答准确率可从 34% 提升到 78%，但 token 约 3 倍、延迟约 4 倍；到 2026 年这一模式已从论文进入生产默认（LangGraph/LlamaIndex 模板、Dify Agent 节点），工程上必须配路由、迭代预算、grader 节点与轨迹可观测，按 cost per correct answer 评估。
 
 ### 19. 推理模型时代，查询改写/query 生成有什么变化？
 
@@ -87,6 +87,14 @@
 ### 20. Late Chunking 与多模态检索（ColPali）解决了什么问题？
 
 **要点**：Late Chunking 先整篇嵌入再切分，让 chunk 向量携带全文上下文；ColPali 把 PDF 页直接编码为多向量视觉表示、用 MaxSim 检索，绕过脆弱 OCR/解析流水线，代价是索引存储放大与 late interaction 推理开销。
+
+### 21. Contextual Retrieval 与 Contextual Embedding 有什么区别？（2026 高频题）
+
+**要点**：两者目标相同——让 chunk 向量携带文档级上下文；区别在于实现与成本。Contextual Retrieval（Anthropic）在索引期用 LLM 为每个 chunk 预生成上下文说明再嵌入，检索失败率 5.7% → 1.9%（叠加混合检索与重排），但每个 chunk 一次 LLM 调用、索引成本高，适合离线批处理；Contextual Embedding（voyage-context-3/4）由编码器在编码时内生整篇文档上下文，索引期零额外 LLM 调用、vendor 报告 chunk 级检索较 text-embedding-3-large 提升约 14%，适合高频更新语料。选型看索引预算与更新频率。
+
+### 22. 2026 年开源 Reranker 怎么选？需要注意什么？
+
+**要点**：精度优先选 Qwen3-Reranker（0.6B/4B/8B，Apache-2.0，4B 是精度/延迟甜点）；低延迟长上下文选 jina-reranker-v3/v3.5（listwise、约百毫秒级、131K 上下文），但它是 CC-BY-NC 非商用许可，商用自托管必须避开；预算敏感选 BGE-Reranker-v2-m3（Apache-2.0）。核心注意点是**许可证**与 **Top-K 截断位置**（reranker 只处理召回头部，成本可控）。
 
 ## 小结
 

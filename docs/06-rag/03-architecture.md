@@ -84,9 +84,9 @@ RAG 系统可以拆分为两条主线：**数据平面**负责把原始知识加
    - 记录每次查询的 trace、latency、token 成本、检索结果、生成结果。
    - 支持在线评估与离线评估闭环。
 
-## 2025 后的架构演进：从线性流水线到 Agentic 检索
+## 2025–2026 的架构演进：从线性流水线到 Agentic 检索
 
-上面描述的是经典的“单轮线性”架构。2025 年后，推理模型与 RL 训练（Search-R1、ReSearch 等）把检索推入了 Agentic 范式，控制平面多出一个**检索决策循环**：
+上面描述的是经典的“单轮线性”架构。2025 年后，推理模型与 RL 训练（Search-R1、ReSearch 等）把检索推入了 Agentic 范式，控制平面多出一个**检索决策循环**；到 2026 年，这一循环已成为生产 RAG 的默认形态：
 
 ```mermaid
 flowchart LR
@@ -112,8 +112,13 @@ flowchart LR
 工程上必须配套三件事：
 
 - **预算控制**：最大迭代次数、最大检索次数、token/延迟预算熔断，防止 Agent 循环失控。
-- **工具化检索**：把 dense / BM25 / GraphRAG / SQL 查询都包装成工具（Tool Use 或 MCP Server），由 Agent 统一调度。
+- **工具化检索**：把 dense / BM25 / GraphRAG / SQL 查询都包装成工具（Tool Use 或 MCP Server），由 Agent 统一调度——2026 年 MCP 已迭代到 2.x 协议，主流框架的检索工具适配随之更新。
 - **轨迹可观测**：每一步的检索查询、结果、反思都要进 trace（LangSmith、Langfuse、OpenTelemetry），否则线上无法定位是“没查到”还是“没想清楚”。
+
+2026 年的两个新增标配：
+
+- **grader / critique 节点**：用轻量模型或 LLM-as-judge 对每轮检索结果打分，作为“继续循环还是停止”的依据——这是 CRAG 思路（[arXiv:2401.15884](https://arxiv.org/abs/2401.15884)）的工程化，LangGraph、LlamaIndex 等框架均已提供现成的 grading/evaluator 组件。
+- **编排框架模板化**：LangGraph（图状态机）、LlamaIndex Workflows（事件驱动，2026 年已 2.x）把 router / 迭代循环做成开箱节点，自研成本大幅下降；商业平台（Dify 等）也在 Agent 节点中内置“检索—反思”循环。
 
 ## 多租户与扩展性
 

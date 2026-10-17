@@ -25,6 +25,7 @@ mini-demo/
 │   ├── embedder.py       # TF-IDF 确定性嵌入
 │   ├── vector_store.py   # 内存向量库 + 元数据过滤
 │   ├── retriever.py      # Dense / Keyword / Hybrid(RRF)
+│   ├── crag.py           # CRAG 风格检索质量分档（Correct/Ambiguous/Incorrect）
 │   ├── reranker.py       # 简单分数融合重排
 │   ├── generator.py      # Mock LLM：基于检索上下文生成答案
 │   └── demo.py           # run_demo() 入口
@@ -34,6 +35,7 @@ mini-demo/
     ├── test_embedder.py
     ├── test_vector_store.py
     ├── test_retriever.py
+    ├── test_crag.py
     ├── test_reranker.py
     ├── test_generator.py
     └── test_demo.py
@@ -123,18 +125,31 @@ answer = generator.generate("What is the return policy?", context)
 print(answer.text)
 ```
 
+### 6. 检索质量分档（CRAG 思路）
+
+```python
+from rag_mini.crag import grade_results
+
+grading = grade_results(candidates)
+print(grading.grade, grading.action)
+# Grade.CORRECT use retrieved chunks as-is
+```
+
+生产中的 grader 通常用轻量 LLM 或 cross-encoder 打分；这里用确定性规则近似——候选头部同时获得 dense 与 keyword 两路支持判为 Correct，仅列表中存在双路支持判为 Ambiguous，完全无双路支持判为 Incorrect（对应 CRAG 的 Correct / Ambiguous / Incorrect 三档，[arXiv:2401.15884](https://arxiv.org/abs/2401.15884)）。
+
 ## 测试
 
 ```bash
 pytest tests/ -q
 ```
 
-当前 37 个测试全部通过，覆盖：
+当前 43 个测试全部通过，覆盖：
 
 - 分块边界与重叠逻辑
 - 嵌入器确定性与向量维度
 - 向量存储的相似度搜索与元数据过滤
 - Dense / Keyword / Hybrid 检索
+- CRAG 风格检索质量分档（Correct / Ambiguous / Incorrect）
 - Reranker 排序与分数范围
 - Generator 答案匹配与空上下文兜底
 - Demo 端到端输出
@@ -159,6 +174,7 @@ pytest tests/ -q
 4. 给 `Generator` 接入真实的 LLM API，并增加引用校验。
 5. 用 RAGAS 评估这个 demo 的 faithfulness 与 answer relevance。
 6. 把 `Retriever.hybrid_search` 包装成一个带 schema 的检索工具，写一个外层循环模拟 Agentic 检索（检索 → 判断信息是否足够 → 改写再检索，最多 N 轮）。
+7. 把 `grade_results` 接入第 6 题的外层循环：Incorrect 时触发改写重检索，Ambiguous 时扩充上下文，观察分档规则对最终答案的影响。
 
 ## 小结
 

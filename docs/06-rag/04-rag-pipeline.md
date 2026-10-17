@@ -65,7 +65,7 @@ RAG 流水线是用户查询从进入系统到返回答案的完整生命周期�
 - 放宽 metadata 过滤。
 - 如果仍无结果，进入 fallback：回答“未找到相关资料”。
 
-**检索质量自检（Corrective RAG 思路）**：CRAG（[arXiv:2401.15884](https://arxiv.org/abs/2401.15884)）提出在检索后加一个轻量评估器，把结果分为 Correct / Ambiguous / Incorrect 三档：Correct 直接用，Ambiguous 补充背景知识后再用，Incorrect 则丢弃并触发改写重检索。这把“检索失败兜底”从被动异常处理变成了流水线中的显式状态。
+**检索质量自检（Corrective RAG 思路）**：CRAG（[arXiv:2401.15884](https://arxiv.org/abs/2401.15884)）提出在检索后加一个轻量评估器，把结果分为 Correct / Ambiguous / Incorrect 三档：Correct 直接用，Ambiguous 补充背景知识后再用，Incorrect 则丢弃并触发改写重检索。这把“检索失败兜底”从被动异常处理变成了流水线中的显式状态。到 2026 年，这一自检已内化为编排框架的标准节点（LangGraph 的 grading 节点、LlamaIndex 的 evaluator 组件）；本主题 mini-demo 也用确定性的双通道一致性打分模拟了这个评分器（`rag_mini/crag.py`，见第 7 章）。
 
 **推理模型的查询生成**：2025 年后的实践表明，推理模型生成的检索查询通常比“让 LLM 一次性改写”更贴合多步需求——因为它是在推理中途“知道自己缺什么”时发起的查询。代价是需要把检索工具 schema 与上下文协议设计好（返回哪些字段、截断多少、如何编号引用）。
 

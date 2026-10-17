@@ -39,7 +39,7 @@
 - 接口：`chunk(document) -> list[Chunk]`。
 - 元数据：source、section、heading、page、position、tenant_id。
 - 实现：固定长度、重叠窗口、Markdown 结构、语义分块、Agentic 分块。
-- 进阶（2024–2025）：**Contextual Retrieval**（嵌入前为 chunk 注入文档级上下文说明，Anthropic）、**Late Chunking**（先整篇嵌入再切分池化，Jina，[arXiv:2409.04701](https://arxiv.org/abs/2409.04701)）、表格感知的结构切分。
+- 进阶（2024–2026）：**Contextual Retrieval**（嵌入前为 chunk 注入文档级上下文说明，Anthropic）、**Late Chunking**（先整篇嵌入再切分池化，Jina，[arXiv:2409.04701](https://arxiv.org/abs/2409.04701)）、**Contextual Embedding**（编码器在编码 chunk 时内生整篇文档上下文，voyage-context-3/4，索引期零额外 LLM 调用）、表格感知的结构切分。
 
 **关键权衡**：
 
@@ -54,9 +54,11 @@
 **职责**：把 chunk/query 编码为向量。
 
 - 接口：`embed(texts: list[str]) -> list[list[float]]`。
-- 模型选择（2025 年视角）：
+- 模型选择（2026 年视角）：
   - 通用：OpenAI `text-embedding-3-small/large`、Cohere Embed v3/v4、Gemini Embedding。
   - 开源多语言：Qwen3-Embedding（0.6B/4B/8B，32K 上下文，2025-06 登顶 MTEB 多语言榜）、BGE-M3、jina-embeddings-v3、E5-mistral。
+  - 内生文档上下文：voyage-context-3/4（chunk 向量携带全文语境，索引期无额外 LLM 调用）。
+  - 视觉文档：Qwen3-VL-Embedding（2B/8B，32K，Apache-2.0，[arXiv:2601.04720](https://arxiv.org/abs/2601.04720)）。
   - 代码：code-embedding 模型。
 - 工程：批量、异步、缓存、失败重试、模型版本管理。
 - 评估：用 **MTEB / MTEB-Chinese** 榜单做离线选型，用自有评估集做上线前验证。
@@ -89,8 +91,8 @@
 **职责**：在召回候选中筛选最相关的 chunk。
 
 - Cross-Encoder：高精度、高延迟，适合 Top-100 → Top-10。
-- 生成式 / Listwise：Qwen3-Reranker 用“是/否”token 打分；商用 Cohere Rerank 3.5、Voyage rerank-2.5。
-- 轻量模型：BGE-reranker-v2-m3 等，适合在线。
+- 生成式 / Listwise：Qwen3-Reranker（0.6B/4B/8B，Apache-2.0，开源精度天花板，4B 为甜点档）用“是/否”token 打分；商用 Cohere Rerank 3.5、Voyage rerank-2.5。
+- 轻量模型：BGE-reranker-v2-m3（Apache-2.0）与 jina-reranker-v3/v3.5（listwise，约百毫秒级延迟、131K 上下文，但 CC-BY-NC 非商用许可）——选轻量 reranker 时务必核查许可证，商用自托管优先 Apache-2.0 系。
 - 多向量 Late Interaction：ColBERT/ColPali 系 Reranker，token 级交互，用于视觉文档与高精度场景。
 - 特征融合：结合向量分、关键词分、freshness、点击率。
 
@@ -101,6 +103,7 @@
 - 接口：`answer(query, context) -> Answer`。
 - 内部：preprocess → retrieve → rerank → assemble → generate → post-process。
 - 支持配置：是否启用 rerank、最大检索数量、超时、fallback。
+- 质量分档（2026 标配）：在 retrieve 之后插入 grader 节点（CRAG 思路），把结果分为 Correct / Ambiguous / Incorrect，分别走直通 / 补充扩展 / 改写重检索分支。
 - Agentic 扩展：推理循环模式（检索—反思—再检索）需要配置最大迭代次数、token 预算、工具 schema。
 
 ## 9. Generator Client
@@ -129,7 +132,7 @@
 - 生成指标：Faithfulness、Answer Relevance、Context Precision、Context Recall。
 - 场景基准：RGB（噪声/拒答/反事实鲁棒性）、CRUD-RAG（增删改查）、RAGBench（行业 TRACe）、BERGEN（流水线归因）。
 - Agentic 指标：轨迹级评估（检索次数、停止时机）、cost per correct answer。
-- 框架：RAGAS、ARES、TruLens、LangSmith、Langfuse。
+- 框架：RAGAS（0.4 起迁移到 collections API，便于嵌入 CI/在线 trace）、ARES、TruLens、LangSmith、Langfuse。
 
 ## 12. Observer
 

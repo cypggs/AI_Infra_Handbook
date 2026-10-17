@@ -10,6 +10,7 @@ This demo uses only the Python standard library and contains no external LLM SDK
 - `rag_mini/embedder.py` — deterministic embedder and keyword index (no external models)
 - `rag_mini/vector_store.py` — in-memory vector store with cosine similarity and metadata filtering
 - `rag_mini/retriever.py` — dense, keyword (BM25-like), and hybrid retrieval with RRF
+- `rag_mini/crag.py` — CRAG-style deterministic grading of retrieval quality (Correct/Ambiguous/Incorrect)
 - `rag_mini/reranker.py` — simple score-based reranker
 - `rag_mini/generator.py` — mock LLM that answers from retrieved context
 - `rag_mini/demo.py` — `run_demo()` entry point

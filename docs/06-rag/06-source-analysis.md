@@ -4,10 +4,10 @@ RAG 生态已经高度繁荣。本章选取最具代表性的框架、向量库�
 
 ## LangChain
 
-- **定位**：LLM 应用编排框架，2025 年 10 月发布 1.0（alpha），重心转向 Agent 编排。
+- **定位**：LLM 应用编排框架，2025 年 10 月发布 1.0 alpha，2026 年进入稳定的 1.x 快速迭代（2026-10 为 langchain 1.4.x / langchain-core 1.6.x），重心转向 Agent 编排与 middleware 架构。
 - **核心抽象**：`DocumentLoader`、`TextSplitter`、`Embeddings`、`VectorStore`、`Retriever`、`Runnable` 接口。
 - **RAG 模式**：`create_retrieval_chain`、`ConversationalRetrievalChain`、`MultiQueryRetriever`、`ContextualCompressionRetriever`。
-- **Agentic 演进**：Agent 能力已迁移到 **LangGraph**（图状态机编排）：节点是检索/工具/LLM，边是路由与循环，天然支持“检索—反思—再检索”的迭代模式，是 2025 年后 Agentic RAG 的主流编排底座。
+- **Agentic 演进**：Agent 能力已迁移到 **LangGraph**（图状态机编排）：节点是检索/工具/LLM，边是路由与循环，天然支持“检索—反思—再检索”的迭代模式，是 2025 年后 Agentic RAG 的主流编排底座。1.x 主线的新增重心是可插拔 **middleware**（HITL 中断、Summarization 等）与跨 provider 的 model profiles。
 - **优点**：生态最广、上手快、文档丰富。
 - **缺点**：抽象层级多，生产调试复杂；版本迭代快，API 兼容性需要关注。
 
@@ -19,7 +19,7 @@ RAG 生态已经高度繁荣。本章选取最具代表性的框架、向量库�
   - `VectorStoreIndex` + `as_query_engine()`。
   - `SubQuestionQueryEngine` 自动分解复杂查询。
   - `RouterQueryEngine` 按查询选择不同索引/工具。
-- **Agentic 演进**：2025 年推出 **Workflows** 事件驱动运行时，Agent 统一迁移其上；数据摄取、结构化检索、GraphRAG（PropertyGraphIndex）仍是其最强项。社区共识是“LlamaIndex 做数据/索引层 + LangGraph 做编排层”的组合。
+- **Agentic 演进**：2025 年推出 **Workflows** 事件驱动运行时，Agent 统一迁移其上；2026 年 Workflows 已演进到 2.x（llama-index 主包 0.14.x，2026-09 为 0.14.25），并加入多模态 query engine、tools-mcp 对 MCP 2.x 协议的适配，最低 Python 版本升至 3.10。数据摄取、结构化检索、GraphRAG（PropertyGraphIndex）仍是其最强项。社区共识是“LlamaIndex 做数据/索引层 + LangGraph 做编排层”的组合。
 - **优点**：RAG 场景抽象更自然，支持高级检索（递归、摘要、图）。
 - **缺点**：学习曲线略陡，部分高级功能绑定 LlamaIndex 生态。
 
@@ -32,6 +32,14 @@ RAG 生态已经高度繁荣。本章选取最具代表性的框架、向量库�
   - 支持多种 DocumentStore（OpenSearch、Pinecone、Weaviate、Qdrant、Milvus）。
 - **优点**：流水线可视化、企业级集成友好。
 - **缺点**：社区活跃度相对 LangChain/LlamaIndex 较低。
+
+## 评估框架：RAGAS / ARES / TruLens
+
+- **RAGAS**（[GitHub](https://github.com/explodinggradients/ragas)）：最流行的开源 RAG 评估框架。**0.4 系列（2025 年 12 月发布 0.4.0，2026-01 为 0.4.3）**把指标全面迁移到 collections API 与 BasePrompt 架构，原生支持 GPT-5/o 系列模型，新增 DSPyOptimizer（MIPROv2）提示优化与指标/embedding 缓存——这些改动都是为了让评估指标更容易嵌入 CI 与在线 trace 持续运行，而不是一年跑一次离线报告。
+- **ARES**：用“轻量打分段 + 少量人工标注 + LLM 评判”以极低成本评估 context relevance / faithfulness / answer relevance，适合没有标注团队的小团队做粗粒度回归。
+- **TruLens**：以 feedback function 为核心的评估与追踪一体化方案，与 OpenTelemetry 生态结合紧密，适合把评估逻辑与可观测平台合并部署。
+
+2026 年的实践共识：评估框架与 trace 平台（Langfuse、LangSmith、Arize Phoenix）合并部署，把 RAGAS 类指标作为在线 judge 持续运行；Agentic 链路额外记录轨迹级指标（迭代轮数、停止时机、cost per correct answer）。
 
 ## RAGFlow / Dify / FastGPT
 
@@ -63,13 +71,16 @@ RAG 生态已经高度繁荣。本章选取最具代表性的框架、向量库�
 |---|---|---|
 | OpenAI text-embedding-3 | Dense | 综合能力强，API 调用方便 |
 | Qwen3-Embedding | Dense | 0.6B/4B/8B，32K 上下文，2025-06 登顶 MTEB 多语言榜 |
+| Qwen3-VL-Embedding / Reranker | 多模态 | 2B/8B，32K，Apache-2.0，视觉文档检索（MMEB-V2）+ reranker 一体（[arXiv:2601.04720](https://arxiv.org/abs/2601.04720)，2026-01） |
+| voyage-context-3 / -4 | Dense（内生上下文） | chunk 向量自动携带文档级语境，索引期零额外 LLM 调用；v4 单请求窗口 120K 并内置自动分块 |
 | BGE / BGE-M3 | Dense/Sparse | 中文/多语言表现好，支持多模态/长文本 |
 | jina-embeddings-v3 | Dense |  late chunking 配套的长上下文模型，多语言 |
 | E5 / E5-mistral | Dense | Microsoft 开源，通用检索强 |
 | GTE-Qwen | Dense | 阿里开源，中文场景优秀 |
 | Cohere Rerank 3.5 | Reranker | API 版，商用精度标杆之一 |
-| Qwen3-Reranker | Reranker | 开源生成式打分（是/否 token），多档参数规模 |
-| BGE-Reranker-v2-m3 | Reranker | 开源可部署，性价比好 |
+| Qwen3-Reranker | Reranker | 开源生成式打分（是/否 token），Apache-2.0，多档参数规模（4B 为甜点档） |
+| jina-reranker-v3 / v3.5 | Reranker | listwise，约百毫秒级延迟、131K 上下文，CC-BY-NC 非商用许可 |
+| BGE-Reranker-v2-m3 | Reranker | 开源可部署（Apache-2.0），性价比好 |
 | ColBERT / ColPali | Late Interaction | 多向量检索；ColPali 面向视觉文档（ICLR 2025），Vespa/ViDoRe 生态支撑生产化 |
 
 ## GraphRAG：从 Microsoft GraphRAG 到 LightRAG 与 HippoRAG

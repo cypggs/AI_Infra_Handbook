@@ -30,7 +30,7 @@
 
 - **RAGAS: Automated Evaluation of Retrieval Augmented Generation**
   - 项目地址：https://github.com/explodinggradients/ragas
-  - 价值：端到端 RAG 评估框架。
+  - 价值：端到端 RAG 评估框架；0.4 系列（2025-12 起）迁移到 collections API / BasePrompt 架构，原生支持 GPT-5/o 系列，便于嵌入 CI 与在线 trace。
 
 - **GraphRAG**
   - 论文/项目：https://github.com/microsoft/graphrag
@@ -80,7 +80,19 @@
 
 - **CRAG: Corrective Retrieval Augmented Generation**
   - 论文地址：https://arxiv.org/abs/2401.15884
-  - 价值：检索质量自检与修正循环，工程落地门槛低。
+  - 价值：检索质量自检与修正循环，工程落地门槛低；2026 年已内化为编排框架的 grader 标准节点。
+
+- **voyage-context-3: Focused Chunk-Level Details with Global Document Context**
+  - 博客地址：https://blog.voyageai.com/2025/07/23/voyage-context-3/
+  - 价值：Contextual Embedding 路线的代表——编码器内生文档级上下文，索引期零额外 LLM 调用，对 chunk 尺寸更不敏感；继任者 voyage-context-4 扩展到 120K 窗口并内置自动分块。
+
+- **Qwen3-VL Embedding / Reranker**
+  - 论文地址：https://arxiv.org/abs/2601.04720 （2026-01）
+  - 价值：多模态检索的 Qwen 生态基线，2B/8B、Apache-2.0，覆盖 MMTEB 与视觉文档（MMEB-V2）基准。
+
+- **jina-reranker-v3 / v3.5**
+  - 模型地址：https://jina.ai/models/jina-reranker-v3/
+  - 价值：listwise 低延迟 reranker（约百毫秒级、131K 上下文）的代表；注意 CC-BY-NC 非商用许可，适合作为“精度换延迟”与许可证风险的讨论案例。
 
 - **RAGBench: Explainable Benchmark for Retrieval-Augmented Generation Systems**
   - 论文地址：https://arxiv.org/abs/2407.11005
@@ -153,7 +165,7 @@
 2. **进阶**：评估 dense/sparse/hybrid 检索，加入 reranker，建立 RAGAS 评估集。
 3. **深入**：阅读 ColBERT/SPLADE/GraphRAG，理解高级检索与推理增强。
 4. **生产**：设计多租户、增量更新、缓存、可观测与反馈闭环的 RAG 服务。
-5. **前沿（2025+）**：读 LaRA/NoLiMa 理解长上下文与 RAG 的边界，用 LangGraph + MCP 工具实现 Agentic 检索，读 Search-R1/ReSearch 理解 RL 检索训练范式。
+5. **前沿（2025–2026）**：读 LaRA/NoLiMa 理解长上下文与 RAG 的边界，用 LangGraph + MCP 工具实现 Agentic 检索，读 Search-R1/ReSearch 理解 RL 检索训练范式；再补 Contextual Retrieval（Anthropic）与 Contextual Embedding（voyage-context-3）两种上下文注入路线的对比，以及 CRAG 的 grader 工程化落地。
 
 ## 一句话收尾
 

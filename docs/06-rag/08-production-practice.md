@@ -10,7 +10,7 @@
 | 索引时间长 | 批量编码、pipeline 并行、增量更新 |
 | 版本管理 | 为每个索引版本打标签，支持灰度切换与回滚 |
 | 脏数据 | 在 parser 阶段做质量打分，过滤低质量文档 |
-| 分块质量 | 结构化文档按标题切分；预算允许时上 Contextual Retrieval / Late Chunking，但二者都会显著增加索引阶段的 LLM 调用与模型推理成本，需在索引成本与检索质量之间显式权衡 |
+| 分块质量 | 结构化文档按标题切分；预算允许时上 Contextual Retrieval / Late Chunking，但二者都会显著增加索引阶段的 LLM 调用与模型推理成本，需在索引成本与检索质量之间显式权衡；2026 年起优先评估内生上下文的 Contextual Embedding（voyage-context 系），索引期零额外 LLM 调用，适合高频更新语料 |
 | 视觉文档 | 合同/财报类版式复杂文档考虑 ColPali 式视觉索引，但要提前评估多向量带来的存储放大（每页数十个向量） |
 
 ## 2. 实时更新策略
@@ -83,7 +83,7 @@
   - 生成 token 成本 / 延迟
   - 用户反馈（点赞/点踩）
 - **日志**：query、rewritten query、retrieved chunks、prompt、answer（注意 PII）。
-- **Trace + Eval 平台成为标配**：2025 年后的共识是把评估（RAGAS/自定义 judge）嵌入 trace 平台持续运行，而不是一年做一次的离线评测；Langfuse、LangSmith、Arize Phoenix 是主流选择。
+- **Trace + Eval 平台成为标配**：2025 年后的共识是把评估（RAGAS/自定义 judge）嵌入 trace 平台持续运行，而不是一年做一次的离线评测；Langfuse、LangSmith、Arize Phoenix 是主流选择。RAGAS 0.4（2025-12）把指标迁移到 collections API 后，嵌入 CI 与在线 judge 的成本进一步降低；Agentic 模式下 grader 节点（CRAG 思路）的每轮评分也要进 trace，用于回溯“停止时机是否正确”。
 
 ## 8. 故障模式与应对
 
@@ -95,6 +95,7 @@
 | 延迟飙升 | 检索或生成超时 | 缓存、超时降级、批量限制 |
 | 索引落后 | 答案基于旧文档 | 增量更新、版本切换、 freshness 权重 |
 | 租户越权 | 用户看到他人数据 | 前置过滤 + ACL 校验 |
+| 模型许可证违规 | 商用产品误用非商用权重的 embedding/reranker（如 CC-BY-NC 的 jina-reranker-v3 系） | 选型时核查许可，商用自托管优先 Apache-2.0（Qwen3 系、BGE 系），依赖入库前做许可证扫描 |
 | Agent 循环失控 | token 费用暴涨、迟迟不返回答案 | 最大迭代轮数、token 预算熔断、路由降级到单次 RAG |
 | 过度检索 | 重复检索已知信息、浪费 token（RL 检索模型的已知毛病） | 循环内去重、结果摘要缓存、反思提示约束 |
 

@@ -34,10 +34,11 @@ Chunk 过大：检索精度下降，生成上下文被浪费。
 Chunk 过小：语义不完整，生成缺乏上下文。  
 **经验法则**：优先让 chunk 能独立回答一类问题，再调整长度。
 
-2024–2025 年的两个重要改进：
+2024–2026 年的三个重要改进：
 
 - **Contextual Retrieval（上下文化检索）**：Anthropic 2024 年 9 月提出，在嵌入前先用 LLM 为每个 chunk 生成一段“文档级上下文说明”（例如“本 chunk 出自 Acme 2024 年报的退货政策章节”），再嵌入拼接后的文本。官方报告该方法把检索失败率从 5.7% 降到 2.9%，叠加 BM25 混合检索与重排后降到 1.9%（[Anthropic 工程博客](https://www.anthropic.com/news/contextual-retrieval)）。成本是每个 chunk 一次 LLM 调用，适合对检索质量敏感、可离线摊薄成本的场景。
 - **Late Chunking（迟分块）**：Jina AI 2024 年提出（[arXiv:2409.04701](https://arxiv.org/abs/2409.04701)），把顺序反过来：先用长上下文 Embedding 模型（如 jina-embeddings-v3）读入整篇文档，再在其 token 级表示上做切分池化，让每个 chunk 的向量天然携带全文上下文，缓解“chunk 脱离语境后语义不完整”的经典问题。
+- **Contextual Embedding（上下文化嵌入，2025–2026 年的第二代路线）**：不再用 LLM 预生成上下文说明，而是让 embedding 模型在编码 chunk 时**内生**整篇文档的上下文。代表是 Voyage 的 voyage-context-3（2025 年 7 月发布，[官方博客](https://blog.voyageai.com/2025/07/23/voyage-context-3/)，Voyage 同年并入 MongoDB）：chunk 向量自动携带文档级语境，vendor 报告 chunk 级检索较 OpenAI text-embedding-3-large 提升约 14%，且对 chunk 尺寸的敏感度显著降低（64 token 小 chunk 下优势更大）；支持 Matryoshka 可变维度（2048→256）以压缩存储。其继任者 voyage-context-4 把单请求窗口扩到 120K token 并内置自动分块。与 Anthropic 路线相比，它把“上下文注入”从索引期的一次性 LLM 调用变成编码器内生能力，索引成本大幅下降，适合高频更新的语料；两条路线在 2026 年并存，按索引预算与更新频率选型。
 
 ## 3. 嵌入（Embedding）
 
@@ -48,7 +49,7 @@ Embedding 把文本映射为稠密向量，使得语义相似的文本在向量�
 - **Late Interaction**：ColBERT 在查询时保留 token 级交互，精度高但计算重；2025 年后已有多向量张量索引与专用 Reranker 让这条路线进入生产（见多模态 RAG 一节）。
 - **多模态 Embedding**：CLIP、图像编码器，把图片、表格也映射到同一向量空间。
 
-**2025 年的新基线**：Qwen3-Embedding 系列（[arXiv:2506.05176](https://arxiv.org/abs/2506.05176)）提供 0.6B/4B/8B 三档、32K 上下文、100+ 语言，8B 版本在 2025 年 6 月登顶 MTEB 多语言排行榜（70.58 分），并支持 MRL（Matryoshka）可变维度出码；配套的 Qwen3-Reranker 用“是/否”token 打分（生成式评分），效果与商用 API 相当。开源 Embedding 的选型如今基本围绕 **MTEB/MTEB-Chinese 排行榜**展开，中文场景重点关注 BGE-M3、GTE-Qwen 与 Qwen3 系列。
+**2025–2026 年的新基线**：Qwen3-Embedding 系列（[arXiv:2506.05176](https://arxiv.org/abs/2506.05176)）提供 0.6B/4B/8B 三档、32K 上下文、100+ 语言，8B 版本在 2025 年 6 月登顶 MTEB 多语言排行榜（70.58 分），并支持 MRL（Matryoshka）可变维度出码；配套的 Qwen3-Reranker 用“是/否”token 打分（生成式评分），效果与商用 API 相当。2026 年 1 月 Qwen 又发布多模态 **Qwen3-VL-Embedding / Qwen3-VL-Reranker**（2B/8B，32K 上下文，Apache-2.0，[arXiv:2601.04720](https://arxiv.org/abs/2601.04720)），2B 版 MMTEB Mean(Task) 63.87、8B 版 67.88，把视觉文档检索（MMEB-V2 基准）也带入同一生态。文本侧的上下文注入则有 voyage-context-3/4 这类内生文档上下文的模型。开源 Embedding 的选型如今基本围绕 **MTEB/MTEB-Chinese 排行榜**展开，中文场景重点关注 BGE-M3、GTE-Qwen 与 Qwen3 系列。
 
 ## 4. 向量存储与索引（Vector Store & Index）
 
@@ -75,14 +76,14 @@ Embedding 把文本映射为稠密向量，使得语义相似的文本在向量�
 | Query Rewriting | 用 LLM 改写/扩展查询 | 弥合查询与文档语义 gap | 增加延迟与 token 成本 |
 | Agentic Retrieval | 模型自主决定检索时机、查询与迭代 | 多跳问题显著提升 | 延迟与成本数倍增长，需要预算控制 |
 
-到 2025 年，**“BM25 + Dense 混合检索 + RRF 融合”已成为生产 RAG 的事实标配**，行业报告显示多数企业级 RAG 都走这一路线；纯 dense 检索只在语料简单、专有名词少的场景单独使用。更复杂的查询则交给 **Agentic 检索范式**：Router Agent 先判断查询类型（单跳/多跳/比较/闲聊），Iterative Agent 则在推理过程中循环“检索 → 反思 → 改写再检索”，有行业评测显示，多跳问答准确率相比单次 RAG 可从三成多提升到近八成，但 token 成本约 3 倍、延迟约 4 倍——评测与路由时应以**“每个正确答案的成本”（cost per correct answer）**而非单次延迟为指标（[Agentic RAG 综述](https://arxiv.org/abs/2501.09136)）。
+到 2025 年，**“BM25 + Dense 混合检索 + RRF 融合”已成为生产 RAG 的事实标配**，行业报告显示多数企业级 RAG 都走这一路线；纯 dense 检索只在语料简单、专有名词少的场景单独使用。2026 年的进阶方向是**自适应融合**：按查询类型（事实 / 多跳 / 比较）动态调整稠密与稀疏的权重、或路由到不同的检索器组合；RRF 凭零训练、鲁棒的特性仍是默认起点。更复杂的查询则交给 **Agentic 检索范式**：Router Agent 先判断查询类型（单跳/多跳/比较/闲聊），Iterative Agent 则在推理过程中循环“检索 → 反思 → 改写再检索”，有行业评测显示，多跳问答准确率相比单次 RAG 可从三成多提升到近八成，但 token 成本约 3 倍、延迟约 4 倍——评测与路由时应以**“每个正确答案的成本”（cost per correct answer）**而非单次延迟为指标（[Agentic RAG 综述](https://arxiv.org/abs/2501.09136)）。
 
 ## 6. 重排（Reranking）
 
 检索阶段追求高召回，重排阶段追求高精度。
 
 - **Cross-Encoder**：把 query 与 chunk 拼接后输入模型打分，精度高但延迟大。
-- **Listwise / 生成式 Reranker**：2025 年的新趋势，如 Qwen3-Reranker 用“是/否”token 做生成式打分，Cohere Rerank 3.5、Voyage rerank-2.5 等商用 API 与开源模型（BGE-reranker-v2-m3）形成互补；Listwise 方案一次给整个候选列表打分，对头部排序更稳定。
+- **Listwise / 生成式 Reranker**：2025 年后的新趋势，如 Qwen3-Reranker 用“是/否”token 做生成式打分，Cohere Rerank 3.5、Voyage rerank-2.5 等商用 API 与开源模型（BGE-reranker-v2-m3）形成互补；Listwise 方案一次给整个候选列表打分，对头部排序更稳定。2026 年的选型格局更清晰：**Qwen3-Reranker（0.6B/4B/8B，Apache-2.0）是开源精度天花板**，4B 是精度/延迟的甜点档；**jina-reranker-v3**（2025 年 10 月，listwise，单次约 170ms）与其升级版 **v3.5**（2026 年 7 月，131K 上下文，vendor 报告较 v3 提升约 25%）主打低延迟长上下文，但为 CC-BY-NC **非商用许可**——商用自托管应优先 Apache-2.0 的 Qwen3-Reranker 或 BGE-Reranker-v2-m3。
 - **Bi-Encoder + 轻量模型**：先用双塔召回，再用小模型重排。
 - **特征融合**：结合向量分数、关键词分数、元数据 freshness、用户反馈。
 - **多向量 Reranker**：ColBERT 式 late interaction 重排（含 ColPali 系视觉 Reranker），token 级交互精度最高，但推理开销大，通常用于高价值候选的精排。
@@ -116,7 +117,7 @@ Reranker 通常只处理 Top-K（如 50→20 或 20→5），控制成本。
 
 - 不再解析 PDF，而是把每页渲染成图片，用视觉语言模型（PaliGemma-3B）直接编码为**多向量表示**（每页多个 patch embedding）。
 - 检索时用 ColBERT 式 late interaction（MaxSim）打分，在 ViDoRe 基准上大幅超越文本解析路线。
-- 衍生出 ColQwen2、ColSmolVLM 等变体；2026 年初 Qwen3-VL Embedding（2B）进一步把该路线带入 Qwen 生态。
+- 衍生出 ColQwen2、ColSmolVLM 等变体；2026 年 1 月发布的 Qwen3-VL-Embedding（2B/8B）与配套的 Qwen3-VL-Reranker 进一步把视觉文档检索带入 Qwen 生态（[arXiv:2601.04720](https://arxiv.org/abs/2601.04720)）。
 
 工程代价是**索引与存储成本高**（每页几十上百个向量），以及 late interaction 需要张量级检索引擎或候选剪枝（先用单向量粗召回，再做多向量精排/重排）。
 
@@ -131,9 +132,9 @@ Reranker 通常只处理 Top-K（如 50→20 或 20→5），控制成本。
 | 场景覆盖 | CRUD-RAG（增删改查）、RAGBench（行业 TRACe 框架） | 超越纯 QA 的真实任务形态 |
 | 效率 | 检索延迟 P99、吞吐、索引构建时间、每次正确答案成本 | 系统性能与经济性 |
 
-两个 2025 年后的评估趋势：
+两个 2025–2026 年的评估趋势：
 
-1. **检索与生成分层归因**：RAGBench/BERGEN 等基准强调把端到端错误归因到“检索没召回”还是“生成没用好”，分别优化；实践结论是检索质量对最终效果的预测力最强——重排与混合检索的收益首先体现在检索指标上。
+1. **检索与生成分层归因**：RAGBench/BERGEN 等基准强调把端到端错误归因到“检索没召回”还是“生成没用好”，分别优化；实践结论是检索质量对最终效果的预测力最强——重排与混合检索的收益首先体现在检索指标上。框架侧的代表进展是 **RAGAS 0.4**（2025 年 12 月发布）：指标全面迁移到 collections API 与 BasePrompt 架构，原生支持 GPT-5/o 系列模型，并内置 DSPy/MIPROv2 提示优化与指标缓存，更适合嵌入 CI 与在线 trace 持续运行。
 2. **Agentic RAG 的评估对象变了**：评估单元从“单次 query-answer”变成“多步轨迹”（检索次数、查询质量、反思是否有效、是否过早停止），并引入成本指标（token、延迟、每次正确答案成本）。
 
 ## 小结
