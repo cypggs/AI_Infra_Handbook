@@ -216,6 +216,7 @@ export default withMermaid(
             { text: '7. Mini Demo', link: '/08-security/07-mini-demo' },
             { text: '8. 企业生产实践', link: '/08-security/08-production-practice' },
             { text: '9. 最佳实践', link: '/08-security/09-best-practices' },
+            { text: '供应链与模型安全 总览', link: '/08-security/model-supply-security/' },
           ],
         },
         {

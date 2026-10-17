@@ -87,6 +87,7 @@
 
 ## 本手册交叉引用
 
+- [AI 供应链与模型安全详解](/08-security/model-supply-security/) — 本篇子主题：模型工件/训练数据/Agent 工具链三条供应链线的威胁建模、门禁与签名验证，把本章"模型扫描"一节展开成完整主题。
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — 统一入口、认证、限流、审计。
 - [Agent Runtime 详解](/05-agent/agent-runtime/) — Agent 循环与工具权限。
 - [Tool Use 详解](/05-agent/tool-use/) — 工具调用的 schema、校验与沙箱。

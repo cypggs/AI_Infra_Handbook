@@ -41,6 +41,10 @@ AI 系统的安全不只是“防火墙 + WAF”的边界防御。模型权重�
 10. [面试题](10-interview-questions) — 初/中/高级 AI 安全面试题。
 11. [延伸阅读](11-further-reading) — 论文、法规、官方文档与交叉引用。
 
+## 子主题
+
+- [AI 供应链与模型安全](./model-supply-security/) — 模型工件/训练数据/Agent 工具链三条供应链线的威胁与门禁：pickle 与 safetensors、Sigstore 权重签名、HF 安全机制边界、MCP tool poisoning、代码执行沙箱、模型窃取与水印、EU AI Act GPAI 义务时间线。
+
 ## 一句话总结
 
 AI 安全是一个贯穿模型、数据、运行时、网络、身份与合规的体系工程：最小权限是手段，可审计是底线，零信任是架构原则，红队与持续运营是保障；Agent 时代再加一条——对工具与上下文保持"永不信任"。

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "supply-security-mini"
+version = "0.1.0"
+description = "A tiny, CPU-runnable AI supply-chain & model-security demo for the AI Infra Handbook."
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+supply-security-demo = "supply_security_mini.demo:run_demo"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["supply_security_mini*"]

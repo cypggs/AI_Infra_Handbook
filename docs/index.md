@@ -151,6 +151,9 @@ hero:
       text: 安全详解
       link: /08-security/
     - theme: alt
+      text: 供应链安全详解
+      link: /08-security/model-supply-security/
+    - theme: alt
       text: OpenAI 案例
       link: /09-case-study/openai/
     - theme: alt
@@ -245,6 +248,7 @@ features:
 - [x] 多模态与语音推理基础设施主题（VLM 推理、Realtime 语音链路、双工调度，含纯 Python Mini Demo）
 - [x] 端侧与边缘推理基础设施主题（llama.cpp/MLX/ExecuTorch/ONNX Runtime、内存受限解码、异构调度与端云协同，含纯 Python Mini Demo）
 - [x] Cursor 案例研究（Tab/Apply/Agent 模型阶梯、speculative edits、4 亿次/天在线 RL、订阅制推理经济学，含纯 Python Mini Demo）
+- [x] AI 供应链与模型安全主题（pickle/safetensors、Sigstore 权重签名、MCP tool poisoning、沙箱、模型水印、EU AI Act 时间线，含纯 Python Mini Demo）
 - [x] RAG 主题（检索增强生成）
 - [x] AI SRE 主题（可观测性、可靠性、AIOps）
 - [x] Benchmark + Evaluation 主题（Agent / LLM / RAG 可复现评测框架：trace-based eval、benchmark 数据集、CI 评估门、生产回归检测）
@@ -259,7 +263,7 @@ features:
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[CNI / CSI 深度详解](/02-cloud-native/cni-csi/)、[GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[Personal AI Agent 详解](/05-agent/personal-agent/)、[AI 编译器与 Kernel 生成详解](/04-llmops/ai-compiler/)、[向量数据库与 Embedding 基础设施详解](/06-rag/vector-db/)、[特征平台与训练数据基础设施详解](/03-ai-platform/feature-store/)、[LLM 推理缓存与 KV Cache 管理详解](/04-llmops/kv-cache/)、[AI 集群网络详解](/02-cloud-native/ai-networking/)、[GraphRAG 与知识图谱检索详解](/06-rag/graphrag/)、[模型量化与压缩基础设施详解](/04-llmops/model-quantization/)、[多模态与语音推理基础设施详解](/04-llmops/multimodal-inference/)、[端侧与边缘推理基础设施详解](/04-llmops/edge-inference/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/)、[Linux 系统与性能调优](/01-foundation/linux-systems/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)、[DeepSeek 案例研究](/09-case-study/deepseek/)、[xAI 案例研究](/09-case-study/xai/)、[Perplexity 案例研究](/09-case-study/perplexity/)、[Cursor 案例研究](/09-case-study/cursor/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[CNI / CSI 深度详解](/02-cloud-native/cni-csi/)、[GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[Personal AI Agent 详解](/05-agent/personal-agent/)、[AI 编译器与 Kernel 生成详解](/04-llmops/ai-compiler/)、[向量数据库与 Embedding 基础设施详解](/06-rag/vector-db/)、[特征平台与训练数据基础设施详解](/03-ai-platform/feature-store/)、[LLM 推理缓存与 KV Cache 管理详解](/04-llmops/kv-cache/)、[AI 集群网络详解](/02-cloud-native/ai-networking/)、[GraphRAG 与知识图谱检索详解](/06-rag/graphrag/)、[模型量化与压缩基础设施详解](/04-llmops/model-quantization/)、[多模态与语音推理基础设施详解](/04-llmops/multimodal-inference/)、[端侧与边缘推理基础设施详解](/04-llmops/edge-inference/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/)、[供应链与模型安全详解](/08-security/model-supply-security/)、[Linux 系统与性能调优](/01-foundation/linux-systems/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)、[DeepSeek 案例研究](/09-case-study/deepseek/)、[xAI 案例研究](/09-case-study/xai/)、[Perplexity 案例研究](/09-case-study/perplexity/)、[Cursor 案例研究](/09-case-study/cursor/)。
 
 ## 贡献
 

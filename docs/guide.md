@@ -61,6 +61,7 @@
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 - 想了解 Benchmark + Evaluation（Agent / LLM / RAG 可复现评测框架）：[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）
 - 想了解安全：[安全](/08-security/)（已上线）
+- 想了解 AI 供应链与模型安全（恶意模型、模型签名、MCP 工具投毒、模型水印与 EU AI Act）：[AI 供应链与模型安全](/08-security/model-supply-security/)（已上线）
 - 想了解 OpenAI 基础设施案例：[OpenAI 案例研究](/09-case-study/openai/)（已上线）
 - 想了解 Anthropic 基础设施案例：[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）
 - 想了解 Meta 基础设施案例：[Meta 案例研究](/09-case-study/meta/)（已上线）
