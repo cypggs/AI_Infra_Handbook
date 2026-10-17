@@ -87,7 +87,7 @@
 - **[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）** — 算法-系统协同设计：DualPipe 流水线、细粒度专家并行、FP8 混合精度、MLA/DSA 注意力、3FS/DeepEP 开源栈，278.8 万 GPU 小时训练 V3
 - **[xAI 案例研究](/09-case-study/xai/)（已上线）** — Memphis Colossus：122 天 10 万卡单训练域、供电/液冷/网络 fabric、"速度即战略"的集群建设组织学
 - **[Perplexity 案例研究](/09-case-study/perplexity/)（已上线）** — 答案引擎推理经济学：模型路由、缓存、流式延迟与 Sonar 开源策略
-- Cursor 等持续建设中
+- **[Cursor 案例研究](/09-case-study/cursor/)（已上线）** — AI 编程产品的基础设施纵深：Tab 补全延迟预算、speculative edits、云端 Agent 沙箱、4 亿次/天在线 RL 与订阅制推理经济学
 
 ## 推荐学习顺序
 
@@ -136,6 +136,7 @@
 41. [模型量化与压缩基础设施](/04-llmops/model-quantization/) — 理解 PTQ/QAT、GPTQ/AWQ 与 NVFP4 工具链
 42. [多模态与语音推理基础设施](/04-llmops/multimodal-inference/) — 理解 VLM 推理与实时语音链路的延迟预算工程
 43. [端侧与边缘推理基础设施](/04-llmops/edge-inference/) — 理解端侧推理的三本账：带宽账、异构账、隐私账
+44. [Cursor 案例研究](/09-case-study/cursor/) — 通过 Cursor 理解"不拥有模型"的工程纵深：延迟预算、模型阶梯与在线 RL
 
 ## 面试准备
 

@@ -265,6 +265,7 @@ export default withMermaid(
             { text: 'DeepSeek 总览', link: '/09-case-study/deepseek/' },
             { text: 'xAI 总览', link: '/09-case-study/xai/' },
             { text: 'Perplexity 总览', link: '/09-case-study/perplexity/' },
+            { text: 'Cursor 总览', link: '/09-case-study/cursor/' },
           ],
         },
       ],

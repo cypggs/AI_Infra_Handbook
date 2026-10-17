@@ -62,7 +62,7 @@ docs/
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG、向量数据库
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
 ├── 08-security/        # IAM、Secrets、Zero Trust、合规
-├── 09-case-study/      # OpenAI、Anthropic、Meta、Google、DeepSeek、xAI、Perplexity 案例研究
+├── 09-case-study/      # OpenAI、Anthropic、Meta、Google、DeepSeek、xAI、Perplexity、Cursor 案例研究
 └── 10-roadmap/         # 学习路线、面试指南、术语表
 ```
 
@@ -140,6 +140,7 @@ pnpm docs:preview
 - [DeepSeek 案例研究详解](docs/09-case-study/deepseek/) — 覆盖算法-系统协同设计哲学、DualPipe 流水线气泡消除（45.0%→16.8%）、细粒度专家并行（EP64 all-to-all 重叠）、FP8 混合精度训练（细粒度缩放 + FP32 提升累加）、MLA 低秩 KV 压缩（56.9×）与 DSA 稀疏注意力、HAI-LLM 训练框架、3FS（fire-Flyer File System，SC'24）/DeepEP/DeepGEMM/FlashMLA 开源栈、V3 278.8 万 H800 GPU 小时训练全记录、R1 推理现象与开源策略、V3.2/V4 演进、纯 Python Mini Demo（DualPipe vs 1F1B + FP8 误差 + EP 通信 + MLA 压缩，97 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [xAI 案例研究详解](docs/09-case-study/xai/) — 覆盖 Memphis Colossus 超集群（122 天 10 万卡 H100、Spectrum-X 网络、Supermicro 液冷整柜、200k 扩展与百万卡 Colossus 2 规划）、供电工程（电网容量 + 燃气轮机）、单训练域 vs 多园区权衡（跨园区 AllReduce 吞吐损失 9.9%）、Grok 模型迭代线（Grok-1 开源 → Grok-4.6 上架 AWS Bedrock）、X 数据-分发垂直整合、建设排程关键路径（串行 425 天 vs 压缩 122 天）、三级证据纪律（官方/报道/未证实）、纯 Python Mini Demo（供电规划 + 网络模型 + 排程 + 散热，58 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [Perplexity 案例研究详解](docs/09-case-study/perplexity/) — 覆盖答案引擎推理经济学（成本-质量帕累托、tail latency 哲学）、一次查询的生命线（检索→重排→生成延迟预算）、模型无关主义与 Sonar 系列（定价/退役时间线一手）、Photon（p99 800→65ms）/CobbleDB/SPACE 开源栈、r1-1776、缓存与流式感知延迟、版权对峙与供应商风险、四级证据分类（一手/访谈/报道/未公开）、纯 Python Mini Demo（模型路由 + 缓存 + TTFT + 重排，48 测试）、生产实践与面试题（内容更新至 2026-10-17）
+- [Cursor 案例研究详解](docs/09-case-study/cursor/) — 覆盖 AI 编程产品基础设施：ARR $100M→$4B 增长与三次博弈（OpenAI 求购/Windsurf 崩塌/SpaceX 收购，标注报道口径）、Tab 补全 260ms 九段延迟预算、Tab/Apply/Agent 三档模型阶梯、instant-apply（~1000 tok/s、13x/9x 口径）、speculative edits 命中率模型、tab-rl 在线 RL（4 亿次/天、-21%/+28%）、Router（AFC/keep rate/cost-per-commit）、数十万并发云沙箱、索引 Merkle 增量、订阅制推理经济学（225/550/650 盈亏平衡）、三级证据纪律与信息核实声明、纯 Python Mini Demo（索引增量 + 延迟预算 + 投机编辑 + 沙箱调度 + 订阅经济学，89 测试）、生产实践与面试题（内容更新至 2026-10-17）
 
 ## 内容更新说明
 

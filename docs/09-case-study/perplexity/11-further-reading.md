@@ -49,6 +49,7 @@
 - [Google 案例研究](/09-case-study/google/)——AI Overviews/Gemini 的"搜索巨头 AI 化"路线对照；TPU 垂直整合 vs Perplexity 的拿来主义。
 - [DeepSeek 案例研究](/09-case-study/deepseek/)——推理经济学另一极（训练侧效率）；r1-1776 的基座来源；推理利润率模型对照。
 - [xAI 案例研究](/09-case-study/xai/)——零训练 vs 百万卡训练的对照；Grok 作为接入模型之一。
+- [Cursor 案例研究](/09-case-study/cursor/)——同为"不拥有基础模型"阵营：模型阶梯、在线 RL 与订阅制推理经济学的另一份样本。
 - [Anthropic 案例研究](/09-case-study/anthropic/)——Claude 供应商关系与模型安全文化的对照。
 
 ### 技术主题深挖

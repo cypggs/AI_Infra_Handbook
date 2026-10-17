@@ -52,6 +52,7 @@ xAI 没有技术报告，延伸阅读的价值排序是：**一手公告与供�
 - [Meta 案例研究](/09-case-study/meta/)——开放权重 + OCP 硬件 + 多中型集群的对照组。
 - [Google 案例研究](/09-case-study/google/)——NSDI'24 可靠性工程：xAI 黑盒最该补齐的一课。
 - [DeepSeek 案例研究](/09-case-study/deepseek/)——算力效率光谱的另一极：少量卡 + 算法创新。
+- [Cursor 案例研究](/09-case-study/cursor/)——算力占有量的另一个极端：不拥有模型，靠产品工程纵深取胜。
 
 ### 基础与专项主题
 

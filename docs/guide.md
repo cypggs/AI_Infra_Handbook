@@ -68,6 +68,7 @@
 - 想了解 DeepSeek 基础设施案例（DualPipe/FP8/MLA/3FS）：[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）
 - 想了解 xAI 基础设施案例（Memphis Colossus）：[xAI 案例研究](/09-case-study/xai/)（已上线）
 - 想了解 Perplexity 推理经济学案例（答案引擎、Sonar、模型路由）：[Perplexity 案例研究](/09-case-study/perplexity/)（已上线）
+- 想了解 Cursor 案例（AI 编程产品基础设施、Tab/Apply/Agent 模型阶梯、在线 RL、订阅制推理经济学）：[Cursor 案例研究](/09-case-study/cursor/)（已上线）
 
 ### 3. 每个主题的结构
 
