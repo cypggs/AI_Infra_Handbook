@@ -39,6 +39,8 @@
 - **[RL Post-Training 基础设施（已上线）](/04-llmops/rl-post-training/)** — GRPO/PPO 算法工程化、Rollout/Train 分离架构、veRL/OpenRLHF 源码、Agentic RL、生产实践
 - **[AI 编译器与 Kernel 生成（已上线）](/04-llmops/ai-compiler/)** — torch.compile/Inductor 编译链路、Triton 语言与编译器、cuTile/CUTLASS、TileLang、Mirage megakernel，理解推理引擎之下的算子生成层
 - **[特征平台与训练数据基础设施（已上线）](/03-ai-platform/feature-store/)** — 特征偏斜治理、point-in-time 正确性、离线/在线双存储、Feast/Hopsworks/Tecton 生态
+- **[LLM 推理缓存与 KV Cache 管理（已上线）](/04-llmops/kv-cache/)** — KV 分层/迁移/复用，PD 分离与 Mooncake/LMCache/NIXL 生态
+- **[AI 集群网络（已上线）](/02-cloud-native/ai-networking/)** — scale-up/scale-out fabric、NVLink/UALink、IB/RoCE/UEC、集合通信流量工程
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
@@ -124,6 +126,8 @@
 35. [xAI 案例研究](/09-case-study/xai/) — 通过 xAI 理解超集群建设：供电、液冷、单训练域网络与速度组织学
 36. [特征平台与训练数据基础设施](/03-ai-platform/feature-store/) — 理解特征生命周期：point-in-time 正确性、偏斜治理与离线/在线双存储
 37. [Perplexity 案例研究](/09-case-study/perplexity/) — 通过 Perplexity 理解推理经济学：模型路由、缓存与流式延迟
+38. [LLM 推理缓存与 KV Cache 管理](/04-llmops/kv-cache/) — 理解 KV 分层、PD 分离传输与 prefix 复用
+39. [AI 集群网络](/02-cloud-native/ai-networking/) — 理解 scale-up/scale-out fabric 与 AI 流量工程
 
 ## 面试准备
 

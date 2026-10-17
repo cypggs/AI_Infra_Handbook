@@ -55,9 +55,9 @@ Research → Understand → Architecture → Source Code → Engineering Practic
 ```
 docs/
 ├── 01-foundation/      # Linux、网络、存储、GPU/CUDA、分布式系统、大模型从 0 到 1
-├── 02-cloud-native/    # Docker、Kubernetes、容器运行时、Helm、Operator、CNI/CSI
+├── 02-cloud-native/    # Docker、Kubernetes、容器运行时、Helm、Operator、CNI/CSI、AI 集群网络
 ├── 03-ai-platform/     # Kubeflow、KServe、Ray、MLflow、Airflow、特征平台
-├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton Inference Server、LLM Gateway、RL Post-Training、AI 编译器
+├── 04-llmops/          # vLLM、SGLang、TensorRT-LLM、Triton、LLM Gateway、RL Post-Training、AI 编译器、KV Cache 管理
 ├── 05-agent/           # Agent Runtime、Memory、Multi-Agent、Reflection、MCP、Planning、Tool Use、Agent OS、Personal AI Agent
 ├── 06-rag/             # Embedding、Retriever、Hybrid Search、GraphRAG、向量数据库
 ├── 07-ai-sre/          # OpenTelemetry、Observability、AIOps、SLO
@@ -113,6 +113,8 @@ pnpm docs:preview
 - [KubeRay 详解](docs/03-ai-platform/kuberay/) — 覆盖 Ray 官方 Kubernetes Operator：RayCluster / RayJob / RayService CRD、head/worker 映射、自动扩缩容（Autoscaler sidecar / v2 / idleTimeout / upscalingMode）、GCS Fault Tolerance、声明式升级（NewCluster / Incremental Upgrade）、controller-runtime 架构与三大 Reconciler 调用链、Batch Scheduler 集成（Volcano/YuniKorn/scheduler-plugins）、GPU/TPU 调度、认证与 TLS、Prometheus/Grafana 监控、Mini Demo（FakeClock + FakeApiServer + Informer + WorkQueue + Reconciler 模拟集群创建/扩缩容/RayJob 生命周期）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [Airflow 详解](docs/03-ai-platform/airflow/) — 覆盖工作流编排平台：DAG / Operator / Task / TaskInstance / DAG Run / Executor（Sequential/Local/Celery/Kubernetes/Dask，Airflow 2.10+ 多 Executor）/ Metadata Database / Triggerer / DAG Processor / XCom / Deferrable Operator / Dataset/Asset 调度、Airflow 3 Execution API + JWT 演进、源码分析（models/jobs/executors/providers）、Mini Demo（纯 Python 模拟 DAG 解析/Scheduler/Executor/XCom/Triggerer，11 测试）、生产实践、最佳实践与面试题（内容更新至 2026-07-04）
 - [特征平台与训练数据基础设施详解](docs/03-ai-platform/feature-store/) — 覆盖特征生命周期：Michelangelo 史、训练/服务偏斜与数据泄漏、point-in-time 正确性、离线/在线双存储、Lambda vs Kappa、Feast 0.67 源码走读、Hopsworks/Tecton（Databricks 收购）/SageMaker/Vertex 路线对比、实时上下文工程、纯 Python Mini Demo（PIT join + TTL 在线存储 + PSI 偏斜检测，50 测试）、生产实践与面试题（内容更新至 2026-10-17）
+- [LLM 推理缓存与 KV Cache 管理详解](docs/04-llmops/kv-cache/) — 覆盖 KV 经济学（token 占用公式、GQA→MLA 演进）、复用/迁移/分层三大思想、分层缓存架构、PD 分离六工序、vLLM v0.31 KV connector/SGLang 0.5.21 HiCache/Mooncake 0.3.13/LMCache 0.5.6/Dynamo 1.5.1/3FS 生态对比、纯 Python Mini Demo（paged block 分配 + radix prefix + 三层迁移 + PD 流水线传输，62 测试）、生产实践与面试题（内容更新至 2026-10-17）
+- [AI 集群网络详解](docs/02-cloud-native/ai-networking/) — 覆盖 scale-up（NVLink/NVSwitch/NVL72/UALink 1.0/NVLink Fusion）与 scale-out（InfiniBand/RoCE/Spectrum-X Photonics/UEC 1.1）fabric、Rail-optimized 与 Clos 拓扑、集合通信流量工程（TP/EP/PP 流量模式、incast、DCQCN/PFC）、Meta 双织物/阿里 HPN（SIGCOMM'24）/腾讯星脉/Falcon（SIGCOMM'25）量化案例、纯 Python Mini Demo（拓扑路由 BFS 与闭式互证 + 流量矩阵 + 拥塞模型 + ring/tree all-reduce α-β 模型，45 测试）、生产实践与面试题（内容更新至 2026-10-17）
 - [Agent Runtime 详解](docs/05-agent/agent-runtime/) — 覆盖 ReAct 循环、工具注册与 function calling、记忆、状态机、护栏、可观测、恢复、与 LLM Gateway 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Memory 详解](docs/05-agent/memory/) — 覆盖 Agent 记忆系统、工作记忆、短期记忆、长期语义记忆、episodic 记忆、向量检索、存储后端、与 Agent Runtime 集成、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）
 - [Multi-Agent 详解](docs/05-agent/multi-agent/) — 覆盖多 Agent 协作、角色定义、消息通信、协调调度、共享黑板、团队可观测、源码、Mini Demo、生产实践与面试题（内容更新至 2026-07-03）

@@ -1,0 +1,20 @@
+[project]
+name = "ai-networking-mini"
+version = "0.1.0"
+description = "微型 AI 集群网络教学模拟器 —— 纯 Python 重建 scale-up/scale-out 拓扑、并行策略流量矩阵、incast/ECN/DCQCN 拥塞控制、ring/tree all-reduce 模型"
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["ai_networking_mini*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -58,6 +58,7 @@ export default withMermaid(
             { text: 'Operator 总览', link: '/02-cloud-native/operator/' },
             { text: 'CNI / CSI 深度 总览', link: '/02-cloud-native/cni-csi/' },
             { text: 'GPU 在 Kubernetes 上的调度 总览', link: '/02-cloud-native/gpu-scheduling/' },
+            { text: 'AI 集群网络', link: '/02-cloud-native/ai-networking/' },
           ],
         },
         {
@@ -68,6 +69,7 @@ export default withMermaid(
             { text: 'TensorRT-LLM', link: '/04-llmops/tensorrt-llm/' },
             { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
             { text: 'AI 编译器与 Kernel 生成', link: '/04-llmops/ai-compiler/' },
+            { text: 'LLM 推理缓存与 KV Cache 管理', link: '/04-llmops/kv-cache/' },
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
             { text: 'RL Post-Training 基础设施', link: '/04-llmops/rl-post-training/' },
           ],

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kv-cache-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of LLM KV cache management: paged blocks, radix prefix cache, tiered caching and PD-disaggregated transfer scheduling"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kv_cache_mini*"]
+
+[project.scripts]
+kv-cache-demo = "kv_cache_mini.demo:run_demo"

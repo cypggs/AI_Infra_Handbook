@@ -54,6 +54,7 @@
 - [容器运行时](../../02-cloud-native/container-runtime/)：网络 namespace、veth、bridge、CNI 调用链。
 - [Kubernetes](../../02-cloud-native/kubernetes/)：Service、kube-proxy、CoreDNS、Ingress/Gateway API。
 - [CNI / CSI 深度](../../02-cloud-native/cni-csi/)：CNI 接口、NetworkPolicy 数据面、Flannel/Calico/Cilium/Multus/SR-IOV、CSI 存储网络。
+- [AI 集群网络](../../02-cloud-native/ai-networking/)：scale-up/scale-out fabric、Rail-optimized 拓扑、集合通信流量工程（本主题的 AI 专用深化）。
 - [vLLM](../../04-llmops/vllm/)：分布式推理中的 NCCL 与网络。
 - [TensorRT-LLM](../../04-llmops/tensorrt-llm/)：多机 TP/PP 的网络拓扑。
 - [Triton Inference Server](../../04-llmops/triton/)：gRPC/HTTP 入口网络。
