@@ -62,11 +62,15 @@ LLM.generate()
 
 ### 9. PyExecutor 与 C++ Executor 有什么区别？
 
-**参考答案**：PyExecutor 是 Python 后端的执行循环，便于开发与自定义；C++ Executor 延迟更低，Triton backend 默认使用 C++ Executor 路径。
+**参考答案**：PyExecutor 是 Python 后端的执行循环，便于开发与自定义；C++ Executor 延迟更低，1.3 起 KVCacheManager V2 也提供 C++ 实现（1.4 移除其 Python 后端），OpenEngine gRPC server 直接架在 C++ Executor 之上供 Dynamo 调用。
+
+### 10. 1.2 移除双引擎投机解码后，投机解码架构发生了什么变化？
+
+**参考答案**：Eagle3 / MTP-Eagle / Draft-Target 等算法不再维护独立的 draft engine，draft 模块内嵌在单一模型中，由 AdvancedSamplingMode 等机制统一调度，降低了显存占用与调度复杂度；1.3 又引入 DSpark / Helix / GVR 等新 kernel 并支持 dynamic speculation 与逐请求接受率观测。
 
 ## Level 4：生产与调优
 
-### 10. 如何为线上服务选择 `max_batch_size` 与 `max_num_tokens`？
+### 11. 如何为线上服务选择 `max_batch_size` 与 `max_num_tokens`？
 
 **参考答案**：
 
@@ -74,33 +78,37 @@ LLM.generate()
 - `max_num_tokens`：根据线上 prompt 长度 P95 设置，过大挤占 KV cache，过小 batch 不满
 - 两者共同决定每步 GPU 负载与显存分配
 
-### 11. FP8 与 FP4 在生产中如何选择？
+### 12. FP8 与 FP4 在生产中如何选择？
 
 **参考答案**：
 
 - FP8：Hopper/Blackwell 通用，精度损失小，首选
 - FP4：Blackwell 专属，显存减半，但需要充分校准，适合对显存极度敏感且可接受一定精度损失的场景
 
-### 12. Triton backend 启用 IFB 的关键配置是什么？
+### 13. 生产上应该选 Triton backend、`trtllm-serve` 还是 Dynamo？
 
-**参考答案**：在 `tensorrt_llm/config.pbtxt` 中设置 `batching_strategy:inflight_fused_batching`，并合理配置 `triton_max_batch_size` 与 `max_queue_delay_microseconds`。
+**参考答案**：
+
+- `trtllm-serve`：1.0+ 默认推荐，OpenAI 兼容、零额外组件，适合单实例或少量实例
+- Triton backend：已进入弃用（`*-trtllm-python-py3` 容器 PB 5.9 后停发），仅适合存量维护；启用 IFB 的关键是在 `config.pbtxt` 中设置 `batching_strategy:inflight_fused_batching`
+- Dynamo + OpenEngine：需要分离式服务、KV 感知路由、按 SLA 弹性伸缩时的推荐路径，TRT-LLM 以 sidecar 形式接入
 
 ## Level 5：综合设计与对比
 
-### 13. 设计一个基于 TRT-LLM 的高可用推理服务，需要考虑哪些因素？
+### 14. 设计一个基于 TRT-LLM 的高可用推理服务，需要考虑哪些因素？
 
 **参考答案要点**：
 
-- 多副本 Triton + 负载均衡
+- 多副本 `trtllm-serve` + 负载均衡（分离式场景叠加 Dynamo Router/Planner）
 - TP/PP/CP/EP 并行策略选择
 - 量化方案与精度评估
-- IFB 参数调优
-- KV cache 显存管理
+- IFB 参数调优与投机解码接受率
+- KV cache 显存管理（1.3+ 的 KVCM2 分层池）
 - 可观测性（TTFT/TPOT/吞吐/显存）
-- 版本管理与回滚
+- 版本管理与回滚（注意 RC 与 stable 的差异）
 - fallback 到 vLLM/SGLang 的能力
 
-### 14. TensorRT-LLM、vLLM、SGLang 分别适合什么场景？
+### 15. TensorRT-LLM、vLLM、SGLang 分别适合什么场景？
 
 **参考答案**：
 
@@ -108,7 +116,7 @@ LLM.generate()
 - vLLM：通用在线推理、跨硬件、生态开放
 - SGLang：LLM 程序、多轮/Agent、结构化生成、共享前缀多的场景
 
-### 15. 如果 TRT-LLM 上线后发现 TTFT 过高，你会如何排查？
+### 16. 如果 TRT-LLM 上线后发现 TTFT 过高，你会如何排查？
 
 **参考答案要点**：
 
@@ -120,4 +128,4 @@ LLM.generate()
 
 ## 本章小结
 
-面试题覆盖了从概念到源码、从调优到架构设计的完整维度。核心考点包括：Builder/Engine/Runtime/Executor 的职责、IFB 调度原理、PyTorch 后端调用链、Paged KV Cache、量化选型、Triton 部署与参数调优。
+面试题覆盖了从概念到源码、从调优到架构设计的完整维度。核心考点包括：Builder/Engine/Runtime/Executor 的职责、IFB 调度原理、PyTorch 后端调用链、Paged KV Cache 与 KVCM2、单模型投机解码、量化选型、`trtllm-serve`/Dynamo/Triton（弃用）三种服务化路径的参数调优。

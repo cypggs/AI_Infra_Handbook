@@ -96,7 +96,7 @@ TRT-LLM 的核心取舍是：**用构建期时间换运行期性能**。
 | 核心问题 | 通用高吞吐 | LLM 程序高效执行 | NVIDIA 极致性能 |
 | 主要武器 | PagedAttention + Continuous Batching | RadixAttention + Compiler | Compile + IFB + Plugin |
 | KV Cache 管理 | Block Table | Radix Tree | Block-based / Paged |
-| 用户接口 | OpenAI API / LLM class | `gen`/`select`/`fork` | `LLM.generate` / Triton backend |
+| 用户接口 | OpenAI API / LLM class | `gen`/`select`/`fork` | `LLM.generate` / `trtllm-serve` / OpenEngine |
 | 优化重心 | 运行期调度 | 程序级复用与约束 | 构建期编译与硬件 kernel |
 
 ## 本章小结

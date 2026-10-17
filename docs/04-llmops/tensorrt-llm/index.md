@@ -1,6 +1,6 @@
 # TensorRT-LLM
 
-[TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) 是 NVIDIA 开源的大语言模型与视觉生成模型推理优化库，核心目标是**把模型一次性编译成硬件专属的极致执行计划，然后在 NVIDIA GPU 上以低延迟、高吞吐持续服务**。 historically它基于 TensorRT 的 Builder → Engine/Plan → Runtime 路径，但从 2026 年中发布的 [1.2](https://github.com/NVIDIA/TensorRT-LLM/releases) 起，TensorRT 后端已被移除，PyTorch 成为唯一执行后端，用户侧的 `LLM` API 保持稳定。
+[TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) 是 NVIDIA 开源的大语言模型与视觉生成模型推理优化库，核心目标是**把模型一次性编译成硬件专属的极致执行计划，然后在 NVIDIA GPU 上以低延迟、高吞吐持续服务**。 historically它基于 TensorRT 的 Builder → Engine/Plan → Runtime 路径，但从 2026 年中发布的 [1.2](https://github.com/NVIDIA/TensorRT-LLM/releases) 起，TensorRT 后端已被移除，PyTorch 成为唯一执行后端，用户侧的 `LLM` API 保持稳定。截至 2026 年 10 月，稳定版为 1.2，[1.3 处于 RC 周期](https://nvidia.github.io/TensorRT-LLM/release-notes.html)，服务入口推荐 `trtllm-serve` 或经 [NVIDIA Dynamo](https://github.com/ai-dynamo/dynamo) 编排（经典 Triton TRT-LLM 容器已进入弃用流程）。
 
 ## 一句话理解
 
@@ -43,10 +43,13 @@
 |---|---|---|---|
 | 核心命题 | 通用高吞吐 LLM 推理 | LLM 程序的高效执行 | NVIDIA 硬件上的极致性能 |
 | 执行模式 | Eager + 动态调度 | Eager + 编译/缓存 | 编译/优化后的执行图 |
-| KV Cache | PagedAttention（Block Table） | RadixAttention（Radix Tree） | Paged KV Cache / Contiguous KV Cache |
+| KV Cache | PagedAttention（Block Table） | RadixAttention（Radix Tree） | Paged KV Cache（1.3 起 KVCacheManager V2） |
 | 批处理 | Continuous Batching | Continuous Batching | In-flight Batching（IFB） |
+| 服务入口 | OpenAI API / LLM class | OpenAI API / sgl API | `trtllm-serve` / Triton（弃用中）/ Dynamo backend |
 | 可移植性 | 跨硬件 | 跨硬件 | 绑定 NVIDIA GPU |
 | 灵活性 | 高 | 高 | 中（受支持的模型/算子约束） |
 | 适用场景 | 通用在线推理 | Agent / 结构化生成 | 对延迟/吞吐敏感的 NVIDIA 部署 |
+
+三者都可以作为引擎接入 NVIDIA Dynamo 编排层（KV 感知路由 + 分离式服务 + NIXL 传输），形成“Dynamo 管调度、引擎管执行”的组合。
 
 建议先阅读 [vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/) 与 [GPU 架构与 CUDA 基础](/01-foundation/gpu-cuda/)，再来理解 TRT-LLM 在“编译-执行”这一轴上的取舍。

@@ -193,7 +193,7 @@ for output in outputs:
     print(output.outputs[0].text)
 ```
 
-对于 Triton backend，结果通过 gRPC/HTTP 流式返回。
+对于 `trtllm-serve` / OpenEngine，结果通过 OpenAI 兼容的 HTTP SSE 流式返回；存量 Triton backend 则通过 gRPC/HTTP 流式返回。
 
 ## 3. 一个具体例子的 step-by-step
 
@@ -223,9 +223,9 @@ for output in outputs:
 |---|---|---|---|
 | 启动 | 构建/编译一次 | 即开即用 | 即开即用 |
 | 批处理 | IFB | Continuous Batching | Continuous Batching |
-| prefill/decode | 同 batch 交错 | 同 batch 交错 | 同 batch 交错 |
-| KV Cache | Paged / Contiguous | Paged | Radix Tree |
-| 服务入口 | LLM API / Triton | OpenAI API / LLM API | OpenAI API / sgl API |
+| prefill/decode | 同 batch 交错（也可经 KV Cache Connector / Dynamo 分离部署） | 同 batch 交错（可选分离） | 同 batch 交错（可选分离） |
+| KV Cache | Paged（1.3 起 KVCacheManager V2） | Paged | Radix Tree |
+| 服务入口 | `trtllm-serve` / OpenEngine / Triton（弃用中） | OpenAI API / LLM API | OpenAI API / sgl API |
 | 序列化 | Engine / checkpoint | 通常不序列化 engine | 通常不序列化 |
 
 ## 本章小结

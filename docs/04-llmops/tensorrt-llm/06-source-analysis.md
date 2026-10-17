@@ -9,14 +9,16 @@ TensorRT-LLM/
 ├── tensorrt_llm/            # Python 包
 │   ├── __init__.py          # LLM, SamplingParams 等入口
 │   ├── llmapi/              # LLM API、BuildConfig、SamplingParams
-│   ├── _torch/              # PyTorch 后端（1.0+ 默认）
+│   ├── _torch/              # PyTorch 后端（1.0+ 默认，1.2 起唯一）
 │   │   ├── models/          # 各模型定义（Llama、Qwen、DeepSeek 等）
 │   │   ├── pyexecutor/      # PyExecutor、ModelEngine、Scheduler
-│   │   ├── attention/       # Attention backend
-│   │   ├── custom_ops/      # PyTorch custom ops / Triton kernels
+│   │   ├── attention/       # Attention backend（TRTLLM-Gen / FlashInfer / cuDNN / PrimTS）
+│   │   ├── custom_ops/      # PyTorch custom ops / Triton / CuTe DSL kernels
+│   │   ├── spec_decode/     # 投机解码（Eagle3 / MTP / DSpark 等 draft 模块）
 │   │   └── deployment/      # 部署相关工具
+│   ├── openengine/          # OpenEngine gRPC server（1.3+，接入 Dynamo）
 │   ├── executor.py          # C++ Executor Python binding
-│   ├── runtime/             # 历史 Runtime Session（TensorRT 时代）
+│   ├── runtime/             # 历史 Runtime Session（TensorRT 时代，1.2 已移除）
 │   ├── plugin.py            # Plugin 注册基类
 │   ├── quantization/        # 量化工具
 │   └── mapping.py           # TP/PP 映射
@@ -101,17 +103,22 @@ tensorrt_llm/_torch/pyexecutor/decoder.py
     → 输出下一个 token id
 ```
 
-### 6. KVCacheManager
+### 6. KVCacheManager（1.3 起为 V2）
 
 ```
 tensorrt_llm/_torch/pyexecutor/kv_cache_manager.py
-  KVCacheManager.prepare_resources()
+  V2: KVCacheManager（Python 前端，C++ 实现为主）
+    → 分层显存池（GPU 热页 / CPU 冷页压缩）
+    → DisaggTransferCoordinator：分离式服务的流水线 KV 传输
+  prepare_resources()
     → 分配 / 复用 KV cache block
-  KVCacheManager.update_resources()
+  update_resources()
     → 更新 block table
-  KVCacheManager.free_resources()
+  free_resources()
     → 释放完成请求的 block
 ```
+
+> 注意：1.3 起 KVCacheManager V2 成为默认且 V1 弃用，阅读源码时以 V2（C++ 实现 + Python 绑定）为准；`block_reuse_policy` 等旧配置已迁移到 `block_reuse_config.policy`。
 
 ## C++ 侧关键目录
 
@@ -172,8 +179,8 @@ Runtime.Session(engine_file)
 1. **先读 `tensorrt_llm/llmapi/llm.py`**：理解用户入口与生命周期。
 2. **再读 `tensorrt_llm/_torch/pyexecutor/py_executor.py`**：理解 Executor 主循环。
 3. **深入 `model_engine.py`、`scheduler.py`、`kv_cache_manager.py`**：理解执行、调度、显存管理。
-4. **按需查看 `cpp/tensorrt_llm/executor/`**：理解 C++ 侧调度与高性能路径。
-5. **参考 `examples/`**：学习真实模型 build 与 serving 写法。
+4. **按需查看 `cpp/tensorrt_llm/executor/` 与 KVCM2 C++ 实现**：理解 C++ 侧调度、高性能路径与分层显存池。
+5. **参考 `examples/`**：学习真实模型 build 与 serving 写法；关注 `openengine/` 了解 Dynamo sidecar 接入方式。
 
 ## 本章小结
 

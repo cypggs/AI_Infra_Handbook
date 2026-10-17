@@ -33,7 +33,9 @@ flowchart TB
     end
 
     subgraph Serving["服务层"]
-        Triton["Triton Inference Server<br/>inflight_batcher_llm"]
+        Serve["trtllm-serve<br/>OpenAI 兼容 API"]
+        OpenEngine["OpenEngine gRPC<br/>接入 Dynamo 编排"]
+        Triton["Triton backend<br/>（容器已弃用，存量维护）"]
         LLM_Python["Python LLM API"]
         Bench["trtllm-bench"]
     end
@@ -59,9 +61,12 @@ flowchart TB
     KV --> GPU
     Executor --> GPU
     Decoder --> Executor
+    Serve --> Executor
+    OpenEngine --> Executor
     Triton --> Executor
     LLM_Python --> Executor
-    Bench --> Triton
+    Bench --> Serve
+    Dynamo[Dynamo 编排层<br/>KV 感知路由 / Planner / NIXL] --> OpenEngine
 ```
 
 ## 各组件职责
@@ -124,6 +129,8 @@ TRT-LLM 的调度器由两层组成：
 - **Contiguous KV Cache**：连续显存，实现简单，但不利于动态长度。
 - **Paged KV Cache**：按 block 分配，支持 prefix/block 复用、chunked prefill。
 
+1.3 起，**KVCacheManager V2（KVCM2）** 成为 Llama、DeepSeek、Qwen3、Gemma、Kimi、MiniMax、GPT-OSS 等主流模型的默认实现（V1 进入弃用）：支持分层显存池（GPU / CPU 冷页压缩）、分布式池再均衡、Mamba 状态快照、流水线化 KV 传输（配合分离式服务），并可用 C++ 实现降低 Python 开销。
+
 ### 7. Decoder
 
 负责从 logits 采样下一个 token，支持：
@@ -137,9 +144,15 @@ TRT-LLM 的调度器由两层组成：
 
  historically 通过 `@trtllm_plugin("Name")` 注册 custom op。PyTorch 后端中，plugin 机制继续存在，但实现上更贴近 PyTorch custom op。
 
-### 9. Triton Backend
+### 9. 服务化层：trtllm-serve / OpenEngine / Triton
 
-生产环境最常用的服务化方式。模型仓库包含：
+1.0 之后服务化层发生了明显变化，推荐优先级大致为：
+
+1. **`trtllm-serve`**：1.0+ 内置的 OpenAI 兼容服务（`/v1/chat/completions`、`/v1/completions`，1.3 起补齐 `/v1/responses` 与 Anthropic Messages API），直接从 HuggingFace 模型引用启动，无需 Triton。
+2. **OpenEngine gRPC + NVIDIA Dynamo**：1.3 起 TRT-LLM 内置可选的 [OpenEngine](https://github.com/ai-dynamo/openengine) gRPC server（1.4.0rc0 起绑定随 wheel 发布），以 sidecar 方式接入 [Dynamo](https://github.com/ai-dynamo/dynamo) 编排层，获得 KV 感知路由、Prefill/Decode 分离与 KV Block Manager。这是 NVIDIA 对新分离式部署的官方推荐路径。
+3. **Triton backend**：仍是经典 ensemble + `inflight_fused_batching` 形态，但 NVIDIA 已将其列入弃用——`*-trtllm-python-py3` 容器在 Production Branch 5.9 后不再提供（PB6，2026-05），适合存量系统维护而非新部署（见 [EOL Notices](https://docs.nvidia.com/ai-enterprise/lifecycle/latest/eol-notices.html)）。
+
+Triton 模型仓库包含（存量部署仍可参考）：
 
 - `preprocessing`：tokenization
 - `tensorrt_llm`：执行推理
@@ -199,4 +212,4 @@ llm = LLM(model="...", pipeline_parallel_size=2)
 
 ## 本章小结
 
-TensorRT-LLM 的架构清晰分层：输入层负责 checkpoint/量化，构建/编译层生成优化执行图，运行时层做 IFB 调度与 KV Cache 管理，服务层通过 Triton 或 Python API 对外暴露。PyTorch 后端接管执行后，Builder 与 Engine 的概念被重新实现，但“构建-执行-调度”的分层思想仍然不变。
+TensorRT-LLM 的架构清晰分层：输入层负责 checkpoint/量化，构建/编译层生成优化执行图，运行时层做 IFB 调度与 KV Cache 管理（1.3 起由 KVCacheManager V2 接管），服务层通过 `trtllm-serve`、OpenEngine/Dynamo 或（已弃用的）Triton 对外暴露。PyTorch 后端接管执行后，Builder 与 Engine 的概念被重新实现，但“构建-执行-调度”的分层思想仍然不变。

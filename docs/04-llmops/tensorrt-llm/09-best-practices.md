@@ -10,8 +10,9 @@
 | 模型频繁变化，需要快速试错 | **vLLM** / **SGLang** |
 | 多轮对话 / Agent / 结构化生成 | **SGLang** |
 | 通用在线推理，跨硬件部署 | **vLLM** |
-| 需要与 NVIDIA Triton / Dynamo 深度集成 | **TensorRT-LLM** |
-| 超长上下文（>200k）且预算充足 | **SGLang** / **TensorRT-LLM + CP** |
+| 单实例极致性能 + OpenAI API 快速上线 | **TensorRT-LLM + `trtllm-serve`** |
+| 需要分离式服务、KV 感知路由与弹性伸缩 | **TensorRT-LLM + Dynamo**（或 vLLM/SGLang + Dynamo） |
+| 超长上下文（>200k）且预算充足 | **SGLang** / **TensorRT-LLM + CP / KVCM2 冷页卸载** |
 
 一句话总结：
 
@@ -74,6 +75,12 @@ KvCacheConfig(
 - 长 prefill 使用 chunked prefill 拆分
 - 关注 generation / context 比例，避免某类请求垄断 token budget
 
+### 投机解码
+
+- 1.2 起统一为单模型投机解码（Eagle3 / MTP-Eagle / Draft-Target），不再需要独立 draft engine
+- 开启 `dynamic speculation` 让系统按负载自适应草稿长度
+- 结合 1.4 的逐请求接受率指标评估收益：接受率低时投机反而是负优化
+
 ## 4. 量化最佳实践
 
 1. **先用 FP8**：在 Hopper/Blackwell 上，FP8 是精度与速度的最佳平衡点。
@@ -93,8 +100,8 @@ KvCacheConfig(
 
 TensorRT-LLM 的优势与风险都来自于 NVIDIA 生态：
 
-- **优势**：深度优化、与 Triton/Dynamo 集成、官方支持
-- **风险**：硬件锁定、版本迭代快、部分组件专有
+- **优势**：深度优化、与 Dynamo / NIM 集成、Rubin/Blackwell 代际 Day-0 级支持、官方背书
+- **风险**：硬件锁定、版本迭代快（1.2 → 1.3 之间仍有配置迁移）、部分组件专有、经典 Triton 路径弃用带来的迁移成本
 
 建议：
 
@@ -104,7 +111,8 @@ TensorRT-LLM 的优势与风险都来自于 NVIDIA 生态：
 
 ## 7. 版本升级策略
 
-- 关注 Release Notes 中的 breaking changes（如 1.2 移除 TensorRT 后端）
+- 关注 Release Notes 中的 breaking changes（如 1.2 移除 TensorRT 后端、双引擎投机解码改单模型；1.3 KVCacheManager V2 默认化与 `block_reuse_config` 配置迁移；1.3 弃用 TRITON MoE 后端）
+- 1.3 仍处于 RC 周期，生产环境建议锁定稳定版 1.2 或等待 1.3 stable，升级前重点验证 KVCM2 行为与分离式服务稳定性
 - 在新版本发布后在 staging 环境 rebuild engine
 - 对比 benchmark 后再推全量
 - 保留可回滚的 engine 目录

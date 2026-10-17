@@ -157,8 +157,8 @@ Executor 是服务阶段的核心，负责持续调度与执行。
 ### C++ Executor
 
 - 提供更低的调度延迟
-- Triton backend 默认使用 C++ Executor 路径
-- Python binding 暴露 `tensorrt_llm.executor`
+- 1.3 起 KVCacheManager V2 提供 C++ 实现（1.4 移除其 Python 后端）
+- OpenEngine gRPC server（1.3+）直接架在 Executor 之上，供 Dynamo sidecar 调用
 
 ## 6. Scheduler（调度器）
 
@@ -193,7 +193,7 @@ scheduler_config = SchedulerConfig(
 
 ## 7. KVCacheManager
 
-KV Cache 管理器负责显存分配与复用。
+KV Cache 管理器负责显存分配与复用。支持两种模式：
 
 ### Contiguous KV Cache
 
@@ -215,6 +215,18 @@ kv_cache_config = KvCacheConfig(
     enable_block_reuse=True,
 )
 ```
+
+### KVCacheManager V2（1.3 默认）
+
+1.3 起 KVCM2 成为主流模型默认实现，核心改进：
+
+- **分层显存池**：热数据在 GPU，冷页可压缩后落到 CPU 内存，缓解长上下文显存压力
+- **分布式池再均衡**：多实例间迁移 KV block
+- **流水线化传输**：与分离式服务配合，传输与计算重叠
+- **Mamba / 线性注意力状态快照**：统一缓存管理
+- **C++ 实现**：降低 Python 调度开销（1.4 起移除 Python 后端）
+
+V1 已进入弃用期，迁移时需注意 `block_reuse_policy` 等配置项已迁移到 `block_reuse_config.policy`。
 
 ## 8. Decoder（采样器）
 
@@ -239,16 +251,33 @@ SamplingParams(
 )
 ```
 
-## 9. Quantization Toolkit（量化工具链）
+## 9. 投机解码（Speculative Decoding）
+
+1.x 周期内投机解码是 TRT-LLM 投入最大的特性之一，核心变化是 **1.2 移除了双引擎方案**——draft 与 target 合并为单模型实现（Eagle3、MTP-Eagle、Draft-Target 均如此），降低显存与调度复杂度。1.3 RC 周期又引入了一批新算法与 kernel：
+
+| 机制 | 说明 |
+|---|---|
+| Eagle3 / MTP-Eagle | 单模型多步草稿，支持多层 draft head |
+| DSpark / DFlash | 面向 Blackwell 的 draft/verify kernel，扩展到 RoPE、滑窗、结构化输出 |
+| Helix | FP8 / FP4 MLA 场景的投机验证 |
+| GVR（top-K） | 基于树的投机采样，支持自采样 prefill |
+
+调度侧支持 **dynamic speculation**（按负载动态调整每步草稿长度）与投机 + 引导解码组合，并可在指标中按请求统计接受率（1.4.0rc0）。
+
+## 10. Quantization Toolkit（量化工具链）
 
 TRT-LLM 支持多种量化方案：
 
 | 方案 | 精度 | 适用硬件 |
 |---|---|---|
-| FP8 | 默认 Hopper 首选 | H100/H200 |
-| FP4 / NVFP4 | Blackwell 专属 | B200/GB200 |
+| FP8 | Hopper / Blackwell 首选 | H100/H200/B200/GB200 |
+| FP4 / NVFP4 | Blackwell 专属 | B200/GB300，消费级 SM120（W4A16 NVFP4） |
+| MXFP4 | Blackwell 微缩放 FP4 | B200/GB300、DGX Spark |
+| Marlin NVFP4 | 高吞吐 NVFP4 kernel | Ada（SM89）/Blackwell |
 | AWQ / GPTQ | W4A16 / W4A8 | 多代 GPU |
 | INT8 | 传统方案 | 多代 GPU |
+
+2025 下半年以来的 kernel 进展：1.1 引入基于 CuTe DSL 的 Blackwell NVFP4 grouped GEMM 与 DeepEP FP4 MoE 通信；1.3 周期加入 Marlin NVFP4（Ada 也有）、MegaMoE CuTe DSL（替代弃用的 WIDEEP）、CUTLASS MoE 的 FP8 block-scale 路径（TRITON MoE 后端已弃用）；KV cache 侧支持 NVFP4（如 MiniMax-M3）。
 
 量化流程：
 
@@ -257,7 +286,7 @@ TRT-LLM 支持多种量化方案：
 3. 生成量化 checkpoint
 4. TRT-LLM 加载并按 recipe 选择 kernel
 
-## 10. TokenizerManager
+## 11. TokenizerManager
 
 负责 prompt 的 tokenization 与生成 token 的 detokenization。
 
@@ -265,11 +294,32 @@ TRT-LLM 支持多种量化方案：
 - 支持 chat template、special tokens
 - Triton backend 中由 `preprocessing` / `postprocessing` ensemble 处理
 
-## 11. Triton Backend
+## 12. 服务化模块：trtllm-serve / OpenEngine / Triton
 
-生产环境最常用的服务化入口。
+1.0 之后服务化入口有三条路径：
 
-模型仓库结构：
+### trtllm-serve（推荐起点）
+
+OpenAI 兼容服务，直接从模型引用启动：
+
+```bash
+trtllm-serve --model meta-llama/Llama-3.1-8B-Instruct --port 8000
+```
+
+1.3 起补齐 `/v1/responses` 与 Anthropic Messages API，支持多模态与流式输出。
+
+### OpenEngine + NVIDIA Dynamo（分离式推荐）
+
+[OpenEngine](https://github.com/ai-dynamo/openengine) 是 vendor-neutral 的 gRPC 契约，定义引擎角色（aggregated / prefill / decode）与容量元数据。TRT-LLM 1.3 起内置可选的 OpenEngine gRPC server，作为 sidecar 接入 [Dynamo](https://github.com/ai-dynamo/dynamo) 编排层：
+
+- Dynamo Planner：按 SLA 自动伸缩 prefill / decode 实例
+- KV 感知路由：按前缀命中把请求路由到持有 KV 的实例
+- KV Block Manager（KVBM）：GPU → CPU → SSD 分层卸载
+- NIXL：GPU 间 RDMA / NVLink 的 KV 零拷贝传输
+
+### Triton backend（弃用中，存量维护）
+
+经典模型仓库结构：
 
 ```
 models/
@@ -287,7 +337,9 @@ models/
 - `max_queue_delay_microseconds`
 - `decoupled_mode`
 
-## 12. trtllm-bench
+注意：NVIDIA 已于 2026 年将 `*-trtllm-python-py3` 容器标记弃用（PB 5.9 为最后版本，见 [EOL Notices](https://docs.nvidia.com/ai-enterprise/lifecycle/latest/eol-notices.html)），新部署不建议再选此路径。
+
+## 13. trtllm-bench
 
 TRT-LLM 自带的 benchmark 工具，用于测量：
 
@@ -320,4 +372,4 @@ LLM.generate(prompt)
 
 ## 本章小结
 
-TensorRT-LLM 的模块划分清晰：LLM API 做封装，Builder/Engine 做编译与执行计划，Executor/Scheduler/KVCacheManager 做运行时调度，Decoder 做采样，Triton backend 做服务化。1.2 后 TensorRT 后端被移除，PyTorchModelEngine 接管执行，但模块职责与交互关系保持稳定。
+TensorRT-LLM 的模块划分清晰：LLM API 做封装，Builder/Engine 做编译与执行计划，Executor/Scheduler/KVCacheManager（1.3 起 V2）做运行时调度，Decoder 与投机解码模块做采样加速，量化工具链覆盖 FP8/FP4/NVFP4/MXFP4，服务层以 `trtllm-serve` 与 OpenEngine/Dynamo 为主、Triton 进入维护期。1.2 后 TensorRT 后端被移除，PyTorchModelEngine 接管执行，但模块职责与交互关系保持稳定。

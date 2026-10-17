@@ -24,11 +24,13 @@ TensorRT-LLM 于 2023 年底随 NVIDIA TensorRT 生态开源发布，目标是�
 - **构建期**：把 HuggingFace / Megatron / GPTQ / FP8 等 checkpoint 转换成优化后的执行计划（historically TensorRT engine / plan；现在为 PyTorch 后端的编译执行图）。
 - **运行期**：用 Executor + Batch Manager 做 In-flight Batching，动态交错 prefill 与 decode。
 
-截至 2026 年 7 月，TensorRT-LLM 已发展到 [1.2](https://github.com/NVIDIA/TensorRT-LLM/releases)。关键里程碑：
+截至 2026 年 10 月，TensorRT-LLM 稳定版为 [1.2](https://github.com/NVIDIA/TensorRT-LLM/releases)，[1.3 处于 RC 周期](https://github.com/NVIDIA/TensorRT-LLM/releases)（最新 1.3.0rc29），[1.4.0rc0](https://github.com/NVIDIA/TensorRT-LLM/releases) 已于 2026-10-14 发布。关键里程碑：
 
-- **1.0**：PyTorch 后端成为默认/稳定后端，LLM API 稳定。
+- **1.0**：PyTorch 后端成为默认/稳定后端，LLM API 稳定；`trtllm-serve` 提供 OpenAI 兼容服务入口，不再强依赖 Triton。
 - **1.1**：新增模型、FP4 / MXFP4 在 Blackwell 上的支持、KV Cache Connector 用于分离式服务、投机解码与引导解码结合。
-- **1.2**：**移除 TensorRT 后端**，PyTorch 成为唯一执行后端；支持 B300 / GB300；基于 PyTorch 2.9.0、ModelOpt 0.37、xgrammar 0.1.25。
+- **1.2**：**移除 TensorRT 后端**，PyTorch 成为唯一执行后端；支持 B300 / GB300 与 DGX Spark（beta）；投机解码统一为单模型实现（Eagle3 / MTP-Eagle / Draft-Target 不再使用独立 draft engine）。
+- **1.3（RC）**：**KVCacheManager V2** 成为多数主流模型的默认（V1 弃用）；分离式服务能力大幅增强（NIXL / Ray 传输、`DisaggTransferCoordinator`）；TRITON MoE 后端弃用（迁移至 CUTLASS）；早期 Rubin（SM107）GEMM / MoE / CuTe DSL kernel；DSpark / Helix / GVR 等新一代投机解码；Marlin NVFP4 量化 kernel。
+- **1.4（RC0）**：Mooncake store pool 对接、稀疏 KV cache 分层卸载、C++ KVCacheManagerV2 beam search，OpenEngine gRPC 绑定直接随 wheel 发布。
 
 ## 没有 TensorRT-LLM 会怎样？
 
@@ -38,6 +40,9 @@ TensorRT-LLM 于 2023 年底随 NVIDIA TensorRT 生态开源发布，目标是�
 - **vLLM**：易用、开源、生态大，但在 NVIDIA 硬件上难以做到 TRT-LLM 级别的 kernel 融合与精度调度。
 - **SGLang**：擅长 LLM 程序与结构化生成，但同样受限于 Eager 执行路径。
 - **HuggingFace TGI**：已于 2025-12 进入维护模式，新优化主要流向 vLLM / SGLang。
+- **Triton Inference Server**：其 TRT-LLM 容器（`*-trtllm-python-py3`）已被 NVIDIA 标记弃用——Production Branch 5.9 是最后一个包含该变体的版本，2026-05 发布的 PB6 不再附带；NVIDIA 建议新部署改用 `trtllm-serve`、NIM 或 Dynamo（见 [NVIDIA EOL Notices](https://docs.nvidia.com/ai-enterprise/lifecycle/latest/eol-notices.html)）。
+
+2025-03 GTC 上开源的 **NVIDIA Dynamo** 则把格局推向“编排层与引擎层分离”：Dynamo 作为分布式推理编排框架（KV 感知路由、SLA Planner、KV Block Manager、NIXL 数据传输），可以编排 TensorRT-LLM、vLLM、SGLang 等多种引擎；GTC 2026 发布的 [Dynamo 1.0](http://nvidianews.nvidia.com/news/dynamo-1-0) 已被 Cursor、Perplexity、字节跳动等广泛采用。TRT-LLM 通过其 backend 与 [OpenEngine](https://github.com/ai-dynamo/openengine) gRPC 契约接入 Dynamo，成为 NVIDIA 全栈里的“性能引擎层”。
 
 TRT-LLM 提供了一条“编译一次、到处运行（在 NVIDIA GPU 上）”的高性能路径。
 
@@ -46,14 +51,17 @@ TRT-LLM 提供了一条“编译一次、到处运行（在 NVIDIA GPU 上）”
 | 维度 | TensorRT-LLM | vLLM | SGLang | HuggingFace TGI |
 |---|---|---|---|---|
 | 开源协议 | NVIDIA 开源 / 部分组件专有 | Apache 2.0 | Apache 2.0 | Apache 2.0 / 商业 |
-| 维护状态 | NVIDIA 持续更新，1.2 移除 TensorRT 后端 | 活跃，V1 默认 | 活跃，v0.5.14 | 2025-12 起维护模式 |
+| 维护状态 | NVIDIA 持续更新，稳定版 1.2，1.3 RC 中 | 活跃，0.29.x，V1 架构 | 活跃，0.5.x | 2025-12 起维护模式 |
 | 执行后端 | PyTorch（编译/优化执行图） | PyTorch Eager | PyTorch Eager | PyTorch Eager |
 | 核心抽象 | Builder / Engine / Runtime / Executor | PagedAttention + Continuous Batching | RadixAttention + LLM Program | Continuous Batching |
+| 服务入口 | `trtllm-serve`（OpenAI 兼容）/ Triton（弃用中）/ Dynamo backend | OpenAI API / LLM class | OpenAI API / sgl API | 有限 |
 | 易用性 | 中（需要 build/quant 步骤） | 高 | 中 | 中 |
-| 性能 | 很高（NVIDIA 硬件） | 高（通用场景） | 高（共享前缀/结构化输出） | 中高 |
+| 性能 | 很高（NVIDIA 硬件，极限吞吐领先） | 高（通用场景） | 高（共享前缀/结构化输出） | 中高 |
 | 灵活性 | 中（受支持模型/算子约束） | 高 | 高 | 中 |
-| 量化支持 | FP8 / FP4 / NVFP4 / AWQ / GPTQ / INT8 | FP8 / AWQ / GPTQ / INT8 等 | FP8 / AWQ / GPTQ / INT8 等 | 有限 |
-| 适用场景 | 极致性能 / NVIDIA 全栈 | 通用在线推理 | Agent / 多轮 / 结构化输出 | 简单在线服务 |
+| 量化支持 | FP8 / FP4 / NVFP4 / MXFP4 / AWQ / GPTQ / INT8 | FP8 / AWQ / GPTQ / INT8 等 | FP8 / AWQ / GPTQ / INT8 等 | 有限 |
+| 适用场景 | 极致性能 / NVIDIA 全栈 / Dynamo 引擎层 | 通用在线推理 | Agent / 多轮 / 结构化输出 | 简单在线服务 |
+
+2026 年的一个重要格局变化：**三个引擎不再是零和竞争，而是都可以跑在 NVIDIA Dynamo 编排层之下**。TRT-LLM 负责把单引擎性能推到硬件极限（MLPerf Inference v6.1 上，NVIDIA 在 Vera Rubin NVL72 跑 DeepSeek-R1 的提交即基于 TRT-LLM，整机吞吐约为 GB300 NVL72 的 3.7 倍，见 [MLPerf v6.1 分析](https://shattered.io/vera-rubin-nvl72-mlperf-inference-v6-1-2026/)）；Dynamo 负责跨引擎的调度、分离式服务与 KV 管理。
 
 ## 一句话理解
 
@@ -61,4 +69,4 @@ TRT-LLM 提供了一条“编译一次、到处运行（在 NVIDIA GPU 上）”
 
 ## 本章小结
 
-TensorRT-LLM 不是“另一个开源推理引擎”，而是 NVIDIA 硬件上的性能收口方案。它的设计动机不是通用性，而是**在锁定 NVIDIA 生态的前提下，把编译优化、精度选择、并行策略、动态批处理整合成一条工业级流水线**。1.2 移除 TensorRT 后端后，PyTorch 后端接过了编译与执行的双重职责，用户侧 API 保持稳定，但底层实现路径已经发生重大变化。
+TensorRT-LLM 不是“另一个开源推理引擎”，而是 NVIDIA 硬件上的性能收口方案。它的设计动机不是通用性，而是**在锁定 NVIDIA 生态的前提下，把编译优化、精度选择、并行策略、动态批处理整合成一条工业级流水线**。1.2 移除 TensorRT 后端后，PyTorch 后端接过了编译与执行的双重职责；1.3 又让 KVCacheManager V2、原生分离式服务与新一代投机解码成熟起来。在 NVIDIA 的战略版图里，TRT-LLM 正从“一体化推理服务器”演变为 Dynamo 编排体系下专注极致性能的**引擎层**。

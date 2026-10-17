@@ -26,12 +26,13 @@
 | `tensorrt_llm/_torch/pyexecutor/py_executor.py` | PyExecutor 主循环 |
 | `tensorrt_llm/_torch/pyexecutor/model_engine.py` | PyTorchModelEngine |
 | `tensorrt_llm/_torch/pyexecutor/scheduler.py` | CapacityScheduler / MicroBatchScheduler |
-| `tensorrt_llm/_torch/pyexecutor/kv_cache_manager.py` | KVCacheManager |
+| `tensorrt_llm/_torch/pyexecutor/kv_cache_manager.py` | KVCacheManager（1.3 起 V2 为主，C++ 实现） |
 | `tensorrt_llm/_torch/models/` | 各模型 PyTorch 实现 |
+| `tensorrt_llm/openengine/` | OpenEngine gRPC server（接入 Dynamo，1.3+） |
 | `cpp/tensorrt_llm/executor/` | C++ Executor 实现 |
 | `cpp/tensorrt_llm/kernels/` | CUDA kernels |
 | `examples/` | 官方示例 |
-| `triton_backend/` | Triton backend 源码与模板 |
+| `triton_backend/` | Triton backend 源码与模板（进入维护期） |
 
 ## Release Notes
 
@@ -39,9 +40,18 @@
 
 重点关注以下版本的变更：
 
-- **1.0**：PyTorch 后端稳定、LLM API 稳定
+- **1.0**：PyTorch 后端稳定、LLM API 稳定、`trtllm-serve` 服务入口
 - **1.1**：KV Cache Connector、FP4/MXFP4、投机解码增强
-- **1.2**：移除 TensorRT 后端、B300/GB300 支持
+- **1.2**：移除 TensorRT 后端、B300/GB300 与 DGX Spark（beta）、投机解码单模型化
+- **1.3（RC）**：KVCacheManager V2 默认、TRITON MoE 弃用、NIXL/Ray 分离式传输、早期 Rubin（SM107）kernel、OpenEngine gRPC
+
+## NVIDIA Dynamo 与 OpenEngine（2025-2026 推理编排层）
+
+- [ai-dynamo/dynamo](https://github.com/ai-dynamo/dynamo) — NVIDIA 开源的分布式推理编排框架（GTC 2025 开源，1.0 于 GTC 2026 发布）：KV 感知路由、SLA Planner、KV Block Manager、NIXL
+- [ai-dynamo/openengine](https://github.com/ai-dynamo/openengine) — vendor-neutral 的引擎接入 gRPC 契约（aggregated / prefill / decode 角色）
+- [NVIDIA Dynamo 官方页](https://developer.nvidia.com/dynamo) 与 [Dynamo 1.0 新闻稿](http://nvidianews.nvidia.com/news/dynamo-1-0)
+- [TensorRT-LLM Disaggregated Serving 文档](https://github.com/NVIDIA/TensorRT-LLM/blob/main/docs/source/features/disagg-serving.md) — 原生分离式服务与 `cache_transceiver_config`
+- [NVIDIA EOL Notices](https://docs.nvidia.com/ai-enterprise/lifecycle/latest/eol-notices.html) — Triton `*-trtllm-python-py3` 容器弃用信息
 
 ## NVIDIA 演讲与博客
 
