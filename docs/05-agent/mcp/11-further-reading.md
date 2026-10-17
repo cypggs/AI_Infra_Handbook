@@ -4,16 +4,20 @@
 
 ## 官方文档
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-06-18)
-  - 权威协议文档，覆盖架构、生命周期、消息格式、Primitives、Transport、错误码。
+- [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
+  - 当前稳定版权威协议文档：无状态核心、`server/discover`、MRTR、扩展框架、授权基线。
+- [Model Context Protocol Specification（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18)
+  - 2025 时代规范：握手生命周期、Primitives、Transport 细节，理解存量实现与 Mini Demo 的基础。
 - [Introduction to MCP](https://modelcontextprotocol.io/introduction)
   - Anthropic 官方的 MCP 介绍，适合快速建立整体认知。
+- [官方 MCP Registry](https://registry.modelcontextprotocol.io)
+  - Server 发现的权威来源，以 `server.json` manifest 发布。
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-  - 官方 Python SDK 源码与 README。
+  - 官方 Python SDK；v2 迁移见 [migration.md](https://github.com/modelcontextprotocol/python-sdk/blob/main/docs/migration.md)。
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-  - 官方 TypeScript SDK 源码与 README。
+  - 官方 TypeScript SDK，已重构到 Web Standards，可运行于 Node.js / Bun / Deno / Workers。
 - [MCP Reference Servers](https://github.com/modelcontextprotocol/servers)
-  - 官方参考 Server 集合：filesystem、fetch、sqlite、postgres、github、slack 等。
+  - 官方参考 Server（filesystem、fetch、git、memory 等），教育性质示例。
 
 ## Anthropic / Claude 生态
 
@@ -27,7 +31,24 @@
 ## OpenAI 生态
 
 - [OpenAI Agents SDK MCP](https://openai.github.io/openai-agents-python/mcp/)
-  - OpenAI Agents SDK 中 `MCPServerStdio` 与 `MCPServerSse` 的使用文档。
+  - OpenAI Agents SDK 中 `MCPServerStdio` / `MCPServerStreamableHttp` 的使用文档。
+
+## 规范解读与迁移指南
+
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
+  - 2026-07-28 规范最系统的第三方解读：无状态核心、MRTR、授权强化、TS SDK Web Standards 化。
+- [Appwrite: What's new in the MCP 2026-07-28 specification](https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification)
+- [Python SDK v2 迁移指南](https://github.com/modelcontextprotocol/python-sdk/blob/main/docs/migration.md)
+  - FastMCP → MCPServer 更名、统一 Client、`mcp-types` 拆包等破坏性变化。
+
+## 治理与安全
+
+- [Anthropic 将 MCP 捐入 Linux Foundation Agentic AI Foundation](https://shahvatsal.com/news/agentic-ai-foundation-mcp-linux-foundation-open-standard)
+- [CSA: MCP Security Crisis — Systemic Design Flaws](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-security-crisis-20260504-csa-styled/)
+- [CSA: MCP Tool Poisoning — Adversarial Hijacking of AI Agent Workflows](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-tool-poisoning-ai-agent-exfiltration-2/)
+- [CSA: Agentic MCP Security Best Practices](https://labs.cloudsecurityalliance.org/agentic/agentic-mcp-security-best-practices-v1/)
+- [Obsidian Security: When MCP Meets OAuth](https://www.obsidiansecurity.com/blog/when-mcp-meets-oauth-common-pitfalls-leading-to-one-click-account-takeover)
+- [OX Security: MCP STDIO Command Injection Advisory](https://www.ox.security/blog/mcp-supply-chain-advisory-rce-vulnerabilities-across-the-ai-ecosystem/)
 
 ## 工程文章与对比
 
@@ -62,11 +83,11 @@
 
 ## 本章小结
 
-MCP 是一个快速发展的开放协议，官方 Spec 和 SDK 是最权威的学习资料；Anthropic 与 OpenAI 的集成文档则展示了协议在真实产品中的应用方式。结合本主题其他章节与 AI Infra Handbook 的 Agent Runtime、Memory、Multi-Agent、Reflection 等主题，可以形成完整的 Agent 基础设施知识体系。
+MCP 是一个快速发展的开放协议：2026-07-28 无状态规范是当前部署基线，2025 时代规范在弃用窗口内仍广泛运行。官方 Spec、SDK 与 Registry 是最权威的学习资料；Cloudflare、Appwrite 等的规范解读与 CSA、OWASP 的安全材料则是工程落地的必读补充。结合本主题其他章节与 AI Infra Handbook 的 Agent Runtime、Memory、Multi-Agent、Reflection 等主题，可以形成完整的 Agent 基础设施知识体系。
 
 **参考来源**
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-06-18)
+- [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
 - [Introduction to MCP](https://modelcontextprotocol.io/introduction)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
@@ -75,4 +96,5 @@ MCP 是一个快速发展的开放协议，官方 Spec 和 SDK 是最权威的�
 - [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)
 - [OpenAI Agents SDK MCP](https://openai.github.io/openai-agents-python/mcp/)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
 - [从 Function Call 到 MCP → SKILLS](https://crossoverjie.top/2026/02/03/AI/MCP-Skills-intro/)

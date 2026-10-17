@@ -2,6 +2,8 @@
 
 > 一句话理解：一个纯 Python 可运行的 MCP Client-Server Demo，展示 initialize、tools/list、tools/call、resources/read、prompts/get 与 Mock LLM 决策。
 
+> 版本说明：本 Demo 实现的是 **2025 时代协议**（initialize 握手 + 有状态会话）——它是理解协议消息流转最直观的路径，且该版本在 2026-07-28 规范的弃用窗口（约至 2027-07）内仍被大量存量 Host 使用。2026-07-28 无状态协议的变化见 [协议工作流程](04-protocol-workflow) 第 8 节。
+
 ## Demo 设计
 
 真实 MCP 系统（Claude Desktop、Cursor、OpenAI Agents SDK）通常包含大量抽象与集成；为了在不依赖外部 LLM key、不依赖外部 MCP Server 的情况下讲清楚协议核心，本 Demo 采用纯 Python 模拟：

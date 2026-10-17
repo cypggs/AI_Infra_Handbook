@@ -1,6 +1,8 @@
 # 4. 协议工作流程
 
-> 一句话理解：一个 MCP 会话从 `initialize` 握手开始，经过能力交换、工具/资源/提示发现，最终进入请求-响应或通知循环，直到 `notifications/closed`。
+> 一句话理解：2025 时代 MCP 会话从 `initialize` 握手开始，经过能力交换、工具/资源/提示发现，最终进入请求-响应或通知循环，直到 `notifications/closed`；2026-07-28 起协议彻底无状态化，握手与会话被移除（见第 8 节）。
+
+> 版本说明：第 1–7 节描述 2025 时代协议生命周期——它是本主题 Mini Demo 的实现基础，也是排查存量 Host 连接问题的必备知识；第 8 节描述 2026-07-28 无状态工作流程，是新部署应遵循的基线。
 
 ## 1. 连接生命周期
 
@@ -280,13 +282,111 @@ MCP 连接关闭时应发送 `notifications/closed`，让 Server 有机会释放
 - Server 收到 closed 后应停止执行中的任务、关闭文件句柄、释放数据库连接。
 - Host 应记录会话关闭事件，用于审计与调试。
 
+## 8. 2026-07-28 无状态工作流程（新基线）
+
+2026-07-28 规范把工作流程压缩成“**发现（可选）→ 调用 → 完成或反问**”三步，不再有握手、不再有会话：
+
+```mermaid
+sequenceDiagram
+    participant H as Host
+    participant C as Client
+    participant S as Server
+
+    Note over C,S: 可选：能力发现
+    C->>S: server/discover（_meta 携带版本与能力）
+    S-->>C: 支持的版本 / capabilities / identity
+
+    Note over C,S: 每个请求自带身份与能力（_meta）
+    C->>S: POST /mcp<br/>Mcp-Method: tools/call<br/>Mcp-Name: read_file
+    S-->>C: resultType: "complete"
+
+    Note over C,S: 服务端反问（MRTR）
+    C->>S: tools/call {高风险参数}
+    S-->>C: resultType: "input_required"<br/>+ requestState
+    H->>C: 用户确认 / 补充输入
+    C->>S: 原请求 + requestState + 补充输入
+    S-->>C: resultType: "complete"
+```
+
+### 8.1 请求自带身份：_meta
+
+无状态化后，每个请求的 `params._meta` 携带协议版本、Client 身份与能力，Server 据此决定如何响应，无需任何前置握手：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "_meta": {
+      "protocolVersion": "2026-07-28",
+      "clientInfo": { "name": "my-client", "version": "2.0.0" },
+      "capabilities": { "elicitations": {} }
+    },
+    "name": "read_file",
+    "arguments": { "path": "README.md" }
+  }
+}
+```
+
+配套地，Streamable HTTP 请求强制携带三个头，让网关无需解析 body 即可路由与授权：
+
+```text
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: read_file
+```
+
+其中 `Mcp-Name` 对 `tools/call`、`resources/read`、`prompts/get` 是必填的。
+
+### 8.2 server/discover：可选的能力发现
+
+`server/discover` 是 Server **必须实现**、Client **可以调用**的方法，返回支持的协议版本、capabilities 与 Server 身份信息。Client 可以用它在做任何调用前确认兼容性，也可以跳过直接发请求。
+
+### 8.3 MRTR：多轮往返请求
+
+2025 时代里 Server 反向请求 Client（Sampling、Roots、`elicitation/create`）需要保持长连接。2026-07-28 用 MRTR 取代了这一模式：
+
+1. Server 处理 `tools/call` 时发现信息不足或需要用户批准，返回 `resultType: "input_required"`、一份说明和一个 `requestState` 令牌。
+2. 双方都可以关闭连接。
+3. Client（Host）收集输入后，重新发起**同一个请求**，带上 `requestState` 与补充参数。
+4. Server 校验令牌后继续执行，返回 `resultType: "complete"`。
+
+这带来两个工程红利：Server 彻底无状态（反问状态编码进令牌而不是保存在内存），且反问天然穿过网关与防火墙（只是普通重试请求）。
+
+### 8.4 可缓存的能力目录
+
+`tools/list`、`prompts/list`、`resources/list`、`resources/read` 的结果可以携带缓存提示，且列表按确定性顺序返回：
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tools": [ ... ],
+    "ttlMs": 300000,
+    "cacheScope": "client"
+  }
+}
+```
+
+Client 与中间网关可以据此安全缓存能力目录，显著降低高频 `tools/list` 的开销。
+
+### 8.5 两代协议的兼容窗口
+
+- Roots、Sampling、Logging、旧 HTTP+SSE 传输进入弃用期，规范保证 **至少 12 个月**（约至 2027-07）可用。
+- 动态客户端注册（DCR）计划于 2027 年夏之后移除。
+- 官方 SDK（v2）支持同一端点同时服务两代客户端：2025 时代客户端走握手 + 会话路径，2026 时代客户端走无状态路径。
+
 ## 本章小结
 
-MCP 协议工作流程可以概括为：先握手（initialize），再发现（list），后调用（call/read/get），期间通过 Notification 处理事件与变更，最后通过 closed 安全收尾。理解这套生命周期，是读懂 SDK、实现 Server、调试连接问题的基础。
+MCP 协议工作流程经历了两代演进：2025 时代是“先握手（initialize），再发现（list），后调用（call/read/get），期间通过 Notification 处理事件与变更，最后通过 closed 安全收尾”的有状态会话模型；2026-07-28 起是“可选发现（server/discover），每个请求自带身份（_meta），调用结果区分 complete / input_required（MRTR），能力目录可缓存”的无状态模型。理解两代流程，是读懂 SDK、实现 Server、调试连接问题的基础。
 
 **参考来源**
 
-- [MCP Specification: Lifecycle](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle)
-- [MCP Specification: Messages](https://modelcontextprotocol.io/specification/2025-06-18/basic/messages)
+- [MCP Specification: Lifecycle（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle)
+- [MCP Specification: Messages（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18/basic/messages)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
 - [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification)
-- [MCP Specification: Errors](https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/errors)
+- [MCP Specification: Errors（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/errors)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)

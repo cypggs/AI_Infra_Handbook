@@ -8,11 +8,11 @@
 
 1. 解释为什么 Function Calling 之后还需要 MCP，以及 MCP 解决了哪些工程问题。
 2. 说清楚 MCP 中 Host、Client、Server 各自的职责与边界。
-3. 描述 MCP 协议的生命周期：initialize、能力交换、发现、调用、通知、关闭。
-4. 画出 MCP 的五层架构，并说明控制面与数据面的分离方式。
-5. 对比 stdio、SSE、Streamable HTTP 三种 Transport 的适用场景与取舍。
-6. 跑通并扩展本主题的 Mini Demo，理解协议消息流转与 Mock LLM 决策。
-7. 回答企业落地 MCP 时的注册中心、网关、认证、多租户、版本兼容与可观测问题。
+3. 描述两代协议生命周期：2025 时代的 initialize 握手模型，与 2026-07-28 的无状态模型（`_meta`、`server/discover`、MRTR）。
+4. 画出 MCP 的五层架构，并说明控制面与数据面的分离方式，以及无状态化给网关与部署带来的变化。
+5. 对比 stdio 与 Streamable HTTP 两种 Transport 的适用场景与取舍（SSE 已弃用）。
+6. 跑通并扩展本主题的 Mini Demo（实现的是 2025 时代协议），理解协议消息流转与 Mock LLM 决策。
+7. 回答企业落地 MCP 时的注册中心、网关、OAuth 2.1 授权、工具投毒与 rug pull 防护、多租户、版本兼容与可观测问题。
 
 ## MCP 与其他主题的关系
 
@@ -35,13 +35,13 @@
 
 1. [背景](01-background) — 从 Function Calling 到 MCP 的演进与协议必要性。
 2. [核心思想](02-core-ideas) — Host / Client / Server 三角角色、Primitives、Capability negotiation、Transport 无关性。
-3. [架构设计](03-architecture) — 五层架构、控制面/数据面、本地与远程部署形态。
-4. [协议工作流程](04-protocol-workflow) — 生命周期、initialize、发现、调用、通知、错误码、关闭。
+3. [架构设计](03-architecture) — 五层架构、控制面/数据面、本地与远程部署形态、2026-07-28 无状态架构与扩展框架。
+4. [协议工作流程](04-protocol-workflow) — 两代生命周期：2025 握手模型（initialize、发现、调用、通知、关闭）与 2026-07-28 无状态流程（`_meta`、`server/discover`、MRTR、可缓存目录）。
 5. [核心模块](05-core-modules) — Server Registry、Capability Manager、Transport Adapter、Session Manager、Message Router、Handlers、Auth/Gateway、Observer。
-6. [源码分析](06-source-analysis) — 官方 Python/TypeScript SDK、参考 Servers、Claude Code / Claude Desktop、OpenAI Agents SDK MCP 支持。
-7. [工程实践](07-mini-demo) — 纯 Python 可运行的 MCP Client-Server Demo。
-8. [企业生产实践](08-production-practice) — Server 注册中心、Transport 选型、认证授权、网关、限流、多租户、版本兼容、审计与可观测。
-9. [最佳实践](09-best-practices) — Tool/Resource/Prompt 设计、Capability 声明、错误处理、Tracing、测试策略。
+6. [源码分析](06-source-analysis) — 官方 Python/TypeScript SDK（含 v2：`MCPServer` 与统一 `Client`）、参考 Servers 与 Registry、Claude Code / Claude Desktop、OpenAI Agents SDK MCP 支持。
+7. [工程实践](07-mini-demo) — 纯 Python 可运行的 MCP Client-Server Demo（实现 2025 时代协议）。
+8. [企业生产实践](08-production-practice) — Server 注册中心、Transport 选型、OAuth 2.1 认证授权、网关、限流、多租户、版本兼容、审计与可观测、供应链安全。
+9. [最佳实践](09-best-practices) — Tool/Resource/Prompt 设计、Capability 声明、错误处理、Tracing、供应链治理、面向 2026-07-28 的新实践。
 10. [面试题](10-interview-questions) — 初/中/高级面试题。
 11. [延伸阅读](11-further-reading) — 官方 Spec、SDK、参考 Servers、集成文档与学习路径。
 

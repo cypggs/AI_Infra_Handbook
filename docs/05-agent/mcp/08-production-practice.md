@@ -1,6 +1,6 @@
 # 8. 企业生产实践
 
-> 一句话理解：企业落地 MCP 需要 Server 注册中心、Transport 选型、认证授权、网关、限流、多租户、版本兼容、审计与可观测九件事协同运转。
+> 一句话理解：企业落地 MCP 需要 Server 注册中心、Transport 选型、认证授权、网关、限流、多租户、版本兼容、审计与可观测、供应链安全十件事协同运转。
 
 ## 1. 部署拓扑
 
@@ -14,14 +14,14 @@ flowchart TB
     end
 
     subgraph Gateway["网关聚合"]
-        H2[多个 Host] -->|SSE/HTTP| GW[MCP Gateway]
+        H2[多个 Host] -->|Streamable HTTP| GW[MCP Gateway]
         GW -->|S1| S3[业务 Server]
         GW -->|S2| S4[数据 Server]
     end
 
     subgraph Hybrid["混合"]
         H3[企业 Agent Runtime] -->|stdio| L1[本地 Server]
-        H3 -->|SSE| GW2[远程 Gateway]
+        H3 -->|HTTP| GW2[远程 Gateway]
         GW2 -->|HTTP| R1[远程 Server]
     end
 ```
@@ -32,22 +32,24 @@ flowchart TB
 - **网关聚合**：适合企业内多 Host 复用同一套能力，便于集中治理。
 - **混合**：最贴近生产实际，本地能力 + 远程共享能力并存。
 
-## 2. 本地 stdio vs 远程 SSE/HTTP
+## 2. 本地 stdio vs 远程 Streamable HTTP
 
-| 维度 | stdio | SSE / Streamable HTTP |
+| 维度 | stdio | Streamable HTTP |
 |---|---|---|
 | 启动方式 | Host 启动子进程 | 独立服务或容器 |
 | 隔离性 | 进程级 | 网络/容器级 |
 | 延迟 | 低 | 中/高 |
 | 部署复杂度 | 低 | 中/高 |
 | 共享能力 | 仅当前 Host | 多 Host 复用 |
-| 认证 | OS 用户权限 | OAuth/API Key/mTLS |
+| 认证 | OS 用户权限 | OAuth 2.1 / API Key / mTLS |
+| 状态模型 | 天然按进程隔离 | 2026-07-28 起无状态，无需会话存储 |
 | 适用 | 本地工具、敏感数据 | 共享服务、SaaS 集成 |
 
 生产建议：
 
 - 敏感数据（本地文件、内网数据库）优先用 stdio，限定运行用户与目录。
-- 共享服务（搜索、知识库、公共 API）优先用 SSE/HTTP，便于版本管理与限流。
+- 共享服务（搜索、知识库、公共 API）优先用 Streamable HTTP，便于版本管理与限流。
+- 旧 HTTP+SSE 端点已弃用（约 2027-07 移除），存量应规划迁移到单端点 Streamable HTTP。
 - 同一个 Host 可以同时连接 stdio 和远程 Server，根据数据敏感度选择 Transport。
 
 ## 3. MCP Gateway 设计
@@ -66,22 +68,32 @@ flowchart LR
     Router -->|S2| Server2
 ```
 
-- **认证**：验证 Host/用户身份，支持 API Key、OAuth 2.0、JWT、mTLS。
+- **认证**：验证 Host/用户身份，支持 API Key、OAuth 2.1、JWT、mTLS。
 - **授权**：根据身份决定能访问哪些 Server、Tool、Resource。
 - **限流**：按 Host、Server、Tool 维度限流，防止单用户打爆服务。
 - **审计**：记录所有请求/响应、审批事件、错误事件。
-- **路由**：根据 Server 名称或标签把请求转发到对应实例。
-- **协议转换**：必要时在 stdio 与 HTTP 之间做桥接。
+- **路由**：2026-07-28 起可直接基于 `Mcp-Method` / `Mcp-Name` 头路由，无需解析 body。
+- **协议转换**：必要时在 stdio 与 HTTP 之间做桥接，或承接 2025 时代会话客户端的兼容流量。
+
+> **无状态化的部署红利**：2026-07-28 之后网关不再需要 sticky session 与集中会话存储，可以水平扩展任意实例；GitHub 官方 MCP Server 在迁移后甚至直接下线了 Redis 会话层。
 
 ## 4. 认证授权
 
-MCP 协议本身不规定认证机制，企业需要在 Transport 或 Gateway 层补齐：
+MCP 早期规范把授权列为可选，实践中大量远程 Server 裸奔：2025 年 7 月的互联网扫描发现 **1,862 个无需认证即可调用的公开 MCP 实例**，只有 **8.5% 的公共 Server 启用 OAuth**。2026 年安全事件密集爆发后，2026-07-28 规范把授权升级为**有明确要求的配置**。
 
 | 层级 | 方案 | 适用场景 |
 |---|---|---|
 | stdio | OS 用户、环境变量、启动参数 | 本地 Server |
-| SSE/HTTP | API Key、JWT、OAuth 2.0 | 远程共享 Server |
+| Streamable HTTP | OAuth 2.1（PKCE 强制）、API Key、JWT、mTLS | 远程共享 Server |
 | Gateway | 统一认证 + 细粒度 RBAC | 企业集中治理 |
+
+远程 Server 的 OAuth 2.1 基线（2026）：
+
+- **PKCE 强制开启**，state 必须与用户会话绑定——2025 年 Obsidian Security 披露的一键账号接管漏洞，根因正是远程 Server 兼任授权服务器 + 单一静态 `client_id` + 未绑定 state。
+- **RFC 9207**：授权响应携带 `iss`，Client 必须校验 issuer，防授权服务器冒充。
+- **RFC 8707**：令牌绑定 `resource`（Server canonical URI），实现 audience 隔离，防 confused deputy（拿 A Server 的令牌调 B Server）。
+- **客户端注册优先级**：预注册客户端 > Client ID Metadata Documents（CIMD）> DCR（动态注册）；DCR 将于 2027 年夏之后移除，企业内网不应在网关后暴露 DCR 端点。
+- **审计**：谁（用户/Agent 身份）、何时、对哪个 Server 的哪个 Tool、带了什么参数、结果如何——五要素缺一不可。
 
 Tool/Resource 级别的授权建议：
 
@@ -131,6 +143,8 @@ sequenceDiagram
 - **灰度发布**：Gateway 按 Host/用户维度灰度路由到新版本 Server。
 - **弃用通知**：Server 通过 `logging/message` 或 capability 变更通知 Client。
 
+> **2026-07-28 变化**：规范引入正式的**生命周期管理**——特性分为 Active / Deprecated / Removed，Deprecated 至少保留 12 个月。Roots、Sampling、Logging、旧 HTTP+SSE 已进入弃用期（约 2027-07 移除），DCR 在 2027 年夏之后移除。新能力一律通过**扩展框架**发布（反向 DNS 命名、独立版本、在 `ServerCapabilities.extensions` 中广告），首批扩展为 MCP Apps、Tasks、企业托管授权。企业 Registry 应记录每个 Server 支持的规范版本与扩展清单。
+
 ## 7. 限流与配额
 
 限流维度建议：
@@ -175,14 +189,45 @@ sequenceDiagram
 - Metrics 使用 Prometheus，标签包含 server、tool、transport、status。
 - Logs 使用 JSON 格式，便于检索与聚合。
 
+## 10. 供应链安全与工具投毒防护
+
+2026 年是 MCP 安全的“觉醒年”：仅 2026 年就披露了 40+ 个 CVE，云安全联盟（CSA）直指 MCP 存在**系统性设计缺陷**——协议对工具投毒（tool poisoning）、rug pull、跨 Server 工具影子化没有原生防御。企业必须把供应链安全当作 MCP 落地的一等公民。
+
+主要威胁面：
+
+| 威胁 | 手法 | 2026 年实证 |
+|---|---|---|
+| **工具投毒** | 在工具描述/参数说明里注入恶意指令，模型读到后照做 | 抽样 1,899 个公共 Server，**5.5% 含有投毒描述**；基准测试中主流 Agent 对投毒攻击成功率超 60%（OWASP MCP Top 10 之 MCP03） |
+| **Rug pull** | Server 获批后静默替换工具定义，不触发重新授权 | 工具定义指纹比对可检测 |
+| **跨 Server 影子化** | 一个恶意 Server 伪造同名工具，劫持相邻可信 Server 的调用 | Invariant Labs 演示；CVE-2026-30856（工具命名冲突） |
+| **STDIO 命令注入** | 在 Server 配置里注入任意命令，Host 启动子进程时直接执行 | 2026 年 4 月起密集爆发：CVE-2026-30623（LiteLLM）、CVE-2026-105697（LangFlow）、CVE-2026-30617 等 |
+| **OAuth 实现缺陷** | state 未绑定会话、令牌跨服务重用 | Obsidian 一键接管；CVE-2026-16496（Terraform MCP 授权绕过）、CVE-2026-33032“MCPwn”（CVSS 9.8，在野利用） |
+| **恶意包** | npm/PyPI 上发布同名恶意 Server | 2025-09 `postmark-mcp` 事件：外发邮件被静默 BCC 给攻击者，潜伏数周 |
+
+纵深防御清单：
+
+1. **把每个 MCP Server 当作不可信第三方**：来源审查、版本锁定（lockfile + `--save-exact`）、SBOM  diff。
+2. **安装前扫描**：用 mcp-scan（Apache-2.0）/ Snyk Agent Scan 静态扫描 Server 包；注意扫描要在沙箱里跑——加载不可信 Server 本身就可能触发代码执行。
+3. **工具定义指纹基线**：对完整工具定义（名称 + 描述 + inputSchema）做 SHA-256，每次 `tools/list` 比对，不一致即阻断并人工复核。这是防 rug pull 最可靠的手段。
+4. **网关代理一切运行时流量**：assume-deny 注册、按 Agent 身份限流、SIEM 对接；Gartner 建议企业统一经 MCP 网关而非直连。
+5. **凭证保险库**：签发窄权限、短时效令牌（Vault / 1Password 等），Agent 永不持有原始长期密钥。
+6. **HITL 审批门**：基准数据显示引入人工审批后攻击成功率从 84% 降至 5% 以下；生产环境关闭工具自动批准。
+7. **容器隔离 STDIO Server**：本地 Server 跑在无网络、只读文件系统的容器中，防止配置注入后直接拿 shell。
+8. **治理框架**：参照 **OWASP MCP Top 10** 建立 MCP 治理台账——全量清点 Server、标注 owner、审批状态、权限标签、最近扫描结果。
+
 ## 本章小结
 
-企业 MCP 生产落地不是简单地把官方 SDK 跑起来，而是需要在部署拓扑、Transport 选型、认证授权、网关、HITL、版本管理、限流、多租户、审计与可观测等方面做系统设计。只有把协议层的能力与企业的治理需求结合起来，MCP 才能从“好用的本地工具”变成“可信赖的企业基础设施”。
+企业 MCP 生产落地不是简单地把官方 SDK 跑起来，而是需要在部署拓扑、Transport 选型、认证授权、网关、HITL、版本管理、限流、多租户、审计与可观测、供应链安全等方面做系统设计。2026-07-28 无状态规范降低了部署与扩展成本，但工具投毒、rug pull 与 STDIO 命令注入证明：协议层不替你做安全，只有把协议能力与企业治理需求结合起来，MCP 才能从“好用的本地工具”变成“可信赖的企业基础设施”。
 
 **参考来源**
 
-- [MCP Specification: Authorization](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
+- [MCP Specification: Authorization（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
+- [Obsidian Security: When MCP Meets OAuth](https://www.obsidiansecurity.com/blog/when-mcp-meets-oauth-common-pitfalls-leading-to-one-click-account-takeover)
+- [CSA: MCP Security Crisis — Systemic Design Flaws](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-security-crisis-20260504-csa-styled/)
+- [CSA: MCP Tool Poisoning — Adversarial Hijacking of AI Agent Workflows](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-tool-poisoning-ai-agent-exfiltration-2/)
+- [OX Security: MCP STDIO Command Injection Advisory](https://www.ox.security/blog/mcp-supply-chain-advisory-rce-vulnerabilities-across-the-ai-ecosystem/)
+- [CSA: Agentic MCP Security Best Practices](https://labs.cloudsecurityalliance.org/agentic/agentic-mcp-security-best-practices-v1/)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)
-- [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
-- [从 Function Call 到 MCP → SKILLS](https://crossoverjie.top/2026/02/03/AI/MCP-Skills-intro/)

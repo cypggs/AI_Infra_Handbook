@@ -2,6 +2,8 @@
 
 > 一句话理解：生产级 MCP 系统需要 Server Registry、Capability Manager、Transport Adapter、Session Manager、Message Router、Tool/Resource/Prompt Handlers、Auth/Gateway、Observer 八大模块协同工作。
 
+> 版本说明：本章以 2025 时代协议为参考实现；2026-07-28 无状态化后，Session Manager 与 Capability Manager 的职责发生显著变化（见各节标注）。
+
 ## 模块总览
 
 ```mermaid
@@ -37,6 +39,11 @@ Server Registry 负责管理所有可用的 MCP Server：
 - **schema 缓存**：缓存 `tools/list`、`resources/list`、`prompts/list` 结果，减少重复发现。
 - **版本管理**：跟踪 Server 版本，支持灰度发布与回滚。
 
+2026 年的生态格局：
+
+- **官方 MCP Registry**（`registry.modelcontextprotocol.io`）已成为权威来源，Server 以 `server.json` manifest 形式发布，2025-09 预览上线后逐步取代早期 `modelcontextprotocol/servers` 仓库的“目录”角色（该仓库现仅保留少量教育用途参考实现）。
+- Smithery、mcp.so、Glama、PulseMCP 等第三方目录继续作为发现层，但企业内网应建立自己的私有 Registry，只白名单可信 Server。
+
 示例接口：
 
 ```python
@@ -52,6 +59,7 @@ class ServerRegistry:
 - Registry 应支持 manifest 校验，防止恶意 Server 注入非法 schema。
 - schema 缓存需要失效机制，Server 更新后应触发重新发现。
 - 多 Host 场景下，Registry 应集中存储，避免每个 Host 各自维护一份。
+- 记录每个 Server 的工具定义指纹（对完整 Tool 定义做 SHA-256），`tools/list` 返回的指纹与基线不一致时阻断并告警——这是检测 **rug pull 攻击**（Server 获批后悄悄替换工具定义）的关键机制。
 
 ## 2. Capability Manager
 
@@ -79,6 +87,8 @@ def negotiate(client_caps: Capabilities, server_caps: Capabilities) -> Capabilit
 - Server 升级新增 capability 后，老 Client 应能继续工作（向后兼容）。
 - capability 变更事件应被 Observer 记录。
 
+> **2026-07-28 变化**：握手协商被移除后，Capability Manager 的职责从“会话开始时一次性求交集”变成“**逐请求校验 `_meta`**”：每个请求都声明自己的协议版本与能力，Server 逐请求决定启用哪些行为；一次性了解 Server 全景则交给可选的 `server/discover`。
+
 ## 3. Transport Adapter
 
 Transport Adapter 把上层 JSON-RPC 消息映射到具体传输通道：
@@ -86,8 +96,8 @@ Transport Adapter 把上层 JSON-RPC 消息映射到具体传输通道：
 | Adapter | 适用场景 | 关键实现 |
 |---|---|---|
 | **stdio** | 本地子进程 | `subprocess.Popen`，stdin 写请求，stdout 读响应 |
-| **SSE** | 远程 Server | HTTP GET 建立 SSE 通道，HTTP POST 发送请求 |
-| **Streamable HTTP** | 远程 Server | 复用 HTTP 连接做双向流式传输 |
+| **Streamable HTTP** | 远程 Server | 单 `/mcp` 端点，POST 请求 + 可选 SSE 流式响应 |
+| **SSE（旧）** | 遗留远程 Server | HTTP GET 建立 SSE 通道，HTTP POST 发送请求；2026-07-28 起弃用 |
 
 Adapter 接口示例：
 
@@ -131,6 +141,8 @@ stateDiagram-v2
 - 长请求应支持 progress notification 与取消。
 - Session 状态应暴露给 Observer，便于监控连接健康度。
 
+> **2026-07-28 变化**：无状态核心移除了会话概念——没有 `Mcp-Session-Id`，`initialize`/`initialized` 握手消失，Session Manager 退化为“**请求作用域管理**”（请求关联、超时、取消）。反问状态也不再保存在 Server 内存，而是编码进 MRTR 的 `requestState` 令牌。对仍需服务 2025 时代客户端的 Server/Gateway，Session Manager 会以兼容模式存在到弃用窗口结束（约 2027-07）。
+
 ## 5. Message Router
 
 Message Router 负责把 JSON-RPC 消息分发到正确的地方：
@@ -172,17 +184,25 @@ class ToolHandler:
 
 MCP Gateway 是企业部署中的关键模块：
 
-- **认证**：API Key、OAuth 2.0、JWT、mTLS。
+- **认证**：API Key、OAuth 2.1、JWT、mTLS。
 - **授权**：根据 Host/用户身份决定能调用哪些 Server/Tool/Resource。
 - **限流**：按 Host、Server、Tool 维度限流，防止滥用。
 - **审计**：记录所有请求/响应、审批事件、错误事件。
 - **路由**：把请求转发到正确的 Server 实例。
 
+2026 年的协议级安全基线：
+
+- **OAuth 2.1 + PKCE**：2026-07-28 规范把授权从“可选附录”升级为有明确要求的配置，远程 Server 应实现 OAuth 2.1 授权流程，PKCE 强制开启。
+- **RFC 9207（iss 声明）**：授权响应必须携带 issuer，Client 必须校验，堵住“恶意授权服务器冒充”导致的账号接管类漏洞（2025 年 Obsidian Security 披露的一键接管漏洞正是缺少 state/issuer 校验）。
+- **RFC 8707（resource 参数）**：令牌必须绑定到具体 Server 的 canonical URI（audience 隔离），防止令牌被拿到别的 Server 上重用（confused deputy）。
+- **CIMD 取代 DCR**：客户端身份注册优先使用 Client ID Metadata Documents，动态客户端注册（DCR）降级为兜底且将于 2027 年夏之后移除——企业应预注册客户端，避免在网关后面暴露 DCR 端点。
+- **工具定义指纹**：网关对 `tools/list` 结果做哈希基线比对，发现 rug pull（工具定义被静默替换）时阻断。
+
 生产注意点：
 
 - Gateway 不应解密或修改业务 payload，除非策略要求。
 - 敏感操作（写文件、删除、转账）应触发 HITL 审批。
-- Gateway 自身应支持水平扩展与高可用。
+- Gateway 自身应支持水平扩展与高可用；无状态协议让它不再依赖 sticky session 与集中会话存储。
 
 ## 8. Observer
 
@@ -204,11 +224,13 @@ class Observer:
 
 ## 本章小结
 
-生产级 MCP 系统不是简单的 JSON-RPC 代理，而是由 Server Registry、Capability Manager、Transport Adapter、Session Manager、Message Router、Handlers、Auth/Gateway、Observer 八大模块组成的完整基础设施。每个模块都有明确的输入输出与职责边界，只有在权限、治理、可观测方面都考虑周全，MCP 才能真正在企业中稳定运行。
+生产级 MCP 系统不是简单的 JSON-RPC 代理，而是由 Server Registry、Capability Manager、Transport Adapter、Session Manager、Message Router、Handlers、Auth/Gateway、Observer 八大模块组成的完整基础设施。每个模块都有明确的输入输出与职责边界，只有在权限、治理、可观测方面都考虑周全，MCP 才能真正在企业中稳定运行。2026-07-28 无状态化后，Capability Manager 与 Session Manager 明显瘦身，网关因 `Mcp-Method`/`Mcp-Name` 头获得了不解析 body 即可路由授权的能力——模块少了，但每个模块的安全责任更重了。
 
 **参考来源**
 
-- [MCP Specification: Architecture](https://modelcontextprotocol.io/specification/2025-06-18/architecture)
+- [MCP Specification: Architecture（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Obsidian Security: When MCP Meets OAuth](https://www.obsidiansecurity.com/blog/when-mcp-meets-oauth-common-pitfalls-leading-to-one-click-account-takeover)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
 - [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)

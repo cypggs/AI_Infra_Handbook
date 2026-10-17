@@ -25,8 +25,8 @@
 **参考答案**：
 
 - **stdio**：本地子进程，stdin/stdout 传输 JSON-RPC。
-- **SSE**：基于 HTTP Server-Sent Events，适合远程 Server。
-- **Streamable HTTP**：在 SSE 基础上进一步标准化的双向流式传输。
+- **Streamable HTTP**：单一 `/mcp` 端点，POST 请求 + 可选 SSE 流式响应，是远程部署的标准。
+- **SSE（旧）**：HTTP GET 建立 SSE 通道 + POST 发送请求的双端点模式，2026-07-28 规范已弃用，约 2027-07 移除。
 
 ### Q4：MCP 的五大原语是什么？
 
@@ -129,13 +129,41 @@ Tools（可调用能力）、Resources（URI 标识的数据）、Prompts（提�
 - Notification 用于单向事件，例如 Server 主动通知 Resource 更新、Client 通知 initialized/closed。
 - Notification 不需要等待回复，可以降低延迟、简化事件推送。
 
+### Q15：2026-07-28 规范为什么把 MCP 核心改成无状态？带来了什么变化？
+
+**参考答案**：
+
+有状态会话（`initialize` 握手 + `Mcp-Session-Id`）迫使 Server 保存会话、网关配置 sticky session、横向扩展困难。无状态化后：每个请求在 `_meta` 中自带协议版本、Client 身份与能力；`server/discover` 取代握手做能力发现；反问走 MRTR（`resultType: "input_required"` + `requestState`）；网关凭 `Mcp-Method`/`Mcp-Name` 头即可路由。Server 可以跑在任意负载均衡器、FaaS、边缘运行时后面，GitHub 官方 MCP Server 迁移后甚至下线了 Redis 会话层。
+
+### Q16：什么是 MRTR？它解决了什么问题？
+
+**参考答案**：
+
+MRTR（Multi Round-Trip Requests，多轮往返请求）是 2026-07-28 规范替代 Sampling/Roots/elicitation 的机制：Server 在处理请求时发现需要更多输入，返回 `resultType: "input_required"` 和一个 `requestState` 令牌后关闭连接；Client（Host）收集输入后重发同一请求并带上令牌，Server 继续执行返回 `resultType: "complete"`。它让 Server 彻底无状态，且反问流量只是普通 HTTP 重试，天然穿过网关与防火墙。
+
+### Q17：什么是 MCP 工具投毒与 rug pull？如何防御？
+
+**参考答案**：
+
+- **工具投毒**：攻击者在工具描述/参数说明中注入恶意指令，模型读到后执行（如把数据外发到攻击者地址）。实证：公共 Server 抽样投毒率约 5.5%。
+- **Rug pull**：Server 在获批后静默替换工具定义，不触发重新授权。
+- **防御**：对完整工具定义做 SHA-256 指纹基线、每次 `tools/list` 比对；安装前用 mcp-scan 等工具静态扫描；经网关代理运行时流量；高风险工具强制 HITL（引入审批后攻击成功率从 84% 降到 5% 以下）；STDIO 配置白名单防命令注入；参照 OWASP MCP Top 10 建治理台账。
+
+### Q18：MCP 与 A2A 的关系在 2026 年发生了什么变化？
+
+**参考答案**：
+
+没有合并，而是治理上归拢、分工更清：2025 年 12 月 MCP 捐入 Linux Foundation 的 Agentic AI Foundation（AAIF）；2026 年 3 月 A2A 发布 v1.0（合并了 IBM 的 ACP）；2026 年 8 月 A2A 也加入 AAIF。现在两者是同一治理框架下的互补层：MCP 负责 Agent 与工具/数据/提示的垂直连接，A2A 负责 Agent 与 Agent 的水平协作。
+
 ## 本章小结
 
-MCP 面试题通常围绕四个层面展开：**协议概念**（Host/Client/Server、Primitives、Transport）、**协议流程**（initialize、list、call、notification、close）、**安全治理**（Host 决策权、认证授权、HITL、参数校验）、**生产落地**（Gateway、Registry、可观测、多租户、版本管理）。掌握本章问题，基本可以覆盖中级到高级面试场景。
+MCP 面试题通常围绕四个层面展开：**协议概念**（Host/Client/Server、Primitives、Transport）、**协议流程**（两代生命周期：2025 握手模型与 2026 无状态模型）、**安全治理**（Host 决策权、OAuth 2.1、工具投毒与 rug pull、HITL）、**生产落地**（Gateway、Registry、可观测、多租户、版本管理）。掌握本章问题，基本可以覆盖中级到高级面试场景。
 
 **参考来源**
 
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
 - [MCP Introduction](https://modelcontextprotocol.io/introduction)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
+- [CSA: MCP Security Crisis](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-security-crisis-20260504-csa-styled/)
 - [Anthropic: Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)

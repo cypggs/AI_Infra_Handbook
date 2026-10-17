@@ -2,6 +2,8 @@
 
 > 一句话理解：MCP 的核心是“能力声明 + 动态发现 + 请求/通知双通道”，Server 声明 Tools/Resources/Prompts，Client 按需调用，Host 做最终决策。
 
+> 版本说明：本章以 2025 时代协议（2025-06-18 / 2025-11-25 规范）为主线讲解概念模型——它是本主题 Mini Demo 的实现基础，也是理解存量 Host 的钥匙；2026-07-28 规范在此之上做了无状态化重构，差异在对应小节单独标注。
+
 ## 1. Host / Client / Server 三角角色
 
 MCP 把参与者分成三个角色，职责边界非常清晰：
@@ -53,6 +55,8 @@ flowchart LR
 - **Sampling** 是“反向调用”：Server 不直接调 LLM，而是请 Host 帮忙调。
 - **Roots** 是“作用域”：告诉 Server 当前会话允许访问哪些根目录或空间。
 
+> **2026-07-28 变化**：**Sampling 与 Roots 进入 12 个月弃用期**（约 2027-07 移除）。Server 向 Client 发起请求（采样、反问、读取根目录）统一改用 **MRTR（Multi Round-Trip Requests，多轮往返请求）**：Server 返回 `resultType: "input_required"` 与一个 `requestState` 令牌后关闭连接，Client 收集好输入后带上令牌重试原请求。Server 不再依赖“Server 可以反向调用 Client”这一有状态假设。
+
 ## 3. Capability Negotiation：能力协商
 
 MCP 会话开始前，Client 与 Server 必须交换 capability：
@@ -98,15 +102,22 @@ Server 回复：
 - **listChanged / subscribe**：Server 是否支持动态增删 Tool/Resource 或订阅变更。
 - **info**：记录 name/version，便于调试与审计。
 
+**2026-07-28 变化：协商从“握手时一次性”变成“每个请求自带”**。`initialize`/`initialized` 握手被移除，每个请求在 `_meta` 中携带协议版本、Client 身份与能力；Server 提供可选的 `server/discover` 方法供 Client 查询其支持的版本、能力与身份（Server 必须实现，Client 可调用也可不调用）。这带来两个直接收益：
+
+- **无状态部署**：Server 不需要会话存储，可以跑在任意负载均衡器、FaaS、边缘运行时后面（GitHub 官方 MCP Server 因此直接下线了 Redis 会话层）。
+- **水平扩展零成本**：任何实例都能处理任何请求，不再需要 sticky session。
+
 ## 4. Transport 无关性
 
-MCP 协议层不依赖特定传输方式。官方 Spec 定义了三种 Transport：
+MCP 协议层不依赖特定传输方式。2025 时代规范定义了三种 Transport：
 
 | Transport | 适用场景 | 特点 |
 |---|---|---|
 | **stdio** | 本地进程 | Server 作为子进程启动，stdin/stdout 传输 JSON-RPC；最简单、最常见 |
-| **SSE** | 远程 Server | 基于 HTTP Server-Sent Events，适合浏览器/远程服务 |
-| **Streamable HTTP** | 远程 Server | 在 SSE 基础上进一步标准化流式传输 |
+| **SSE** | 远程 Server（旧） | 基于 HTTP Server-Sent Events；**2026-07-28 起进入弃用期，约 2027-07 移除** |
+| **Streamable HTTP** | 远程 Server | 单一 HTTP 端点支持请求与流式响应，成为远程部署标准 |
+
+> **2026-07-28 变化**：远程场景统一为 **Streamable HTTP**（一个 `/mcp` 端点 + 可选 SSE 流）；旧 HTTP+SSE 双端点模式废弃。所有 Streamable HTTP 请求强制携带 `Mcp-Method`、`Mcp-Name`、`MCP-Protocol-Version` 头，网关、WAF、限流器无需解析 JSON body 即可完成路由与粗粒度授权。
 
 Transport 无关性的价值：
 
@@ -161,11 +172,13 @@ MCP 基于 JSON-RPC 2.0，支持两种消息：
 
 - `notifications/tools/list_changed`：Tool 列表发生变化。
 - `notifications/resources/updated`：某个 Resource 内容更新。
-- `notifications/roots/list_changed`：Roots 发生变化。
-- `notifications/initialized`：Client 完成初始化。
+- `notifications/roots/list_changed`：Roots 发生变化（2025 时代协议；2026-07-28 起随 Roots 弃用）。
+- `notifications/initialized`：Client 完成初始化（2025 时代协议；2026-07-28 起握手被移除）。
 - `notifications/cancelled`：取消某个进行中的请求。
 
 这种设计让 MCP 既能做同步调用，也能做事件驱动的更新。
+
+**2026-07-28 变化**：所有结果必须带 `resultType` 字段（`"complete"` 或 `"input_required"`），把“请求是否需要后续输入”变成协议一等公民——这是 MRTR 的基础。同时 `tools/list`、`resources/list` 等结果支持 `ttlMs`/`cacheScope` 缓存提示，且列表按确定性顺序返回，让 Client 和中间网关可以安全缓存能力目录。
 
 ## 7. Host 的最终决策权
 
@@ -182,9 +195,13 @@ MCP 把安全责任放在 Host 上：
 
 MCP 的核心思想可以概括为：Server 声明能力、Client 管理连接、Host 掌控决策。通过 Tools、Resources、Prompts、Sampling、Roots 五大原语，MCP 把外部能力抽象成模型可理解、可发现、可协商的接口；通过 Transport 无关性和 URI/MIME 约定，它又能适应本地与远程多种部署形态。
 
+2026-07-28 规范没有推翻这套思想，而是把“连接有状态”这个最大的部署负担拿掉了：协商下沉到每个请求的 `_meta`，反问收敛为 MRTR，路由上浮到 HTTP 头，扩展能力交给正式的扩展框架。概念模型没变，运行模型彻底变了。
+
 **参考来源**
 
-- [MCP Specification: Architecture](https://modelcontextprotocol.io/specification/2025-06-18/architecture)
+- [MCP Specification: Architecture（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [MCP Specification: Architecture（2025-06-18）](https://modelcontextprotocol.io/specification/2025-06-18/architecture)
 - [MCP Core Primitives](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
 - [MCP Server Capabilities](https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/capabilities)
+- [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
 - [Anthropic: Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
