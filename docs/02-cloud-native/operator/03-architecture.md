@@ -169,7 +169,54 @@ spec:
 - **Health**（`:8081`）：`/healthz`（liveness，进程活着）、`/readyz`（readiness，Cache 同步完成可服务）。K8s 据此重启/摘流。
 - **Webhook Server**（`:9443`）：若 Operator 含 admission/conversion webhook，Manager 启一个 HTTPS server，apiserver 带证书回调它。证书管理是生产痛点（见第 8 章）。
 
-## 3.8 与 K8s 内置 Controller 的同构性
+> **metrics 鉴权方式已换代（2025）**：旧的 kubebuilder 脚手架依赖 `gcr.io/kubebuilder/kube-rbac-proxy` sidecar 保护 metrics 端点，该镜像仓库 2025 年 3 月起停止提供。新做法（Kubebuilder v4.1+ 脚手架默认）是 controller-runtime 内置的 **`WithAuthenticationAndAuthorization` FilterProvider**：用 K8s Bearer Token + SubjectAccessReview 直接在 Manager 的 metrics server 里做认证授权，不再需要 sidecar。升级老 Operator 时这是必查项。
+
+## 3.8 2025–2026：controller-runtime 的关键演进
+
+机制十年未变，但工程细节持续进化。截至 2026-10，controller-runtime 已到 **v0.25.x**（对齐 K8s 1.37），其中几个变化直接影响你写/读 Operator 的方式：
+
+| 版本 | 时间 | 关键变化 | 对你的影响 |
+|---|---|---|---|
+| v0.21 | 2025 中 | 跟随 K8s 1.33；**客户端限流器默认关闭** | 升级时注意 QPS/Burst 行为变化，按需显式配置 |
+| v0.22 | 2025 下 | `controller.Options.ReconciliationTimeout`；优先级队列（实验） | 可给单次 reconcile 加上下文超时，堵住"reconcile 卡死"类故障 |
+| v0.23 | 2026-01 | **优先级队列默认开启**（`Result.Priority`）；subresource Apply；类型安全 webhook builder；Event 迁到 `events.k8s.io/v1` | 大规模 Operator 可以给紧急 CR 让路；写 Event 的 RBAC 要改 `events.k8s.io` |
+| v0.24 | 2026-04 | 跟随 K8s 1.36 | — |
+| v0.25 | 2026-09 | 实验性 **ReadYourWritesConsistency** client；TypedInformer | 缓解"写后读 Cache 滞后读到旧值"的老大难问题（见 3.4 节） |
+
+两个值得展开的能力：
+
+**① 优先级队列（v0.23 起默认）**：默认 workqueue 是 FIFO——一个无关紧要的 CR 也可能挡在紧急 CR（如故障恢复中的推理服务）前面。现在 Reconciler 可以返回带优先级的 Result，队列按优先级出队：
+
+```go
+// 高优先级：正在故障恢复的推理服务，优先于日常扩缩容
+if is.Status.Phase == PhaseRecovering {
+    return ctrl.Result{Priority: ptr.To(highPriority)}, nil   // 插队调和
+}
+return ctrl.Result{Priority: ptr.To(lowPriority)}, nil
+```
+
+```mermaid
+flowchart LR
+    subgraph WQ["Workqueue（v0.23+ 优先队列）"]
+        direction TB
+        P0["高优先级：故障恢复中的 CR"]
+        P1["中优先级：常规 spec 变更"]
+        P2["低优先级：周期 reconcile / 状态同步"]
+    end
+    P0 -->|先出队| R["Reconciler worker"]
+    P1 --> R
+    P2 --> R
+```
+
+对 AI 平台这类"一个 Operator 管几千个训练/推理 CR、且故障恢复有 SLA"的场景，优先级队列是实打实的能力升级。
+
+**② ReconciliationTimeout（v0.22+）**：给整个 Controller 的单次调和设硬超时——超时后 reconcile 上下文被取消、记入 `controller_runtime_reconcile_timeouts_total` 指标。它把第 4 章"Reconcile 不能阻塞"从约定变成框架强制的兜底。
+
+**③ ReadYourWritesConsistency（v0.25，实验）**：传统 Client 读走 Cache，写完立刻读可能读到旧值（3.4 节的"读后写一致性"问题）。v0.25 提供实验性 client，跟踪"自己刚写入的对象"，对这些对象的读短暂绕过 Cache 直查 apiserver，写完即读不再靠运气。
+
+> **版本对齐经验**：controller-runtime 的 minor 版本与 K8s minor 版本一一对应（v0.21↔1.33 … v0.25↔1.37），Kubebuilder 每个 minor 跟随（v4.15 起支持 K8s 1.36）。给 Operator 选基线时，用"目标集群 K8s 版本对应的 controller-runtime"即可。
+
+## 3.9 与 K8s 内置 Controller 的同构性
 
 把上面的架构和 [K8s 第 3 章](../kubernetes/03-architecture) 的 kube-controller-manager 对照：
 
@@ -194,10 +241,14 @@ spec:
 - **Leader Election**：多副本只有一个 reconcile，靠 Lease 租约，和 K8s 内置机制一致。
 - **Metrics/Health/Webhook** 是生产可观测与准入控制的基础设施。
 - **同构性**：controller-runtime 几乎与 K8s 内置 Controller 一一对应——Operator 是 K8s 控制平面能力对用户的开放。
+- **2025–2026 演进**：kube-rbac-proxy 退场、metrics 鉴权内置化（`WithAuthenticationAndAuthorization`）；v0.23 起优先级队列默认开启（`Result.Priority`）；v0.22 起 `ReconciliationTimeout` 兜底卡死；v0.25 实验性 ReadYourWritesConsistency 缓解写后读滞后。controller-runtime minor 版本与 K8s minor 一一对应（v0.25↔1.37）。
 
 **参考来源**
 
 - [controller-runtime 架构文档](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg)
+- [controller-runtime Releases（v0.21–v0.25）](https://github.com/kubernetes-sigs/controller-runtime/releases)
+- [Kubernetes 官方博客 — How the controller-runtime Cache Actually Works (2026-07)](https://kubernetes.io/blog/2026/07/29/controller-runtime-cache-explained/)
 - [Kubebuilder Book — Controller Runtime](https://book.kubebuilder.io/cronjob-tutorial/controller-implementation)
+- [kube-rbac-proxy 镜像停用公告](https://github.com/kubernetes-sigs/kubebuilder/discussions/3907)
 - [client-go Informer 机制](https://pkg.go.dev/k8s.io/client-go/informers)
 - 本手册 [Kubernetes 第 3 章](../kubernetes/03-architecture)（kube-controller-manager 同构）、第 6 章（informer 源码）、[Helm 第 3 章](../helm/03-architecture)（并发写的乐观锁对比）。

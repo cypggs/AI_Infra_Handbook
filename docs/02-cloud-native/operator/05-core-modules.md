@@ -112,7 +112,7 @@ func (r *RayClusterReconciler) Reconcile(ctx, req) (ctrl.Result, error) {
 
 ## 5.5 Workqueue：抗风暴的缓冲
 
-Workqueue 的三个特性（去重、延迟、退避）第 3 章讲过。这里讲**怎么用对 Requeue**：
+Workqueue 的三个特性（去重、延迟、退避）第 3 章讲过，v0.23 起新增了第四个维度：**优先级**。这里讲**怎么用对 Requeue**：
 
 | 场景 | 该返回 | 理由 |
 |---|---|---|
@@ -121,8 +121,11 @@ Workqueue 的三个特性（去重、延迟、退避）第 3 章讲过。这里�
 | 证书续期 / 定期备份检查 | `RequeueAfter: 1h` | 长周期轮询 |
 | act 失败（apiserver 限流） | `error` | 让框架指数退避 |
 | 业务上需要立即再看一次 | `Requeue: true` | **少用**，易自我风暴 |
+| 故障恢复中的 CR | `Result{Priority: 高}`（v0.23+） | 优先出队，先于日常变更被调和 |
 
 **反模式**：`return Result{Requeue: true}, nil` 在每次 reconcile 末尾 → 无条件立即重排 → Controller 100% CPU、队列永远满。几乎总是错，应改用 `RequeueAfter` 或干脆 `Result{}`。
+
+> **优先级队列（v0.23 默认开启）的价值**：大规模 AI Operator 一个进程管几千个 CR，FIFO 队列里"某个闲时同步任务"可能挡在"故障推理服务的恢复"前面。给 Result 设置 Priority 后，紧急 CR 插队。AI 平台的实践：故障恢复 / SLO 受影响的 CR 给高优先级，周期 reconcile 给低优先级。
 
 ## 5.6 Informer/Cache：读写分离的代价
 
@@ -142,6 +145,7 @@ Cache 是性能利器，但有**滞后代价**：
 - **fail-open vs fail-close**：webhook 配置 `failurePolicy`——`Ignore`（webhook 挂了放行）还是 `Fail`（挂了拒绝）。生产通常对 mutating 用 Ignore（避免卡死）、对关键 validating 用 Fail（宁可拒绝也别放过非法配置）。
 - **namespace selector**：用 `namespaceSelector` 限制 webhook 只作用于特定 namespace（如带 `operator-enabled=true` 标签的），避免误伤系统命名空间（webhook 配错把 kube-system 卡死是经典事故）。
 - **证书**：apiserver 用 webhook server 的 CA 证书做 mTLS。证书过期 → webhook 全部失败 → 集群写入瘫痪。用 cert-manager 自动轮换。
+- **先问"能不能不用 webhook"（2026 视角）**：K8s 1.36 GA 的 Mutating Admission Policy 可以在 apiserver 内用 CEL 完成简单默认值注入/label 注入，无 server、无证书、无网络跳。写 Operator 前按这个顺序决策：CRD schema 的 `default:` → MAP（简单变更）→ webhook（复杂业务规则）。能不用 webhook 就不用，少一个控制平面关键路径组件。
 
 ## 5.8 Finalizer：删除前的安全网
 
@@ -236,7 +240,7 @@ status:
 
 ## 本章小结
 
-- **十大模块**各司其职：CRD（定义）、Controller（组装）、Reconciler（逻辑）、Workqueue（缓冲）、Cache（缓存）、Webhook（准入）、Finalizer（清理）、Status（报告）、Leader Election（协调）、RBAC/Metrics（权限/观测）。
+- **十大模块**各司其职：CRD（定义）、Controller（组装）、Reconciler（逻辑）、Workqueue（缓冲，v0.23 起支持优先级）、Cache（缓存）、Webhook（准入，简单场景优先用 K8s 1.36 的 Mutating Admission Policy 替代）、Finalizer（清理）、Status（报告）、Leader Election（协调）、RBAC/Metrics（权限/观测）。
 - **最易踩的坑**：Owns 漏注册（自愈失效）、Reconcile 非幂等/阻塞、Webhook 挂卡集群、Finalizer 永续失败卡删除、status 不更新 observedGeneration、Leader Election 没开、RBAC 过大、无 reconcile 错误告警。
 - **设计哲学**：CRD schema 要严、Reconciler 要状态机化、Workqueue 用 RequeueAfter 不用 Requeue、Cache 接受滞后、Webhook 必须 HA + 证书自动轮换、Finalizer 必须可重试、Status 用 conditions + observedGeneration、Leader Election 生产必开、RBAC 最小化、metrics 告警盯住 reconcile_errors。
 

@@ -12,6 +12,8 @@
 
 本章主线是 **controller-runtime（`sigs.k8s.io/controller-runtime`）**——Kubebuilder/Operator SDK 的底层，绝大多数 Operator 都基于它。
 
+> **读源码前先选版本**：controller-runtime 迭代很快（截至 2026-10 已到 v0.25.x，见第 3.8 节版本表）。本章描述的调用链以 v0.21–v0.25 为参考系：主干结构（Manager → Controller → workqueue → Reconcile）多年稳定，但细节有演进——v0.23 起 workqueue 换成**优先级队列**实现（`internal/controller/priorityqueue.go`）、Event 从 `corev1` 迁到 `events.k8s.io/v1`、webhook 校验器/defaulter 改成类型安全的泛型 builder；v0.25 的 client 多了实验性的 ReadYourWritesConsistency 跟踪。读最新源码时若发现和本章伪代码不完全一致，多半是这些演进所致，主干思想不变。
+
 ## 6.2 仓库地图
 
 controller-runtime 是个分层清晰的库，核心目录：
@@ -195,12 +197,15 @@ func (c *client) Status() StatusWriter { return c.direct.Status() }             
 
 ## 6.8 典型 Operator 源码对照（一）：KubeRay
 
-[KubeRay](https://github.com/ray-project/kubebuilder)（`ray-project/kuberay`）是 Ray on K8s 的事实标准，管理 `RayCluster`/`RayService`/`RayJob`。它的 Reconciler 是"领域建模教科书"：
+[KubeRay](https://github.com/ray-project/kuberay)（`ray-project/kuberay`）是 Ray on K8s 的事实标准，管理 `RayCluster`/`RayService`/`RayJob`/`RayCronJob`。它的 Reconciler 是"领域建模教科书"：
 
 ```
-api/core/v1alpha1/raycluster.go        # CRD 定义（RayClusterSpec/Status）
-controllers/raycluster_controller.go   # Reconciler 入口
-controllers/raycluster_controller.go:
+ray-operator/controllers/ray/
+  raycluster_controller.go    # Reconciler 入口
+  rayservice_controller.go    # RayService（serve 流量 + 零拷贝升级）
+  rayjob_controller.go        # RayJob
+  raycronjob_controller.go    # RayCronJob（定时 Ray 任务）
+  raycluster_mtls_controller.go  # v1.7+：集群内 mTLS 证书生命周期
   Reconcile(ctx, req):
     rc = getCluster()
     if deleting: return r.deleteRayCluster(...)        # finalizer 分支
@@ -290,7 +295,8 @@ controllers/validator.go           # 节点就绪校验
 **参考来源**
 
 - [controller-runtime 源码（GitHub）](https://github.com/kubernetes-sigs/controller-runtime)
-- [KubeRay 源码](https://github.com/ray-project/kubebuilder) / [KubeRay Reconciler](https://github.com/ray-project/kubebuilder/blob/main/controllers/raycluster_controller.go)
+- [controller-runtime Releases](https://github.com/kubernetes-sigs/controller-runtime/releases) —— v0.23 优先级队列、events.k8s.io 迁移等演进见各版本说明。
+- [KubeRay 源码](https://github.com/ray-project/kuberay) / [RayCluster Reconciler](https://github.com/ray-project/kuberay/blob/master/ray-operator/controllers/ray/raycluster_controller.go)
 - [Kubeflow Training Operator 源码](https://github.com/kubeflow/training-operator)
 - [NVIDIA GPU Operator 源码](https://github.com/NVIDIA/gpu-operator)
 - [client-go workqueue 限流器](https://pkg.go.dev/k8s.io/client-go/util/workqueue)

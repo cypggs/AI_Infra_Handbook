@@ -144,6 +144,7 @@ act 之后，Reconciler 更新 CR 的 status：
 - **`Status().Update`**：走 `/status` 子资源，单独权限。只有 status 变了才写（`DeepEqual` 判断），减少 apiserver 写入。
 - **Conflict 自动重试**：若读（generation=5）和写之间别人改了 CR（generation=6），apiserver 拒绝写（`resourceVersion` 不匹配），Reconciler 返回 error，controller-runtime 指数退避重试——下一次读到最新版再处理。
 - **observedGeneration**：写 status 时设 `ObservedGeneration = is.Generation`，告诉外界"我已经处理到第 N 版 spec 了"。
+- **写后读旧值的缓解**：Create/Patch 返回的对象自带 apiserver 赋的最新 `resourceVersion`，优先直接用它，别再立刻 `Get`。若确有"写完必须读到最新"的强需求，用 `client.NewAPIReader` 直查 apiserver；controller-runtime v0.25 起还有实验性的 ReadYourWritesConsistency client 自动跟踪自写对象（见第 3.8 节）。
 
 ## 4.7 阶段六：决定是否重新入队
 
@@ -157,16 +158,19 @@ act 之后，Reconciler 更新 CR 的 status：
     return Result{}, nil   // 收敛，等下一次外部事件
 ```
 
-**Requeue 的三种语义**：
+**Requeue 的三种语义**（controller-runtime v0.23 起新增第四个维度：优先级）：
 
 | 返回 | 含义 | 场景 |
 |---|---|---|
 | `Result{}, nil` | 完成，等外部事件 | 已收敛，无需主动轮询 |
 | `Result{RequeueAfter: 30s}, nil` | 30s 后再调和 | 未收敛（等 Pod ready）、需要周期性检查（证书续期） |
 | `Result{Requeue: true}, nil` | 立即重排（少用） | 罕见，易风暴 |
+| `Result{Priority: p}, nil` | 按优先级出队（v0.23+） | 故障恢复中的 CR 插队，优先于日常变更 |
 | 任意 + `error` | 指数退避重试（5s→10s→...→1000s） | act/status 失败 |
 
 **RequeueAfter 的作用**：让 Operator 实现周期性调和，而不阻塞 worker。例如"每 5 分钟检查一次备份是否过期"，用 `RequeueAfter: 5*time.Minute`，而不是在 Reconcile 里 sleep。
+
+> **双保险**：即使你不返回任何 Requeue，框架也有兜底——每个 Informer 有 resync 周期（默认 10 小时上下，`SyncPeriod` 可配），定期把已缓存对象重新入队 reconcile 一次，防止"漏事件导致状态永久漂移"。另外 v0.22 起可配 `ReconciliationTimeout` 给单次调和加上下文超时，堵住 reconcile 内部死循环/卡死（超时会计入 `controller_runtime_reconcile_timeouts_total` 指标）。
 
 ## 4.8 完整时序图（收敛过程）
 
@@ -249,6 +253,7 @@ t=0.2 Reconcile 开始
 **参考来源**
 
 - [controller-runtime — Reconcile and Result](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile)
+- [controller-runtime Releases（Priority 队列 v0.23 默认开启）](https://github.com/kubernetes-sigs/controller-runtime/releases)
 - [client-go workqueue 退避机制](https://pkg.go.dev/k8s.io/client-go/util/workqueue)
 - [Kubernetes — Finalizers](https://kubernetes.io/zh-cn/docs/concepts/overview/working-with-objects/finalizers/)
 - [Kubernetes — Owners and Dependents（级联删除）](https://kubernetes.io/zh-cn/docs/concepts/architecture/garbage-collection/)

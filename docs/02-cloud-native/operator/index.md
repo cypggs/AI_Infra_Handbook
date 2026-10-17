@@ -30,8 +30,8 @@
 2. 画出 controller-runtime 的架构（Manager → Cache/Informer → Workqueue → Reconciler → Client → apiserver），说清"为什么 Reconcile 是 level-triggered 而非 edge-triggered"、"为什么必须幂等"。
 3. 描述一次 Reconcile 的完整生命周期：事件入队 → 取出 → 读 CR + 读子资源 → 计算 diff → act（create/update/delete）→ 写 status → 重新入队（若未收敛）/ 完成。
 4. 理解 Operator 与 Helm 的边界与协作：Helm 装 Operator，Operator 管业务实例；为什么"Operator 管理的子资源不该被 Helm/手动 kubectl 改"。
-5. 区分 Operator 的三种实现路线：controller-runtime（Kubebuilder/Operator SDK 主流）、client-go 原生 Informer、Kopf（Python）；以及 Webhook 的 validating/mutating/conversion 三类。
-6. 掌握生产关键点：leader election（多副本 Controller 只有一个干活）、finalizer 防数据丢失、status 的乐观并发（generation/observedGeneration）、resync 周期、RBAC 最小化、热升级 CRD 版本（v1alpha1→v1beta1→v1）。
+5. 区分 Operator 的三种实现路线：controller-runtime（Kubebuilder/Operator SDK 主流）、client-go 原生 Informer、Kopf（Python）；以及 Webhook 的 validating/mutating/conversion 三类，和 2026 年起替代部分场景的声明式准入策略（ValidatingAdmissionPolicy / Mutating Admission Policy，K8s 1.36 GA）。
+6. 掌握生产关键点：leader election（多副本 Controller 只有一个干活）、finalizer 防数据丢失、status 的乐观并发（generation/observedGeneration）、resync 周期、RBAC 最小化、热升级 CRD 版本（v1alpha1→v1beta1→v1）、metrics 端点鉴权（kube-rbac-proxy 已退场）、OLM v1 分发、优先级队列（controller-runtime v0.23+）。
 7. 读懂 controller-runtime 源码主线（`Manager`/`source.Kind`/`handler.EnqueueRequestForObject`/`Reconciler`/`Client`）与 client-go informer 的关系。
 8. 跑通并扩展本主题的纯 Python Mini Demo——一个"GPU 推理服务 Operator"：CRD + 模拟 informer/watch + level-triggered Reconciler + finalizer + status + owner reference 级联。
 9. 回答生产与面试题：Reconcile 为什么不能阻塞、status 写不进去怎么办、CR 删不掉（finalizer 卡住）怎么救、Operator 升级导致旧 CR 不兼容怎么办。
@@ -54,15 +54,15 @@
 
 1. [背景](01-background) — 从"人肉运维有状态应用"到 Operator：CoreOS 2016 的定义、解决什么、与 Helm/脚本/CI 的对比、AI 平台为什么需要它。
 2. [核心思想](02-core-ideas) — CRD/CR、Controller、Reconcile 调和循环、level-triggered、Finalizer、Owner Reference、Status、Webhook；Operator 的"控制平面"心智模型。
-3. [架构设计](03-architecture) — controller-runtime 全景（Manager/Cache/Client/Reconciler/Source/EventHandler/Workqueue）、控制总线、与 apiserver 的 watch/list、leader election、metrics。
+3. [架构设计](03-architecture) — controller-runtime 全景（Manager/Cache/Client/Reconciler/Source/EventHandler/Workqueue）、控制总线、与 apiserver 的 watch/list、leader election、metrics；以及 2025–2026 演进（优先级队列、ReconciliationTimeout、metrics 内置鉴权、ReadYourWritesConsistency）。
 4. [Reconcile 工作流程](04-reconcile-loop) — 一次 reconcile 的完整时序与状态机、入队/退避/重试、幂等性、为什么不能阻塞、失败模式与应对。
 5. [核心模块](05-core-modules) — CRD 与 schema、Controller、Reconciler、Workqueue、Informer/Cache、Webhook（admission）、Finalizer、Status、Leader Election、RBAC、metrics。
 6. [源码分析](06-source-analysis) — `sigs.k8s.io/controller-runtime` 与 `kubebuilder`、client-go informer/workqueue 主线、Reconcile 调用链、与 K8s 内置 Controller 的同构性。
 7. [工程实践](07-mini-demo) — 纯 Python Mini Demo：CRD + 模拟 informer + level-triggered Reconciler + finalizer + owner reference，端到端演示"创建 CR → 自动拉起 Deployment → 扩缩容 → 删除清理"。
-8. [企业生产实践](08-production-practice) — 何时该写 Operator（决策矩阵）、KubeRay/Training Operator/KServe/vLLM Operator/GPU Operator 真实案例、CRD 版本迁移、leader election、与 Helm/GitOps 协作、可观测与告警。
-9. [最佳实践](09-best-practices) — Reconcile 幂等/不阻塞/单一职责、finalizer 正确性、status 设计、RBAC 最小化、CRD 版本策略、测试（envtest）、命名与标签、避免常见反模式。
+8. [企业生产实践](08-production-practice) — 何时该写 Operator（决策矩阵）、KubeRay/Training Operator/KServe/vLLM Operator/GPU Operator 真实案例、CRD 版本迁移、leader election、与 Helm/GitOps 协作、OLM v1 分发、可观测与告警。
+9. [最佳实践](09-best-practices) — Reconcile 幂等/不阻塞/单一职责、finalizer 正确性、status 设计、RBAC 最小化、CRD 版本策略、准入控制瘦身（CRD default → Mutating Admission Policy → webhook）、测试（envtest）、避免常见反模式。
 10. [面试题](10-interview-questions) — 初/中/高级概念、机制、实现与生产落地。
-11. [延伸阅读](11-further-reading) — 论文（CoreOS Operator 原始定义、Kubernetes Patterns）、controller-runtime/kubebuilder 文档、生态（OLM/OperatorHub）、与本手册相邻主题的交叉。
+11. [延伸阅读](11-further-reading) — 论文（CoreOS Operator 原始定义、Kubernetes Patterns）、controller-runtime/kubebuilder 文档、生态（OLM v1、OperatorHub）、与本手册相邻主题的交叉。
 
 ## 一句话总结
 

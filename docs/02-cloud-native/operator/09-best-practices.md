@@ -135,7 +135,19 @@ case PhaseUpgrading:     return r.reconcileUpgrading(ctx, rc)
 - **测升级**：旧版 CR + 新版 Operator，断言向后兼容。
 - **测删除**：有外部依赖的 CR 删除，断言 finalizer 清理 + 级联。
 
-## 9.11 选型：什么时候**不**该写 Operator
+## 9.11 准入控制瘦身：先 schema、再 MAP、最后 webhook
+
+**反模式**：为了"设个默认值"或"加两个 label"就部署一整套 mutating webhook（server + 证书 + 高可用），把控制平面的关键路径面扩大一倍。
+
+**正解（2026 视角，按优先级决策）**：
+
+1. **CRD schema `default:`**：静态默认值直接写进 OpenAPI schema，apiserver 自动填充，零组件。
+2. **Mutating Admission Policy（K8s 1.36 GA）**：单对象、CEL 可表达的变更（条件默认值、注入 label、按字段改写），用声明式 `MutatingAdmissionPolicy` + `Binding` 在 apiserver 进程内完成——无 server、无证书、无网络跳、fail 模式天然安全。
+3. **mutating webhook**：只有跨对象关联、查外部系统、复杂业务规则时才用。validating 同理：CEL 能表达的校验用 ValidatingAdmissionPolicy（1.30 GA），复杂的才上 validating webhook。
+
+> 判定口诀：**每个 webhook 都是控制平面关键路径上的新故障域；能用声明式策略表达的，绝不引入新进程。**
+
+## 9.12 选型：什么时候**不**该写 Operator
 
 Operator 不是银弹。写之前先问：
 
@@ -148,7 +160,7 @@ Operator 不是银弹。写之前先问：
 
 **判定法则**：只有"需要持续自愈 + 领域知识 + 多资源协同"三者俱全，才值得写 Operator。否则 Helm/Job/Workflow 更简单可靠。很多"看起来需要 Operator"的需求，其实 Helm + readiness probe 就够了。
 
-## 9.12 速查：反模式 → 正解对照表
+## 9.13 速查：反模式 → 正解对照表
 
 | 反模式 | 后果 | 正解 |
 |---|---|---|
@@ -160,7 +172,9 @@ Operator 不是银弹。写之前先问：
 | finalizer 不可重试 | CR 卡 Terminating | 可重试 + 超时 + 逃生口 |
 | 不更新 observedGen | 看不出是否响应 | 每次写 status 设 observedGen |
 | schema 太松 | 脏数据崩溃 | 每字段加约束 |
-| 写后立即读 Cache | 读到旧值 | 用 Create 返回值 / APIReader |
+| 写后立即读 Cache | 读到旧值 | 用 Create 返回值 / APIReader（v0.25 可试 ReadYourWrites） |
+| 设默认值就上 webhook | 关键路径面膨胀 | CRD default → Mutating Admission Policy → webhook |
+| 所有 CR 一视同仁排队 | 故障恢复被闲任务阻塞 | 优先级队列（v0.23+，`Result.Priority`） |
 | 只看 CPU 不看 errors | 漏真实故障 | 告警 reconcile_errors |
 | 需求简单却写 Operator | 过度工程 | Helm/Job/Workflow |
 
@@ -173,12 +187,16 @@ Operator 不是银弹。写之前先问：
 - **CRD**：schema 严 + 版本演进 + printer columns。
 - **并发**：接受 Cache 滞后，靠 resourceVersion 乐观锁 + Conflict 重试，别自己加锁。
 - **可观测/测试**：盯 reconcile_errors；envtest + 三层测试。
+- **准入瘦身**：默认值/简单变更按"CRD default → Mutating Admission Policy（1.36 GA）→ webhook"三级决策，能不部署 webhook 就不部署。
+- **大规模调度**：用优先级队列（v0.23+）让故障恢复插队、闲任务让路。
 - **选型**：只有"持续自愈 + 领域知识 + 多资源协同"三者俱全才写 Operator。
 
 **参考来源**
 
 - [Kubebuilder Book — Best Practices](https://book.kubebuilder.io/)
 - [controller-runtime — envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest)
+- [Kubernetes — Mutating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/)
+- [controller-runtime — Result.Priority / priority queue](https://github.com/kubernetes-sigs/controller-runtime/releases)
 - [Kubernetes API Conventions（conditions/observedGeneration）](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
 - [Red Hat — Kubernetes Patterns (Operator pattern)](https://www.redhat.com/en/resources/oreilly-kubernetes-patterns-cloud-native-apps)
 - 本手册 [Helm 第 9 章](../helm/09-best-practices)（对照选型）、第 5、6 章（机制/源码）。

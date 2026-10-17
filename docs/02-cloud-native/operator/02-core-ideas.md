@@ -254,6 +254,32 @@ Webhook 是 apiserver 在**写入 etcd 之前**调用的外部回调，给 Opera
 
 **与 CRD schema 的分工**：CRD schema 校验"类型/格式"（字段是 int、字符串匹配正则）；webhook 校验"业务语义"（worker 数不能超配额、primary 不可降级）。两者互补。
 
+> **2025–2026 的重要变化：简单变更不必再写 webhook**。Kubernetes 1.36（2026-05）让 **Mutating Admission Policy（MAP）** 转正（GA）：可以用一条声明式的 CEL 策略（`MutatingAdmissionPolicy` + `MutatingAdmissionPolicyBinding`）在 **apiserver 进程内**完成"设默认值、注入 label/annotation、按条件改字段"，无需部署 webhook server、无 TLS 证书、无网络跳转，延迟从毫秒级降到微秒级。它和 1.30 就 GA 的 ValidatingAdmissionPolicy 是一对。
+>
+> 但要注意边界：**MAP 只适合"单对象、纯 CEL 可表达"的简单变更**——需要查外部系统、跨对象关联、复杂业务规则时，仍需 mutating webhook。实务建议：默认值优先放 CRD schema 的 `default:` 字段，简单注入用 MAP，复杂业务校验/变更才上 webhook（见第 5.7 节）。
+
+```yaml
+# 例：用 MutatingAdmission Policy 给所有新的 InferenceService 注入默认监控 label（K8s 1.36+，无需 webhook）
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: inject-monitoring-label
+spec:
+  matchConstraints:
+    resourceRules:
+      - apiGroups:   ["inference.ai"]
+        apiVersions: ["v1"]
+        operations:  ["CREATE"]
+        resources:   ["inferenceservices"]
+  mutations:
+    - patchType: "ApplyConfiguration"
+      applyConfiguration:
+        expression: >
+          Object{metadata: Object.metadata{labels: {
+            "monitoring.ai/enabled": "true"
+          }}}
+```
+
 > **生产要点**：Webhook 是**控制平面关键路径**——它挂了，所有相关 CR 的创建/更新都会卡住（甚至整个 namespace）。必须高可用部署 + 有超时 + 失败时 fail-open 还是 fail-close 要想清楚（见第 8 章）。
 
 ## 2.8 Operator 的"控制平面"心智模型
@@ -296,7 +322,7 @@ Webhook 是 apiserver 在**写入 etcd 之前**调用的外部回调，给 Opera
 - **Finalizer**：删除前的安全钩子，处理 K8s 外部资源清理；写错会卡住删除。
 - **Owner Reference**：级联垃圾回收，CR 删了子资源自动清。
 - **Status**：Controller 写的实际状态报告，`conditions` + `observedGeneration` 是关键设计。
-- **Webhook**：准入控制（mutating/validating/conversion），校验业务语义、设默认值、做版本转换。
+- **Webhook**：准入控制（mutating/validating/conversion），校验业务语义、设默认值、做版本转换；K8s 1.36 起简单 mutating 场景可用声明式 Mutating Admission Policy（CEL，apiserver 进程内）替代 webhook。
 - **心智模型**：意图流 → 调和流 → 状态流构成闭环负反馈系统——这是 K8s 声明式 API 的本质。
 
 **参考来源**
@@ -304,4 +330,5 @@ Webhook 是 apiserver 在**写入 etcd 之前**调用的外部回调，给 Opera
 - [Kubernetes — CustomResourceDefinition](https://kubernetes.io/zh-cn/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 - [controller-runtime — Reconcile loop](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile)
 - [Kubebuilder Book](https://book.kubebuilder.io/) —— CRD/Controller/Reconcile 的权威教程。
+- [Kubernetes — Mutating Admission Policy（1.36 GA）](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/)
 - 本手册 [Kubernetes 第 4 章](../kubernetes/04-runtime-workflow)（控制循环同构性）、[Helm 第 2 章](../helm/02-core-ideas)（spec/status 约定对比）。

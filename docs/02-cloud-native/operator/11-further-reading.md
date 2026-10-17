@@ -14,12 +14,11 @@
 
 ## 11.2 框架与工具
 
-- [Kubebuilder Book](https://book.kubebuilder.io/) —— Go Operator 的事实标准脚手架 + 教程，从 CRD 到 webhook 全覆盖。**写 Operator 的第一站。**
-- [controller-runtime 文档](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg) —— Kubebuilder/Operator SDK 的底层库 API（Manager/Cache/Client/Controller/Reconcile）。
-- [Operator SDK](https://sdk.operatorframework.io/) —— Red Hat 的 Operator 工具链（含 Go/Ansible/Helm 三种 Operator 类型 + OLM 打包分发）。
-- [Operator Lifecycle Manager (OLM)](https://olm.operatorframework.io/) —— Operator 的"包管理器"：安装/升级/依赖/权限管理，OpenShift 生态核心。
+- [Kubebuilder Book](https://book.kubebuilder.io/) —— Go Operator 的事实标准脚手架 + 教程，从 CRD 到 webhook 全覆盖。**写 Operator 的第一站。**（截至 2026-10 已发布 v4.16，v4.15 起支持 K8s 1.36 / Go 1.26。）
+- [controller-runtime 文档](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg) —— Kubebuilder/Operator SDK 的底层库 API（Manager/Cache/Client/Controller/Reconcile）；版本演进看 [Releases](https://github.com/kubernetes-sigs/controller-runtime/releases)（v0.21–v0.25 的优先级队列、ReconciliationTimeout、ReadYourWritesConsistency 等）。
+- [Operator SDK](https://sdk.operatorframework.io/) —— Red Hat 发起的 Operator 工具链（Go/Ansible/Helm 三种 Operator 类型）。上游 CNCF 项目仍活跃维护、Go 脚手架与 Kubebuilder 对齐；注意 Red Hat 已弃用 OpenShift 自带的 SDK CLI（4.16 弃用、4.18 起不再随附）。
+- [OLM v1（operator-controller）](https://operator-framework.github.io/operator-controller/) —— Operator 生命周期管理的下一代：**稳定 v1.x 线**（截至 2026-10 最新 v1.12），以 `ClusterExtension` + Catalog 取代 v0 的 Subscription/InstallPlan，原生支持 Helm 打包的 Operator；v0 → v1 无自动迁移路径。OpenShift 用户仍会见到 [OLM v0](https://olm.operatorframework.io/)。
 - [KOPF (Python)](https://kopf.readthedocs.io/) —— Python 的 Operator 框架，适合不想写 Go 的团队（AI 场景常见）。
-- [operator-framework/test-framework](https://github.com/operator-framework/operator-sdk) —— 基于 Ginkgo 的 e2e 测试框架（scorecard 评估 Operator 质量）。
 - [cert-manager](https://cert-manager.io/) —— webhook/conversion 证书自动签发轮换（生产必备）。
 
 ## 11.3 设计博客与论文
@@ -28,7 +27,8 @@
 - [Red Hat — Kubernetes Patterns (O'Reillly)](https://www.redhat.com/en/resources/oreilly-kubernetes-patterns-cloud-native-apps) —— 把 Operator 列为核心模式之一，含设计取舍。
 - [CoreOS — How to write a Kubernetes Operator](https://coreos.com/blog/writing-kubernetes-operators-the-right-way.html) —— "the right way" 实践指南。
 - [Google — Kubernetes Workloads Day 2 (Operator)](https://cloud.google.com/blog/products/containers-kubernetes/exploring-the-operator-pattern) —— 云厂商视角的 Operator 工程实践。
-- [Introducing the Kubernetes Controller Runtime (2020)](https://www.openshift.com/blog/) —— controller-runtime 设计动机博客。
+- [Kubernetes 官方博客 — How the controller-runtime Cache Actually Works (2026-07)](https://kubernetes.io/blog/2026/07/29/controller-runtime-cache-explained/) —— 深入讲 Cache 如何保护 apiserver 不被打爆，第 3 章的最佳补充。
+- [Kubernetes 官方博客 — Mutating Admission Policy 相关文档](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/) —— 1.36 GA 的声明式变更准入，webhook 瘦身的依据。
 
 ## 11.4 AI 平台代表性 Operator（源码即教材）
 
@@ -36,11 +36,13 @@
 
 | Operator | 管什么 | 学什么 | 仓库 |
 |---|---|---|---|
-| **KubeRay** | Ray 集群（RayCluster/RayService/RayJob） | Pod 级管理、子 reconciler 拆分、autoscaler 周期 reconcile | [ray-project/kuberay](https://github.com/ray-project/kuberay) |
+| **KubeRay** | Ray 集群（RayCluster/RayService/RayJob/RayCronJob，v1.7+ 内置 mTLS） | Pod 级管理、子 reconciler 拆分、autoscaler 周期 reconcile | [ray-project/kuberay](https://github.com/ray-project/kuberay) |
 | **Training Operator** | 分布式训练作业（PyTorchJob/TFJob/MPIJob） | 多角色协调、通用层抽象多 CRD、精确状态机、重启策略 | [kubeflow/training-operator](https://github.com/kubeflow/training-operator) |
 | **GPU Operator** | GPU 节点全栈（驱动/toolkit/DCGM/MIG） | 组件注册表（开闭原则）、领域就绪探针、硬件耦合 | [NVIDIA/gpu-operator](https://github.com/NVIDIA/gpu-operator) |
 | **KServe** | 推理服务（InferenceService） | 金丝雀、缩到零、多 runtime、CRD 嵌套 | [kserve/kserve](https://github.com/kserve/kserve) |
-| **vLLM Operator** | vLLM 推理服务 | 模型权重 PVC、多副本、滚动升级 | [vllm-project/vllm-operators](https://github.com/vllm-project) |
+| **vLLM Operator** | vLLM 推理服务 | 模型权重 PVC、多副本、滚动升级 | [vllm-project](https://github.com/vllm-project) |
+
+> **2025–2026 新动向**：推理层 Operator 大爆发——除上表外，NVIDIA NIM Operator（NIM 推理服务的全生命周期）、llm-d（面向大模型推理的 K8s 开源栈，Service/EndpointSlice 级调度）等值得关注；它们和 KServe 一起把"部署推理服务 = 创建一个 CR"变成主流范式。
 
 ## 11.5 相邻主题交叉引用
 
@@ -72,8 +74,8 @@
 **阶段三：能上生产（持续）**
 
 1. 读 [controller-runtime 源码](https://github.com/kubernetes-sigs/controller-runtime)（第 6 章主干），理解 Manager/Cache/Workqueue 实现。
-2. 实践生产要点：Leader Election、conversion webhook、cert-manager、metrics 告警、GitOps 集成（第 8 章）。
-3. 对照 [第 9 章 Checklist] 自查你的 Operator。
+2. 实践生产要点：Leader Election、conversion webhook、cert-manager、metrics 告警、GitOps 集成、OLM v1 分发、优先级队列（第 8 章）。
+3. 对照 [第 9 章 Checklist] 自查你的 Operator，并按"CRD default → Mutating Admission Policy → webhook"三级决策审视准入控制。
 4. 参与一个开源 Operator（KubeRay/Training Operator/KServe 都很活跃），看真实 issue/PR 怎么处理边角。
 
 ## 11.7 常见误区澄清
@@ -81,16 +83,17 @@
 - **"Operator 是新机制"** → 不，它是 K8s 控制平面能力对用户的开放，和内置 Controller 同构。
 - **"Operator 必须用 Go"** → 不，Python（KOPF）、Ansible、Helm 都能写 Operator；Go（controller-runtime）最主流。
 - **"Operator 替代运维"** → 不，它降低而非消除运维，仍需监控/升级/修 Operator 自身。
-- **"所有应用都该 Operator 化"** → 不，简单应用 Helm 就够，过度工程是反模式（见第 9.11 节）。
+- **"准入控制只能靠 webhook"** → 不，K8s 1.36 起 Mutating Admission Policy（简单变更）和 1.30 起的 ValidatingAdmissionPolicy（CEL 校验）能在 apiserver 内完成大量准入逻辑，webhook 只该用于真正复杂的场景（见第 9.11 节）。
+- **"所有应用都该 Operator 化"** → 不，简单应用 Helm 就够，过度工程是反模式（见第 9.12 节）。
 - **"Reconcile 里可以等"** → 不，必须不阻塞，长等待用 RequeueAfter（第 9.3 节）。
 
 ## 本章小结
 
 - **官方文档**：Kubernetes Operator pattern / CRD / API Conventions 是写 Operator 的规范基础。
-- **框架**：Kubebuilder（Go 首选）+ controller-runtime（底层）+ Operator SDK/OLM（分发）+ cert-manager（证书）。
+- **框架**：Kubebuilder（Go 首选，v4.16）+ controller-runtime（底层，v0.25）+ Operator SDK（仍维护）/ OLM v1（operator-controller，稳定 v1.x 线）+ cert-manager（证书）。
 - **原点**：CoreOS 2016 博客 + Kubernetes Patterns 书。
-- **教材**：KubeRay / Training Operator / GPU Operator / KServe / vLLM Operator 的源码。
-- **学习路径**：读懂（本主题 + mini-demo）→ 能写（Kubebuilder 教程 + envtest + 读 KubeRay）→ 能上生产（controller-runtime 源码 + 第 8 章 Checklist + 参与开源）。
+- **教材**：KubeRay / Training Operator / GPU Operator / KServe / vLLM Operator 的源码，以及 2026 官方 controller-runtime Cache 深度博客。
+- **学习路径**：读懂（本主题 + mini-demo）→ 能写（Kubebuilder 教程 + envtest + 读 KubeRay）→ 能上生产（controller-runtime 源码 + 第 9 章 Checklist + 参与开源）。
 - **下一步**：若做 AI 平台，深入 [Ray](../../03-ai-platform/ray/) / [vLLM](../../04-llmops/vllm/) 主题看 Operator 如何管理真实 AI 工作负载。
 
 **参考来源**（均为上文链接）

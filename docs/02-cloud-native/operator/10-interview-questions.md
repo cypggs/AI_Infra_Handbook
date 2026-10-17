@@ -1,6 +1,6 @@
 # 10. 面试题精选
 
-> 一句话理解：本章按初/中/高三级整理 24 道 Operator 高频面试题，覆盖机制、工程、生产——每题给"考点 + 参考答案要点"，帮你把前九章的知识点串成能讲清楚的表达。
+> 一句话理解：本章按初/中/高三级整理 26 道 Operator 高频面试题，覆盖机制、工程、生产与 2025–2026 生态演进——每题给"考点 + 参考答案要点"，帮你把前九章的知识点串成能讲清楚的表达。
 
 ## 10.1 初级（概念与机制，8 题）
 
@@ -74,7 +74,7 @@
 
 考点：测试策略。答：用 controller-runtime 的 envtest（起真实 etcd+apiserver 无 kubelet，跑真 CRD/Reconcile）做 Reconcile 单元测试；三层：单元（helper）→ envtest（端到端 reconcile）→ e2e（kind 集群含部署+升级）。重点测幂等（连续 reconcile 子资源数不变）和删除（finalizer 清理 + 级联）。
 
-## 10.3 高级（生产与深度，7 题）
+## 10.3 高级（生产与深度，9 题）
 
 **Q18. 一个 CR 卡在 Terminating 删除不掉，怎么排查和救？**
 
@@ -104,14 +104,24 @@
 
 考点：选型判断。答：只要"装一次 + 参数多"用 Helm；"一次性流水线 DAG"用 Argo Workflow；"定时/一次性任务"用 Job/CronJob。只有"持续自愈 + 领域知识 + 多资源协同"三者俱全才值得 Operator。很多"看起来需要 Operator"的需求，Helm + readiness probe 就够了——过度工程是反模式。
 
+**Q25. Mutating Admission Policy（MAP）能替代 mutating webhook 吗？边界在哪？**
+
+考点：2025–2026 准入控制演进。答：MAP 在 K8s 1.36 GA，用声明式 CEL 在 apiserver 进程内做对象变更——无 webhook server、无 TLS 证书、无网络跳、延迟微秒级，天然免去了 webhook 的高可用/证书/failurePolicy 负担。但边界清晰：**只适合单对象、CEL 可表达的简单变更**（设默认值、注入 label、按条件改字段）；跨对象关联、查外部系统、复杂业务规则仍需 webhook。实践决策顺序：CRD schema `default:` → MAP → webhook。
+
+**Q26. 一个 Operator 管几千个推理服务 CR，故障恢复有 SLA，怎么保证恢复速度？**
+
+考点：大规模调和的工程手段。答：三个层面——① **优先级队列**：controller-runtime v0.23 起默认开启，故障恢复中的 CR 返回 `Result{Priority: 高}` 插队，闲时同步任务给低优先级；② **并发度**：调大 `MaxConcurrentReconciles`（按 reconcile 耗时和 apiserver 容量压测）；③ **限流与退避**：自定义 RateLimiter 防 apiserver 风暴，区分"可重试错误"（退避）和"业务终态"（如配额不足用 TerminalError 不再重试）。辅以 workqueue_depth 告警监控积压。
+
 ## 本章小结
 
 - **初级**抓本质：Operator = CRD + 控制循环、与 Helm 互补、Reconcile 四铁律、For/Owns、spec/status、finalizer/owner。
 - **中级**抓工程：Manager/Controller 分层、Cache 读写分离、Workqueue 去重、Requeue 四语义、乐观并发、generation 追踪、Leader Election、Webhook 三类、envtest 测试。
-- **高级**抓生产：finalizer 卡删除排查、漂移自愈、金丝雀设计、CRD 版本演进、reconcile_errors 排障、多租户隔离、选型判断。
+- **高级**抓生产：finalizer 卡删除排查、漂移自愈、金丝雀设计、CRD 版本演进、reconcile_errors 排障、多租户隔离、选型判断；以及 2025–2026 演进——MAP 与 webhook 的边界、大规模 CR 的优先级队列与并发调优。
 
 **参考来源**
 
 - 本手册第 1–9 章（全部机制与工程要点）。
 - [Kubebuilder FAQ](https://book.kubebuilder.io/)、[controller-runtime 设计文档](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg)。
-- 真实参考：[KubeRay](https://github.com/ray-project/kubebuilder)、[Training Operator](https://github.com/kubeflow/training-operator)、[GPU Operator](https://github.com/NVIDIA/gpu-operator)。
+- [Kubernetes — Mutating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/)
+- [controller-runtime Releases（优先级队列等 v0.21–v0.25 演进）](https://github.com/kubernetes-sigs/controller-runtime/releases)
+- 真实参考：[KubeRay](https://github.com/ray-project/kuberay)、[Training Operator](https://github.com/kubeflow/training-operator)、[GPU Operator](https://github.com/NVIDIA/gpu-operator)。

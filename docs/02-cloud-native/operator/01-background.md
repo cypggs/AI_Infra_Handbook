@@ -162,6 +162,21 @@ AI 工作负载几乎完美命中"需要 Operator"的全部特征：
 
 > **没有 Operator，就没有现代云原生 AI 平台。** Kubeflow、Ray on K8s、KServe、各家的推理平台，底层都是一组 Operator。
 
+## 1.6 2025–2026 生态现状（截至 2026-10）
+
+Operator 模式提出近十年后，生态在 2025–2026 年出现了几个值得知道的变化：
+
+| 领域 | 现状（2026-10） | 影响 |
+|---|---|---|
+| **controller-runtime** | 已演进到 v0.25（对齐 K8s 1.37），v0.23 起 workqueue 优先级队列默认开启、支持 `Result.Priority` | 大规模 AI Operator（上万 CR）可以区分调和优先级 |
+| **Kubebuilder** | v4.16（2026-09），v4.15 起支持 K8s 1.36 / Go 1.26；脚手架早已移除 kube-rbac-proxy，改用内置的 metrics 鉴权 | 新脚手架更简洁，安全模型内建 |
+| **Operator SDK** | 上游 CNCF 项目仍活跃维护，Go 脚手架与 Kubebuilder 完全对齐；Red Hat 已弃用 OpenShift 自带的 SDK CLI（4.16 弃用、4.18 起不再随附，存量支持至对应版本生命周期结束） | "用哪个框架"的争议基本终结：Go 路线就是 Kubebuilder + controller-runtime |
+| **OLM** | OLM v1（operator-controller）进入稳定 v1.x 线（2026-09 最新 v1.12），用 `ClusterExtension` + Catalog 取代 v0 的 Subscription/InstallPlan；v0 无自动迁移路径 | 用"声明一个扩展"的方式安装/升级 Operator，而不是手动 apply 一堆 YAML |
+| **K8s 准入控制** | K8s 1.36（2026-05，"Haru"）Mutating Admission Policy GA——简单默认值注入可用声明式 CEL 策略在 apiserver 进程内完成 | 一部分 mutating webhook 场景（设默认值、加 label）不再需要部署 webhook server |
+| **AI Operator** | 训练/调度层（Training Operator、KubeRay、Kueue）之外，推理层 Operator 大爆发：vLLM Operator、NVIDIA NIM Operator、llm-d 等 | "部署一个推理服务 = 创建一个 CR"成为主流范式 |
+
+> **一句话**：机制（CRD + 控制循环）十年未变，变的是**工具链收敛**（Kubebuilder/controller-runtime 一家独大）和**准入控制的声明式化**（CEL 策略替代部分 webhook）。学 Operator 依然是在学第 2–4 章那套机制。
+
 ## 本章小结
 
 - **痛点**：有状态/复杂应用（数据库、消息队列、训练作业、推理服务）的运维靠 runbook + 手动 kubectl 管不动——领域知识密集、多资源协同、生命周期复杂、需与外部世界交互。
@@ -169,10 +184,15 @@ AI 工作负载几乎完美命中"需要 Operator"的全部特征：
 - **Operator 的定义**（CoreOS 2016）：把领域专家的运维知识编码成"跑在集群里的控制循环"，通过 CRD 扩展 K8s API，让 K8s 自动管理任意复杂应用。
 - **核心洞察**：Operator 与 K8s 内置 Controller **机制同构**（都是 level-triggered、幂等的控制循环），只是管的是领域对象而非通用 Pod 副本数。理解 K8s Controller 就理解了 Operator 的 90%。
 - **定位**：Operator 和 Helm 互补——Helm 装 Operator，Operator 管业务；AI 平台的自管理特性几乎全靠 Operator 实现（KubeRay、Training Operator、KServe、vLLM Operator、GPU Operator）。
+- **生态现状（2026-10）**：工具链收敛到 Kubebuilder + controller-runtime（v0.25，对齐 K8s 1.37）；OLM v1 进入稳定线（ClusterExtension + Catalog）；K8s 1.36 的 Mutating Admission Policy GA 使部分 mutating webhook 可被声明式 CEL 策略替代。
 
 **参考来源**
 
 - [CoreOS — Introducing Operators (2016)](https://coreos.com/blog/introducing-operators.html) —— Operator 模式的原始定义。
 - [Kubernetes Patterns — The Operator Pattern (Red Hat)](https://www.redhat.com/en/resources/oreilly-kubernetes-patterns-cloud-native-apps) —— Kubernetes Patterns 书把 Operator 列为核心模式之一。
 - [Kubernetes 官方 — Operator pattern](https://kubernetes.io/zh-cn/docs/concepts/extend-kubernetes/operator/) —— 官方对 Operator 模式的描述。
+- [controller-runtime Releases](https://github.com/kubernetes-sigs/controller-runtime/releases) —— 截至 2026-10 最新 v0.25.x。
+- [Kubebuilder Releases](https://github.com/kubernetes-sigs/kubebuilder/releases) —— 截至 2026-10 最新 v4.16。
+- [OLM v1（operator-controller）文档](https://operator-framework.github.io/operator-controller/) —— OLM v1 的现状与概念。
+- [Kubernetes — Mutating Admission Policy](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/) —— 1.36 GA 的声明式变更准入策略。
 - 本手册 [Kubernetes 第 4 章](../kubernetes/04-runtime-workflow)（控制循环）、[Helm 第 1 章](../helm/01-background)（一次性安装 vs 持续管理）。
