@@ -80,6 +80,7 @@ sequenceDiagram
 - **计划必须可验证**：每个步骤应有明确的完成标准，Observer 能据此判断成败。
 - **避免过度规划**：不要一次性规划出过细的步骤，保留根据反馈调整的空间。
 - **约束前置**：把硬约束（如不能访问某些数据、必须在某些时间窗口内完成）体现在计划生成阶段。
+- **计划生成阶段就可以花计算**：并行采样 N 份计划草案，用 Validator / Verifier 选优（Best-of-N）。在计划上多花 2-3 倍 token，往往比在执行失败后全局重规划便宜一个数量级。
 
 ## Execute 详解
 
@@ -136,6 +137,23 @@ sequenceDiagram
 - **子计划替换**：重新生成某个子树。
 - **全局重规划**：从头生成完整计划。
 - **跳过/降级**：跳过非关键步骤，或用备选方案替代。
+
+### 结构化异常恢复（2025）
+
+2025 年对 LLM Agent 工作流异常处理的研究（arXiv:2508.07935）整理出约 40 类异常，并给出了一套比"盲目重试"更系统的恢复动作集，值得直接吸收进 Replan 策略：
+
+| 恢复动作 | 适用情况 |
+|---|---|
+| Plan Repair（计划修复） | 保留计划主干，只针对失败步骤生成修正指令 |
+| Plan Shortening（计划缩短） | 任务已被部分完成，截断剩余计划避免重复劳动 |
+| Abort Task Chain（中止任务链） | 某条执行线已判定不可救，优雅终止该线程而不拖垮整个任务 |
+| 错误传播检测 | 通过 checkpoint 校验、置信度重评估，判断失败是否已污染下游步骤 |
+
+另一个值得关注的趋势是**神经符号有界修复循环**：LLM 负责把任务建模为 PDDL/约束形式，符号求解器负责校验；一旦校验失败，把求解器的错误信息作为结构化反馈喂回 LLM 做针对性修正（通常限制在几次以内）。相比让 LLM 自由反思，错误信息驱动的修复成功率更高、迭代次数更少。
+
+### 单次成功不等于可靠
+
+2025-2026 年的基准分析反复强调一点：Agent 的"单次跑通率"大幅提升，但**多次运行的可靠性（consistency）提升慢得多**。评估规划循环时，应同时跟踪 pass@1 与 pass^k（k 次全成功的比例），后者才接近生产用户感受到的稳定性。
 
 ## 终止条件
 
@@ -196,12 +214,15 @@ HITL 不应成为阻塞点，应提供同步等待、异步通知、预授权等
 
 - 规划循环是 Plan → Execute → Observe → Replan 的反复过程。
 - 每个阶段都有明确的输入、输出和注意点；终止条件必须提前定义。
+- 计划生成阶段就值得投入并行采样与验证的计算；重规划应优先采用结构化恢复（计划修复、计划缩短、中止任务链），而非盲目重试。
 - 回滚、补偿、HITL 是生产系统应对失败的必备机制。
-- 重规划风暴、计划粒度失衡、目标漂移等失败模式需要在设计时就加以防范。
+- 重规划风暴、计划粒度失衡、目标漂移等失败模式需要在设计时就加以防范；评估时要看 pass@1 之外的多次运行可靠性。
 
 **参考来源**
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
+- [Structured Handling of Exceptions in LLM-Driven Agentic Workflows](https://arxiv.org/abs/2508.07935)
+- [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

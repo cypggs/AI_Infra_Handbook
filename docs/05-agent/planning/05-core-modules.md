@@ -83,7 +83,10 @@ class Planner:
 
 - Planner 是核心决策模块，通常由大模型驱动，但关键路径可辅以规则校验。
 - 重规划接口应支持局部修复与全局重规划两种模式。
-- 模型选择：复杂规划用强模型，简单调度可用轻量模型。
+- 模型选择：复杂规划用强推理模型（扩展思考 + 显式推理预算），简单调度可用轻量模型；多项研究一致表明规划是最值得加码计算的阶段，执行与验证环节加资源收益递减。
+- 计划生成支持并行采样（Best-of-N）：N 份草案交给 Plan Validator / Verifier 打分选优，成本通常远低于执行失败后的全局重规划。
+- 任务分布稳定且调用量大时，可训练专用 Planner（Plan-and-Act 的合成数据管线、HiPER 的层级 RL），把规划质量从提示工程升级为模型能力。
+- 2025-2026 年趋势：自适应分层——先出粗略全局计划，执行前按子任务复杂度再细化，避免过度规划。
 
 ## 4. Plan Formatter
 
@@ -270,8 +273,10 @@ class PolicyEngine:
 **生产注意点**：
 
 - 设置最大重规划次数、最大执行步数、成本上限。
+- 把**推理预算**纳入策略：Planner 的 thinking token 上限、并行采样次数 N、Verifier 调用次数都要有明确上限并与成本上限联动。
 - 对高危操作强制 HITL。
 - 策略应可配置、可审计。
+- 恢复动作应结构化：优先计划修复（Plan Repair）、计划缩短（Plan Shortening）、中止任务链（Abort Task Chain），而不是笼统地"重新生成"。（来源：LLM Agent 工作流异常处理研究，2025）
 
 ## 11. Plan Memory
 
@@ -299,6 +304,7 @@ class PlanMemory:
 - Plan Memory 是 Memory 层的消费者，Planning 只定义需要什么样的记忆。
 - 记忆更新要有版本控制，避免覆盖重要历史。
 - 定期总结与压缩，防止记忆膨胀。
+- 除"历史计划 few-shot"外，2024-2025 年的 Agent Workflow Memory（AWM）给出另一种形态：从历史成功轨迹中**归纳出可复用的工作流模板**（而非整条轨迹）注入 Planner 上下文，在 WebArena 上将基线成功率从约 23.5% 提升到 35.5%。当同类任务反复出现时，"沉淀工作流"比"检索整条历史"更省 token、更稳。
 
 ## 12. Human Gate
 
@@ -376,13 +382,18 @@ graph LR
 ## 本章小结
 
 - Planning 层由 11 个核心模块组成，每个模块职责单一、接口明确。
-- Goal Parser、Decomposer、Planner、Plan Formatter、Plan Validator 属于控制面的“规划侧”。
-- Scheduler、Executor、Observer、Replan Trigger、Policy Engine 属于控制面的“执行/反馈侧”。
+- Goal Parser、Decomposer、Planner、Plan Formatter、Plan Validator 属于控制面的”规划侧”。
+- Scheduler、Executor、Observer、Replan Trigger、Policy Engine 属于控制面的”执行/反馈侧”。
 - Plan Store、Plan Memory、Human Gate、Tool/MCP Gateway 提供数据、记忆、人工、工具四类支撑。
+- 2025-2026 年的关键升级集中在 Planner（推理模型路由、并行采样、学习式 Planner、自适应分层）与 Policy Engine（推理预算管控、结构化恢复动作）。
 - 模块之间的边界清晰，是系统可维护、可扩展、可审计的基础。
 
 **参考来源**
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
+- [Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks](https://arxiv.org/abs/2503.09572)
+- [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
+- [Agent Workflow Memory](https://arxiv.org/abs/2409.07429)
+- [Structured Handling of Exceptions in LLM-Driven Agentic Workflows](https://arxiv.org/abs/2508.07935)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

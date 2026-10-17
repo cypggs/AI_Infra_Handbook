@@ -43,6 +43,13 @@ graph LR
     R -- 执行事件 --> P
 ```
 
+### 框架现状（2025-2026）
+
+- **LangGraph 已成为有状态 Plan-and-Execute 的事实标准**（v1.0 于 2025-10 GA，之后持续迭代）：图结构即计划，节点是动作、边是控制流；每个 super-step 自动保存 checkpoint，生产环境推荐 Postgres checkpointer 而非内存实现；`interrupt` 系列原语支持在任意节点暂停等人审。
+- **checkpoint 不等于 durable execution**：LangGraph 开源版默认单进程，进程崩溃后状态可恢复，但执行不会自动重启。需要进程/机器级容错时，引入 Temporal 等持久化执行层（LangGraph 提供 Temporal 插件，OpenAI Agents SDK 与 Temporal 的集成也已于 2026-03 GA），或使用托管平台。
+- **CrewAI、Pydantic AI 等框架默认缺少原生持久 checkpoint**，长程任务选型时要把"中断恢复"列为硬性需求逐项验证。
+- **持久化面也是攻击面**：以 LangGraph 的 SQLite checkpointer 曾曝出 SQL 注入漏洞（CVE-2025-67644，已在后续版本修复）为例，checkpoint 存储、计划序列化通道都应纳入安全审计范围。
+
 ## 与 Memory 集成
 
 Planning 需要 Memory 提供上下文，也需要把计划写入 Memory。
@@ -112,6 +119,20 @@ graph TD
 
 - 跨 Agent 依赖强、需要全局优化的任务：中央 Planner。
 - Agent 能力差异大、需要高度自治的任务：分布式 Planner。
+
+### 生产案例：Anthropic 多智能体研究系统（2025-06）
+
+Anthropic 在工程博客中公开了其多智能体研究系统的架构与教训，是"中央 Planner + 并行执行"模式的典型样本：
+
+- **架构**：lead agent（lead researcher）负责规划——拆解问题、派生子 agent、综合结果，必要时多轮迭代；子 agent 并行探索；另有独立的 citation agent 负责把结论映射到引用来源。
+- **效果**：以 Opus 4 做 lead、Sonnet 4 做子 agent 的配置，在其内部研究评测上比单个 Opus 4 agent 提升约 90%，代价是约 15 倍的 token 成本。
+- **可迁移的经验**：
+  - 用扩展思考做规划，即"让 lead agent 想久一点"；
+  - 给子 agent 写出精确的**目标、输出格式与边界**，比给宽松指令效果好得多；
+  - 工具描述的质量直接影响规划质量——Anthropic 用专门的 agent 测试并优化工具描述，据称使后续任务完成时间缩短约 40%；
+  - 只有当任务价值足够高时才启用多 agent fanout，否则单 agent + 好规划更划算。
+
+微软的 Magentic-One（AutoGen 生态，2024-11）给出了另一种可复现的实现：Orchestrator 维护任务账本（task ledger）逐步规划与派工，多个专用 Agent（WebSurfer、FileSurfer、Coder、Executor）并行工作，在 GAIA、AssistantBench 等基准上取得了当时有竞争力的成绩。
 
 ## 与 MCP / Tool Use 集成
 
@@ -223,16 +244,35 @@ Planning 层必须提供完整审计能力。
 - 合规与安全审查
 - 持续优化 Planning 策略
 
+## 如何评估 Planning 层（2025-2026 基准现状）
+
+给 Planning 层定目标时，需要了解公开基准走到了哪一步，避免用 2023 年的预期考核 2026 年的系统，也避免被饱和的基准误导：
+
+| 基准 | 关注点 | 2025-2026 现状 |
+|---|---|---|
+| OSWorld | 计算机操作 | SOTA 从 2024 年 12.2% 升至 66.3%（Claude Opus 4.5，Stanford AI Index 2026），已接近 72% 人类基线 |
+| OSWorld 2.0 | 长程真实任务 | 2026 年新基准，最强系统仅约 20%——长程规划仍是主要瓶颈 |
+| WebArena | 网页任务 | 最优系统约 74%，已逼近 78.2% 人类基线 |
+| GAIA | 通用助理 | 头部系统已达甚至超过人类基线，对前沿模型失去区分度 |
+
+三条评估纪律：
+
+1. **看可靠性而非单次分数**：pass@1 提升快于 pass^k，生产应以"连续 k 次成功率"作为对外承诺口径。
+2. **警惕 scaffold 敏感性**：同一模型换 harness、换步数/token 预算，分数可能相差很大；比较方案时固定 scaffold。
+3. **关注抗操纵性**：2026 年的研究显示 WebArena、GAIA 等基准存在被提示注入、配置泄露等手段"作弊刷分"的漏洞（最高近乎满分），内部评测集应包含对抗样本。
+
 ## 成本与 SLO
 
 ### 成本模型
 
 Planning 的成本主要来自：
 
-- Planner 调用大模型的 token 消耗
+- Planner 调用大模型的 token 消耗（含推理模型的 thinking token）
+- 计划生成的并行采样次数（Best-of-N 中的 N）
 - 重规划次数
 - 工具/MCP 调用费用
 - 人工审批成本
+- 多 agent fanout 的放大效应（公开案例中多 agent 比单 agent 贵约一个数量级，规划环节单独 fanout 的性价比最高）
 
 ### SLO 建议
 
@@ -241,20 +281,27 @@ Planning 的成本主要来自：
 | 计划生成成功率 | 生成并通过验证的计划占比 |
 | 首次执行成功率 | 无需重规划即完成的任务占比 |
 | 平均重规划次数 | 反映计划质量 |
-| 任务完成率 | 最终成功完成的任务占比 |
+| 任务完成率 | 最终成功完成任务占比（建议同时报 pass@1 与 pass^k） |
 | 平均任务耗时 | 端到端执行时间 |
-| 平均任务成本 | 单次任务的花费 |
+| 平均任务成本 | 单次任务的花费（含推理预算） |
+| 单任务推理预算 | Planner thinking token、采样数 N 的分布与上限 |
 | 人工介入率 | 需要 HITL 的任务占比 |
 
 ## 本章小结
 
 - 独立 Planning 层适合长程、多步、高失败成本、需审计的任务。
-- 与 Runtime、Memory、Reflection、Multi-Agent、MCP、Tool Use 的集成需要清晰的接口与职责边界。
+- 与 Runtime、Memory、Reflection、Multi-Agent、MCP、Tool Use 的集成需要清晰的接口与职责边界；框架选型时重点验证持久 checkpoint 与"崩溃后执行自动重启"两个能力等级。
 - 计划验证、重规划风暴防护、人机协同、审计、成本与 SLO 是生产落地的五大支柱。
+- 2025-2026 年的新基线：多 agent 规划 fanout 价值已被生产验证（Anthropic 案例 +90% 评测收益/约 15x 成本），推理预算管理与"规划时搜索、执行时线性"成为成本纪律，评估口径转向 pass^k 可靠性。
 
 **参考来源**
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
+- [How we built our multi-agent research system - Anthropic](https://www.anthropic.com/engineering/multi-agent-research-system)
+- [Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks](https://arxiv.org/abs/2411.04468)
+- [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
+- [Stanford HAI AI Index Report 2026](https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf)
+- [OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks](https://arxiv.org/abs/2606.29537)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)
 - [LLM+P: Empowering Large Language Models with Optimal Planning Proficiency](https://arxiv.org/abs/2304.11477)

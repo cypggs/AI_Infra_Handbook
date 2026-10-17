@@ -129,16 +129,54 @@ Planning 负责“做什么”，Runtime 负责“怎么调度执行”。分离
 5. **生产加固**：审计、HITL、成本监控、重规划风暴防护。
 6. **持续优化**：基于生产数据迭代分解模板、约束规则与模型策略。
 
+### Q16：o1/R1 这类推理模型出现之后，显式 Planning 层还有必要吗？
+
+**参考答案要点**：
+
+- 推理模型把部分规划能力内化到测试时计算里，数学、代码等任务提升巨大，简单 Agent 任务（如 OSWorld 类）也因此快速逼近人类基线。
+- 但长程真实任务（OSWorld 2.0 上最强系统仅约 20%）的瓶颈在多步计划质量、错误传播与动态重规划——这些正是显式 Planning 层的能力范围。
+- 工程上的主流形态不是"二选一"，而是融合：推理模型充当 Planner（强弱模型分层路由），显式计划仍作为可审计、可回滚、可 HITL 的 artifact 存在。
+
+### Q17：什么是 Agent 的测试时计算扩展（test-time scaling）？如何用在规划上？
+
+**参考答案要点**：
+
+- 定义：在推理阶段投入更多计算换取更高成功率，与训练时计算相对。
+- 对 Agent 规划有效的四种手段：并行采样 Best-of-N / Beam（GAIA 上 BoN 将均分从约 55.8% 提升到 63.0%）、序贯修正（何时修正比修正几次更关键）、Verifier 排序合并（list-wise 最优）、轨迹多样化。
+- 预算分配纪律：规划是最值得加码的阶段，执行/验证加资源收益递减；预算要显式纳入 Policy Engine。
+- 树搜索（LATS/AFlow）是更激进的测试时扩展，但需可模拟环境，且应"规划时搜索、执行时线性"。
+
+### Q18：层级规划在 2025-2026 年有什么新进展？
+
+**参考答案要点**：
+
+- 自适应分层：AdaPlan-H（ACL 2026 Findings）先出粗略全局计划，按复杂度按需细化，避免过度规划。
+- 层级 RL：HiPER（ICML 2026）把高层子目标规划与低层执行拆成两个时间尺度分别训练，用 Hierarchical Advantage Estimation 解决长程稀疏奖励下的信用分配，7B 模型在 ALFWorld 达 97.4%。
+- 训练式 Planner：Plan-and-Act（ICML 2025）用合成轨迹标注训练专用 Planner，WebArena-Lite 57.6%。
+- 工程含义：任务分布稳定时，规划质量可以从提示工程升级为模型能力。
+
+### Q19：checkpoint 和 durable execution 是一回事吗？
+
+**参考答案要点**：
+
+- 不是。checkpoint 是状态快照：崩溃后数据不丢，可以从断点恢复（LangGraph 每 super-step 自动保存，生产用 Postgres）。
+- durable execution 还要求"执行自动重启"：进程/机器挂了之后，执行逻辑本身能被重新拉起继续跑。开源框架默认单进程，做不到这一点。
+- 方案：引入 Temporal 等持久化执行层（LangGraph 有插件，OpenAI Agents SDK 集成已 GA），或使用托管平台；选型时把"状态可恢复"与"执行可自动重启"作为两个等级分别验证。
+- 安全提醒：checkpoint 存储是攻击面，需要纳入安全审计（已有 SQLite checkpointing SQL 注入漏洞的公开案例）。
+
 ## 本章小结
 
 - 初级题聚焦概念与基础对比。
 - 中级题关注循环设计、DAG 调度、Observer、方案选型与 Reflection 配合。
-- 高级题要求能设计企业级架构、保证可控安全、处理目标漂移、制定落地方案。
+- 高级题要求能设计企业级架构、保证可控安全、处理目标漂移、制定落地方案，并掌握 2025-2026 年的推理模型、测试时计算、层级规划与持久化执行新进展。
 
 **参考来源**
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
+- [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
+- [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

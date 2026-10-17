@@ -2,7 +2,9 @@
 
 > 一句话理解：**Agent Planning 是 Agent 的“任务拆解与路线规划系统”**，负责把模糊目标转化为可执行、可观测、可动态调整的计划。
 
-在 AI Infra 中，Planning 是 Agent 从“单次交互”走向“长程自治”的关键层。它不是让模型直接生成答案，而是让模型先思考“要做什么、按什么顺序做、失败了怎么办”，并把这些思考显式地结构化成计划，再交给下游执行。
+在 AI Infra 中，Planning 是 Agent 从”单次交互”走向”长程自治”的关键层。它不是让模型直接生成答案，而是让模型先思考”要做什么、按什么顺序做、失败了怎么办”，并把这些思考显式地结构化成计划，再交给下游执行。
+
+本主题已更新至 **2026-10** 最新技术：新增推理模型时代的强弱模型分层规划、测试时计算扩展（Best-of-N / Verifier）、搜索式规划（LATS / AFlow）、学习式 Planner（Plan-and-Act / HiPER / AdaPlan-H）、神经符号有界修复、checkpoint 与 durable execution 的工程辨析，以及 OSWorld 2.0 等 2025-2026 基准进展。
 
 ## 学习目标
 
@@ -11,9 +13,10 @@
 1. 解释 Planning 与 prompt engineering、CoT、ReAct 的演进关系。
 2. 描述 Planning 的核心循环：分解目标、表示计划、执行步骤、观测结果、动态重规划。
 3. 画出 Planning 层的典型架构，并说明 Planner、Plan Store、Executor、Observer、Replan Trigger 等组件的职责边界。
-4. 对比 ReAct、Plan-and-Execute、Tree of Thoughts、LLM+P、HuggingGPT、LangGraph planner、OpenAI Agents SDK handoffs、AutoGen planner 等主流方案的设计取舍。
+4. 对比 ReAct、Plan-and-Execute、ReWOO、LATS、AFlow、Plan-and-Act、HiPER、LangGraph planner 等主流方案的设计取舍。
 5. 用 `planning_mini` 实现一个最小可用的 Planning Agent，并解释生产落地的关键差异。
 6. 识别生产中的典型陷阱：重规划风暴、计划粒度过细/过粗、计划不可验证、与人类协作断层等。
+7. 根据任务特征设计推理预算分配，并判断何时值得训练专用 Planner。
 
 ## Planning 与相邻主题的关系
 

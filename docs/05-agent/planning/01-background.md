@@ -83,13 +83,49 @@ graph TD
 
 这些任务的共同点是：无法通过单次模型调用完成，需要显式规划、多步执行、动态调整。
 
+## 2025-2026：推理模型时代的规划新范式
+
+2024 年底以来，以 OpenAI o1/o3、DeepSeek-R1 为代表的**推理模型（Reasoning Model）**把"模型想多久"变成了可伸缩的测试时计算（test-time compute）：通过在推理阶段投入更多计算做自我验证与回溯，数学、代码等任务的规划能力大幅提升。这让业界一度认为"显式 Planning 会被推理模型内化掉"，但 2025-2026 年的基准数据给出了相反结论：
+
+- **简单任务确实在饱和**。斯坦福 HAI《AI Index 2026》显示，计算机操作基准 OSWorld 的 SOTA 从 2024 年的 12.2% 提升到 66.3%（Claude Opus 4.5），已接近 72% 的人类基线；WebArena、GAIA 等基准的最优系统也已达到或超过人类水平。
+- **长程任务仍是硬骨头**。面向长程真实任务的 OSWorld 2.0（2026）上，最强系统也仅在 20% 左右。差距不在单步推理，而在**多步计划的质量、错误传播的控制与动态重规划**——这正是显式 Planning 层的价值所在。
+
+与此同时，Planning 本身也在被重新发明，形成几条清晰的技术主线：
+
+1. **规划与执行分离 + 学习化**：不再只靠 prompt 让模型"现场规划"，而是用合成轨迹标注、强化学习直接训练 Planner。Plan-and-Act（ICML 2025）用合成数据训练出专用 Planner，在 WebArena-Lite 上取得 57.6% 成功率；HiPER（ICML 2026）用层级强化学习训练"高层出子目标、低层做执行"的双层策略，在 ALFWorld 上达到 97.4%。
+2. **自适应分层规划**：AdaPlan-H（ACL 2026 Findings）先给出粗略全局计划，再按任务复杂度自适应细化，避免"过度规划"造成的浪费与僵化。
+3. **搜索式规划**：LATS（ICML 2024）用 MCTS 把推理、行动、规划统一在树搜索中；AFlow（ICLR 2025）进一步用 MCTS 直接搜索"工作流代码"，让 7B 级小模型以约 4.6% 的成本击败 GPT-4o。
+4. **测试时计算扩展**：对 Agent 任务的系统研究（2025）表明，并行采样（Best-of-N）、序贯修正、Verifier 合并等手段可稳定提升规划质量——例如 Best-of-N 将 GAIA 平均得分从 55.8% 提升到 63.0%。
+5. **神经符号规划**：2025 年的共识是"LLM 负责建模与解释、符号求解器负责校验"——LLM 生成 PDDL 或约束，经典规划器/验证器求解，失败时把错误信息作为结构化反馈驱动有界修复循环。
+
+```mermaid
+graph TD
+    A[学习式 Planner：Plan-and-Act / HiPER] --> P[高质量计划]
+    B[自适应分层：AdaPlan-H] --> P
+    C[搜索式规划：LATS / AFlow] --> P
+    D[测试时计算扩展：BoN / Verifier] --> P
+    E[神经符号校验：PDDL + 有界修复] --> P
+    R[推理模型 o1 / R1 / o3] -.提供推理底座.-> A
+    R -.提供推理底座.-> C
+    P --> X[长程任务成功率]
+```
+
+本章后续内容会在这些主线展开：核心思想（02）讲任务分解与计划表示的最新演进，架构（03）与循环（04）讲工程化组件，源码分析（06）对比 ReWOO、LATS、AFlow、Plan-and-Act、HiPER 等方案的取舍。
+
 ## 本章小结
 
 - 单轮 prompt 和 CoT 适合明确、短程任务；ReAct 增加了行动与观察，但计划仍是隐式的。
 - 显式 Planning 把计划提升为一等公民，解决了目标模糊、多步依赖、动态环境三类核心问题。
+- 2025-2026 年的推理模型并没有取代 Planning，反而催生了学习式 Planner、自适应分层、搜索式规划、测试时计算扩展、神经符号校验五条新主线。
 - Planning 是 Agent 长程自治的基础，也是后续架构与工程实践的出发点。
 
 **参考来源**
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 - [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/abs/2201.11903)
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
+- [Understanding the Planning of LLM Agents: A Survey](https://arxiv.org/abs/2402.02716)
+- [Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks](https://arxiv.org/abs/2503.09572)
+- [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
+- [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
+- [Stanford HAI AI Index Report 2026](https://hai.stanford.edu/assets/files/ai_index_report_2026.pdf)
+- [OSWorld 2.0: Benchmarking Computer Use Agents on Long-Horizon Real-World Tasks](https://arxiv.org/abs/2606.29537)

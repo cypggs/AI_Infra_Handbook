@@ -1,6 +1,6 @@
 # 源码分析
 
-> 一句话理解：**对比 ReAct、Plan-and-Execute、Tree of Thoughts、LLM+P、HuggingGPT、LangGraph planner、OpenAI Agents SDK handoffs、AutoGen planner，可以看出 Planning 的演进方向：从隐式推理到显式计划，从单路径到多路径，从单 Agent 到多 Agent 协作。**
+> 一句话理解：**从 ReAct、Plan-and-Execute 到 ReWOO、LATS、AFlow、Plan-and-Act、HiPER，Planning 的演进方向清晰可见：从隐式推理到显式计划，从单路径到搜索多路径，从"提示工程现场规划"到"数据/RL 训练专用 Planner"，再到用 MCTS 直接搜索工作流结构。**
 
 本章从源码与设计的角度，对比主流 Planning 方案。重点不是罗列 API，而是理解它们的设计取舍：计划如何表示、如何执行、如何反馈、如何扩展。
 
@@ -252,6 +252,149 @@ graph LR
 
 **适用场景**：研究原型、需要频繁人机协作、任务边界不固定的场景。
 
+## 9. ReWOO
+
+**论文**：ReWOO: Efficient Agentic Workflow with World Model-Based Sequential Planning（2023，ICLR 2024）
+
+**核心思想**：把 Plan-and-Execute 再推进一步——Planner 在**完全不看工具返回**的情况下生成整份计划，用变量占位符引用未来才会得到的观测结果；Worker 执行工具调用；Solver 汇总并做最终推理。
+
+```mermaid
+graph LR
+    P[Planner<br/>生成含占位符的计划] --> W[Worker<br/>执行工具调用]
+    W --> S[Solver<br/>汇总推理出答案]
+```
+
+**计划表示**：带变量占位符的线性计划，例如"步骤 2 的输入引用步骤 1 的输出"。
+
+**执行方式**：先一次性规划、再批量执行，天然支持并行工具调用。
+
+**优点**：
+
+- 大幅省 token：推理与观测解耦，避免"每一步都重新读一遍全部历史"。
+- 无观测即可规划，适合工具输出难以提前获得的场景。
+
+**缺点**：
+
+- 计划不含真实观测，遇到意外时没有重规划机制，容错弱。
+- 占位符引用出错时（如步骤编号错位）会导致整条计划失败。
+
+**适用场景**：工具调用相互独立、可并行、且观测内容大致可预期的任务。
+
+## 10. LATS
+
+**论文**：Language Agent Tree Search Unifies Reasoning Acting and Planning（2023，ICML 2024）
+
+**核心思想**：把 ReAct 的线性交错升级成 MCTS 树搜索——LLM 身兼三职：动作生成器（扩展节点）、价值评估器（给节点打分）、反思器（对失败轨迹做 verbal reinforcement）。
+
+```mermaid
+graph TD
+    A[初始状态] --> B[动作 1]
+    A --> C[动作 2]
+    B --> D[模拟展开]
+    C --> E[模拟展开]
+    D --> F[环境反馈 + LLM 反思]
+    E --> F
+    F -->|反向传播更新价值| A
+```
+
+**计划表示**：搜索树，节点是（状态，动作）对，最优路径即计划。
+
+**执行方式**：Selection → Expansion → Evaluation → Simulation → Backpropagation 的标准 MCTS 循环，环境真实反馈驱动搜索。
+
+**关键结果**：HumanEval pass@1 92.7-94.4%（GPT-4）；WebShop 平均得分 75.9；HotPotQA 上约 2 倍于 ReAct。
+
+**优点**：
+
+- 统一了推理、行动与规划，可用环境反馈修正推理路径。
+- 回溯能力让错误不再沿单路径累积。
+
+**缺点**：
+
+- 每个节点都伴随多次模型调用，成本数倍于 ReAct。
+- 依赖环境可模拟/可回滚；不可逆动作（发邮件、转账）无法安全模拟。
+
+**适用场景**：代码生成、数学、可回滚的搜索/导航类任务；生产中的推荐姿势是"规划时搜索、执行时线性"。
+
+## 11. AFlow
+
+**论文**：AFlow: Automating Agentic Workflow Generation（2024，ICLR 2025）
+
+**核心思想**：规划的"元层级"——不再搜索一次任务的下一步动作，而是用 MCTS 在**工作流代码**的空间里搜索：每个节点是一段可执行的 workflow 代码，LLM 通过代码修改算子迭代改进工作流，执行反馈作为奖励信号。
+
+```mermaid
+graph TD
+    W0[初始工作流] --> M1[MCTS 扩展<br/>LLM 修改代码]
+    M1 --> E[在基准上执行]
+    E -->|得分反馈| M1
+    M1 --> WN[优化后的工作流]
+```
+
+**计划表示**：可执行代码形式的 workflow（节点即 LLM 调用单元，边即控制流）。
+
+**关键结果**：六个基准上平均比 SOTA 提升 5.7%；被优化过的小模型可以仅花 GPT-4o 推理成本约 4.55% 的情况下超过 GPT-4o。
+
+**优点**：
+
+- 把"如何组织规划-执行循环"本身自动化了，摆脱手工设计 workflow 的负担。
+- 树状经验沉淀可复用，搜索一次、多任务受益。
+
+**缺点**：
+
+- 搜索过程需要大量基准执行，前期成本高。
+- 优化出的 workflow 可能过拟合特定基准。
+
+**适用场景**：任务分布稳定、评估集可得、希望自动化发现 Agent 工作流的团队。
+
+## 12. Plan-and-Act
+
+**论文**：Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks（2025，ICML 2025）
+
+**核心思想**：显式 Planner / Executor 分离，但关键区别在于**训练数据管线**：用真实轨迹反向标注出"可行的高层计划"作为监督信号，大规模增强后训练专用 Planner 模型——规划从"提示工程"变成"模型能力"。
+
+```mermaid
+graph LR
+    T[真实执行轨迹] --> A[反向标注<br/>可行高层计划]
+    A --> D[数据增强]
+    D --> P[训练 Planner 模型]
+    P --> E[Executor 执行]
+```
+
+**关键结果**：WebArena-Lite 成功率 57.6%、WebVoyager 81.4%（纯文本方案 SOTA）。
+
+**优点**：
+
+- Planner 可独立迭代与蒸馏，推理成本远低于通用大模型现场规划。
+- 训练后的 Planner 输出结构稳定，便于 Validator 校验。
+
+**缺点**：
+
+- 需要高质量轨迹与标注管线，冷启动成本高。
+- 泛化能力受训练分布限制，跨域任务需要重新标注。
+
+**适用场景**：任务分布稳定、调用量大、且已有（或可构造）成功轨迹数据的业务。
+
+## 13. HiPER
+
+**论文**：HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for Large Language Model Agents（2026，ICML 2026）
+
+**核心思想**：把多轮 LLM Agent 的 RL 训练从"扁平策略"升级为两层时间尺度：高层策略负责提出子目标（规划），低层策略负责执行若干步原子动作（行动）。配合 Hierarchical Advantage Estimation（HAE），把每个子目标执行期间的回报聚合后再做信用分配，相比扁平 GAE 方差更小、梯度无偏。
+
+**计划表示**：子目标序列（隐式计划），由策略网络即时生成。
+
+**关键结果**：Qwen2.5-7B-Instruct 在 ALFWorld 达 97.4%（+6.6），WebShop 达 83.3%（+8.3）；在含多个依赖子任务的长程场景上提升尤为明显。
+
+**优点**：
+
+- 显式分层让稀疏奖励下的信用分配变得可训练，是"层级规划"在学习范式上的落地。
+- 小模型即可取得此前大模型提示工程才能达到的规划水平。
+
+**缺点**：
+
+- 需要可交互环境与奖励设计，训练基建要求高。
+- 学到的子目标是隐式的，可解释性弱于显式计划 artifact。
+
+**适用场景**：有可模拟环境、任务分布稳定、追求高成功率的长程任务（如运维操作、网页流程、家务机器人）。
+
 ## 设计取舍对比表
 
 | 方案 | 计划表示 | 执行方式 | 动态性 | 可解释性 | 扩展性 | 计算成本 |
@@ -264,6 +407,11 @@ graph LR
 | LangGraph planner | 图 | 图运行时 | 高 | 中 | 高 | 中 |
 | OpenAI Agents SDK handoffs | handoff 链 | Agent 转交 | 高 | 中 | 高 | 中 |
 | AutoGen planner | 对话/隐式 | 多 Agent 对话 | 高 | 低 | 高 | 高 |
+| ReWOO | 带占位符的线性计划 | 先规划后批量执行 | 低 | 高 | 中 | 低 |
+| LATS | MCTS 搜索树 | 搜索 + 环境反馈 | 高 | 中 | 中 | 很高 |
+| AFlow | 工作流代码 | MCTS 搜索 + 执行评估 | 中 | 高 | 高 | 高（离线） |
+| Plan-and-Act | 训练式高层计划 | Planner/Executor 分离 | 中 | 高 | 中 | 低（在线） |
+| HiPER | 隐式子目标序列 | 层级 RL 策略 | 高 | 低 | 中 | 低（在线） |
 
 ## 选型建议
 
@@ -271,18 +419,22 @@ graph LR
 |---|---|
 | 短程工具调用、快速原型 | ReAct |
 | 目标明确的多步 SOP | Plan-and-Execute |
-| 需要探索多路径的推理/决策 | Tree of Thoughts |
+| 需要探索多路径的推理/决策 | Tree of Thoughts / LATS |
+| 工具相互独立、追求低 token 成本 | ReWOO |
 | 状态/动作可形式化的领域 | LLM+P |
 | 多模态/多模型能力组合 | HuggingGPT |
 | 复杂控制流、状态机、并行 | LangGraph planner |
 | 多 Agent 分工协作 | OpenAI Agents SDK handoffs / AutoGen |
+| 任务分布稳定、有大量轨迹数据 | Plan-and-Act（训练式 Planner） |
+| 有可模拟环境、追求极限成功率 | HiPER（层级 RL） |
+| 希望自动化发现最优工作流 | AFlow（离线搜索） |
 
 ## 本章小结
 
-- ReAct 隐式规划，适合短程任务；Plan-and-Execute 显式计划，适合目标明确的 SOP。
-- ToT 多路径探索，LLM+P 形式化最优规划，HuggingGPT 多模型组合。
-- LangGraph、OpenAI Agents SDK、AutoGen 代表了 Planning 与 Multi-Agent、图运行时、对话系统融合的方向。
-- 选型应根据计划表示、执行方式、动态性、可解释性、扩展性、计算成本综合判断。
+- ReAct 隐式规划，适合短程任务；Plan-and-Execute 显式计划，适合目标明确的 SOP；ReWOO 用占位符解耦推理与观测，把 token 成本压到最低。
+- ToT/LATS 代表搜索式规划：用 MCTS 换回溯能力，但要把搜索限制在规划阶段。
+- 2025-2026 年的新主线是"学习化"：Plan-and-Act 用合成数据训练 Planner，HiPER 用层级 RL 直接优化子目标选择，AFlow 则用 MCTS 搜索工作流结构本身。
+- 选型应根据计划表示、执行方式、动态性、可解释性、扩展性、计算成本综合判断；任务分布稳定时，优先评估训练式 Planner 的性价比。
 
 **参考来源**
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
@@ -290,6 +442,11 @@ graph LR
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
 - [LLM+P: Empowering Large Language Models with Optimal Planning Proficiency](https://arxiv.org/abs/2304.11477)
 - [HuggingGPT: Solving AI Tasks with ChatGPT and its Friends in HuggingFace](https://arxiv.org/abs/2303.17580)
+- [ReWOO: Efficient Agentic Workflow with World Model-Based Sequential Planning](https://arxiv.org/abs/2305.18323)
+- [Language Agent Tree Search Unifies Reasoning Acting and Planning](https://arxiv.org/abs/2310.04406)
+- [AFlow: Automating Agentic Workflow Generation](https://arxiv.org/abs/2410.10762)
+- [Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks](https://arxiv.org/abs/2503.09572)
+- [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

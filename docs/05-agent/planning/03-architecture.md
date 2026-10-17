@@ -157,6 +157,8 @@ Checkpoint 的作用：
 - **审计**：复盘时可以重现当时状态。
 - **对比**：比较不同策略下的执行路径。
 
+2025-2026 年的一个关键工程认知是**"checkpoint 不等于 durable execution"**：框架（如 LangGraph v1.x）在每个 super-step 保存状态快照，进程崩溃后数据不丢、可以断点续跑，但开源版默认单进程运行，进程死了执行并不会自动拉起。真正进程级/机器级的容错需要外部持久化执行层（如 Temporal，LangGraph 也提供了对应插件），或直接使用平台托管版本。设计 Planning 数据面时，应明确区分"状态可恢复"与"执行可自动重启"两个等级。
+
 ## 核心组件接口示例
 
 以下是一个最小化的接口设计，用于说明组件之间的协作关系：
@@ -186,15 +188,40 @@ class ReplanTrigger:
 
 这些接口应根据实际系统选择同步或异步实现，但职责边界应保持清晰。
 
+## 推理模型时代的 Planner 变体（2025-2026）
+
+o1/R1 等推理模型普及后，Planner 的工程形态多了一种主流选择：**强弱模型分层路由**。
+
+```mermaid
+graph LR
+    G[结构化目标] --> R[复杂度路由]
+    R -->|复杂/全局重规划| SP[强推理模型 Planner<br/>扩展思考 + 高预算]
+    R -->|简单/局部修复| LP[轻量 Planner<br/>低延迟低成本]
+    SP --> V[Plan Validator]
+    LP --> V
+    V --> PS[Plan Store]
+```
+
+生产注意点：
+
+- **规划是最值得花计算的地方**：Cohere 2026 年的实验表明，把推理预算向规划环节倾斜（甚至只对规划做并行委派），投入产出比高于在执行/验证环节加码；执行与验证加资源会很快触及收益递减。
+- **推理预算要显式化**：给 Planner 设置 thinking token 预算与最大扩展轮数，避免单次规划耗时失控；预算应与 Policy Engine 的成本上限联动。
+- **计划生成可用并行采样**：Plan 阶段可并行采样 N 份计划草案，由 Plan Validator / Verifier 打分后取最优（Best-of-N），成本远低于执行失败后的全局重规划。
+- **学习型 Planner 是另一条路**：当任务分布稳定时，可用 Plan-and-Act（ICML 2025）式的合成数据管线或 HiPER（ICML 2026）式的层级 RL 训练专用 Planner，把规划质量从”提示工程”升级为”模型能力”，同时大幅降低单次规划的 token 成本。
+
 ## 本章小结
 
 - Planning 层分为控制面（决策）和数据面（状态），各司其职、解耦协作。
 - Planner、Plan Store、Executor、Observer、Replan Trigger、Policy、Memory Gateway 是核心组件。
-- 与 Agent Runtime 的边界必须清晰：Planning 决定“做什么”，Runtime 负责“怎么调度执行”。
+- 与 Agent Runtime 的边界必须清晰：Planning 决定”做什么”，Runtime 负责”怎么调度执行”。
 - 计划版本与 checkpoint 是生产级系统必备能力，支持回滚、恢复、审计与对比。
+- 推理模型时代的主流做法是强弱模型分层：强模型做 Planner、轻量模型做 Executor，并把推理预算、并行采样纳入 Policy 统一管控。
 
 **参考来源**
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
+- [Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks](https://arxiv.org/abs/2503.09572)
+- [HiPER: Hierarchical Reinforcement Learning with Explicit Credit Assignment for LLM Agents](https://arxiv.org/abs/2602.16165)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)
+- [Why Checkpoints Aren't Durable Execution - Diagrid](https://www.diagrid.io/blog/checkpoints-are-not-durable-execution-why-langgraph-crewai-google-adk-and-others-fall-short-for-production-agent-workflows)

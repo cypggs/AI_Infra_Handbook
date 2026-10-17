@@ -118,6 +118,24 @@ Planning 层需要专门的测试策略：
 - 定期复盘：哪些计划经常失败？哪些重规划是有效的？
 - 把优化后的模式固化为分解模板或约束规则。
 
+## 15. 推理预算显式化（2025-2026）
+
+- 给 Planner 设置 thinking token 预算、最大扩展轮数、并行采样次数 N，全部纳入 Policy Engine 统一管控。
+- 规划是最值得加码计算的阶段：预算紧张时优先保 Planner，砍 Executor/Verifier 的冗余采样。
+- 跟踪”单任务推理预算”分布，把它像成本一样监控与告警。
+
+## 16. 规划时搜索、执行时线性
+
+- MCTS/LATS 式树搜索收益显著（HumanEval、WebShop 等基准上成倍提升），但只在**环境可模拟、动作可回滚**时安全。
+- 把搜索限制在 plan-time：选出最优路径后交给 Executor 线性执行，不在运行时做树搜索。
+- 不可逆动作（发邮件、转账、删库）不进模拟分支，只走显式计划 + HITL。
+
+## 17. 任务分布稳定时，训练专用 Planner
+
+- 当任务分布稳定、调用量大、且有（或可构造）成功轨迹时，用 Plan-and-Act 式合成数据管线或层级 RL 训练专用 Planner，性价比通常优于持续堆提示工程。
+- 训练前先确认评测集与数据管线，避免”优化出一个过拟合特定基准的 Planner”。
+- 无法训练时，退而求其次：沉淀工作流模板（AWM 思路），从历史成功轨迹中归纳可复用计划骨架注入 Planner 上下文。
+
 ## 最佳实践清单
 
 ```markdown
@@ -135,17 +153,25 @@ Planning 层需要专门的测试策略：
 - [ ] 建立 Planning 专用测试体系
 - [ ] 完善的监控、告警与审计
 - [ ] 基于生产数据持续迭代
+- [ ] Planner 推理预算显式化并纳入 Policy
+- [ ] 树搜索限制在规划阶段，执行保持线性
+- [ ] 任务分布稳定时评估训练式 Planner / 工作流沉淀
 ```
 
 ## 本章小结
 
-- 好的 Planning 强调“足够好、可验证、可调整、不添乱”。
+- 好的 Planning 强调”足够好、可验证、可调整、不添乱”。
 - 计划粒度、DAG 优先、plan-as-artifact、触发器克制、避免过度规划是核心原则。
 - 模型选择、约束前置、回滚设计、Reflection 配合、HITL、测试、监控、持续迭代共同构成生产落地的最佳实践。
+- 2025-2026 年的新增纪律：推理预算显式化、”规划时搜索、执行时线性”、任务分布稳定时训练专用 Planner 或沉淀工作流。
 
 **参考来源**
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [Language Agent Tree Search Unifies Reasoning Acting and Planning](https://arxiv.org/abs/2310.04406)
+- [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
+- [Plan-and-Act: Improving Planning of Agents for Long-Horizon Tasks](https://arxiv.org/abs/2503.09572)
+- [Agent Workflow Memory](https://arxiv.org/abs/2409.07429)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [AutoGen Planning Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/planning.html)

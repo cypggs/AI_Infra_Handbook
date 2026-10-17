@@ -53,6 +53,25 @@ graph LR
 
 给模型几个同类任务的拆解示例，让它模仿生成计划。适合计划模式相对固定的场景，如客服 SOP、标准故障处理。
 
+### 5. 自适应分层分解（2025-2026）
+
+与"一次性拆到底"不同，自适应分层先给出少量抽象的高层步骤，再在执行前按当前子任务的复杂度递归细化。AdaPlan-H（ACL 2026 Findings）证明了这种"按需细化"能同时避免两种经典失败：计划过细导致僵化、计划过粗导致不可执行。它与分层强化学习的思路殊途同归——HiPER（ICML 2026）把"高层出子目标、低层做执行"拆成两个时间尺度的策略分别训练，在长程稀疏奖励任务上显著稳定了信用分配。
+
+```mermaid
+graph TD
+    G[高层目标] --> H1[子目标 A]
+    G --> H2[子目标 B]
+    G --> H3[子目标 C]
+    H1 --> L11[步骤 A.1]
+    H1 --> L12[步骤 A.2]
+    H2 -.执行前再细化.-> L21[步骤 B.1]
+    H3 -.简单任务不细化.-> L31[原子动作]
+```
+
+### 6. 学习型分解（Learned Decomposition，2025-2026）
+
+不依赖 prompt "现场发挥"，而是直接训练 Decomposer / Planner：Plan-and-Act（ICML 2025）用真实轨迹反向标注出"可行计划"作为监督数据，训练专用 Planner 模型；HiPER 则用层级 RL 直接优化子目标选择。当业务任务分布稳定、调用量大时，学习型分解的规划质量与稳定性都明显优于纯提示工程。
+
 ## 计划表示
 
 计划需要一种结构化的表示方式，让 Planner、Executor、Observer、人都能理解。常见形式包括：
@@ -171,7 +190,30 @@ graph TD
 | 复杂度 | 低 | 高 |
 | 成本 | 低 | 高（多次调用 Planner） |
 
-实践中常采用“混合模式”：先静态生成主计划，保留关键 checkpoint；在每个 checkpoint 根据观测结果决定是否动态调整后续步骤。
+实践中常采用”混合模式”：先静态生成主计划，保留关键 checkpoint；在每个 checkpoint 根据观测结果决定是否动态调整后续步骤。
+
+## 规划与推理的融合：测试时计算与搜索（2025-2026）
+
+推理模型（o1/R1 等）的出现，让”规划”多了一层含义：模型在回答前可以花更多计算做自我验证与回溯。这对 Planning 的影响体现在两个互补方向上。
+
+### 方向一：把推理预算当作规划资源来分配
+
+对 Agent 任务的系统研究（Scaling Test-Time Compute for LLM Agents，2025）总结了四种有效的测试时扩展手段：
+
+| 手段 | 做法 | 效果（GAIA 基准观测） |
+|---|---|---|
+| 并行采样（Best-of-N / Beam / DVTS） | 同时生成 N 条计划轨迹，用 Verifier 选出最优 | Best-of-N 将平均分从 55.8% 提升到 63.0% |
+| 序贯修正 | 失败后带着错误信息重写计划，而非原地重试 | “何时修正”比”修正多少次”更关键 |
+| Verifier 合并 | 用打分模型对多条轨迹排序或合并 | 列表式（list-wise）打分效果最好 |
+| 轨迹多样化 | 刻意让采样温度/提示多样化 | 收益稳定为正 |
+
+Cohere 2026 年关于”编码 Agent 团队”的进一步研究还给出一个反直觉结论：**规划是最值得投入额外计算的阶段**——只把规划环节做并行委派，就能以约一半的成本达到全链路委派的效果；而执行/验证环节加人很快就出现收益递减。这验证了”Planner 用强模型、Executor 用快模型”分层选型策略的合理性。
+
+### 方向二：用树搜索代替单路径生成
+
+ReAct 是”一条路走到底”，ToT 把推理组织成树；LATS（ICML 2024）用 MCTS 把推理、行动、规划统一起来——LLM 同时充当动作生成器、价值评估器和反思器，环境反馈驱动搜索。AFlow（ICLR 2025）走得更远：用 MCTS 在”工作流代码”的空间里搜索，自动发现优于人工设计的 Agent 工作流。
+
+需要注意的是，树搜索有两个前提：**环境可模拟**（代码、数学、数据库回滚容易，发邮件、转账等不可逆动作不行）和**成本可接受**（每个节点都是多次模型调用）。因此生产中的推荐姿势是”**规划时搜索、执行时线性**”：把 MCTS 限制在 plan-time 的计划生成阶段，选出的最优路径再交给 Executor 线性执行，避免运行时的成本爆炸。
 
 ## 与相邻主题的边界
 
@@ -197,13 +239,18 @@ Planning 把工具视为能力的抽象，计划项中引用 tool name 和参数
 
 ## 本章小结
 
-- 任务分解有分层、依赖驱动、目标驱动、示例驱动等多种范式，应根据任务特征选择。
+- 任务分解有分层、依赖驱动、目标驱动、示例驱动、自适应分层、学习型等多种范式；2025-2026 年的趋势是"按需细化"与"直接训练 Decomposer"。
 - 计划表示常用列表、DAG、树、状态图，其中 DAG 能最好地平衡表达能力与执行效率。
 - Plan-Execute-Observe-Replan 是 Planning 的核心循环；重规划分为静态与动态两种模式。
+- 推理模型时代，测试时计算（并行采样、序贯修正、Verifier）与树搜索（LATS/AFlow）成为提升计划质量的新杠杆，但应遵循"规划时搜索、执行时线性"的成本纪律。
 - Planning 与 Runtime、Memory、Reflection、Multi-Agent、MCP、Tool Use 的边界必须清晰，否则系统会高度耦合。
 
 **参考来源**
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [Language Agent Tree Search Unifies Reasoning Acting and Planning](https://arxiv.org/abs/2310.04406)
+- [AFlow: Automating Agentic Workflow Generation](https://arxiv.org/abs/2410.10762)
+- [Scaling Test-Time Compute for LLM Agents](https://arxiv.org/abs/2506.12928)
+- [AdaPlan-H: Self-Adaptive Hierarchical Planning for LLM Agents](https://aclanthology.org/2026.findings-acl.77/)
 - [Planning for Agents - LangChain Blog](https://blog.langchain.dev/planning-for-agents/)
 - [LangGraph Plans](https://langchain-ai.github.io/langgraph/concepts/plans/)
