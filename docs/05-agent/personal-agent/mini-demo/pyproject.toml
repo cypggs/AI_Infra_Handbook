@@ -1,0 +1,19 @@
+[project]
+name = "personal-agent-mini"
+version = "0.1.0"
+description = "A CPU-runnable mini demo of a proactive personal AI agent: personal memory, data connectors, relevance gating and permission control."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+personal-agent-demo = "personal_agent_mini.demo:run_demo"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["personal_agent_mini"]
