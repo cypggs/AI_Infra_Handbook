@@ -111,6 +111,7 @@
 - [Planning](/05-agent/planning/)：任务分解与重规划。
 - [Tool Use](/05-agent/tool-use/)：单次工具调用层。
 - [MCP](/05-agent/mcp/)：模型上下文协议。
+- [Personal AI Agent](/05-agent/personal-agent/)：面向个人用户的 Agent OS 产品形态（Muse / Dots / Siri AI）。
 - [Multi-Agent](/05-agent/multi-agent/)：多 Agent 协作。
 - [Reflection](/05-agent/reflection/)：自我反思与纠错。
 

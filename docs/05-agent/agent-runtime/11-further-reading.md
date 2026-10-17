@@ -73,6 +73,7 @@
 - [Reflection 详解](/05-agent/reflection/) — Agent 自我反思与纠错：生成、批判、评估、修订闭环。
 - [MCP 详解](/05-agent/mcp/) — Agent 能力发现与调用协议，Runtime 的重要搭档。
 - [Planning 详解](/05-agent/planning/) — 复杂任务分解、计划表示与动态重规划，与 Runtime 内嵌 Planner 形成分层。
+- [Personal AI Agent 详解](/05-agent/personal-agent/) — 常驻个人 Agent 的运行时形态：每用户沙箱、主动循环与权限门。
 - [Tool Use 详解](/05-agent/tool-use/) — Agent 工具调用层：Schema、解析、校验、执行与结果格式化，Runtime 的直接依赖。
 - [Agent OS 详解](/05-agent/agent-os/) — Agent 运行时操作系统：进程、调度、沙箱、Workspace 与资源治理，Runtime 的上层治理者。
 - [Benchmark + Evaluation 详解](/07-ai-sre/benchmark-evaluation/) — Agent 可评估性：trace-based eval、工具调用正确性、延迟/成本/鲁棒性评测。

@@ -12,6 +12,7 @@
 - [Planning](/05-agent/planning/)：AI Agent 的规划系统，负责任务分解、计划表示、执行、动态重规划与多主题集成
 - [Tool Use](/05-agent/tool-use/)：AI Agent 的工具调用层，负责工具定义、Schema、解析、校验、执行、结果格式化与可观测
 - [Agent OS](/05-agent/agent-os/)：AI Agent 的运行时操作系统，负责进程/生命周期、调度、沙箱、Workspace、权限、多 Agent 资源治理
+- [Personal AI Agent](/05-agent/personal-agent/)：面向个人用户的智能体系统，负责个人数据连接、跨会话记忆、主动服务、常驻执行与隐私权限模型（Muse / Dots / Grok Bot / Google PI / Siri AI / Claude Cowork 全景）
 
 ## 计划中主题
 
