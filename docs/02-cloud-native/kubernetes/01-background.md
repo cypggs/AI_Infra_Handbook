@@ -70,7 +70,13 @@ K8s 最初是为无状态微服务设计的，但它能成为 AI 平台底座，
 2. **Operator 模式包裹复杂工作流**：分布式训练（MPIJob/PyTorchJob via Training Operator）、推理服务（KServe）、批调度（Volcano）都用 CRD + Operator 实现，平台团队可以像用内置资源一样用它们。
 3. **调度框架（Scheduling Framework）的插件化**：AI 训练需要的 Gang Scheduling（all-or-nothing）、拓扑感知（NUMA/PCIe/GPU 分组）、负载感知，都能通过调度插件实现，而不必 fork kube-scheduler。
 
-> **里程碑**：自 **Kubernetes v1.36.0**（2026 年）起，调度框架**原生支持 PodGroup 调度**（KEP-4671 gang scheduling、KEP-5598 opportunistic batching），引入 `PodGroupPostFilterPlugin` 与协同放置（Placement）插件。这意味着 Gang Scheduling 正从 out-of-tree（Volcano / scheduler-plugins coscheduling）走向 in-tree 原生支持——这是 AI 训练负载调度的关键演进。详见 [第 5 章](05-core-modules) 与 [第 8 章](08-production-practice)。
+> **2025–2026 年版本演进（AI 相关）**：Kubernetes 每年发布 3 个 minor 版本、维护约 14 个月（上游无 LTS，v1.35/1.36/1.37 为当前受支持版本）。与 AI 平台直接相关的里程碑：
+>
+> - **DRA 动态资源分配 GA（v1.34，2025-08）**：`resource.k8s.io/v1` API（ResourceClaim / DeviceClass / ResourceSlice）稳定，GPU/NPU 等设备从"只能上报整数数量的扩展资源"进化为可描述属性、拓扑、可切分的一等资源；v1.37（2026-08）设备级污点（DeviceTaintRule）GA，可单独隔离一张坏卡而不是整个节点。
+> - **原地 Pod 资源调整 GA（v1.35，2025-12）**：运行中 Pod 的 CPU/内存 requests/limits 可无重建调整（KEP-1287），VPA 与有状态推理服务的弹性大幅改善。
+> - **原生 Gang 调度进入 kube-scheduler（v1.35 Workload API alpha → v1.36 PodGroup/Placement 调度接口 alpha，KEP-4671/KEP-5598）**：引入 `PodGroupPostFilterPlugin` 与协同放置（Placement）插件。这意味着 Gang 调度正从 out-of-tree（Volcano / scheduler-plugins coscheduling）走向 in-tree 原生支持——但目前仍为 alpha，生产主力仍是 Volcano/scheduler-plugins。详见 [第 5 章](05-core-modules) 与 [第 8 章](08-production-practice)。
+>
+> 来源：[DRA 官方文档（v1.34 GA，resource.k8s.io/v1）](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/)、[v1.35 发布](https://kubernetes.io/blog/2026/01/02/kubernetes-v1-35-restart-all-containers/)、[v1.37 设备污点 GA](https://bex.co/blog/2026/09/08/kubernetes-137-dra-device-taints-single-bad-gpu)。
 
 ## 1.6 本主题的视角与边界
 

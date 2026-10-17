@@ -43,7 +43,7 @@
 **答题要点**：
 - **Service** 是**四层（L4）**负载均衡，给一组 Pod 一个稳定的虚拟 IP/DNS 名，靠 kube-proxy（iptables/IPVS）或 EndpointSlice 转发。适合 TCP/UDP 服务。
 - **Ingress** 是**七层（L7）**，基于 HTTP host/path 把流量路由到不同 Service，需要 Ingress Controller（nginx/traefik）实现。适合 HTTP 路由、TLS 终结。
-- **Gateway API** 是 Ingress 的演进（HTTPRoute/GRPCRoute 等），更通用、角色分离（Infra Provider / Cluster Operator / App Developer），HTTPRoute 已 GA。
+- **Gateway API** 是 Ingress 的演进（HTTPRoute/GRPCRoute 等），更通用、角色分离（Infra Provider / Cluster Operator / App Developer）；v1.4（2025-10）为 GA 基线，v1.5 起 TCPRoute/UDPRoute 也 GA。面向 LLM 推理还有 Gateway API Inference Extension（InferencePool + EPP，2025-10 GA），支持 KV Cache 感知的推理路由。
 
 **加分**：知道 vLLM/Triton 推理服务既用 Service（稳定端点）又用 Ingress/Gateway（按模型路由、TLS）。
 
@@ -94,7 +94,7 @@
 - 共 12 个扩展点（还有 `Unreserve`/`PreBind` 等）。
 - **为什么这么设计**：把调度逻辑拆成可插拔的插件，用户能不动 kube-scheduler 源码就定制调度（写 out-of-tree 插件）。这是 K8s 可扩展性的典范—— Gang 调度、拓扑感知、容量调度都通过插件实现。
 
-**加分**：提到 v1.19 GA；提到 scheduler-plugins（Coscheduling/NodeResourceTopology/Capacity）；提到 v1.36 原生 PodGroup（把 Gang 调度从插件升到内置）。
+**加分**：提到 v1.19 GA；提到 scheduler-plugins（Coscheduling/NodeResourceTopology/Capacity）；提到 v1.35–1.36 原生 Workload/PodGroup（alpha，Gang 调度从插件走向内置）。
 
 ### Q9. 什么是 Gang 调度？为什么分布式训练需要它？
 
@@ -103,7 +103,7 @@
 **答题要点**：
 - **Gang 调度**：一组 Pod（gang）要么全部调度成功，要么一个都不调度（all-or-nothing）。
 - **为什么训练需要**：分布式训练（DDP/Megatron）所有 worker 要在 `init_process_group` 会合，少一个都会卡死。不用 Gang 调度会出现死锁——8 个 worker 只调上 5 个，这 5 个等剩 3 个，剩 3 个被别的任务占着资源永远上不来，整个集群训练互相阻塞。
-- **实现**：Volcano、scheduler-plugins Coscheduling，或 v1.36 原生 PodGroup。核心机制是 Permit 扩展点 + Reserve/Unreserve 资源回滚（凑不够法定数就释放已预占资源，避免碎片化）。
+- **实现**：Volcano、scheduler-plugins Coscheduling，或 v1.35–1.36 原生 Workload/PodGroup（alpha）。核心机制是 Permit 扩展点 + Reserve/Unreserve 资源回滚（凑不够法定数就释放已预占资源，避免碎片化）。
 
 **加分**：能说出第 7 章模拟器的 `_schedule_gang` 实现（先全部 Reserve，够 min_available 才 Bind，否则 Unreserve 回滚）。
 
@@ -116,7 +116,18 @@
 2. **调度**：scheduler 看到 Pod 声明 `limits.nvidia.com/gpu: 1`，用 NodeResourcesFit 插件检查节点 allocatable 是否够，够就调度。
 3. **分配**：kubelet syncPod 时调 Device Plugin 的 `Allocate()`，拿到具体设备索引，注入 `NVIDIA_VISIBLE_DEVICES` 环境变量 + `/dev/nvidia*` 挂载到容器。
 
-**加分**：提到 GPU Operator 一键部署这套；提到 MIG/MPS 的隔离级别差异（硬件级 vs 进程级）。
+**加分**：提到 GPU Operator 一键部署这套；提到 MIG/MPS 的隔离级别差异（硬件级 vs 进程级）；提到 **DRA**（v1.34 GA）是长期替代方向——可描述设备属性、支持设备级污点（v1.37 GA，单卡隔离），但 NVIDIA GPU 分配路径仍 alpha，生产主力还是 Device Plugin。
+
+### Q18. DRA 和 Device Plugin 有什么区别？为什么生产上还主要用 Device Plugin？
+
+**考点**：设备管理演进（2025–2026 热点，第 5、8 章）。
+
+**答题要点**：
+- **Device Plugin**：上报**整数计数**扩展资源（`nvidia.com/gpu: 8`），调度器只看到数量；设备选择、切分、坏卡隔离都做不了；生态成熟（GPU Operator 一键部署）。
+- **DRA（v1.34 GA）**：`ResourceSlice` 上报**带属性的设备清单**（显存、拓扑、健康），Pod 用 `ResourceClaim` 精确申请（数量 + 选择器 + 容量），调度器原生参与分配；支持设备级污点（v1.37 GA）、可切分设备（beta）。
+- **为什么生产仍用 Device Plugin**：厂商 DRA 驱动不成熟（NVIDIA GPU 分配路径 alpha、默认关闭）、配额/公平层（Kueue）在逐步对齐、运维习惯与工具链（GPU Operator/DCGM）都围绕 Device Plugin。DRA 适合新平台预研和坏卡隔离等场景。
+
+**加分**：提到 Kueue/llm-d 正在对齐 DRA API，长期看"DRA + Kueue + 原生 PodGroup"是 AI 调度的终态组合。
 
 ### Q11. K8s 如何实现高可用？
 
@@ -138,7 +149,7 @@
 
 **答题要点**（分层回答）：
 1. **底座**：K8s 集群 + GPU 节点池（污点隔离）+ GPU Operator。
-2. **调度**：Volcano 或 v1.36 原生 PodGroup 做 Gang 调度；scheduler-plugins NodeResourceTopology 做拓扑感知（worker 同 NVSwitch 域）；PriorityClass 体系（推理 > 训练 > 实验）。
+2. **调度**：Volcano 做 Gang 调度（或评估 v1.35–1.36 原生 PodGroup，alpha），Kueue 做队列/配额/公平排队（与 kube-scheduler 组合）；scheduler-plugins NodeResourceTopology 做拓扑感知（worker 同 NVSwitch 域）；PriorityClass 体系（推理 > 训练 > 实验）。
 3. **上层**：Kubeflow Training Operator / Ray Train 封装 PyTorchJob/RayCluster CRD，提供 worker/ps 角色模板。
 4. **弹性**：检查点定期保存到 PVC/对象存储；配 `RestartJob` policy，worker 故障整 Job 重启从检查点恢复。
 5. **可观测**：DCGM-Exporter + Prometheus 监控 GPU 利用率/显存；Gang 排队深度告警。
@@ -217,7 +228,7 @@
 
 ## 本章小结
 
-K8s 面试题的核心是**沿一条主线串联知识**：初级考概念定位（Pod/Deployment/Service 各是什么、为什么这么设计），中级考机制流程（一个 Pod 的完整生命周期、控制循环的水平触发、调度框架的扩展点、Gang 调度与 Device Plugin），高级考设计与排障（AI 调度系统设计、Pending 排障、零中断升级、最终一致性的影响、GPU 利用率优化、etcd 容灾）。答题的关键不是背诵细节，而是展现**对设计动机和 trade-off 的理解**——面试官想听的是"为什么"，而不只是"是什么"。AI 平台方向的候选人，务必把 Gang 调度、Device Plugin、GPU 利用率优化、MIG/MPS 这几个特化考点答深，这是与通用 K8s 候选人拉开差距的地方。
+K8s 面试题的核心是**沿一条主线串联知识**：初级考概念定位（Pod/Deployment/Service 各是什么、为什么这么设计），中级考机制流程（一个 Pod 的完整生命周期、控制循环的水平触发、调度框架的扩展点、Gang 调度与 Device Plugin/DRA），高级考设计与排障（AI 调度系统设计、Pending 排障、零中断升级、最终一致性的影响、GPU 利用率优化、etcd 容灾）。答题的关键不是背诵细节，而是展现**对设计动机和 trade-off 的理解**——面试官想听的是"为什么"，而不只是"是什么"。AI 平台方向的候选人，务必把 Gang 调度、Device Plugin/DRA、GPU 利用率优化、MIG/MPS 这几个特化考点答深，这是与通用 K8s 候选人拉开差距的地方。
 
 **参考来源**
 

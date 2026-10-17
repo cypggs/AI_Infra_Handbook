@@ -4,7 +4,7 @@
 
 第 7 章的模拟器让你理解了机制，但生产环境的复杂度远不止于此：真实集群有几千个 Pod、上百张 GPU、十几个团队共享，还有网络、存储、安全、成本的真实约束。本章把这些**生产才有的问题**集中讲透，按"集群底座 → AI 工作负载 → 调度优化 → 可观测性 → 安全 → 故障排查"六个维度给出可操作的实践。
 
-> 本章假设你已读第 3、4、5 章（架构 / 运行流程 / 核心模块）。所有配置示例都标注了适用版本，K8s 当前以 v1.30 LTS / v1.36（含原生 PodGroup）为参考。
+> 本章假设你已读第 3、4、5 章（架构 / 运行流程 / 核心模块）。所有配置示例都标注了适用版本，K8s 当前（2026-10）以 v1.35 / v1.36 / v1.37 为参考——上游每年 3 个 minor 版本、每个版本维护约 14 个月，**没有官方 LTS**，托管发行版（EKS/GKE/AKS）通常提供更长的支持窗口。
 
 ## 8.1 集群底座：控制平面高可用与节点池规划
 
@@ -105,9 +105,29 @@ resources:
 
 AI 平台对推理服务常配 MIG，对训练保持整卡独占。
 
+### DRA：长期方向，但生产仍以 Device Plugin 为主
+
+**DRA（动态资源分配）v1.34 GA**（`resource.k8s.io/v1`）后，GPU 调度有了第二条路：驱动通过 `ResourceSlice` 上报带属性的设备清单，Pod 用 `ResourceClaim` 精确申请（"要 2 张显存 ≥ 80GB 且在同一 NVLink 域的卡"），调度器原生参与分配。v1.37 起 `DeviceTaintRule` GA，**一张卡坏了只需给这张卡打污点**，不必像 Device Plugin 时代那样整节点下线。
+
+```yaml
+# DRA 示例：申请一张带属性的 GPU（需要厂商驱动 + 功能门控）
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata: { name: gpu-claim }
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          deviceClassName: nvidia-gpu      # DeviceClass 由管理员预定义
+          capacity: 1
+```
+
+**生产现状（2026-10）**：NVIDIA 官方 DRA 驱动的 **GPU 分配路径仍是 alpha、默认关闭**，生态（Kueue、llm-d）正在对齐但尚不成熟。**当前生产主力仍是 Device Plugin + GPU Operator**，DRA 适合新平台预研与坏卡隔离等特定场景。DRA 与 Device Plugin 的完整对比见 [GPU 调度主题](/02-cloud-native/gpu-scheduling/)。
+
 ### GPU 拓扑感知调度（NVLink/NVSwitch）
 
-8 卡节点内部 GPU 之间有 NVLink/NVSwitch，跨卡通信带宽天差地别。分布式训练对拓扑敏感——把一个训练 Job 的 worker 调到**同一个节点的 8 张卡**远好于跨节点（跨节点走 InfiniBand/RoCE，延迟高一个量级）。生产上用 **scheduler-plugins 的 `NodeResourceTopology`** 插件，或 v1.36 之后的拓扑感知调度能力：
+8 卡节点内部 GPU 之间有 NVLink/NVSwitch，跨卡通信带宽天差地别。分布式训练对拓扑敏感——把一个训练 Job 的 worker 调到**同一个节点的 8 张卡**远好于跨节点（跨节点走 InfiniBand/RoCE，延迟高一个量级）。生产上用 **scheduler-plugins 的 `NodeResourceTopology`** 插件，或 DRA 的拓扑感知分配（v1.34 起 beta，见 8.2 节）：
 
 ```yaml
 # NodeResourceTopology 插件感知 NUMA / GPU 拓扑
@@ -128,7 +148,8 @@ AI 平台对推理服务常配 MIG，对训练保持整卡独占。
 |---|---|---|---|
 | **Volcano** | 独立调度器（替代 kube-scheduler） | 生产成熟，国内广泛 | 训练为主的大规模平台 |
 | **scheduler-plugins Coscheduling** | 第二调度器（与默认并存） | 稳定，CNCF | 想保留默认调度器的混合负载 |
-| **v1.36 原生 PodGroup** | kube-scheduler 内置 | GA 早期（2025+） | 新集群、想用原生方案 |
+| **v1.35–1.36 原生 Workload/PodGroup** | kube-scheduler 内置 | **alpha**（功能门控默认关闭） | 测试评估，暂不建议上生产 |
+| **Kueue** | 不清 pod——队列/准入层，与 kube-scheduler 组合 | 生产成熟（Google 出品，CoreWeave 等在用） | 队列公平、配额、抢占与多集群批调度 |
 
 ```yaml
 # Volcano 的 PodGroup + Job（生产训练标准写法）
@@ -187,6 +208,33 @@ spec:
               resources:
                 limits: { nvidia.com/gpu: 8 }
 ```
+
+### Kueue：队列与公平调度（不清 Pod 的那一层）
+
+**Kueue**（kubernetes-sigs，SIG Scheduling 项目）与 Volcano 的定位不同：它**不替代 kube-scheduler**，而是在其之上提供 **ClusterQueue / LocalQueue（配额与公平共享）、准入排队、抢占、MultiKueue（跨集群分发）**。Pod 仍由 kube-scheduler 绑定节点，Kueue 决定"哪个 Workload 现在允许被调度"，天然与 DRA、原生 Workload/PodGroup API 对齐。
+
+```yaml
+# Kueue 示例：团队队列 + 配额
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata: { name: team-llm-cq }
+spec:
+  namespaceSelector: {}                 # 匹配挂到本队列的 namespace
+  resourceGroups:
+    - coveredResources: ["nvidia.com/gpu"]
+      flavors:
+        - name: default
+          resources:
+            - name: nvidia.com/gpu
+              nominalQuota: "64"        # 团队 GPU 配额
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata: { namespace: team-llm, name: team-llm-lq }
+spec: { clusterQueue: team-llm-cq }
+```
+
+> **选型经验**：训练为主、要队列+Gang 一体化选 **Volcano**；已有默认调度器、只想加配额/公平排队选 **Kueue**（两者也可组合：Kueue 准入 + Volcano/coscheduling 绑 Pod）。Kueue 至今版本号仍是 v0.x（v0.19，2026），但 API 已相当稳定，Google 内部与 CoreWeave 等已大规模生产使用。
 
 ## 8.4 调度优化：从默认到 AI 友好
 
@@ -264,7 +312,7 @@ K8s 可观测性是三个支柱：**Metrics（指标）、Logs（日志）、Tra
 
 | 组件 | 作用 | 关键指标 |
 |---|---|---|
-| **Metrics Server** | 给 HPA/VPA 提供实时 CPU/内存 | `metrics.k8s.io` API |
+| **Metrics Server** | 给 HPA/VPA 提供实时 CPU/内存 | `metrics.k8s.io` API（该 API 在 v1.37 终于 GA） |
 | **kube-state-metrics** | 暴露集群对象状态（Pod/Deployment/Node） | `kube_pod_status_phase`、`kube_deployment_status_replicas_available` |
 | **Prometheus** | 指标采集存储 + PromQL | scrape 所有 exporter |
 | **DCGM-Exporter** | NVIDIA GPU 指标 | `DCGM_FI_DEV_GPU_UTIL`、`DCGM_FI_DEV_FB_USED`（显存） |
@@ -497,14 +545,27 @@ etcdctl snapshot status /backup/etcd-xxx.db
 
 K8s 版本升级遵循"一次升一个 minor、先升控制平面再升节点、先 dev 再 staging 再 prod"。注意 **API 弃用**：每个 K8s 版本会弃用一批旧 API（如 v1.25 弃 `batch/v1beta1` CronJob，v1.22 弃众多 `extensions/v1beta1`）。升级前用 `kubectl convert` / `pluto` / `kubent`（kube-no-trouble）扫描集群里的弃用资源，先改完再升，否则升级后这些资源直接消失。
 
+**2026 年需要特别注意的弃用/移除**：
+
+| 变更 | 版本 | 影响与动作 |
+|---|---|---|
+| **ingress-nginx 停止维护** | 2026-03 起 | 不再有安全修复，新项目迁到 Gateway API；存量集群尽快规划迁移 |
+| **kube-proxy IPVS 模式弃用** | v1.37 | 转向 nftables；新集群优先评估 nftables / Cilium eBPF |
+| **kube-dns 弃用** | v1.37 | 统一使用 CoreDNS |
+| **静态 Pod 引用 Secret/ConfigMap 被禁止** | v1.37 | 节点级静态清单不能把 Secret/ConfigMap 当卷挂载，改用文件分发 |
+| **gitRepo 卷插件移除** | v1.36 | 用 initContainer + git clone 或 CI 构建镜像替代 |
+| **Metrics API（metrics.k8s.io）GA** | v1.37 | beta 时代的行为差异收敛，升级后核对 HPA/VPA 指标链路 |
+
 ## 本章小结
 
-把 K8s 用于 AI 平台的生产实践，可以归结为六件事：**高可用的控制平面**（多副本 apiserver + 5 节点 etcd + 选主 scheduler）、**专用的 GPU 节点池**（污点隔离 + GPU Operator + MIG/MPS 提利用率 + 拓扑感知调度）、**Gang 调度的训练任务**（Volcano/scheduler-plugins/原生 PodGroup + 上层 Training Operator/Ray）、**AI 友好的调度策略**（关 binpack + PriorityClass 体系 + Descheduler 重平衡）、**GPU 利用率为核心的可观测性**（Metrics Server + kube-state-metrics + DCGM-Exporter + Prometheus + 告警）、**最小权限的多租户安全**（RBAC + Kyverno 准入 + NetworkPolicy + ResourceQuota）。故障排查则沿着 Pod 生命周期倒推（Pending→调度、ContainerCreating→运行时网络存储、CrashLoop→应用/OOM、GPU→Device Plugin/runtime）。最后，etcd 备份 + 恢复演练 + 谨慎的版本升级是容灾底线。掌握这些，你的 AI 平台才能在真实生产负载下稳定运行。
+把 K8s 用于 AI 平台的生产实践，可以归结为六件事：**高可用的控制平面**（多副本 apiserver + 5 节点 etcd + 选主 scheduler）、**专用的 GPU 节点池**（污点隔离 + GPU Operator + MIG/MPS 提利用率 + 拓扑感知调度）、**Gang 调度的训练任务**（Volcano/scheduler-plugins/原生 PodGroup(alpha) + Kueue 队列公平 + 上层 Training Operator/Ray）、**AI 友好的调度策略**（关 binpack + PriorityClass 体系 + Descheduler 重平衡）、**GPU 利用率为核心的可观测性**（Metrics Server + kube-state-metrics + DCGM-Exporter + Prometheus + 告警）、**最小权限的多租户安全**（RBAC + Kyverno 准入 + NetworkPolicy + ResourceQuota）。故障排查则沿着 Pod 生命周期倒推（Pending→调度、ContainerCreating→运行时网络存储、CrashLoop→应用/OOM、GPU→Device Plugin/runtime）。最后，etcd 备份 + 恢复演练 + 谨慎的版本升级（留意 2026 年的 IPVS/kube-dns/ingress-nginx 弃用）是容灾底线。掌握这些，你的 AI 平台才能在真实生产负载下稳定运行。
 
 **参考来源**
 
 - [NVIDIA GPU Operator 文档](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html)
+- [Dynamic Resource Allocation（DRA）官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/)
 - [Volcano 调度器文档](https://volcano.sh/en/docs/)
+- [Kueue 文档](https://kueue.sigs.k8s.io/docs/)
 - [scheduler-plugins（Coscheduling / NodeResourceTopology）](https://scheduler-plugins.sigs.k8s.io/)
 - [Kubeflow Training Operator](https://github.com/kubeflow/training-operator)
 - [Kubernetes Descheduler](https://github.com/kubernetes-sigs/descheduler)

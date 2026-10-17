@@ -21,7 +21,7 @@
 2. 画出控制平面（apiserver / etcd / scheduler / controller-manager）与节点（kubelet / kube-proxy / CRI）的完整架构，并描述一个 Pod 从 `kubectl apply` 到 Running 的全链路。
 3. 说清楚 kube-scheduler 的**调度框架（Scheduling Framework）**：调度周期 vs 绑定周期、12 个扩展点、Filter/Score/PostFilter 插件如何决定 Pod 落在哪个节点。
 4. 理解 CRI / CNI / CSI 三大接口边界，以及为什么"没有 CNI 集群就起不来"。
-5. 在 K8s 上调度 GPU：Device Plugin、GPU Operator、MIG/MPS、拓扑感知调度、Gang Scheduling（Volcano / scheduler-plugins / v1.36 原生 PodGroup）。
+5. 在 K8s 上调度 GPU：Device Plugin、GPU Operator、MIG/MPS、拓扑感知调度、Gang Scheduling（Volcano / scheduler-plugins / v1.35–1.36 原生 Workload·PodGroup，alpha）。
 6. 用 Controller / Operator 模式（CRD + reconcile loop）实现自定义自动化，理解它与"写脚本"的本质区别。
 7. 跑通并扩展本主题的 Mini Demo——一个纯 Python、无需真实集群的微型 kube-scheduler + Deployment 控制器 + GPU 调度模拟器。
 8. 回答生产部署、etcd 容量、网络/存储选型、多租户隔离、AI 负载调度相关的面试问题。
@@ -51,7 +51,7 @@
 2. [核心思想](02-core-ideas) — 声明式 API、控制循环、最终一致性、Pod、Controller、Operator、扩展性（CRD/CNI/CSI/CRI）。
 3. [架构设计](03-architecture) — 控制平面 vs 节点，组件解耦，一个 Pod 的完整生命周期。
 4. [Runtime 工作流程](04-runtime-workflow) — `kubectl apply` → apiserver → etcd → scheduler → kubelet → CRI/CNI/CSI 全链路。
-5. [核心模块](05-core-modules) — apiserver、etcd、scheduler（调度框架）、controller-manager、kubelet、kube-proxy、CRI、CNI、CSI、DNS、Ingress/Gateway API、HPA/VPA、RBAC、Admission。
+5. [核心模块](05-core-modules) — apiserver、etcd、scheduler（调度框架 + v1.35–1.36 原生 PodGroup alpha）、controller-manager、kubelet、kube-proxy、CRI、CNI、CSI、DRA（动态资源分配）、DNS、Ingress/Gateway API（含推理扩展 GIE）、HPA/VPA、RBAC、Admission。
 6. [源码分析](06-source-analysis) — `kubernetes/kubernetes` 仓库结构、调度框架源码、Controller 模式源码、kubelet PLEG/syncPod。
 7. [工程实践](07-mini-demo) — 纯 Python 可运行的微型 K8s 调度器 + 控制器 + GPU 调度 Mini Demo。
 8. [企业生产实践](08-production-practice) — 自建 vs 托管 vs Serverless、控制平面高可用、etcd 调优、网络/存储选型、GPU 调度、多租户、Volcano/Training Operator。

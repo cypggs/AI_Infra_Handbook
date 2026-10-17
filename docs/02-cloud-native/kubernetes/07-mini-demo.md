@@ -177,7 +177,7 @@ v2 阶段 Pod: ['web-...-0', 'web-...-1', 'web-...-2']        ← 模板指纹 x
 
 ## 7.6 机制四：Gang 调度（all-or-nothing）
 
-分布式训练（DDP/FSDP/Megatron）要求所有 worker 同时启动，否则先起来的会卡在 `init_process_group` 等同伴，最终超时失败。Gang 调度就是"要么全部调度成功，要么一个都不调度"。模拟器复刻了 v1.36 原生 PodGroup（KEP-4671）/ Volcano 的核心逻辑：
+分布式训练（DDP/FSDP/Megatron）要求所有 worker 同时启动，否则先起来的会卡在 `init_process_group` 等同伴，最终超时失败。Gang 调度就是"要么全部调度成功，要么一个都不调度"。模拟器复刻了 v1.35–1.36 原生 PodGroup（KEP-4671，alpha）/ Volcano 的核心逻辑：
 
 ```python
 # scheduler.py — _schedule_gang：先全部 Reserve，够法定数才 Bind，否则全回滚
@@ -212,7 +212,7 @@ gang-fail 已调度: 0（应=0，资源不足整体拒绝）
 
 最关键的断言是 `gang_fail` 失败后**节点资源被完整回滚**（`node.allocated` 回到 0）——这正是 all-or-nothing 的难点：不是"调一部分"，而是"预占失败就把已占的还回去"，避免资源碎片化卡死后续 gang。`test_gang.py::test_gang_all_or_nothing_with_rollback` 专门验证了这一点。
 
-> 这也解释了为什么 K8s 社区从 Volcano/scheduler-plugins 的"外挂调度器"方案，演进到 v1.36 的**原生 PodGroup**——all-or-nothing 涉及 Reserve/Unreserve 的资源生命周期，必须由主调度器统一管理，外挂调度器很难做对（详见第 1、5 章）。
+> 这也解释了为什么 K8s 社区从 Volcano/scheduler-plugins 的"外挂调度器"方案，演进到 v1.35–1.36 的**原生 PodGroup**（alpha）——all-or-nothing 涉及 Reserve/Unreserve 的资源生命周期，必须由主调度器统一管理，外挂调度器很难做对（详见第 1、5 章）。
 
 ## 7.7 测试：把演示输出变成可回归的契约
 
@@ -268,6 +268,6 @@ $ pytest tests/ -q
 
 - 本手册配套代码：`docs/02-cloud-native/kubernetes/mini-demo/`（含 `README.md` 与 56 个测试）
 - [Kubernetes Scheduling Framework（概念）](https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/scheduling-framework/)
-- [KEP-4671 Gang Scheduling / PodGroup](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/4671-foo)
+- [KEP-4671 Gang Scheduling / PodGroup](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/4671-gang-scheduling)
 - [NVIDIA GPU Operator 与 Device Plugin 文档](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html)
 - [Volcano Gang Scheduling 设计](https://volcano.sh/en/docs/v1.9.0/scheduling_algorithm/#gang-scheduling)

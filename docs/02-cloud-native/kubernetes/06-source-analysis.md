@@ -106,9 +106,9 @@ type PermitPlugin  interface { Plugin; Permit(ctx, state, pod, nodeName) (*Statu
 
 **重要更正**（来自调研验证）：`pkg/scheduler/framework` **本身就是调度框架的规范定义（canonical definition）**，而不是"对 `k8s.io/kube-scheduler/framework` 接口的内部包装"。早期文献把它描述成 wrapper 是错误的——这个包定义了所有扩展点接口，`k8s.io/kubernetes/pkg/scheduler/framework` 是权威来源。
 
-### v1.36 PodGroup / Placement 接口（新增）
+### v1.36 PodGroup / Placement 接口（新增，alpha）
 
-自 v1.36.0，`interface.go` 新增了协同调度相关接口（在 v1.34/v1.35 中不存在）：
+自 v1.36.0（承接 v1.35 的 Workload API，KEP-4671，均为 alpha），`interface.go` 新增了协同调度相关接口（在 v1.34/v1.35 中不存在）：
 
 ```go
 // pkg/scheduler/framework/interface.go（v1.36 新增，节选）
@@ -123,7 +123,7 @@ func (f *framework) RunPlacementGeneratePlugins(...)
 func (f *framework) RunPlacementScorePlugins(...)
 ```
 
-对应 KEP-4671（Gang Scheduling）与 KEP-5598（Opportunistic Batching）。这是 Gang 调度走向 in-tree 的代码证据。
+对应 KEP-4671（Gang Scheduling）与 KEP-5598（Opportunistic Batching）。这是 Gang 调度走向 in-tree 的代码证据——但作为 alpha 功能，接口形态在 GA 前仍可能变化，读源码时注意区分版本。
 
 ### 内置插件位置
 
@@ -306,7 +306,7 @@ allocations := deviceManager.Allocate(pod, container)
 
 ## 本章小结
 
-K8s 源码虽大，但核心机制集中在三条链：**调度链**（`pkg/scheduler` 的 `scheduleOne` + 调度框架 12 扩展点，v1.36 新增 PodGroup/Placement）、**控制链**（`client-go` Informer + reconcile 模板，`controller-runtime` 是 Operator 标准库）、**执行链**（`pkg/kubelet` 的 PLEG + `syncPod` + device-manager）。三条链的共同范式是**水平触发的幂等收敛**：每个循环只看"当前状态 vs 期望状态"，做最小必要动作，靠 resync/周期兜底纠正漂移。读源码时抓住这条主线，庞大代码库就会收敛为几个清晰的模式。
+K8s 源码虽大，但核心机制集中在三条链：**调度链**（`pkg/scheduler` 的 `scheduleOne` + 调度框架 12 扩展点，v1.36 新增 PodGroup/Placement，alpha）、**控制链**（`client-go` Informer + reconcile 模板，`controller-runtime` 是 Operator 标准库）、**执行链**（`pkg/kubelet` 的 PLEG + `syncPod` + device-manager）。三条链的共同范式是**水平触发的幂等收敛**：每个循环只看"当前状态 vs 期望状态"，做最小必要动作，靠 resync/周期兜底纠正漂移。读源码时抓住这条主线，庞大代码库就会收敛为几个清晰的模式。
 
 **参考来源**
 

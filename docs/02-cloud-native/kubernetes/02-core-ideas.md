@@ -110,6 +110,7 @@ resources:
 - `requests` 是**调度依据**：kube-scheduler 据此判断节点能不能放下。
 - `limits` 是**运行时上限**：kubelet/CRI 据此设置 cgroup 限制。
 - **CPU 是可压缩资源**（throttle，不杀进程），**内存是不可压缩资源**（超 limit 会被 OOMKill），**GPU 是整数独占资源**（默认不可分片，除非用 MIG/MPS）。
+- **原地调整（v1.35 GA，KEP-1287）**：运行中 Pod 的 CPU/requests 与 limits 可以不重建 Pod 直接调整（Patch pod 的 `resizePolicy` 相关字段），VPA 由此不再需要重启 Pod；但 GPU 等扩展资源仍不能原地调整。
 
 ## 2.5 Controller 模式
 

@@ -45,12 +45,15 @@ AI 平台工程师必须深读的子领域：
 | 资源 | 读什么 |
 |---|---|
 | [KEP-624 Scheduling Framework](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/624-scheduling-framework/) | 12 扩展点的设计动机与 API |
-| [KEP-4671 Gang Scheduling / PodGroup](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/4671-foo) | v1.36 原生 Gang 调度的提案 |
+| [KEP-4671 Gang Scheduling（Workload/PodGroup）](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/4671-gang-scheduling/) | v1.35–1.36 原生 Gang 调度的提案（alpha） |
 | [kubernetes-sigs/scheduler-plugins 文档](https://scheduler-plugins.sigs.k8s.io/) | Coscheduling/NodeResourceTopology/Capacity/Trimaran 插件用法 |
 | [Volcano 文档](https://volcano.sh/en/docs/) | 生产级 Gang 调度器，国内广泛使用 |
+| [Kueue 文档](https://kueue.sigs.k8s.io/docs/) | 队列/配额/公平调度层，与 kube-scheduler 组合而非替代 |
 | [《Borg, Omega, and Kubernetes》](https://research.google/pubs/pub49374/)（Burns 等，ACM Queue 2016） | Google 内部三代调度系统的演进，理解 K8s 在历史中的位置 |
 
 **为何重要**：分布式训练的 all-or-nothing、拓扑感知、公平调度是 K8s 在 AI 场景最大的扩展点，理解这些提案的演进（外挂调度器 → 插件 → 原生）能帮你在选型时做对决策。
+
+**追踪版本演进（2025–2026）**：[DRA 官方文档（v1.34 GA）](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/)、[v1.35 "Timbernetes"（原地 resize GA、Workload API）](https://kubernetes.io/blog/2026/01/02/kubernetes-v1-35-restart-all-containers/)、[v1.36（原生 PodGroup 调度、用户命名空间 GA）](https://cloudsmith.com/blog/kubernetes-1-36-what-you-need-to-know)、[v1.37（Metrics API GA、IPVS 弃用）](https://www.sysdig.com/blog/kubernetes-1-37-new-security-features)。每版发布时 kubernetes.io 会有一系列专题博客，是跟进第一手资料的最佳途径。
 
 ## 11.4 GPU 与设备管理专题
 
@@ -58,6 +61,8 @@ AI 平台工程师必须深读的子领域：
 |---|---|
 | [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/overview.html) | 一键部署 GPU 栈（驱动/runtime/DevicePlugin/DCGM） |
 | [NVIDIA Device Plugin 源码](https://github.com/NVIDIA/k8s-device-plugin) | Device Plugin gRPC 协议的参考实现 |
+| [DRA 官方文档（v1.34 GA）](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/) | ResourceClaim/DeviceClass/ResourceSlice 模型，GPU 一等资源的新路径 |
+| [NVIDIA DRA Driver（kubernetes-sigs）](https://github.com/kubernetes-sigs/dra-example-driver) | DRA 驱动参考实现与 NVIDIA GPU 驱动的现状说明 |
 | [DCGM-Exporter](https://github.com/NVIDIA/dcgm-exporter) | GPU Prometheus 指标导出 |
 | [MIG 支持文档](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/mig.html) | A100/H100 的 MIG 切分配置 |
 | [Run:AI / Volcano 的 GPU 共享方案](https://volcano.sh/en/docs/v1.9.0/) | GPU 共享调度的工程实践 |

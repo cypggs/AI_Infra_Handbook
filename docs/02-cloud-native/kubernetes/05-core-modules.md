@@ -106,14 +106,16 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 
 > 这与 [Ray 的 HYBRID 调度](/03-ai-platform/ray/02-core-ideas) 思想一致：先聚合作 locality，超阈值再打散。但 K8s 的粒度是 Pod，Ray 的粒度是 task。
 
-### v1.36 原生 PodGroup / Gang 调度
+### v1.35–1.36 原生 PodGroup / Gang 调度（alpha）
 
-**自 Kubernetes v1.36.0 起**，调度框架**原生支持 PodGroup 调度**——对照 v1.34/v1.35 源码，`PodGroupPostFilterPlugin`、`RunPlacementGeneratePlugins`、`RunPlacementScorePlugins` 等接口仅在 v1.36.0 出现。对应 KEP：
+**Kubernetes v1.35 引入 Workload API（KEP-4671，alpha）**，**v1.36 调度框架原生集成 PodGroup/Placement 调度接口**——对照 v1.34/v1.35 源码，`PodGroupPostFilterPlugin`、`RunPlacementGeneratePlugins`、`RunPlacementScorePlugins` 等接口仅在 v1.36.0 出现。对应 KEP：
 
 - **KEP-4671**：Gang Scheduling（all-or-nothing）。
 - **KEP-5598**：Opportunistic Batching。
 
-意义：Gang 调度（训练 Job 需要的所有 Pod 要么全调度成功要么全不调度，避免只起一半导致死锁/资源浪费）此前只能靠 out-of-tree 的 **Volcano** 或 **scheduler-plugins 的 Coscheduling**，现在走向 in-tree 原生支持。
+意义：Gang 调度（训练 Job 需要的所有 Pod 要么全调度成功要么全不调度，避免只起一半导致死锁/资源浪费）此前只能靠 out-of-tree 的 **Volcano** 或 **scheduler-plugins 的 Coscheduling**，现在 kube-scheduler 开始原生支持。
+
+> **注意：目前仍为 alpha（v1.36/v1.37 均未 GA）**，功能门控默认关闭。生产集群的主力仍是 Volcano / scheduler-plugins，原生方案适合测试与前瞻评估——这同时是 Kueue（见第 8 章）正在对齐的 API 方向。
 
 ### scheduler-plugins（out-of-tree 官方插件仓）
 
@@ -159,9 +161,12 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 
 **模式**：
 
-- **iptables（默认）**：规则是全量重写，Pod 多时（数千 Service × 数万 Pod）更新慢、匹配链长。
-- **IPVS**：基于内核哈希表，大规模下性能与更新速度远优于 iptables，**大集群必选**。
+- **iptables（传统默认）**：规则是全量重写，Pod 多时（数千 Service × 数万 Pod）更新慢、匹配链长。
+- **IPVS**：基于内核哈希表，大规模下性能与更新速度远优于 iptables。
+- **nftables**：kube-proxy 的新一代后端，iptables/IPVS 的长期替代方向。
 - **ebpf（Cilium 等可替换）**：绕过 iptables/kube-proxy，性能最优。
+
+> **v1.37 起 IPVS 模式被标记弃用**（kube-proxy 明确转向 nftables）；kube-dns 也在 v1.37 被弃用（用 CoreDNS）。新集群规划网络时应优先评估 **nftables 或 Cilium/eBPF**，而不是继续押注 IPVS。
 
 ## 5.7 CRI（Container Runtime Interface）
 
@@ -224,19 +229,20 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 
 **职责**：把集群外部的 HTTP/HTTPS 流量路由到集群内 Service。
 
-- **Ingress**（传统）：通过 Ingress Controller（nginx-ingress、Traefik）实现 7 层路由，配合证书做 TLS 终结。能力有限（主要是路径/host 路由）。
-- **Gateway API**（新一代，由 SIG-Network 推动）：更 expressive 的 CRD 模型（`GatewayClass`/`Gateway`/`HTTPRoute`/`GRPCRoute`），支持多租户、跨命名空间、TCP/UDP/gRPC。**Gateway API 的 HTTPRoute 已 GA**，正在成为 K8s 流量入口的事实标准。
+- **Ingress**（传统）：通过 Ingress Controller 实现 7 层路由，配合证书做 TLS 终结。能力有限（主要是路径/host 路由），且 **ingress-nginx 已于 2026 年 3 月停止维护**，新项目不应再选它。
+- **Gateway API**（新一代，由 SIG-Network 推动）：更 expressive 的 CRD 模型（`GatewayClass`/`Gateway`/`HTTPRoute`/`GRPCRoute`），支持多租户、跨命名空间。**v1.4（2025-10）为当前 GA 基线**；v1.5 起 `TCPRoute`/`UDPRoute` 也进入 GA 通道，正成为 K8s 流量入口的事实标准。
+- **推理扩展（Gateway API Inference Extension, GIE）**：面向 LLM 推理的 `InferencePool`/`InferenceModel` CRD + 可插拔的 Endpoint Picker（EPP），让网关按 **KV Cache 亲和、队列长度、LoRA 适配器**做推理感知路由；**v1.0 于 2025-10 GA**，已被 Envoy Gateway、Istio、GKE 等实现。配套生态 **llm-d**（CNCF Sandbox，2026-03 加入）提供生产级调度器/EPP 与 P/D 分离部署。
 
-> LLM Gateway、推理服务的对外暴露，推荐用 Gateway API（或 Service Mesh）而非裸 Ingress——它对多版本路由（金丝雀/影子流量）和 gRPC 流式（vLLM 的流式输出）支持更好。
+> LLM Gateway、推理服务的对外暴露，推荐用 Gateway API（或 GIE 做推理感知路由）而非裸 Ingress——它对多版本路由（金丝雀/影子流量）和 gRPC 流式（vLLM 的流式输出）支持更好。
 
 ## 5.12 自动扩缩：HPA / VPA / CA
 
 | 组件 | 扩什么 | 依据 |
 |---|---|---|
-| **HPA（HorizontalPodAutoscaler）** | Pod **副本数** | CPU/内存或**自定义指标**（如 QPS、队列长度、GPU 利用率） |
-| **VPA（VerticalPodAutoscaler）** | 单 Pod **资源 request/limit** | 历史用量 |
+| **HPA（HorizontalPodAutoscaler）** | Pod **副本数** | CPU/内存或**自定义指标**（如 QPS、队列长度、GPU 利用率）；**v1.37 起 object/external 指标支持 scale-to-zero**（beta，`minReplicas: 0`，适合批处理/队列驱动负载） |
+| **VPA（VerticalPodAutoscaler）** | 单 Pod **资源 request/limit** | 历史用量；**v1.35 原地调整 GA** 后，CPU/内存调整不再必须重建 Pod（GPU 等扩展资源仍不可原地调整） |
 | **CA（Cluster Autoscaler）** | **节点数** | 有 Pod 因资源不足 Pending → 触发云 API 加节点 |
-| **Karpenter**（AWS/社区） | **节点数**（更灵活） | 按 Pod 需求直接选合适机型，比 CA 快 |
+| **Karpenter**（AWS 发起，已捐 CNCF） | **节点数**（更灵活） | 按 Pod 需求直接选合适机型，比 CA 快 |
 
 > 推理服务弹性：HPA 按自定义指标（如 `vllm:num_requests_running` 或 Prometheus 的 tokens/s）扩缩，配合 CA/Karpenter 扩节点。注意 GPU Pod 启动慢（拉镜像+加载模型），HPA 要预留预热时间或用预测性扩缩。
 
@@ -249,6 +255,8 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 - **Mutating**：注入 sidecar（Istio）、注入默认 `resources.requests`、注入 node selector。
 - **Validating**：强制镜像来自白名单 registry、强制必须设 `resources.limits`、禁止特权容器、合规检查（如 GPU Pod 必须带优先级）。
 
+> **轻量替代**：**Mutating Admission Policies（v1.36 GA，KEP-3962）** 让你用 CEL 表达式在 apiserver 内直接做"突变+校验"，无需部署 Webhook 服务，延迟与可用性风险更小。简单策略优先用它，复杂逻辑再用 Kyverno/OPA。
+>
 > 生产 AI 平台几乎必装准入策略：强制 GPU Pod 设优先级与抢占策略、强制镜像签名验证、强制 namespace 配额。可用 **Kyverno** 或 **OPA Gatekeeper** 声明式管理。
 
 ## 5.14 Metrics Server 与可观测
@@ -258,11 +266,36 @@ K8s 默认调度是"先 pack 后 spread"的混合：
 - **Prometheus + Grafana**：事实标准的监控栈。
 - **cAdvisor**（kubelet 内置）：容器级资源指标。
 
-> AI 负载的可观测需补充 GPU 指标：**DCGM-Exporter**（NVIDIA）暴露 GPU 利用率/显存/温度/功耗，详见 [AI SRE 主题](/07-ai-sre/)。
+> AI 负载的可观测需补充 GPU 指标：**DCGM-Exporter**（NVIDIA）暴露 GPU 利用率/显存/温度/功耗，详见 [AI SRE 主题](/07-ai-sre/)。**Metrics API（metrics.k8s.io）在 v1.37 终于 GA**——此前它 beta 了近 9 年，是 `kubectl top` 与 HPA 资源型扩缩的数据源。
+
+## 5.15 DRA：动态资源分配（GPU 一等资源的另一条路）
+
+**Device Plugin 的局限**：它只能上报"节点有 8 个 `nvidia.com/gpu`"这样的**整数计数**，调度器看不到设备属性（显存大小、是否 NVLink 域内）、无法表达"可切分/可共享"、坏卡只能整个节点下线。
+
+**DRA（Dynamic Resource Allocation）** 把设备变成**带属性的一等资源**：
+
+```mermaid
+flowchart TB
+    DC["DeviceClass<br/>管理员定义“我要什么设备”<br/>（如：显存 ≥ 40GB）"]
+    RS["ResourceSlice<br/>驱动上报每节点设备清单<br/>属性 / 容量 / 健康"]
+    RC["ResourceClaim / ResourceClaimTemplate<br/>Pod 申请：设备选择器 + 请求量"]
+    SCHD["kube-scheduler<br/>依据 Claim 做分配决策"]
+    ALLOC["驱动 Allocate<br/>具体设备绑定进容器"]
+    DC --> RC
+    RS --> SCHD
+    RC --> SCHD
+    SCHD --> ALLOC
+```
+
+- **v1.34（2025-08）GA**：`resource.k8s.io/v1`（ResourceClaim / ResourceClaimTemplate / DeviceClass / ResourceSlice）默认开启。
+- **v1.36–1.37 增强**：可切分设备（partitionable devices）、consumable capacity（共享 GPU/NIC 的容量计数）、**设备级污点 DeviceTaintRule（v1.37 GA，可单独隔离一张坏卡）**。
+- **厂商驱动**：NVIDIA 把 GPU DRA 驱动捐给了 kubernetes-sigs（CNCF 治理），但 **GPU 分配路径仍是 alpha、默认关闭**，官方支持的只有 Multi-Node NVLink（ComputeDomains）；TPU DRA 驱动来自 Google。
+
+> **现状判断**：DRA 是 AI 调度的长期方向（Kueue、llm-d 都在对齐），但 **2026 年生产主力仍是 Device Plugin + GPU Operator**——DRA 适合做新平台的技术预研与特定场景（坏卡隔离、精确设备属性选择）。详见 [GPU 调度主题](/02-cloud-native/gpu-scheduling/)。
 
 ## 本章小结
 
-K8s 的核心模块可以按"决策—执行—治理—扩展"四类记忆：**决策**（apiserver/etcd/scheduler/controller-manager）、**执行**（kubelet/kube-proxy/CRI/CNI/CSI/DevicePlugin）、**治理**（RBAC/Admission/ResourceQuota/HPA-VPA）、**扩展**（CRD/调度框架/Gateway API）。对 AI 平台最关键的是**调度框架**（可插拔选节点，支撑 Gang/拓扑/负载感知）与 **Device Plugin + GPU Operator**（把 GPU 变成一等可调度资源）。v1.36 原生 PodGroup 调度是 Gang 调度走向 in-tree 的里程碑。
+K8s 的核心模块可以按"决策—执行—治理—扩展"四类记忆：**决策**（apiserver/etcd/scheduler/controller-manager）、**执行**（kubelet/kube-proxy/CRI/CNI/CSI/DevicePlugin/DRA）、**治理**（RBAC/Admission/ResourceQuota/HPA-VPA）、**扩展**（CRD/调度框架/Gateway API）。对 AI 平台最关键的是**调度框架**（可插拔选节点，支撑 Gang/拓扑/负载感知）与 **Device Plugin + GPU Operator**（把 GPU 变成一等可调度资源），长期方向是 **DRA + Kueue + 原生 PodGroup**。v1.35–1.36 原生 PodGroup 调度（alpha）是 Gang 调度走向 in-tree 的里程碑。
 
 **参考来源**
 
@@ -276,4 +309,7 @@ K8s 的核心模块可以按"决策—执行—治理—扩展"四类记忆：**
 - [Device Plugins](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/)
 - [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/index.html)
 - [Gateway API](https://gateway-api.sigs.k8s.io/)
+- [Gateway API Inference Extension（InferencePool/EPP）](https://gateway-api-inference-extension.sigs.k8s.io/)
+- [Dynamic Resource Allocation（DRA，v1.34 GA）](https://kubernetes.io/docs/concepts/scheduling-eviction/dynamic-resource-allocation/)
+- [Mutating Admission Policies（KEP-3962，v1.36 GA）](https://kubernetes.io/docs/reference/access-authn-authz/mutating-admission-policy/)
 - [Dynamic Admission Control](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
