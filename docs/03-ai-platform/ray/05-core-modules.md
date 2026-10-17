@@ -10,13 +10,14 @@
 |---|---|---|
 | [Ray Core](https://docs.ray.io/en/latest/ray-core/index.html) | task/actor/object/placement group 分布式原语 | GA（稳定 API） |
 | [Ray Serve](https://docs.ray.io/en/latest/serve/index.html) | 模型服务（HTTP+gRPC）、DAG、自动伸缩 | GA |
-| [Ray Serve LLM](https://docs.ray.io/en/latest/serve/llm-serving/index.html)（原 RayLLM/Aviary） | OpenAI 兼容 LLM 服务（默认 vLLM 引擎） | GA（快速演进） |
+| [Ray Serve LLM](https://docs.ray.io/en/latest/serve/llm/index.html)（原 RayLLM/Aviary） | OpenAI 兼容 LLM 服务（vLLM / SGLang 双引擎） | **GA（2.59，2026-10）** |
 | [Ray Data](https://docs.ray.io/en/latest/data/key-concepts.html) | 流式数据预处理；`map_batches` | GA（2.10） |
 | [Ray Train](https://docs.ray.io/en/latest/train/index.html) | 分布式训练（PyTorch/FSDP/DeepSpeed/HF/XGBoost/JAX） | GA（2.7） |
 | [Ray Tune](https://docs.ray.io/en/latest/tune/index.html) | 超参搜索；ASHA/PBO/BOHB；Optuna/HyperOpt/W&B | GA |
 | [RLlib](https://docs.ray.io/en/latest/rllib/index.html) | 分布式 RL；新 API stack（PyTorch-only） | GA（API 迁移中） |
 | [Ray Workflows](https://docs.ray.io/en/latest/ray-core/workflows/index.html) | 持久、可 checkpoint 的长任务 DAG | **Beta（2025 弃用）** |
 | [Compiled Graph](https://docs.ray.io/en/latest/ray-core/compiled-graph/index.html) | 编译静态执行图（紧耦合集合通信） | Beta（2.44 起） |
+| Ray Sandbox | gVisor 沙箱执行不可信 task/actor 代码，可直接跑 Docker 构建的镜像 | **Experimental（2.58）** |
 | [KubeRay](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) | K8s operator + RayCluster/RayJob/RayService CRD | GA |
 | [RayDP](https://docs.ray.io/en/latest/ray-more-libs/raydp.html)（Spark on Ray） | 在 Ray 上跑 PySpark | 社区 |
 | Dask/Modin/Mars on Ray | 熟悉 dataframe API 跑在 Ray 后端 | 社区/GA |
@@ -90,9 +91,11 @@ serve.run(build_openai_app({"llm_configs": [cfg]}), blocking=True)
 
 - **OpenAI 兼容 API**，与 `vllm serve` 对齐；`engine_kwargs` 大多通用。([vLLM 兼容指南](https://docs.ray.io/en/latest/serve/llm/user-guides/vllm-compatibility.html))
 - 能力：chat/completions/embeddings/transcriptions(Whisper)/VLM/结构化输出(JSON+Pydantic)/推理模型(DeepSeek-R1)。
-- **`vllm serve` ↔ Ray Serve LLM 无需改代码**，额外获得自动伸缩/多模型/高级路由。
+- **引擎无关（2.59 GA）**：官方支持 **vLLM 与 SGLang** 双引擎；`vllm serve` ↔ Ray Serve LLM 无需改代码，额外获得自动伸缩/多模型/高级路由。
 - 高级特性：[跨节点并行](https://docs.ray.io/en/latest/serve/llm/user-guides/cross-node-parallelism.html)、[数据并行 attention](https://docs.ray.io/en/latest/serve/llm/user-guides/data-parallel-attention.html)、[prefill/decode 分离](https://docs.ray.io/en/latest/serve/llm/user-guides/prefill-decode.html)、[KV cache 卸载](https://docs.ray.io/en/latest/serve/llm/user-guides/kv-cache-offloading.html)、[prefix-aware 路由](https://docs.ray.io/en/latest/serve/llm/user-guides/prefix-aware-routing.html)、[多 LoRA](https://docs.ray.io/en/latest/serve/llm/user-guides/multi-lora.html)、[分数 GPU](https://docs.ray.io/en/latest/serve/llm/user-guides/fractional-gpu.html)。
-- **连续批处理来自 vLLM 引擎**，Ray 不重造。
+- **2.58 新增**：KV-cache/token 感知路由——tokenization 下沉 ingress，KV 事件带外广播，路由感知 CPU KV cache 命中（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)）。
+- **生产容错**：vLLM WideEP/MoE 部署支持**数据并行组容错**（DP group fault tolerance，[Anyscale 博客](https://www.anyscale.com/blog/dp-group-fault-tolerance-vllm-wideep-ray-serve-llm)，2026-04）——单 DP rank 故障不再拖垮整个引擎。
+- **连续批处理来自 vLLM/SGLang 引擎**，Ray 不重造。
 
 ---
 
@@ -106,6 +109,7 @@ serve.run(build_openai_app({"llm_configs": [cfg]}), blocking=True)
 | 上报 | `session.report(metrics, checkpoint=ray.train.Checkpoint(...))` | 指标 + checkpoint |
 | 弹性 | [Elastic training](https://docs.ray.io/en/latest/train/user-guides/elastic-training.html) | worker 加入/离开 |
 | 容错 | [Fault tolerance](https://docs.ray.io/en/latest/train/user-guides/fault-tolerance.html) | 重启 + spot + checkpoint |
+| TPU | **TorchTPU 后端**（2.58）；`SubslicePlacementGroup` TPU 子切片 gang 调度 | 无需外部 gang-scheduling 胶水即可预留/训练 TPU slice（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)） |
 
 > `ScalingConfig.trainer_resources` **已弃用**——trainer 资源改由 trainer 构造器传。
 
@@ -117,10 +121,15 @@ serve.run(build_openai_app({"llm_configs": [cfg]}), blocking=True)
 |---|---|---|
 | 抽象 | `Dataset`（惰性分布式集合）+ `Block`（单分区，Pandas/PyArrow） | 两层 |
 | 计划 | 逻辑计划（`ReadOp`/`MapBatches`/`Filter`/`Project`）→ 优化器（`OperatorFusionRule`）→ 物理计划（`TaskPoolMapOperator`/`ActorPoolMapOperator`） | 两阶段 |
-| 执行 | **流式**（非 shuffle 算子流水线，不同 stage 独立伸缩并发）；shuffle（`sort`/`groupby`）需物化、中断流式 | — |
-| 主变换 | `ds.map_batches(fn, batch_format=, num_cpus=, num_gpus=)` | 核心算子 |
-| 连接器 | Parquet/JSON/CSV/text/binary/**HuggingFace**(`read_huggingface`)/**TFRecords**/**WebDataset**/NumPy/pandas/Delta Lake；远端 S3/GCS/Azure/HDFS | — |
-| LLM 批推理 | `ray.data.LLM` / `Dataset.map_llm()` | 批推理 API |
+| 执行 | **流式**（非 shuffle 算子流水线，不同 stage 独立伸缩并发）；shuffle 需物化、中断流式 | — |
+| 主变换 | `ds.map_batches(fn, batch_format=, num_cpus=, num_gpus=)`；**`batch_size="auto"`**（2.56 自动批大小选择） | 核心算子 |
+| 连接器 | Parquet/ORC（2.59）/JSON/CSV/text/binary/**HuggingFace**/**TFRecords**/**WebDataset**/NumPy/pandas/**Delta Lake 写**（2.58 `write_delta`）/**Lance**（2.59 多路径）；远端 S3/GCS/Azure/HDFS | — |
+| 读取层 | **DataSourceV2**（2.55 引入，**2.57 默认**）：row-group 感知分块 + 谓词下推 | `DataContext.use_datasource_v2` |
+| Shuffle | **hash shuffle v2**（2.57：无状态 `ShuffleMapOp`/`ShuffleReduceOp` 经对象存储传 shard，支持 join）；**外部磁盘 shuffle_v2**（2.59，磁盘背 shuffle runtime） | 大 shuffle 可溢写 |
+| Checkpoint | Dataset checkpointing（2.54 引入） | 流水线断点续跑 |
+| LLM 批推理 | `ray.data.LLM` / `Dataset.map_llm()`（**2.59 GA**） | 批推理 API |
+
+> **稳定性背书（2.56）**：Anyscale 基准显示，2.55 → 2.56 后典型训练/推理数据管线的 **OOM 从 300+ 次降到 0**，运行时间从 1055s 降到 447s——源于溢写减少、内存感知执行与训练侧预取的改进（[Anyscale 博客](https://www.anyscale.com/blog/ray-data-256-updates)）。
 
 ---
 
@@ -147,9 +156,21 @@ serve.run(build_openai_app({"llm_configs": [cfg]}), blocking=True)
 | **RayCluster** | 声明式集群（head + worker pod 模板 + 集群内 autoscaler） |
 | **RayJob** | 提交/跟踪一个 Ray Job（entrypoint、runtime_env、`shutdownAfterJobFinishes`、TTL） |
 | **RayService** | 部署 Ray Serve 应用，滚动更新 + 健康探针 + 零停机 + HA |
-| **RayCronJob** | 定时任务（2.56 文档 ToC 出现，[细节未完全核验]） |
+| **RayCronJob** | 定时任务（v1.7 新增 `spec.timeZone` 字段） |
 
 集成：[Kueue](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/kueue)/[Volcano](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/volcano)/[YuniKorn](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/yunikorn)/[KAI Scheduler](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/kai-scheduler)/[Istio mTLS](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/istio)/[Prometheus+Grafana](https://docs.ray.io/en/latest/cluster/kubernetes/doc-source/kuberay/prometheus-grafana)。
+
+### KubeRay v1.7（2026 年中）新特性
+
+- **`spec.upgradeStrategy.type: Recreate`**：spec 变更时控制器自动删除并重建全部 pod——GitOps（ArgoCD）工作流的刚需。
+- **内置 Ingress 可配置**：`headGroupSpec.ingressOptions`（`host`/`path`/`pathType`/`tls`）。
+- **Autoscaler V2 worker group 优先级**：`workerGroupSpecs` 新增 `priority` 字段（需 Ray 2.56+）。
+- **NetworkPolicy（alpha）**：`spec.networkPolicy` 支持 DenyAll 等模式；**cert-manager mTLS（alpha）**：pod 间 TLS 证书自动供给/轮换。
+- **GCS 容错内嵌 RocksDB（alpha）**：operator 自动供给 PVC，免除外部 Redis。
+- **RayService**：增量升级（incremental upgrades）升 beta 并支持回滚。
+- **废弃**：`ray.io/v1alpha1` API 废弃，统一用 `ray.io/v1`。
+
+来源：[KubeRay v1.7 发布公告](https://www.anyscale.com/blog/kuberay-v1-7) ｜ [kuberay releases](https://github.com/ray-project/kuberay/releases)。
 
 ---
 

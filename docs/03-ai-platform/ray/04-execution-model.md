@@ -102,10 +102,30 @@ Ray Serve 在 Ray Core 之上构建在线推理服务。组件（[`python/ray/se
 ```
 
 - **ServeController**（[`_private/controller.py`](https://github.com/ray-project/ray/blob/master/python/ray/serve/_private/controller.py)）：全局控制面 actor（每个 Serve 实例一个），创建/销毁副本与 proxy，**运行 autoscaler**，状态 checkpoint 到 GCS。
-- **Proxy**（[`_private/proxy.py`](https://github.com/ray-project/ray/blob/master/python/ray/serve/_private/proxy.py)）：每节点一个，跑 **Uvicorn**（HTTP）/ **grpcio**（gRPC）；较新版本引入 **HAProxy router**（`_private/haproxy*.py`）把延迟降约 88%（[Anyscale 博客](https://www.anyscale.com/blog/ray-serve-inference-lower-latency-higher-throughput-haproxy)）。
+- **Proxy**（[`_private/proxy.py`](https://github.com/ray-project/ray/blob/master/python/ray/serve/_private/proxy.py)）：每节点一个，跑 **Uvicorn**（HTTP）/ **grpcio**（gRPC）；较新版本引入 **HAProxy router**（`_private/haproxy*.py`）把延迟降约 88%（[Anyscale 博客](https://www.anyscale.com/blog/ray-serve-inference-lower-latency-higher-throughput-haproxy)）。**2.55** 起 HAProxy 拆分为独立 `ray-haproxy` PyPI 包并支持服务化部署；**2.57** 起 HAProxy direct ingress 支持 gRPC（含流式、metrics、自定义请求 ID），并支持**分布式 HAProxy**（[2.57.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.57.0)）。
 - **Replica**（[`_private/replica.py`](https://github.com/ray-project/ray/blob/master/python/ray/serve/_private/replica.py)）：包用户 deployment 类，处理请求队列（async handler 走 asyncio），支持 `@serve.batch` 批处理。
 - **DeploymentHandle → Router**：模型组合/DAG 入口，Router 用 **power-of-two-choices** 选副本；`long_poll`（[`_private/long_poll.py`](https://github.com/ray-project/ray/blob/master/python/ray/serve/_private/long_poll.py)）让 Router 与 Controller 副本列表保持同步。
-- **autoscaler 跑在 Controller 内**：每个 `DeploymentHandle` 与每个副本周期性上报队列/in-flight 指标，Controller 据此伸缩（与集群 VM autoscaler **独立**）。
+- **autoscaler 跑在 Controller 内**：每个 `DeploymentHandle` 与每个副本周期性上报队列/in-flight 指标，Controller 据此伸缩（与集群 VM autoscaler **独立**）。**2.54 起**引入基于队列的 autoscaling 第一阶段（`QueueMonitor`，面向 TaskConsumer/异步推理场景），**2.59** 补齐 per-deployment `BackpressureConfig`（超限返回 429 + `Retry-After` 而非 503）与 `min_replicas=0` 的 gang-scheduled scale-to-zero（[2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0)）。
+
+### Ray Serve LLM 的请求链路（2.56 重构后）
+
+Ray Serve LLM（`ray.serve.llm`，**2.59 GA**）在 Serve 之上专门优化 LLM 推理路由：
+
+```mermaid
+flowchart TD
+    C[客户端] -- "OpenAI API" --> R["LLMRouter ingress 副本（每节点）"]
+    subgraph ROUTE["ingress 内三步路由"]
+        T1["① ingress 内 tokenization<br/>（引擎不再重复分词）"]
+        T2["② KV 生命周期事件带外广播<br/>到每个 ingress 副本"]
+        T3["③ 原子化副本选择 + KV cache 预留<br/>（感知 CPU KV cache 命中）"]
+    end
+    R -- "选中引擎副本" --> E["vLLM / SGLang 引擎副本 × N"]
+    E -- "direct token streaming（2.56 解耦）" --> C
+```
+
+- **2.56**：请求处理与 token 流**解耦**（direct token streaming），配合 vLLM RayExecutorV2（vLLM 0.21 默认）带来数倍吞吐提升（[Anyscale 博客](https://www.anyscale.com/blog/high-performance-distributed-inference-ray-serve-llm-vllm-google-kubernetes-gke)：prefill 密集最高 4.4×、decode 密集最高 24×）。
+- **2.58**：**KV-cache/token 感知路由**完成——路由决策下沉到 ingress 副本内，token 带外传输，KV 事件广播 + 原子选择/预留；KV cache offload 后仍计入副本缓存命中（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)）。
+- **引擎无关**：2.59 起官方支持 **vLLM 与 SGLang** 双后端（[Serving LLMs 文档](https://docs.ray.io/en/latest/serve/llm/index.html)）。
 
 ### 部署一个 deployment
 

@@ -43,7 +43,7 @@
 ### Q7. 什么是 spillback scheduling？Ray 为什么从全局调度器转向它？
 
 **答案要点**：
-- 旧版 Ray（SOSP'18）有中央 Global Scheduler，瓶颈明显。
+- 旧版 Ray（OSDI'18 论文）有中央 Global Scheduler，瓶颈明显。
 - 新版 ownership + spillback：提交者本地 raylet 先尝试调度；若本地资源不足，把任务“溢出”到其他 raylet，逐跳问询。
 - 优点：去中心化、可扩展、减少 GCS 负载。
 
@@ -109,11 +109,12 @@
 - actor 是内存状态；`max_restarts` 只重启进程，不恢复状态。
 - 缓解：① 状态外置到 Redis/DynamoDB/RDBMS；② 定期 checkpoint 到共享存储；③ 设计幂等方法，重启后从 checkpoint 重放；④ Serve 部署用多副本 + 无状态设计。
 
-### Q16. 在 KubeRay 中启用 Ray Serve 的故障转移（FT）需要哪些条件？GCS FT 的局限是什么？
+### Q16. 在 KubeRay 中启用 Ray Serve 的故障转移（FT）需要哪些条件？GCS FT 在 2.57 后有什么变化？
 
 **答案要点**：
-- 需要 Redis 作为 GCS 后端；官方仅支持 KubeRay + Ray Serve FT 场景。
-- 局限：增加运维复杂度；Redis 本身成为瓶颈与单点；非 Serve 场景官方支持有限。
+- 2.57（REP-64）前：需要 Redis 作为 GCS 后端；官方仅支持 KubeRay + Ray Serve FT 场景。
+- 2.57 起：内嵌 RocksDB（`RAY_gcs_storage=rocksdb` + `RAY_gcs_storage_path`），**不再需要外部 Redis**；KubeRay v1.7 alpha 支持 operator 自动供给 PVC。
+- 局限：持久化只保护 GCS 元数据；恢复期间 actor/PG 创建等操作仍不可用；运行中 task/actor 与已存在对象不受影响。
 
 ### Q17. 比较 Ray Core 手写 task graph 与 Ray Data 处理大数据集的 trade-off。
 

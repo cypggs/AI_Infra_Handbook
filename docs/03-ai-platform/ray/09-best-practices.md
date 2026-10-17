@@ -22,6 +22,7 @@
 | 单一模型静态训练（如大型 LLM pre-train） | Megatron-LM / FSDP / DeepSpeed | 专为 all-reduce 优化 |
 | 简单 REST API 包装模型 | FastAPI + Uvicorn / Triton / KServe | 更轻量、运维更简单 |
 | 严格低延迟、确定性的微服务 | 专用服务网格 | Ray actor 重启、调度开销不可忽略 |
+| 业务流程/长事务编排（小时-天级） | Temporal / LangGraph | 持久化工作流与 Agent 编排是它们的抽象层；重计算再下沉到 Ray（见 [第 2 章 §2.5](02-core-ideas)） |
 
 ---
 
@@ -186,9 +187,10 @@ node_config:
 
 ### 9.7.1 版本与升级
 
-- Ray 2.x 持续发布；关注 release notes 中的 breaking changes（如 2.52 结束 Python 3.9 支持，2.56 计划弃用 Pydantic V1）。
-- 不要跨小版本混用 head/worker（如 2.54 head + 2.55 worker）。
-- KubeRay 版本与 Ray 版本有对应矩阵，需匹配。
+- Ray 2.x 持续发布；关注 release notes 中的 breaking changes（如 2.52 结束 Python 3.9 支持，2.55 迁移 Pydantic v2、V1 进入弃用流程）。
+- **2.59 迁移注意**：本地集群默认开启 token 鉴权（`RAY_AUTH_MODE=disabled` 可关）；read API 的 `ray_remote_args` 被移除；**2.59 是最后一个发布 CUDA 11.7（`-cu117`）镜像的版本**。
+- 不要跨小版本混用 head/worker（如 2.58 head + 2.59 worker）。
+- KubeRay 版本与 Ray 版本有对应矩阵，需匹配（如 autoscaler V2 优先级字段需 Ray 2.56+；`ray.io/v1alpha1` 已废弃，用 `ray.io/v1`）。
 
 ### 9.7.2 测试策略
 

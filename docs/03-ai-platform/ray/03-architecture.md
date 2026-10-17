@@ -117,18 +117,23 @@ GCS 是 head 节点上的单一 `GcsServer` actor（[src/ray/gcs/](https://githu
 - `gcs_placement_group(_manager|_scheduler)` —— placement group 两阶段提交
 - `gcs_autoscaler_state_manager` / `gcs_health_check_manager`
 - `gcs_kv_manager` —— 通用 KV（`ray.kv`、Serve checkpoint）
-- `gcs_task_manager` —— **只存任务事件/状态供 State API/Dashboard**，不驱动调度（所有权模型）
+- `gcs_task_manager` —— **只存任务事件/状态供 State API/Dashboard**，不驱动调度（所有权模型；**2.58 起可进一步迁出 GCS 热路径**，见下文）
 
 ### GCS 容错（关键工程约束）
 
 > **默认 GCS 不可容错**：状态全在内存，GCS 挂 = **整个集群挂**。（[GCS FT 文档](https://docs.ray.io/en/latest/ray-core/fault_tolerance/gcs.html) 原文）
 
 - 自 **1.11** 起 GCS 默认存自己的内存结构（**Redis 不再是默认运行时依赖**，[Redis in Ray](https://www.anyscale.com/blog/redis-in-ray-past-and-future)）。
-- **可选容错**：外接 **HA Redis**（`RAY_REDIS_ADDRESS`）做**持久备份**，GCS 重启时从中恢复。
+- **2.57（REP-64）起不再需要外部 Redis**：设置 `RAY_gcs_storage=rocksdb` + `RAY_gcs_storage_path` 即可启用**内嵌 RocksDB** 持久化 GCS 状态，外接 Redis 从"必需"变为遗留选项（[2.57.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.57.0)）。KubeRay v1.7 起提供 alpha 支持：operator 自动为内嵌 RocksDB 供给 PVC，彻底免除 Redis 运维。
+- 旧路径（外接 **HA Redis**，`RAY_REDIS_ADDRESS`）仍可用：GCS 重启时从中恢复。
 - **恢复期间不可用**：actor/PG 的创建/删除/重建、资源管理、worker 节点注册、worker 进程创建。**仍可用**：运行中的 task/actor 继续活、已存在对象仍可访问。
 - raylet 重连超时 **60s**（`RAY_gcs_rpc_server_reconnect_timeout_s`）。
-- **官方警告**：*"GCS 容错（外接 Redis）只在 KubeRay 上用于 Ray Serve 容错时官方支持；其他情况自担风险。"*
-- KubeRay **v1.3.0** 把容错配置收敛为 `spec.gcsFaultToleranceOptions`（`redisAddress`/`redisPassword`），注意多集群 Redis key 冲突（[kuberay#2694](https://github.com/ray-project/ray/issues/2694)）。
+- **官方警告**（Redis 路径）：*"GCS 容错（外接 Redis）只在 KubeRay 上用于 Ray Serve 容错时官方支持；其他情况自担风险。"*
+- KubeRay **v1.3.0** 起容错配置收敛为 `spec.gcsFaultToleranceOptions`（`redisAddress`/`redisPassword`），注意多集群 Redis key 冲突（[kuberay#2694](https://github.com/ray-project/ray/issues/2694)）。
+
+### 任务事件迁出 GCS（2.58）
+
+`gcs_task_manager` 原承担任务事件采集，曾是大集群 GCS 热路径的负担。**2.58 起**（`RAY_enable_task_events_to_dashboard_head`）任务事件缓冲改由 **ray event recorder** 导出到 head 上的独立 task events 服务（内存存储），State API 与 `ray.timeline` 改从它读取——任务事件的写入/服务**移出 GCS 热路径**（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)）。这是所有权模型"调度不依赖 GCS"思想的延续。
 
 ---
 

@@ -4,7 +4,7 @@
 
 ## 这是什么
 
-Ray 是由 UC Berkeley RISELab 发起、现由 **PyTorch Foundation**（Linux Foundation，2025-10-22 起）托管、Anyscale 商业化的开源分布式计算框架（Apache 2.0）。它的奠基论文是 **SOSP 2018**《Ray: A Distributed Framework for Emerging AI Applications》（Moritz et al.，[arXiv:1712.05889](https://arxiv.org/abs/1712.05889)），实测亚毫秒级任务派发延迟、>1.8M tasks/sec 吞吐。
+Ray 是由 UC Berkeley RISELab 发起、现由 **PyTorch Foundation**（Linux Foundation，2025-10-22 起）托管、Anyscale 商业化的开源分布式计算框架（Apache 2.0）。它的奠基论文是 **OSDI 2018**《Ray: A Distributed Framework for Emerging AI Applications》（Moritz et al.，[arXiv:1712.05889](https://arxiv.org/abs/1712.05889)），实测亚毫秒级任务派发延迟、>1.8M tasks/sec 吞吐。当前最新稳定版为 **Ray 2.59.0**（2026-10，Serve LLM / Data LLM 正式 GA）。
 
 Ray 的核心赌注是**"分布式 Python"**：不只为某一个 ML 阶段造系统，而是把 Python 本身扩到集群，用同一套运行时同时承载数据预处理（Ray Data）、分布式训练（Ray Train）、超参搜索（Ray Tune）、强化学习（RLlib）、在线推理（Ray Serve）。这正是它区别于 Spark（批/无 actor）、MPI/PyTorch DDP（静态 SPMD、只训练）、Kubernetes（无 ML 语义）的根本所在。
 
@@ -12,7 +12,7 @@ Ray 的核心赌注是**"分布式 Python"**：不只为某一个 ML 阶段造�
 
 读完本主题，你应当能：
 
-1. 说清 Ray 的三大原语（task/actor/object）与**所有权模型（ownership）+ 溢回调度（spillback）**如何替代了 SOSP'18 论文里的全局调度器。
+1. 说清 Ray 的三大原语（task/actor/object）与**所有权模型（ownership）+ 溢回调度（spillback）**如何替代了 OSDI'18 论文里的全局调度器。
 2. 画出从 `@ray.remote` → `remote()` → CoreWorker → raylet → worker 执行 → Plasma 落盘的完整调用链。
 3. 解释 Plasma 对象存储的大小规则（30% RAM / 200GB 上限 / macOS 2GB）、引用计数五元组、80% 主动溢写、lineage 重建与"小对象随 owner 而亡"。
 4. 区分 Ray Core / Serve / Train / Data / Tune / RLlib 各自的边界与成熟度，并给出 KubeRay 上 RayCluster / RayJob / RayService 三种 CRD 的选型。
@@ -24,7 +24,7 @@ Ray 的核心赌注是**"分布式 Python"**：不只为某一个 ML 阶段造�
 | 主题 | 关系 |
 |---|---|
 | [LLMOps / vLLM](/04-llmops/vllm/) | Ray Serve LLM（原 RayLLM/Aviary）把 vLLM 作为默认推理引擎，提供 OpenAI 兼容 API + 自动伸缩 + prefill/decode 分离。 |
-| [LLMOps / SGLang](/04-llmops/sglang/) | SGLang 与 Ray 的集成出现在 2.56 文档；常作为 vLLM 的替代后端。 |
+| [LLMOps / SGLang](/04-llmops/sglang/) | Ray Serve LLM 自 2.59 起为引擎无关架构，官方支持 vLLM 与 SGLang 双后端（2.56 文档已出现 SGLang）。 |
 | [Agent Runtime](/05-agent/agent-runtime/) | 大规模 Agent 部署（多副本、有状态、工具并发）天然契合 Ray actors + Serve；Ray 是多 Agent/RL 底座。 |
 | [RAG](/06-rag/) | Ray Data + Serve 常用于 RAG 的离线索引流水线与在线检索/生成服务。 |
 | [AI SRE](/07-ai-sre/) | Ray Dashboard（8265）、Prometheus metrics、State API、`ray memory` 是 AI SRE 在 Ray 集群上的可观测与排障工具集。 |
@@ -46,7 +46,7 @@ Ray 的核心赌注是**"分布式 Python"**：不只为某一个 ML 阶段造�
 | [8. 企业生产实践](08-production-practice) | 部署、可观测、容错、坑 | KubeRay、GCS FT、LLM 服务、八大坑与真实规模数字。 |
 | [9. 最佳实践](09-best-practices) | 原则与反模式 | 对象传递、actor 并发、PG 设计、冷启动治理。 |
 | [10. 面试题](10-interview-questions) | 初/中/高级 | 紧扣章节的 18 问。 |
-| [11. 延伸阅读](11-further-reading) | 论文、仓库、博客 | SOSP'18、ownership NSDI'21、KubeRay、用户案例。 |
+| [11. 延伸阅读](11-further-reading) | 论文、仓库、博客 | OSDI'18、ownership NSDI'21、KubeRay、用户案例。 |
 
 ## 一句话总结
 

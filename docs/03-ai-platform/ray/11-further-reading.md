@@ -8,12 +8,12 @@
 
 | 论文 | 年份 | 核心贡献 | 与本主题关系 |
 |---|---|---|---|
-| **Ray: A Distributed Framework for Emerging AI Applications** (Moritz et al., SOSP'18) | 2018 | 提出 task/actor/object 三元抽象、全局调度器、GCS | 理解 Ray 最初设计动机与演进起点 |
+| **Ray: A Distributed Framework for Emerging AI Applications** (Moritz et al., OSDI'18) | 2018 | 提出 task/actor/object 三元抽象、全局调度器、GCS | 理解 Ray 最初设计动机与演进起点 |
 | **Ownership: A Distributed Futures System for Fine-Grained Tasks** (Wang et al., NSDI'21) | 2021 | 提出 ownership 模型，把任务规格与引用计数从 GCS 下放到 worker | 理解现代 Ray 容错与调度核心 |
 | **Spillback Scheduling** (Ray 调度文档/源码) | 2020+ | 分布式 spillback 调度替代全局调度器 | 理解默认 HYBRID 策略的底层实现 |
 | **RLlib: Scalable Reinforcement Learning** | 2018+ | 大规模 RL 训练框架 | RLlib 主题源码基础 |
 
-> **注意**：Ray 原始论文发表在 **SOSP'18**，不是 SOSP'17 也不是 OSDI'18；ownership 论文在 **NSDI'21**。引用时不要写错会议名。
+> **注意**：Ray 原始论文发表在 **OSDI'18**（2018 年没有 SOSP），ownership 论文在 **NSDI'21**。引用时不要写错会议名。
 
 ---
 
@@ -58,6 +58,10 @@
 - [Ray 2.0 and Beyond](https://www.anyscale.com/blog/ray-2-0-and-beyond) — 2.x 架构演进
 - [Ownership in Ray](https://www.anyscale.com/blog/ownership-in-ray) — ownership 模型详解
 - [Ray Serve LLM Announcement](https://www.anyscale.com/blog/ray-serve-llm) — Serve LLM 定位
+- [Ray Data 2.56: Improving Reliability for AI Data Pipelines](https://www.anyscale.com/blog/ray-data-256-updates) — OOM 300+→0 的稳定性工程
+- [High Performance Distributed Inference with Ray Serve LLM](https://www.anyscale.com/blog/high-performance-distributed-inference-ray-serve-llm-vllm-google-kubernetes-gke) — direct token streaming + RayExecutorV2（2026-06）
+- [DP Group Fault Tolerance for vLLM WideEP with Ray Serve LLM](https://www.anyscale.com/blog/dp-group-fault-tolerance-vllm-wideep-ray-serve-llm) — MoE 推理容错（2026-04）
+- [Introducing KubeRay v1.6 and v1.7](https://www.anyscale.com/blog/kuberay-v1-7) — Recreate 升级策略、NetworkPolicy、mTLS（2026）
 - [Ray Data GA](https://www.anyscale.com/blog/ray-data-ga) — Data GA 2.10
 - [Ray Train GA](https://www.anyscale.com/blog/ray-train-ga) — Train GA 2.7
 
@@ -102,7 +106,7 @@
 
 ### 路径 B：从原理到源码（架构师）
 
-1. 精读 SOSP'18 Ray 论文 + NSDI'21 Ownership 论文。
+1. 精读 OSDI'18 Ray 论文 + NSDI'21 Ownership 论文。
 2. 阅读 `src/ray/core_worker/` 与 `src/ray/raylet/scheduling/` 关键类。
 3. 跟踪一个 task 从 `CoreWorker::SubmitTask` 到 worker 执行的完整调用链。
 4. 研究 object store spill/restore 在 `LocalObjectManager` 中的状态机。
@@ -141,7 +145,10 @@
 | Ray 2.7 | 2023-09 | Ray Train GA；KubeRay GA |
 | Ray 2.10 | 2024-03 | Ray Data GA |
 | Ray 2.51 | 2025-05 | Ray Train v2 默认开启 |
-| Ray 2.55 | 2026-06 | 最新稳定版（截至 2026-07） |
+| Ray 2.56 | 2026-06 | Ray Data 稳定性大改（OOM 300+→0 基准）；Serve LLM 请求/token 流解耦 |
+| Ray 2.57 | 2026-08 | 内嵌 RocksDB GCS 容错（免外部 Redis）；DataSourceV2 默认 |
+| Ray 2.58 | 2026-08 | Serve LLM KV-cache/token 感知路由；任务事件迁出 GCS；TPU 训练后端 |
+| Ray 2.59 | 2026-10 | Serve LLM / Data LLM GA；shuffle_v2；本地集群默认 token 鉴权 |
 
 > 当前稳定版本以 [Ray GitHub Releases](https://github.com/ray-project/ray/releases) 为准。
 
@@ -149,7 +156,7 @@
 
 ## 11.8 小结
 
-- **论文**：SOSP'18 + NSDI'21 是理解 Ray 设计演进的基石。
+- **论文**：OSDI'18 + NSDI'21 是理解 Ray 设计演进的基石。
 - **文档**：docs.ray.io 是最权威的 API 与配置来源。
 - **源码**：`core_worker`、`raylet/scheduling`、`object_manager/plasma` 是三大核心。
 - **相邻主题**：vLLM/TensorRT-LLM/KServe/K8s/Observability 与 Ray 形成生产栈。

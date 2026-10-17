@@ -160,6 +160,10 @@ ray/
 8. **新 `python/ray/llm/` 与 `serve/llm/`**：一等公民 LLM 服务构件（目录已核验，内部结构 [verify]）。
 9. **RLlib 新 API stack**：`/rllib/` 围绕 `RLModule`/`Learner`/`EnvRunner`/`ConnectorV2` 重组；**PyTorch-only（弃用 TF）**。
 10. **Cython → pybind11 迁移**（[#46512](https://github.com/ray-project/ray/issues/46512)）。
+11. **Hash shuffle v2（2.57–2.59）**：V1 的 aggregator actor 池被两个**无状态 task 算子** `ShuffleMapOp → ShuffleReduceOp` 取代，shard 经对象存储传递（中间结果可溢写）；2.59 再加外部磁盘 shuffle runtime（`shuffle_v2`）。
+12. **任务事件迁出 GCS（2.58）**：`RAY_enable_task_events_to_dashboard_head` 下任务事件改由 ray event recorder 导出到 head 的独立内存存储，State API/`ray.timeline` 从它读取（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)）。
+13. **Serve LLM 架构重构（2.56–2.58）**：请求处理与 token 流解耦；tokenization 下沉 `LLMRouter` ingress 副本；KV 生命周期事件带外广播——router/ingress 相关代码持续演化（[2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0)）。
+14. **大规模加固（2.59）**：移除 GCS 资源视图 reset 导致的 placement-group 重试风暴；worker-lease 协议加固；本地对象释放批量化（batched local object frees）（[2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0)）。
 
 ---
 

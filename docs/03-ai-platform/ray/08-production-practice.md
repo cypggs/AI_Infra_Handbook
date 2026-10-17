@@ -68,7 +68,7 @@ spec:
       spec:
         containers:
         - name: ray-head
-          image: rayproject/ray:2.55.1-py310
+          image: rayproject/ray:2.59.0-py310
           resources: {limits: {cpu: "8", memory: "32Gi"}}
   workerGroupSpecs:
   - replicas: 2
@@ -79,13 +79,13 @@ spec:
       spec:
         containers:
         - name: ray-worker
-          image: rayproject/ray:2.55.1-py310-gpu
+          image: rayproject/ray:2.59.0-py310-gpu
           resources: {limits: {cpu: "16", memory: "128Gi", nvidia.com/gpu: "1"}}
 ```
 
 - **RayJob**：把作业作为 CR 提交，支持 runtime env、失败重试。
-- **RayService**：Ray Serve 的声明式部署，支持滚动升级、多副本、流量切分。
-- **FT**：GCS FT 仅在 KubeRay + Redis 场景下被官方支持（Ray Serve 的故障转移）。
+- **RayService**：Ray Serve 的声明式部署，支持滚动升级、多副本、流量切分；KubeRay v1.7 起增量升级（beta）支持回滚。
+- **FT**：2.57 起 GCS 容错可改用**内嵌 RocksDB**（`RAY_gcs_storage=rocksdb`），不再需要外部 Redis；KubeRay v1.7 提供 alpha 支持（operator 自动供给 PVC）。旧的外接 Redis 路径官方仍仅支持 KubeRay + Ray Serve FT 场景。
 
 ---
 
@@ -178,8 +178,9 @@ class ModelReplica:
 ### 8.3.3 GCS 高可用
 
 - 默认 GCS 是**内存存储**（自 Ray 1.11）。
-- 可选 Redis 后端持久化，但官方**仅在 KubeRay + Ray Serve FT 场景下支持**。
-- 若把 actor/task metadata 大量依赖 GCS，Redis 会成为瓶颈；现代 Ray 已尽量把任务规格下放到 CoreWorker（ownership 模型）。
+- **首选（2.57+）**：内嵌 RocksDB 持久化（`RAY_gcs_storage=rocksdb` + `RAY_gcs_storage_path`），不再需要外部 Redis；KubeRay v1.7 alpha 支持自动供给 PVC。
+- 旧路径：外接 Redis 后端持久化，官方**仅在 KubeRay + Ray Serve FT 场景下支持**。
+- 若把 actor/task metadata 大量依赖 GCS，存储层会成为瓶颈；现代 Ray 已尽量把任务规格下放到 CoreWorker（所有权模型），2.58 起任务事件也可迁出 GCS 热路径。
 
 ---
 
@@ -225,14 +226,15 @@ ray_autoscaler_failed_create_nodes
 
 | 库 | 成熟版本 | 典型生产场景 | 注意 |
 |---|---|---|---|
-| Ray Core | 稳定 | 自定义分布式 Python、Actor 池 | 需自己处理容错与扩缩容 |
-| Ray Serve | 稳定 | 在线推理、模型服务 | 用 `RayService` + 多副本；注意 gRPC/HTTP 并发 |
-| Ray Serve LLM | 较新 | LLM serving（vLLM 后端） | 2024–2025 快速迭代；需紧跟版本 |
-| Ray Data | GA 2.10 | ETL、批量推理、数据集预处理 | 优先于手写 task 做大数据流 |
-| Ray Train | GA 2.7 | 分布式训练（PyTorch/TF/Horovod/XGBoost） | Ray Train v2 默认自 2.51 |
+| Ray Core | 稳定 | 自定义分布式 Python、Actor 池 | 需自己处理容错与扩缩容；**2.59 起本地集群默认 token 鉴权** |
+| Ray Serve | 稳定 | 在线推理、模型服务 | 用 `RayService` + 多副本；2.59 可用 `BackpressureConfig` 把过载响应从 503 改为 429 + `Retry-After` |
+| Ray Serve LLM | **GA（2.59）** | LLM serving（vLLM / SGLang 双后端） | KV-cache/token 感知路由（2.58）；WideEP/MoE 数据并行组容错 |
+| Ray Data | GA 2.10 | ETL、批量推理、数据集预处理 | 优先于手写 task 做大数据流；2.57 起 DataSourceV2 默认 |
+| Ray Train | GA 2.7 | 分布式训练（PyTorch/FSDP/DeepSpeed/XGBoost/TPU） | Ray Train v2 默认自 2.51；2.58 新增 TPU 后端 |
 | Ray Tune | 稳定 | 超参搜索 | 与 Train 配合；注意 checkpoint 存储 |
 | RLlib | 新 API stack | 强化学习 | 仅 PyTorch；旧 API 逐步弃用 |
 | Compiled Graph | beta | 静态 DAG 高性能执行 | API 仍在演进 |
+| Ray Sandbox | experimental（2.58） | 不可信代码的 task/actor 沙箱执行 | gVisor 隔离，可直接跑 Docker 镜像 |
 
 ### 8.5.1 Ray Serve 生产要点
 
@@ -247,14 +249,21 @@ class MyModel:
 ```
 
 - 使用 `RayService` CR 做声明式部署与滚动升级。
-- 长请求/流式响应用 `DeploymentHandle.options(stream=True)`。
-- 2.55 新增 queue-based autoscaling for async inference 与 gang scheduling across deployments。
+- 长请求/流式响应用 `DeploymentHandle.options(stream=True)`；LLM 场景直接上 Serve LLM（2.59 GA），拿 KV-cache/token 感知路由与 direct token streaming。
+- 2.54 新增 queue-based autoscaling（面向异步推理）；2.55 新增 gang scheduling across deployments；2.59 支持 `min_replicas=0` 的 gang-scheduled scale-to-zero。
 
 ### 8.5.2 Ray Train/Data 生产要点
 
 - 用 `ScalingConfig` 声明资源；`label_selector`（2.53+）可控制 worker 放置。
 - Checkpoint 写到共享存储（S3/GCS/Cloud Storage），不要用本地盘。
-- Ray Data 的 V2 autoscaler（`RAY_DATA_CLUSTER_AUTOSCALER=V2`）在 2.53 引入，生产建议开启。
+- Ray Data 的 V2 autoscaler（`RAY_DATA_CLUSTER_AUTOSCALER=V2`）在 2.53 引入、2.54 起新版集群 autoscaler 默认开启，生产无需再手动开关。
+- TPU 训练（2.58+）：用 TorchTPU 后端 + `SubslicePlacementGroup`，无需外部 gang-scheduling 胶水。
+
+### 8.5.3 安全基线（2.59）
+
+- **Token 鉴权默认开启（本地集群）**：`ray.init()` 自动生成/复用 `~/.ray/auth_token`；`ray start --head` 仅在 token 已存在时启用。**2.61 计划推广到所有集群**——远程集群运维应在升级前规划 token 分发；可用 `RAY_AUTH_MODE=disabled` 显式关闭（[2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0)）。
+- Dashboard 已对浏览器端接口**脱敏 `runtime_env`**（常含凭证）；`read_hudi` 增加反序列化防护（防 RCE）。
+- 不可信代码执行上 **Ray Sandbox（2.58，experimental）**：gVisor 隔离，可直接运行 Docker 构建的镜像。
 
 ---
 
@@ -303,8 +312,8 @@ class MyModel:
 
 排查：
 1. 减少把大对象/频繁状态写入 GCS（使用 object store 或外部存储）。
-2. 对 GCS 使用 Redis 后端（仅 KubeRay Serve FT 官方支持）。
-3. 升级到新版 Ray（ownership 模型持续减少 GCS 负载）。
+2. 对 GCS 启用持久化：2.57+ 用内嵌 RocksDB；旧集群外接 Redis（仅 KubeRay Serve FT 官方支持）。
+3. 升级到新版 Ray（ownership 模型 + 2.58 任务事件迁出持续减少 GCS 负载）。
 
 ---
 
@@ -325,7 +334,7 @@ class MyModel:
 
 - **部署**：本地 → VM 集群 → KubeRay；生产首选 KubeRay。
 - **资源**：显式声明 actor/task 资源；监控 object store；大数据用 Ray Data。
-- **容错**：task 默认 3 次重试；actor 默认不重启；GCS FT 仅限 KubeRay Serve。
+- **容错**：task 默认 3 次重试；actor 默认不重启；GCS FT 首选内嵌 RocksDB（2.57+），旧 Redis 路径仅限 KubeRay Serve。
 - **可观测**：Dashboard + Prometheus/Grafana + OpenTelemetry。
 - **库选择**：Serve 做在线、Data 做批量、Train 做训练、Tune 做搜索。
 - **踩坑**：OOM、调度碎片、actor 死锁、runtime_env、GCS 瓶颈。

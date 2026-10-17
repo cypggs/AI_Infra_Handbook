@@ -156,7 +156,19 @@ owner 的本地 raylet A  →  (A 拒绝本地放行，返回一个更合适的�
 | **Kubernetes Jobs** | 容器编排 | **无 ML 语义**：无共享对象存储、无任务图、无 actor 生命周期。KubeRay 把 Ray 跑在 K8s 上 |
 | **Modal** | 无服务器 Python（专有云） | 不同抽象（云上函数），厂商锁定；无开源集群运行时 |
 
-Ray 的独特赌注：**一个底座跑训练 + 服务 + 数据 + RL，全部是普通 Python**。
+### 2025–2026 新边界：Agent 编排层的"挤压"与 Ray 的应对
+
+随着 Agent 工作流兴起，**LangGraph**（Agent 图编排 + HITL）、**Temporal**（持久化工作流执行）、**Modal**（serverless GPU）常被拿来与 Ray 比较。但业界 2026 年的共识是：**它们与 Ray 处在不同抽象层，更多是互补/堆叠关系而非替代**——典型组合是 LangGraph 负责 Agent 推理与工具路由、Temporal 负责跨小时/天的耐久编排、Ray 负责底层大规模训练/推理/数据计算（[GMI Cloud 2026 对比](https://www.gmicloud.ai/en/blog/modal-vs-langgraph-vs-temporal-2026)、[LangChain 官方对比](https://www.langchain.com/resources/langgraph-vs-temporal)）。
+
+| 系统 | 抽象层 | 与 Ray 的关系 |
+|---|---|---|
+| **LangGraph** | Agent 推理/工具调用图 | Agent 编排层；重计算（批量 rollout、训练、批量推理）下沉到 Ray。Ray 是多 Agent/RL 底座（见 [verl/OpenRLHF](https://docs.ray.io/en/latest/cluster/kubernetes/examples/verl-rlhf-kuberay.html)） |
+| **Temporal** | 持久化工作流（durable execution） | 业务流程/长事务编排；payload 约 2MB 限制不适合大对象——正好是 Ray 对象存储的场景 |
+| **Modal** | serverless 函数 + 托管 GPU | 与 Ray Serve/Anyscale 在"免运维 GPU 计算"上有竞争；但 Modal 是闭源专有云，无开源集群运行时 |
+
+> **Ray 的应对（2025–2026）**：① 加入 PyTorch Foundation，与 vLLM 绑定为"AI 计算栈"事实底座；② Ray Serve LLM 2.59 GA + SGLang 双引擎，正面占领 LLM serving；③ 2.58 推出 gVisor 沙箱（experimental）吸收"不可信 Agent 代码执行"的新需求；④ Ray Workflows 弃用后，长任务 DAG 场景由 Compiled Graph + 外部编排器承接。
+
+Ray 的独特赌注不变：**一个底座跑训练 + 服务 + 数据 + RL，全部是普通 Python**。
 
 ---
 

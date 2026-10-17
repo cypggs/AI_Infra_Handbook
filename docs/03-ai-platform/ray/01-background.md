@@ -56,7 +56,7 @@ Ray 的奠基论文是 **OSDI 2018**（**注意：不是 SOSP'18**——OSDI 与
 
 论文实测（原文）：*"sub-millisecond remote task latencies and linear throughput scaling beyond 1.8 million tasks per second."*（[USENIX PDF](https://www.usenix.org/system/files/osdi18-moritz.pdf)）。
 
-### 演进时间线
+### 演进时间线（2017–2026）
 
 | 库/事件 | 引入 | GA/稳定 | 出处 |
 |---|---|---|---|
@@ -71,13 +71,26 @@ Ray 的奠基论文是 **OSDI 2018**（**注意：不是 SOSP'18**——OSDI 与
 | **Ray AIR**（统一运行时层） | 2.0 beta | **从未 GA，2023-09 随 2.7 下线**，概念并入各库 | 同上 |
 | **Redis 解除默认依赖** | **1.11** | — | [Redis in Ray](https://www.anyscale.com/blog/redis-in-ray-past-and-future) |
 | **Compiled Graph（编译图）** | 2.32 可用 | **2.44 beta** | [Announcing Compiled Graphs](https://www.anyscale.com/blog/announcing-compiled-graphs) |
+| **GCS 容错不再需要外部 Redis**（内嵌 RocksDB，REP-64） | **2.57（2026-08）** | 稳定可用 | [Ray 2.57.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.57.0) |
+| **Ray Serve LLM / Ray Data LLM** | 2.44 一等公民集成 | **2.59（2026-10）GA** | [Ray 2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0) |
+| **本地集群默认 Token 鉴权** | **2.59（2026-10）** | 2.61 计划推广到所有集群 | [Ray 2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0) |
 | **加入 PyTorch Foundation** | — | **2025-10-22** | [Anyscale blog](https://www.anyscale.com/blog/ray-by-anyscale-joins-pytorch-foundation) |
 
-### 当前版本
+### 当前版本（截至 2026-10-17）
 
-Ray 2.x 维持**每周发布**节奏。截至 2026-07，活跃系列在 **2.5x** 区间（文档跟踪 2.55.1；**2.53.0 于 2025-12-20 发布**）。具体最新 patch 请查 [releases](https://github.com/ray-project/ray/releases)。
+Ray 2.x 维持**高频发布**节奏（2026 年约每月一个 minor）。活跃系列在 **2.5x** 区间，最新稳定版为 **Ray 2.59.0（2026-10-02 发布）**。2026 年的关键节点：
 
-> **Ray 3.0**：目前**无公开 RFC 或发布**。Compiled Graph 是最"3.0 形态"的工作，但仍属 2.x beta。任何"Ray 3.0"说法在核验前都应视为未确认。
+| 版本 | 发布 | 关键变化 | 出处 |
+|---|---|---|---|
+| **2.53.0** | 2025-12-20 | `label_selector` 调度、`ExecutionCache` | [releases](https://github.com/ray-project/ray/releases) |
+| **2.54.0** | 2026-02-18 | 新版集群 autoscaler 默认开启；Ray Data checkpointing | 同上 |
+| **2.55.0** | 2026-04-15 | DataSourceV2、GPU shuffle（rapidsmpf）、Serve gRPC 双向流、HAProxy 服务化 | 同上 |
+| **2.56.0** | 2026-06-29 | Ray Data 稳定性（多 dataset 共存、OOM 大降、`batch_size="auto"`）；Serve LLM 请求处理与 token 流解耦 | [Anyscale 博客](https://www.anyscale.com/blog/ray-data-256-updates) |
+| **2.57.0** | 2026-08-11 | **内嵌 RocksDB GCS 容错**（不再需要外部 Redis）；DataSourceV2 默认；task 级 hash shuffle v2 | [2.57.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.57.0) |
+| **2.58.0** | 2026-08-23 | Serve LLM KV-cache/token 感知路由完成；任务事件迁出 GCS；TPU 训练后端（TorchTPU）；gVisor 沙箱（experimental） | [2.58.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.58.0) |
+| **2.59.0** | 2026-10-02 | **Serve LLM / Data LLM GA**；外部磁盘 shuffle_v2；本地集群默认 token 鉴权；ORC 读取 | [2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0) |
+
+> **Ray 3.0**：截至 2026-10 仍**无公开 RFC 或发布计划**。Compiled Graph 是最"3.0 形态"的工作，但仍属 2.x beta。任何"Ray 3.0"说法在核验前都应视为未确认。
 
 ---
 
@@ -116,7 +129,7 @@ Anyscale（2019 成立，创立者 **Ion Stoica / Robert Nishihara / Philipp Mor
 
 1. **统一底座**：数据预处理（Ray Data）+ 分布式训练（Ray Train）+ 超参（Tune）+ RL（RLlib）+ 在线服务（Serve）跑在**同一集群运行时**，省去 Spark+Kubeflow+TorchServe+Airflow 的胶水代码。([Ray 2.0 blog](https://www.anyscale.com/blog/announcing-ray-2-0))
 2. **RLHF/前沿实验室底座**：Ray 的 task/actor/object 模型与 RLHF 循环几乎一一对应——rollout worker（actor）产经验、trainer 更新策略、Serve 部署奖励/回复模型，全部内存共享。Ray 被反复引用为 ChatGPT 时代训练/服务栈的一部分（[The New Stack](https://thenewstack.io/how-ray-a-distributed-ai-framework-helps-power-chatgpt/)）。**注意**：任何前沿实验室内部"Ray 具体跑多少 GPU"的数字，都缺乏一手工程博客佐证，本主题只引用间接关联。
-3. **LLM 服务的事实栈**：**Ray Serve + vLLM** 已是开源 LLM 服务的标准组合，Ray 2.44 起一等公民集成 vLLM，vLLM 也进入 PyTorch Foundation 与 Ray 并列。
+3. **LLM 服务的事实栈**：**Ray Serve + vLLM** 已是开源 LLM 服务的标准组合，Ray 2.44 起一等公民集成 vLLM，vLLM 也进入 PyTorch Foundation 与 Ray 并列。**2026-10 的 Ray 2.59 将 Ray Serve LLM / Data LLM 正式 GA**，并升级为引擎无关架构——除 vLLM 外官方支持 **SGLang** 后端，同时补齐 KV-cache/token 感知路由、prefill/decode 分离、数据并行组容错等生产特性（[2.59.0 release](https://github.com/ray-project/ray/releases/tag/ray-2.59.0)）。
 4. **真实规模背书**：Ant Group 用 Ray 跑 24 万核 / 双 11 峰值 1.37M TPS（[Anyscale 案例](https://www.anyscale.com/blog/how-ant-group-uses-ray-to-build-a-large-scale-online-serverless-platform)）；Coinbase 15× 同成本、50× 数据量（[Coinbase 案例](https://www.anyscale.com/resources/case-study/coinbase-ml-infrastructure)）。详见 [第 8 章](08-production-practice)。
 
 ---
