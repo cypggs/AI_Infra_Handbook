@@ -20,16 +20,21 @@ Anthropic 成立于 2021 年，由前 OpenAI 研究副总裁 Dario Amodei（CEO�
 | 2026-04 | Claude Managed Agents public beta；Amazon 扩大合作 | 托管智能体基础设施（沙箱/OAuth/checkpoint）；AWS 合作扩至 $100B/10 年、最高 5GW、追加投资最高 $25B。 |
 | 2026-05 | Code with Claude 大会 | Managed Agents 三项能力（Dreaming / Outcomes / 多智能体编排）；Colossus 1 独家算力；Claude Code 限流翻倍。 |
 | 2026-06 | Fable 5 / Mythos 5 发布；《When AI Builds Itself》 | Mythos 级模型经安全分类器改造后以 Fable 5 公开上线，去分类器的受限版为 Mythos 5（Project Glasswing）；公开预警递归自我改进（RSI）。 |
-| 2026-07 ~ 08 | Opus 5；Risk Report（RSP v3.4） | CB-1/CB-2 阈值术语取代 ASL-2/3 命名；披露模型已"接近 CB-2 边界"。 |
-| 2026-09 ~ 10 | Fable 5.1 / Opus 5.5 / Sonnet 5.5 / Haiku 5.5 | 5.5 全家桶补齐；缓存读价格按模型分档下调（最低 0.025x）。 |
+| 2026-07 ~ 08 | Opus 5；RSP v3.4 生效（7-08）与 Risk Report（8-14，覆盖至 7-15） | CB-1/CB-2 阈值术语取代 ASL-2/3 命名；披露模型已"接近 CB-2 边界"。 |
+| 2026-09-01 | Fable 5.1 / Mythos 5.1 | 缓存读降价 75%（降至 base 的 0.025x）；网络/生物防护触发率较前代降约 60%；Terminal-Bench 4.0 从 42.0% → 55.8%。 |
+| 2026-09-22 | Claude Opus 5.5 | 多数任务达到 Fable 5.1 水平、成本低 40%——旗舰能力下放的定价策略。 |
+| 2026-09-23 | Claude 发现带 CRISPR 样重复序列的新型酶系统（发表于 Science） | AI for Science 标志性成果；支撑后续 Genesis Mission 等科学算力承诺。 |
+| 2026-09-28 | Claude Sonnet 5.5 | 提速 30%、成本最高降 30%；缓存读从 $0.20 降至 $0.10 /MTok（典型 agentic 负载成本约 -20%）。 |
+| 2026-10-07 | Claude Haiku 5.5 | 最快最省的小模型，首个可调 effort 的 Haiku；按 prompt 长度双档计价（≤100k / >100k），较 Haiku 4.5 平均低约 75%（≤100k 档低 90%）。 |
+| 2026-10 | Cyber Mission / Genesis Mission / 独立评估者 | 发布 Cyber Mission（关键基础设施防御 CIDP + 开源扫描 OSS Scanner，Glasswing 并入扩展版 Cyber Verification Program）；承诺 $150M/3 年支持 Genesis Mission（NASA/NIH/NSF 等 15+ 联邦机构）；启动独立评估者计划（METR 获"近似员工级"访问权）；$100M Frontier Academy 培养 1 万名工程师。 |
 
 ## Claude 模型矩阵
 
 Anthropic 用三档命名（Haiku / Sonnet / Opus，对应"小快省 / 平衡 / 最强"）覆盖不同延迟与成本区间，并持续迭代：
 
-- **Haiku**：低延迟、低成本，适合高并发、边缘与分类场景（当前 Haiku 5.5，2026-10 发布，号称比 Haiku 4.5 运行成本低约 75%）。
-- **Sonnet**：能力与成本平衡，主力生产模型（当前 Sonnet 5.5，2026-09 发布）。
-- **Opus**：最强通用能力，适合复杂推理、长程智能体（当前 Opus 5.5，2026-09 发布）。
+- **Haiku**：低延迟、低成本，适合高并发、边缘与分类场景（当前 Haiku 5.5，2026-10-07 发布，号称比 Haiku 4.5 运行成本低约 75%——≤100k token 请求低 90%、>100k 低 50%；并按 prompt 长度分 ≤100k / >100k 两档计价）。
+- **Sonnet**：能力与成本平衡，主力生产模型（当前 Sonnet 5.5，2026-09-28 发布，提速 30%、成本最高降 30%）。
+- **Opus**：最强通用能力，适合复杂推理、长程智能体（当前 Opus 5.5，2026-09-22 发布——官方定位为"多数任务达到 Fable 5.1 水平、成本低 40%"，旗舰能力加速下放）。
 - **Fable / Mythos**：前沿研究档（当前 Fable 5.1 / Mythos 5.1，2026-09 发布），属于"Mythos 级"模型——Fable 在 API 上默认开启安全分类器，Mythos 经审查的定向用户（防御性网络安全 Project Glasswing 等）使用去分类器版本。该档伴随更严格的红队、30 天数据保留与治理流程。
 
 不同档位直接决定了基础设施的部署形态：Haiku 偏吞吐与成本，Opus 偏显存与算力。
@@ -64,6 +69,7 @@ Anthropic 用三档命名（Haiku / Sonnet / Opus，对应"小快省 / 平衡 / 
 - **可解释性开源贡献**：transformer-circuits、dictionary learning 公开了大量可读的研究代码与可复现实验。
 - **推理工程的差异化**：prompt caching 的 prefix-hash + 20-block lookback 模型，是学习 KV/prefix cache 工程化的活教材；2026 年起缓存读倍率按模型分档下调（5.5 系列 0.05x、Fable/Mythos 5.1 0.025x），把成本优化持续产品化。
 - **智能体基础设施的 dogfooding 范本**：Claude 已编写 Anthropic 80%+ 的合并代码（2026-05 数据），Managed Agents / Agent SDK / Claude Code 的"自用即产品"路径值得每个平台团队研究。
+- **AI for Science 与政府市场**：2026-09 Claude 在 Science 发表新型酶系统发现；10 月承诺 $150M/3 年支持 Genesis Mission（15+ 联邦机构），科学计算与政府合规市场成为继企业 API、Claude Code、消费订阅之后的第四条增长线。
 - **与 OpenAI 的对照价值**：同样信仰规模化，却走出了"对齐与安全驱动"的独立路线。
 
 ## 小结

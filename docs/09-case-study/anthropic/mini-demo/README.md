@@ -2,7 +2,7 @@
 
 A tiny demo reproducing two of Anthropic's most distinctive engineering ideas:
 
-1. **Prompt caching** — a faithful model of Claude's prefix-cache semantics: writes happen only at breakpoints, reads look backward up to 20 blocks, 5-minute / 1-hour TTL, workspace isolation, and cost accounting with the official pricing multipliers (read 0.1x, 5m write 1.25x, 1h write 2x).
+1. **Prompt caching** — a faithful model of Claude's prefix-cache semantics: writes happen only at breakpoints, reads look backward up to 20 blocks, 5-minute / 1-hour TTL, workspace isolation, and cost accounting with the official pricing multipliers (read 0.1x, 5m write 1.25x, 1h write 2x). Since 2026-09/10 the cache-read rate is tiered by model (0.05x on the 5.5 series, 0.025x on Fable/Mythos 5.1); `read_mult_for(model)` reproduces the tiers and falls back to 0.1x for unknown models.
 2. **Constitutional critique-revise** — a deterministic, rule-based version of the Constitutional AI supervised-learning phase (critique then revise against a small constitution).
 
 It exposes an Anthropic-style `/v1/messages` endpoint using `x-api-key` auth and returning `usage` with `cache_read_input_tokens` / `cache_creation_input_tokens`.

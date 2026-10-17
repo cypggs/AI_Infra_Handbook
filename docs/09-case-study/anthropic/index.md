@@ -17,7 +17,7 @@ Anthropic 是当代最独特的 AI 实验室之一——它由一群同样坚信
 - 理解 Anthropic 的可解释性路线（induction heads → dictionary learning / 稀疏自编码器 → Circuit Tracing → 自然语言自编码器 NLA）及其工程意义。
 - 掌握 Claude 推理工程的关键优化：prompt caching（prefix hash + 20-block lookback、5m/1h TTL、pre-warm，2026 起缓存读倍率按模型分档下调）、extended thinking、Batch API、computer use。
 - 了解 2026 年的新主线：Mythos 级前沿模型（Fable 5.1 / Mythos 5.1）与 Project Glasswing、Claude Managed Agents 智能体基础设施、以及《When AI Builds Itself》对递归自我改进（RSI）的公开预警。
-- 用 Responsible Scaling Policy（RSP v3 → v3.4，CB-1/CB-2 阈值 + ASL-3 防护）框架，理解前沿 AI 风险治理如何落地为可审计的工程承诺。
+- 用 Responsible Scaling Policy（RSP v3 → v3.4，CB-1/CB-2 阈值 + ASL-3 防护）框架，理解前沿 AI 风险治理如何落地为可审计的工程承诺——包括 2026-10 启动的独立评估者计划（METR 获"近似员工级"访问权）这类第三方监督机制。
 
 ## 与相邻主题的关系
 

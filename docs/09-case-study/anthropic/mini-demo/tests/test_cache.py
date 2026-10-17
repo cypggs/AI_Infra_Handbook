@@ -167,6 +167,26 @@ def test_cost_multipliers() -> None:
     assert cost(usage, base_per_mtok=1.0) == pytest.approx(0.00435)
 
 
+def test_read_multiplier_default_without_model() -> None:
+    usage = Usage(cache_read_input_tokens=1000)
+    assert cost(usage, base_per_mtok=1.0) == pytest.approx(0.0001)  # 0.1x
+
+
+def test_read_multiplier_tiered_by_model() -> None:
+    """2026-09/10: cache-read rates are tiered by model."""
+    usage = Usage(cache_read_input_tokens=1000)
+    # 5.5 系列 -> 0.05x
+    assert cost(usage, base_per_mtok=1.0, model="claude-opus-5-5") == pytest.approx(0.00005)
+    assert cost(usage, base_per_mtok=1.0, model="claude-sonnet-5-5") == pytest.approx(0.00005)
+    # Fable / Mythos 5.1 -> 0.025x
+    assert cost(usage, base_per_mtok=1.0, model="claude-fable-5-1") == pytest.approx(0.000025)
+    assert cost(usage, base_per_mtok=1.0, model="claude-mythos-5-1") == pytest.approx(0.000025)
+    # Haiku 5.5：基础价低一个数量级，缓存读仍为 0.1x
+    assert cost(usage, base_per_mtok=1.0, model="claude-haiku-5-5") == pytest.approx(0.0001)
+    # 未知 / 旧型号回落默认档
+    assert cost(usage, base_per_mtok=1.0, model="claude-haiku-mini") == pytest.approx(0.0001)
+
+
 def test_total_input_accounting() -> None:
     cache = PromptCache(clock=FakeClock())
     blocks = [tok("system", 100, {"type": "ephemeral"}), tok("message", 30)]

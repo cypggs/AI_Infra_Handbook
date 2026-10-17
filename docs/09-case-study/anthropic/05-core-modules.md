@@ -60,7 +60,7 @@ Anthropic 的基础设施由若干核心模块组成。与 OpenAI 类似，它�
   - 5m / 1h 双 TTL（TTL 自请求开始计时）；
   - workspace 级隔离（Claude API / Claude Platform on AWS / Foundry）或 org 级（Bedrock / Google Cloud）；
   - pre-warm（`max_tokens=0`，2026 起为官方正式用法）；
-  - 按模型分档的最小可缓存长度（512–4096 token）与缓存读倍率（0.1x / 0.05x / 0.025x）；
+  - 按模型分档的最小可缓存长度（512–4096 token）与缓存读倍率（0.1x / 0.05x / 0.025x；Haiku 5.5 为 0.1x + ≤100k/>100k 双档计价）；
   - 新型号支持 mid-conversation system 消息与 `inline-tools-2026-09-15` 中途改工具而不破坏缓存。
 - **Extended Thinking**：thinking budget、thinking block 保留与缓存复用。
 - **Computer / Tool Use**：工具执行、沙箱、权限、多步循环。
@@ -78,11 +78,12 @@ Anthropic 的基础设施由若干核心模块组成。与 OpenAI 类似，它�
 
 - **Capability Eval Pipeline**：CBRN、网络、说服、自主性等前沿能力评估；RSP v3.4 起用 CB-1/CB-2 阈值（功能替代稀缺专家）与"AI 研发自动化"阈值（AI 可归因的进步速度翻倍）表述。
 - **治理演进**：RSP v3.0（2026-02）拆分公司承诺、行业建议（Frontier Safety Roadmap）与定期 Risk Report；2026-08 Risk Report 披露当前模型接近 CB-2 边界。
-- **Classifier 服务**：输入/输出分类器，阻断 CBRN 相关有害内容；Fable 5 系列在 API 入口内置分类器，把可疑请求（网络/生化/蒸馏）路由到 Opus 4.8 处理（<5% 会话），Mythos 5 则为经审查用户关闭对应分类器（Project Glasswing）。
+- **Classifier 服务**：输入/输出分类器，阻断 CBRN 相关有害内容；Fable 5 系列在 API 入口内置分类器，把可疑请求（网络/生化/蒸馏）路由到 Opus 4.8 处理（<5% 会话），Mythos 5 则为经审查用户关闭对应分类器（Project Glasswing）。2026-10 Glasswing 并入扩展版 **Cyber Verification Program**，并升级为 **Anthropic Cyber Mission**：关键基础设施防御计划（CIDP，与 Accenture、CrowdStrike、Dragos、Palo Alto Networks 等合作保护电网/水务/交通等 OT 系统）+ 开源软件扫描服务（类 OSS-Fuzz，免费为开源项目定期扫描漏洞，报告含 PoC 与修复建议）。
 - **运行时监控（新）**：自然语言自编码器（NLA）把模型内部激活翻译成可读文本，用于监听推理模型的内部独白，作为欺骗/作弊行为的检测信号。
 - **Red Team Platform**：自动化 + 人工红队，多语言、多模态；Fable 5 分类器经外部漏洞赏金测试（1000+ 小时未发现通用越狱）。
 - **Weight Security**：参考 RAND SL 等级的模型权重保护。
-- **Risk Report / 第三方审查**：每 3–6 个月发布的能力-威胁-缓解-残余风险报告。
+- **独立评估者（2026-10）**：三层访问机制——从"批准后方可发表"到 METR"近似员工级"内部访问（6 人，可独立发表、无否决权）；SecureBio 审查 Risk Report 化生放章节；Accenture / Faculty 承担红队、对齐评估与防护测试。
+- **Risk Report / 第三方审查**：每 3–6 个月发布的能力-威胁-缓解-残余风险报告；最新为 2026-08-14 版（RSP v3.4，覆盖至 7-15），披露模型"接近 CB-2 边界"。
 
 ## 10. 产品与多云分发
 

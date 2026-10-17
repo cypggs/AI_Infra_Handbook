@@ -109,7 +109,7 @@ Anthropic 推理最具辨识度的工程：
 - **断点机制**：自动缓存（顶层 `cache_control`，自动落在最后一个可缓存块）或显式断点（在单个 block 上标 `cache_control`，最多 4 个；自动缓存与显式断点混用时也占一个名额）。
 - **命中判定**：在断点处计算 prefix hash，向前回看最多 **20 个 block**（连续的 tool_use / tool_result 块计为一个位置），寻找之前写过的匹配条目。
 - **TTL**：默认 5 分钟，可选 1 小时（成本为 base input 的 2 倍）；TTL 从请求**开始**计时，流式传输时间也占用窗口。
-- **成本（2026-10 官方价）**：5m 写入 = base ×1.25；1h 写入 = base ×2；读 = base ×0.1（Opus 5.5 / Sonnet 5.5 为 ×0.05，Fable 5.1 / Mythos 5.1 为 ×0.025）。
+- **成本（2026-10 官方价）**：5m 写入 = base ×1.25；1h 写入 = base ×2；读 = base ×0.1（Opus 5.5 / Sonnet 5.5 为 ×0.05，Fable 5.1 / Mythos 5.1 为 ×0.025；Haiku 5.5 基础价低约一个数量级，读仍为 ×0.1，但按 ≤100k / >100k prompt 双档计价）。
 - **最小可缓存长度**：按模型分档（512 / 1024 / 2048 / 4096 token），低于阈值静默不缓存、不报错。
 - **隔离**：Claude API / Claude Platform on AWS / Microsoft Foundry 为 **workspace 级**；Bedrock / Google Cloud 为 org 级。
 - **预热**：用 `max_tokens=0` 提前写入 system/tools 缓存，消除首次 TTFT 惩罚（2026 起为官方正式用法，替代旧的 `max_tokens=1` 技巧）。

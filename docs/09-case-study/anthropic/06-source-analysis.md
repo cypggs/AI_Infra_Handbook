@@ -103,7 +103,7 @@ def process(blocks, breakpoint_idx, cache, ttl):
 |---|---|---|
 | 可解释性 | transformer-circuits.pub 系列论文与代码、circuit-tracer、Neuronpedia、NLA 预训练权重 | 学习 SAE / circuit tracing / 内部独白监控 |
 | 对齐 | Constitutional AI 论文 | 复现 RLAIF 思路 |
-| 治理 | RSP v3.x、Frontier Safety Roadmap、Risk Reports（含 2026-08 CB-1/CB-2 版） | 设计企业级安全发布门禁 |
+| 治理 | RSP v3.x、Frontier Safety Roadmap、Risk Reports（含 2026-08 CB-1/CB-2 版）、独立评估者计划（2026-10） | 设计企业级安全发布门禁与第三方监督机制 |
 | API | Claude Platform Docs | prompt caching、extended thinking、tool/computer use、Managed Agents |
 | 生态 | Anthropic SDK（Python/TS）、Cookbook、Skills、MCP 官方实现 | 集成与扩展 |
 | 协议 | MCP 2026-07-28 规范（Linux 基金会 AAIF 治理） | 工具/资源协议标准（详见 [MCP 详解](/05-agent/mcp/)） |

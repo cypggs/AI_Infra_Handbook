@@ -12,6 +12,10 @@
 - [Claude's Constitution](https://www.anthropic.com/news/claudes-constitution) — 宪法原则来源与设计。
 - [Anthropic and Amazon expand collaboration (up to 5 GW)](https://www.anthropic.com/news/anthropic-amazon-compute) — Project Rainier、>100 万 Trainium2、$100B/10 年（2026-04 扩大合作）。
 - [Claude Fable 5 & Mythos 5](https://www.anthropic.com/news/claude-fable-5-mythos-5) 与 [Fable 5.1 / Mythos 5.1 System Card](https://www.anthropic.com/claude-fable-5-1-mythos-5-1-system-card) — Mythos 级模型、分类器路由与 Project Glasswing。
+- [Introducing Claude Opus 5.5（2026-09-22）](https://www.anthropic.com/claude-opus-5-5) — 多数任务达 Fable 5.1 水平、成本低 40%。
+- [Introducing Claude Sonnet 5.5（2026-09-28）](https://www.anthropic.com/news/claude-sonnet-5-5) 与 [Introducing Claude Haiku 5.5（2026-10-07）](https://www.anthropic.com/news/claude-haiku-5-5) — 5.5 系列：提速 30%、缓存读 $0.20→$0.10；Haiku 5.5 双档计价、较 4.5 平均低约 75%。
+- [Claude discovers a novel enzyme system with CRISPR-like repeats（2026-09-23，Science）](https://www.anthropic.com/news/claude-discovers-novel-enzyme-system) — AI for Science 标志性成果。
+- [Building on our commitment to American scientific discovery（2026-10-08）](https://www.anthropic.com/news/genesis-mission-commitment) — $150M/3 年 Genesis Mission 承诺（NASA/NIH/NSF 等 15+ 联邦机构）。
 - [When AI Builds Itself（Anthropic Institute）](https://www.anthropic.com/institute/recursive-self-improvement) — RSI 预警：80%+ 代码由 Claude 编写、任务时程 4 分钟 → 12 小时。
 - [How Anthropic Teams Use Claude Code（报告 PDF）](https://www-cdn.anthropic.com/58284b19e702b49db9302d5b6f135ad8871e7658.pdf) — 内部团队 dogfooding 实践（CLAUDE.md、checkpoint 提交等）。
 
@@ -43,6 +47,8 @@
 ## 工程分析
 
 - [Anthropic — Frontier Safety Roadmap / Risk Reports](https://www.anthropic.com/) — 治理 roadmap 与定期风险报告。
+- [An update on independent evaluators（2026-10-15）](https://www.anthropic.com/news/an-update-on-independent-evaluators) — METR 近似员工级访问等三层第三方评估机制。
+- [Introducing the Anthropic Cyber Mission（2026-10-08）](https://www.anthropic.com/news/anthropic-cyber-mission) — CIDP / OSS Scanner，Glasswing 并入扩展版 Cyber Verification Program。
 - [RAND — Securing AI Model Weights](https://www.rand.org/) — 模型权重安全等级（SL5 等）参考。
 - [California SB 53 / NY RAISE Act / EU AI Act Codes of Practice](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai) — 与 RSP 对齐的监管框架。
 

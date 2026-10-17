@@ -97,7 +97,7 @@ Anthropic 的算力层是整个案例中最具特色的部分——它主动选�
 
 - **Project Rainier**：与 AWS 合作的专用超算集群，目前使用 **>100 万 Trainium2 芯片**，是"世界上最大的计算集群之一"。
 - **规模承诺**（2026-04 官方扩大合作）：未来 10 年向 AWS 投入超 **$100B**，最高 **5GW** 电力，覆盖 Trainium2 → Trainium3 → Trainium4，以及 Graviton CPU；Amazon 同时追加投资（$5B 立即 + 最高 $20B 里程碑对赌）。
-- **节奏**：Trainium2 容量 2026 Q2 大规模上线，Trainium3（re:Invent 2025 发布，约 2x Trainium2 算力、144GB HBM3e）于 2026 年内放量；到 2026 年底 Trainium2 + Trainium3 合计接近 1GW。
+- **节奏**：Trainium2 容量 2026 Q2 大规模上线，Trainium3（re:Invent 2025 发布，AWS 首款 3nm 训练芯片，2.52 PFLOPS FP8、144GB HBM3e，约 2x Trainium2 算力）于 2026 年内放量；到 2026 年底 Trainium2 + Trainium3 合计接近 1GW。
 - **软件栈**：AWS Neuron SDK（编译、运行时、分布式训练），与 PyTorch 集成。
 
 ### NVIDIA GPU 补充（Colossus）
@@ -146,6 +146,7 @@ Anthropic 的算力层是整个案例中最具特色的部分——它主动选�
 - **阈值判定**：RSP v3.4（2026-08）起以 **CB-1 / CB-2** 能力阈值表述生物风险等级（取代早期 ASL-2/3 命名），并含"AI 研发自动化"阈值（AI 可归因的能力进步速度翻倍）；当前模型被评估为已达 CB-1、接近 CB-2 边界。
 - **防护执行**：达阈模型对应输入/输出分类器、加强的权重安全等；低阶为常规 moderation。Fable 5 系列还在 API 入口内置分类器，把可疑请求路由到 Opus 4.8 处理。
 - **Risk Reports**：每 3–6 个月发布，含能力、威胁模型、缓解措施与残余风险，必要时由第三方专家审查。
+- **独立评估者（2026-10 新增）**：在 Risk Report 审查之上，给第三方评估机构分三层开放访问——METR 获"近似员工级"内部访问（可独立发表、无否决权），SecureBio 审查化生放章节，Accenture / Faculty 参与红队与防护测试。治理层从"自证 + 报告"演进为"嵌入式第三方监督"。
 
 > 详见 [核心模块](05-core-modules) 与 [企业生产实践](08-production-practice)。
 

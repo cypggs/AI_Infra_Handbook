@@ -6,7 +6,7 @@
 
 一个名为 `anthropic-mini` 的包提供：
 
-1. **Prompt Cache 模拟器**（`cache.py`）：忠实复现 Claude 官方的缓存命中模型——缓存只在断点写入、读取向前回看 20 个 block、5m/1h 双 TTL、workspace 级隔离，并按官方定价倍率（读 0.1x / 5m 写 1.25x / 1h 写 2x）计算成本。注：2026-09 起官方对 5.5 系列（读 0.05x）与 Fable/Mythos 5.1（读 0.025x）下调了缓存读倍率，模拟器仍取默认 0.1x 作为基线。
+1. **Prompt Cache 模拟器**（`cache.py`）：忠实复现 Claude 官方的缓存命中模型——缓存只在断点写入、读取向前回看 20 个 block、5m/1h 双 TTL、workspace 级隔离，并按官方定价倍率（读 0.1x / 5m 写 1.25x / 1h 写 2x）计算成本。2026-09/10 起官方按模型分档缓存读倍率，模拟器通过 `read_mult_for(model)` 复现：5.5 系列 0.05x、Fable/Mythos 5.1 0.025x、Haiku 5.5 与其余型号 0.1x（未知型号回落默认档）。
 2. **Constitutional critique-revise**（`constitution.py`）：给定一组宪法原则，对模型回答做 critique 并 revise（确定性、规则化，无需 LLM key）。
 3. **Anthropic 风格 `/v1/messages` 端点**（`server.py`）：FastAPI 服务，用 `x-api-key` 认证，支持顶层 `cache_control`（自动缓存）与 block 级断点，返回带 `cache_creation_input_tokens` / `cache_read_input_tokens` 的 `usage`。
 
@@ -128,13 +128,20 @@ def revise(response: str) -> str:
     return response
 ```
 
-### 3. 成本计算（官方倍率）
+### 3. 成本计算（官方倍率 + 2026 分档）
 
 ```python
-def cost(usage: Usage, base_per_mtok: float) -> float:
+READ_MULT_BY_MODEL = {          # 2026-09/10 起按模型分档的缓存读倍率
+    "claude-opus-5-5": 0.05, "claude-sonnet-5-5": 0.05,
+    "claude-fable-5-1": 0.025, "claude-mythos-5-1": 0.025,
+    "claude-haiku-5-5": 0.10,   # 基础价低一个数量级，不再额外下调
+}
+
+def cost(usage: Usage, base_per_mtok: float, model: str | None = None) -> float:
     m = base_per_mtok / 1_000_000
+    rm = read_mult_for(model)   # 未知型号回落 0.10x 默认档
     return (
-        usage.cache_read_input_tokens * 0.10 * m   # 读 0.1x
+        usage.cache_read_input_tokens * rm     * m   # 读 0.1x / 0.05x / 0.025x
       + usage.write_5m_tokens         * 1.25 * m   # 5m 写 1.25x
       + usage.write_1h_tokens         * 2.00 * m   # 1h 写 2x
       + usage.input_tokens            * 1.00 * m
@@ -158,6 +165,7 @@ def cost(usage: Usage, base_per_mtok: float) -> float:
 2. 实现"varying suffix 陷阱"：把 `cache_control` 放在每请求变化的块上，观察零命中并修复。
 3. 用真实小模型（如本地 llama.cpp）替换 `constitution.revise` 的规则化逻辑。
 4. 增加 cache 命中率、TTFT、成本指标的 Prometheus 导出。
+5. 按模型档位（`cost(usage, base, model=...)`）对比同一份负载在 Haiku 5.5 / Sonnet 5.5 / Fable 5.1 上的缓存成本，复现 2026 Q3 的降价效果。
 
 ## 小结
 

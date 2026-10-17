@@ -14,7 +14,7 @@ Claude 是目前唯一在三朵最大云（AWS Bedrock、Google Cloud Vertex AI�
 | 企业治理/计费整合 | 独立（2026-10 起 Max/Team 含月度 API 额度） | 与 AWS 账户一体化 | 与 GCP 一体化 | 与 Azure 一体化 |
 | 最新模型/特性首发 | 通常首发 | 滞后 | 滞后 | 滞后 |
 
-> 经验：要最低延迟与最新特性（automatic caching、mid-conversation system messages、inline tools 等），用官方 API；要最强数据驻留与企业治理整合，用对应云的托管；要 workspace 级 cache 隔离，避开 Bedrock/Vertex（它们仍是 org 级）。
+> 经验：要最低延迟与最新特性（automatic caching、mid-conversation system messages、inline tools 等），用官方 API；要最强数据驻留与企业治理整合，用对应云的托管；要 workspace 级 cache 隔离，避开 Bedrock/Vertex（它们仍是 org 级）。2026-09/10 发布的 5.5 系列（Opus 5.5 / Sonnet 5.5 / Haiku 5.5）在四个入口同步上线，多云选型不受新模型首发限制。
 
 ## 2. Prompt Caching：把成本打下来的核心手段
 
@@ -52,8 +52,9 @@ total_input = cache_read_input_tokens + cache_creation_input_tokens + input_toke
 
 ### 真实成本量级（以官方倍率估算）
 
-- 缓存读 = base input 的 **0.1x**（Opus 5.5 / Sonnet 5.5 为 **0.05x**，Fable/Mythos 5.1 为 **0.025x**）；5m 写 = **1.25x**；1h 写 = **2x**。
+- 缓存读 = base input 的 **0.1x**（Opus 5.5 / Sonnet 5.5 为 **0.05x**，Fable/Mythos 5.1 为 **0.025x**；Haiku 5.5 基础价已低约一个数量级，仍为 0.1x 但分 ≤100k / >100k 两档计价）；5m 写 = **1.25x**；1h 写 = **2x**。
 - 一个 10 万 token 的稳定前缀，若每 3 分钟复用一次：首写 1.25x，之后每次仅 0.1x（5.5 系列 0.05x）——相对无缓存可节省约 **90%+** 的前缀处理成本。
+- 2026 Q3 的降价节奏值得纳入成本模型：Fable 5.1 缓存读直降 75%（→0.025x）、Sonnet 5.5 缓存读 $0.20→$0.10 /MTok（典型 agentic 负载约 -20%）、Opus 5.5 以低 40% 成本达到 Fable 5.1 水平（旗舰能力下放）。选型时"用上一代旗舰还是新一代 Opus"要按新价格重新算。
 - 配合 **Batch API**（离线批处理折扣）可进一步叠加节省（倍率可叠加）；2026-10 起 Max/Team 订阅包含月度 API 额度，订阅与按量计费的边界进一步模糊。
 
 ## 3. Extended Thinking 与智能体后端
@@ -73,7 +74,7 @@ Anthropic 的 RSP 不只约束 Anthropic 自己，也给了企业一个**可借�
 - **分类器即基础设施**：ASL-3 的输入/输出分类器思路，可落地为企业自建的 guardrails 服务（参见 [安全详解](/08-security/)）。
 - **第三方审查**：对高风险用例引入外部专家评审，提升可信度。
 - **政策映射**：RSP 已与 SB 53（加州）、RAISE Act（纽约）、EU AI Act Codes of Practice 对齐，企业可参照同类法规设计合规流程。
-- **跟踪 2026 演进**：RSP v3.0（2026-02）拆分公司承诺与行业建议；RSP v3.4（2026-08）引入 CB-1/CB-2 阈值并披露"接近 CB-2 边界"；对前沿模型（Fable/Mythos 级），Anthropic 采用"分类器路由"（可疑请求降级到 Opus 4.8）+ 30 天数据保留 + 定向开放（Project Glasswing）的组合拳——这是"高能力模型如何安全放量"的最新公开范式。
+- **跟踪 2026 演进**：RSP v3.0（2026-02）拆分公司承诺与行业建议；RSP v3.4（2026-07-08 生效）引入 CB-1/CB-2 阈值，配套 2026-08-14 Risk Report（覆盖至 7-15）披露"接近 CB-2 边界"；2026-10 再进一步——启动**独立评估者计划**（METR 获近似员工级内部访问、可独立发表）并把 Project Glasswing 并入扩展版 **Cyber Verification Program**（对防御方安全团队开放前沿模型能力，配套 Defender Advantage Fund）。对前沿模型（Fable/Mythos 级），Anthropic 采用"分类器路由"（可疑请求降级到 Opus 4.8）+ 30 天数据保留 + 定向开放（Glasswing / Cyber Verification Program）的组合拳——这是"高能力模型如何安全放量"的最新公开范式。
 
 ## 5. 容量与可靠性治理
 

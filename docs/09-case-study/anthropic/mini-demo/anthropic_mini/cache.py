@@ -14,7 +14,10 @@ Key behaviours reproduced from the official Prompt Caching documentation:
 * **Isolation.** Entries are isolated per organization and (on the Claude API /
   Foundry) per workspace.
 * **Pricing multipliers.** read = 0.10x, 5m write = 1.25x, 1h write = 2.00x the
-  base input price.
+  base input price. Since 2026-09/10 the cache-read multiplier is tiered by
+  model: 0.05x on the 5.5 series and 0.025x on Fable/Mythos 5.1, while Haiku
+  5.5 keeps 0.10x because its base price is already an order of magnitude
+  lower (it bills two price tiers, <=100k and >100k prompt tokens).
 """
 
 from __future__ import annotations
@@ -33,6 +36,27 @@ LOOKBACK = 20  # the system checks at most 20 positions per breakpoint
 READ_MULT = 0.10
 WRITE_5M_MULT = 1.25
 WRITE_1H_MULT = 2.00
+
+# Tiered cache-read multipliers since 2026-09/10 (per official pricing pages):
+#   * Opus 5.5 / Sonnet 5.5            -> 0.05x
+#   * Fable 5.1 / Mythos 5.1           -> 0.025x
+#   * Haiku 5.5                        -> 0.10x (base price ~10x lower; two
+#                                            billing tiers by prompt length)
+#   * everything else (default)        -> 0.10x
+READ_MULT_BY_MODEL = {
+    "claude-opus-5-5": 0.05,
+    "claude-sonnet-5-5": 0.05,
+    "claude-fable-5-1": 0.025,
+    "claude-mythos-5-1": 0.025,
+    "claude-haiku-5-5": 0.10,
+}
+
+
+def read_mult_for(model: str | None) -> float:
+    """Cache-read multiplier for a model id (default tier if unknown)."""
+    if not model:
+        return READ_MULT
+    return READ_MULT_BY_MODEL.get(model, READ_MULT)
 
 
 def estimate_tokens(text: str) -> int:
@@ -204,11 +228,16 @@ class PromptCache:
         )
 
 
-def cost(usage: Usage, base_per_mtok: float) -> float:
-    """Estimated cost given a base price per 1M input tokens."""
+def cost(usage: Usage, base_per_mtok: float, model: str | None = None) -> float:
+    """Estimated cost given a base price per 1M input tokens.
+
+    Pass ``model`` (e.g. ``"claude-opus-5-5"``) to apply the tiered cache-read
+    multiplier; unknown / omitted models use the default 0.10x tier.
+    """
     m = base_per_mtok / 1_000_000.0
+    rm = read_mult_for(model)
     return (
-        usage.cache_read_input_tokens * READ_MULT * m
+        usage.cache_read_input_tokens * rm * m
         + usage.write_5m_tokens * WRITE_5M_MULT * m
         + usage.write_1h_tokens * WRITE_1H_MULT * m
         + usage.input_tokens * m
