@@ -14,15 +14,15 @@
 | **CAMEL** | [docs.camel-ai.org](https://docs.camel-ai.org/) | 角色扮演与数据合成 | RolePlaying、Agent Society、数据飞轮 |
 | **MetaGPT** | [docs.deepwisdom.ai](https://docs.deepwisdom.ai/main/Main%20Guide/) | 软件公司模拟 | Role、Action、Environment、SOP |
 
-> 注：开源项目迭代极快，本节基于 2026 年 10 月主流分支状态分析。近两年 Multi-Agent 框架格局发生了数次洗牌（AutoGen 维护模式、AG2 v1.0 重写、LangGraph 1.0 GA、ADK/MAF 1.0 发布），选型时务必核实项目当前状态，不要只看 star 数。
+> 注：开源项目迭代极快，本节基于 2026 年 10 月主流分支状态分析。近两年 Multi-Agent 框架格局发生了数次洗牌（AutoGen 归档、AG2 v1.0 重写、LangGraph 1.0 GA、ADK 2.0/MAF 1.0 发布），选型时务必核实项目当前状态，不要只看 star 数。
 
 ## AutoGen、AG2 与 Microsoft Agent Framework
 
 AutoGen 把 Multi-Agent 抽象成“对话（Conversation）”，是这一领域的先驱，但它的故事在 2025-2026 年分成了三条线：
 
-- **AutoGen（原库）**：2025 年 10 月起进入维护模式（只修 bug、不加新功能），最终版本停在 v0.7.x。
-- **AG2**：原创始团队离开微软后创建的分叉（Apache 2.0），保持活跃。v1.0 是一次彻底重写——用 Network hub + 类型化 channel 取代了 GroupChat 与 ConversableAgent，不向后兼容；经典 API 保留在 `ag2-classic` 包中。
-- **Microsoft Agent Framework（MAF）**：微软官方继任者，合并 AutoGen 与 Semantic Kernel，2026 年 4 月发布 1.0 GA，提供 typed-graph Workflows、Handoff 编排、原生 MCP/A2A 支持，覆盖 Python 与 .NET。
+- **AutoGen（原库）**：已进入维护尾声，2026 年 10 月正式 **归档（archived）**——微软在仓库公告中明确不再提供 bug 修复、安全修复与新功能，仓库仅作历史参考，最终版本停在 v0.7.5（2025 年 9 月）。
+- **AG2**：原创始团队离开微软后创建的分叉（Apache 2.0），保持活跃。v1.0 是一次彻底重写——用 Network hub + 类型化 channel 取代了 GroupChat 与 ConversableAgent，不向后兼容；经典 API 保留在 `ag2-classic` 包中。2026 年 10 月时已迭代到 v1.2.x。
+- **Microsoft Agent Framework（MAF）**：微软官方继任者，合并 AutoGen 与 Semantic Kernel，2026 年 4 月发布 1.0 GA（production-ready 承诺），提供 typed-graph Workflows、Handoff 编排、原生 MCP/A2A 支持，覆盖 Python 与 .NET（Go 版处于 public preview）。2026 年 7 月起又发布 `agent-framework-hosting-a2a` 包，可直接把 Agent / Workflow 以 A2A 服务端点对外暴露（原生 Agent Card 生成、技能发现）；2026 年 10 月 Python 版已迭代到 1.22.x。
 
 ### AutoGen 核心抽象（历史版本）
 
@@ -54,7 +54,7 @@ groupchat = GroupChat(agents=[assistant, user_proxy], messages=[], max_round=12)
 
 ## LangGraph multi-agent
 
-LangGraph 把 Multi-Agent 表达为“图”，每个 Agent 是一个节点，共享 State。2025 年 10 月 LangGraph 1.0 GA（与 LangChain 1.0 同时发布），把 durable execution（自动持久化、崩溃恢复）变成内置能力，成为生产级 Agent 编排的主流选项之一（Uber、LinkedIn、Klarna 等有公开采用）。
+LangGraph 把 Multi-Agent 表达为“图”，每个 Agent 是一个节点，共享 State。2025 年 10 月 17 日 LangGraph 1.0 GA（与 LangChain 1.0 同日发布），把 durable execution（自动持久化、崩溃恢复）变成内置能力，成为生产级 Agent 编排的主流选项之一（Uber、LinkedIn、Klarna 等有公开采用）。此后持续高频迭代，2026 年 10 月已到 1.2.x（如 1.2.16），durable execution 能力持续增强（例如跨主机崩溃的 durable error-handler resume）。
 
 ### 核心抽象
 
@@ -92,7 +92,7 @@ app = graph.compile(checkpointer=checkpointer)
 
 ## CrewAI
 
-CrewAI 把 Multi-Agent 抽象为“团队（Crew）= 角色（Agent）+ 任务（Task）+ 流程（Process）”，2025-2026 年持续高频迭代（1.x 系列），v1.14 起移除了 LangChain 依赖独立运行，并补齐了运行时 checkpointing、可插拔 memory/RAG 后端。
+CrewAI 把 Multi-Agent 抽象为“团队（Crew）= 角色（Agent）+ 任务（Task）+ 流程（Process）”，2025-2026 年持续高频迭代，当前为 1.15.x 系列（2026 年 10 月）；v1.14 起移除了 LangChain 依赖独立运行（官方 README 已将其定位为 standalone 框架），并补齐了运行时 checkpointing、可插拔 memory/RAG 后端。
 
 ### 核心抽象
 
@@ -127,7 +127,7 @@ result = crew.kickoff()
 
 ## OpenAI Agents SDK（Swarm 的正式继任）
 
-OpenAI 早期开源的 Swarm 只是一个教学级实验（Agents + Handoffs + Routines，官方明确“不用于生产”）。2025 年其能力被正式的 **OpenAI Agents SDK** 继承并大幅扩展：Guardrails（输入/输出/工具校验）、内置 Tracing（OTel 兼容）、Sessions 状态管理。
+OpenAI 早期开源的 Swarm 只是一个教学级实验（Agents + Handoffs + Routines，官方明确“不用于生产”）。2025 年其能力被正式的 **OpenAI Agents SDK** 继承并大幅扩展：Guardrails（输入/输出/工具校验）、内置 Tracing（OTel 兼容）、Sessions 状态管理。SDK 保持活跃迭代，2026 年 10 月已发布到 v0.24.x。
 
 ### 核心抽象
 
@@ -160,7 +160,7 @@ result = await Runner.run(triage, "我想退款")
 
 ## Google ADK
 
-Google ADK（Agent Development Kit）是 Google 的代码优先 Agent 框架，2026 年随 ADK 1.0 GA 成为与 A2A 协议绑定的“标准答案”：同一套 Agent 定义既能进程内编排，也能通过 A2A 暴露给外部 Agent。
+Google ADK（Agent Development Kit）是 Google 的代码优先 Agent 框架，2025 年 4 月在 Google Cloud Next 发布、同年 5 月发布 Python v1.0.0；**2026 年 5 月 19 日 Python 版 2.0.0 GA**，随后 Go 2.0（2026 年 6 月）、TypeScript 2.0（2026 年 8 月）相继 GA，2026 年 10 月 Python 版已迭代到 v2.12.x。ADK 与 A2A 协议绑定：同一套 Agent 定义既能进程内编排，也能通过 A2A 暴露给外部 Agent。
 
 ### 核心抽象
 
@@ -181,7 +181,7 @@ crew = SequentialAgent(
 1. **LlmAgent 为基本推理单元**：负责推理、工具调用与下一步决策。
 2. **Workflow Agents 为确定性编排**：`SequentialAgent` / `ParallelAgent` / `LoopAgent` 本身不含 LLM，只做子 Agent 的有序、并发、循环调度，形成树状 Agent 结构。
 3. **session.state 共享状态**：子 Agent 通过 `output_key` 把结果写入会话状态，下游读取。
-4. **A2A 原生**：Agent 可直接以 A2A 服务端点暴露；ADK 1.0 引入 Event Compaction，官方称长会话 token 消耗降低约 38%、延迟降低约 18%。
+4. **A2A 原生**：Agent 可直接以 A2A 服务端点暴露；ADK 的 Event Compaction（事件压缩）用 LLM 把旧会话事件压缩为摘要状态而非直接截断——Google 官方公布的基准称长会话 token 消耗降低约 38%、延迟降低约 18%（该数字为官方口径，尚缺少独立第三方复现）。
 
 ### 优点与局限
 
@@ -281,6 +281,12 @@ AutoGen/AG2、Microsoft Agent Framework、LangGraph、CrewAI、OpenAI Agents SDK
 - [AutoGen Paper](https://arxiv.org/abs/2308.08155)
 - [AG2 文档](https://docs.ag2.ai/)
 - [Microsoft Agent Framework 文档](https://learn.microsoft.com/agent-framework/)
+- [AutoGen 仓库归档公告](https://github.com/microsoft/autogen)
+- [Microsoft Agent Framework Releases](https://github.com/microsoft/agent-framework/releases)
+- [AG2 Releases](https://github.com/ag2ai/ag2/releases)
+- [ADK Python Releases](https://github.com/google/adk-python/releases)
+- [OpenAI Agents Python Releases](https://github.com/openai/openai-agents-python/releases)
+- [CrewAI Releases](https://github.com/crewAIInc/crewAI/releases)
 - [LangGraph Multi-Agent Concepts](https://langchain-ai.github.io/langgraph/concepts/multi_agent/)
 - [LangGraph v1 发布说明](https://docs.langchain.com/oss/python/releases/langgraph-v1)
 - [CrewAI Documentation](https://docs.crewai.com/)

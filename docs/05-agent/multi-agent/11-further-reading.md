@@ -8,8 +8,10 @@
 - [LangChain Docs — Handoffs](https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs) — Handoff 机制（Command + active_agent）官方文档。
 - [Google ADK — Multi-Agent Systems](https://adk.dev/agents/multi-agents/) — Google ADK 多 Agent 编排官方文档。
 - [A2A Protocol 文档](https://a2a-protocol.dev/) — Agent2Agent 协议规范、Agent Card 与 Task 生命周期。
+- [A2A GitHub Releases](https://github.com/a2aproject/A2A/releases) — 协议版本历史（v1.0.0 于 2026 年 3 月发布）。
+- [Microsoft Agent Framework Releases](https://github.com/microsoft/agent-framework/releases) — MAF 版本历史（含 2026 年 7 月 hosting-a2a 包）。
 - [Microsoft Agent Framework 文档](https://learn.microsoft.com/agent-framework/) — 微软官方 Agent 编排框架（AutoGen + Semantic Kernel 继任者）。
-- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/) — AutoGen 官方文档（维护模式，历史参考）。
+- [AutoGen Documentation](https://microsoft.github.io/autogen/stable/) — AutoGen 官方文档（仓库已归档，历史参考）。
 - [AG2 文档](https://docs.ag2.ai/) — AutoGen 社区分叉，活跃迭代中。
 - [CrewAI Documentation](https://docs.crewai.com/) — 角色驱动的 Multi-Agent 框架文档。
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/) — OpenAI Agents SDK 的 Handoff 机制文档。

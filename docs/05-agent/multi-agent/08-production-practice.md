@@ -49,6 +49,8 @@ Client → API Gateway → Coordinator Service
 适用：供应链协同、跨平台客服、异构框架互联。
 要点：签名 Agent Card 与 OAuth 2.0/mTLS 认证、跨组织审计日志、Task 状态机（含 input-required / auth-required 中断态）的人工恢复。
 
+> 2026 年 Q3 起，托管与互联进一步收敛：Microsoft Agent Framework 发布 `agent-framework-hosting-a2a` 包（2026 年 7 月），可直接把进程内编排的 Agent / Workflow 以 A2A 服务端点暴露（原生 Agent Card 生成、技能发现）；Google ADK 2.0 各语言版（Python 2.0 GA 于 2026 年 5 月，Go 2.0 于 6 月，TypeScript 2.0 于 8 月）也内置了 A2A 暴露能力。“进程内编排 + 协议对外暴露”正在成为框架的默认组合。
+
 ## 并发与扩缩容
 
 - **按角色扩容**：搜索 Agent 压力大时只扩容搜索 Agent，不影响其他角色。
@@ -80,7 +82,7 @@ checkpoint.save(
 - 每个 Agent 的任务分配与执行进度。
 - 未完成的 HITL 请求。
 
-2025 年后 **durable execution** 成为框架级能力而非自研负担：LangGraph 1.0 把自动 checkpoint/恢复内置为标配（也有 Temporal 官方插件把图执行托管给 Temporal），Google ADK、Microsoft Agent Framework 同样提供会话级持久化。选型时优先使用框架内置机制，只在有自定义状态存储需求时才自行实现上面的 checkpoint 结构。
+2025 年后 **durable execution** 成为框架级能力而非自研负担：LangGraph 1.0（2025 年 10 月 GA）把自动 checkpoint/恢复内置为标配，此后持续增强（1.2.x 已支持跨主机崩溃的 error-handler resume；也有 Temporal 官方插件把图执行托管给 Temporal），Google ADK、Microsoft Agent Framework 同样提供会话级持久化。选型时优先使用框架内置机制，只在有自定义状态存储需求时才自行实现上面的 checkpoint 结构。
 
 ## 分布式消息队列
 
@@ -109,7 +111,7 @@ checkpoint.save(
 - **批量消息**：多个小消息合并发送，降低网络开销。
 - **早停机制**：达到足够好的结果时提前终止，不跑满最大轮次。
 - **token 预算**：为整个 Multi-Agent 任务设置总 token 上限。
-- **消息与上下文压缩**：handoff 时用摘要而非全文传递历史；长会话启用事件压缩（如 ADK Event Compaction，官方称可降约 38% token、18% 延迟）。
+- **消息与上下文压缩**：handoff 时用摘要而非全文传递历史；长会话启用事件压缩（如 Google ADK Event Compaction——用 LLM 把旧事件压缩为摘要状态；Google 官方公布的基准称可降约 38% token、18% 延迟，属官方口径，缺少独立第三方复现）。
 - **拓扑剪枝**：学术研究（AgentPrune、AgentDropout、SafeSieve 等）表明，剪掉冗余 Agent 与通信边可再省 30%~50% token；Q-KVComm 更进一步探索 Agent 之间直接传压缩 KV Cache 而非文本（5~6 倍压缩比），代表“表示级通信”的方向，尚未大规模工程化。
 
 ## 人机协同（HITL）
@@ -156,5 +158,7 @@ HITL 请求本身也是 Blackboard 的一条记录，所有相关 Agent 可见�
 - [CrewAI — Enterprise](https://docs.crewai.com/enterprise/)
 - [OpenAI Agents SDK — Tracing](https://openai.github.io/openai-agents-python/tracing/)
 - [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [Microsoft Agent Framework Releases（hosting-a2a 包）](https://github.com/microsoft/agent-framework/releases)
+- [ADK Python Releases（v2.0.0）](https://github.com/google/adk-python/releases)
 - [Q-KVComm: Efficient Multi-Agent Communication via Adaptive KV Cache Compression](https://arxiv.org/abs/2512.17914)
 - [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)

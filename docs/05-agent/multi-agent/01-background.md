@@ -32,9 +32,9 @@ flowchart LR
 | 单 Agent + ReAct + Memory | 多轮循环、可读写记忆 | LangGraph Agent、OpenAI Agents SDK |
 | Multi-Agent 协作 | 多角色分工、消息通信、共享状态 | AutoGen、CrewAI、MetaGPT |
 | 自动编排 + [群体反思](/05-agent/reflection/) | Agent 动态组队、自我评估、共识聚合 | LangGraph Swarm、多智能体辩论 |
-| 协议标准化 + Durable Execution（2025-2026） | 跨框架 Agent 互联协议（A2A v1.0）、工具协议（MCP）、可恢复长时执行 | Google ADK 1.0、Microsoft Agent Framework 1.0、LangGraph 1.0 |
+| 协议标准化 + Durable Execution（2025-2026） | 跨框架 Agent 互联协议（A2A v1.0）、工具协议（MCP）、可恢复长时执行 | Google ADK 2.0、Microsoft Agent Framework 1.0、LangGraph 1.0 |
 
-> 2025-2026 年的标志性变化：Multi-Agent 从“各框架私有 API”走向“协议互联”。A2A（Agent2Agent）v1.0 于 2026 年 4 月移交 Linux Foundation 治理，成为跨组织 Agent 通信的开放标准；MCP 负责 Agent↔工具的纵向接入，A2A 负责 Agent↔Agent 的横向协作，两者互补。
+> 2025-2026 年的标志性变化：Multi-Agent 从“各框架私有 API”走向“协议互联”。A2A（Agent2Agent）由 Google 于 2025 年 4 月开源、2025 年 6 月捐赠给 Linux Foundation 治理，**v1.0 于 2026 年 3 月 12 日发布**（v1.0.1 修订版于 2026 年 5 月 28 日），成为跨组织 Agent 通信的开放标准；MCP 负责 Agent↔工具的纵向接入，A2A 负责 Agent↔Agent 的横向协作，两者互补。
 
 ## 3. 典型场景
 
@@ -91,4 +91,5 @@ Multi-Agent 的产生源于单 Agent 在复杂任务中的角色冲突、上下�
 - [MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework](https://arxiv.org/abs/2308.00352)
 - [Why Do Multi-Agent LLM Systems Fail?（MAST，NeurIPS 2025 Datasets & Benchmarks）](https://arxiv.org/abs/2503.13657)
 - [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [A2A GitHub Releases（v1.0.0 发布记录）](https://github.com/a2aproject/A2A/releases)
 - [Steve Kinney — Multi-Agent Systems](https://stevekinney.com/writing/multi-agent-systems)

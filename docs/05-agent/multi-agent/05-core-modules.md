@@ -48,7 +48,7 @@ Message Bus 负责 Agent 之间的消息路由：
 - **请求-回复**：通过 `correlation_id` 关联请求与回复。
 - **优先级与 TTL**：避免消息堆积，过期消息自动丢弃。
 
-生产环境中，Message Bus 通常基于 Redis Streams、RabbitMQ、Kafka 或 NATS 实现，保证至少一次投递与顺序性。跨组织/跨供应商场景则通过 **A2A 协议**承载：Task 作为有状态工作单元异步流转，支持 SSE 流式更新；A2A v1.0 还增加了 gRPC 传输（面向高频协调的低延迟场景）与 OAuth 2.0/mTLS 认证。
+生产环境中，Message Bus 通常基于 Redis Streams、RabbitMQ、Kafka 或 NATS 实现，保证至少一次投递与顺序性。跨组织/跨供应商场景则通过 **A2A 协议**承载：Task 作为有状态工作单元异步流转，支持 SSE 流式更新；A2A v1.0（2026 年 3 月）把 gRPC 与 JSON-RPC/HTTP 三种绑定规范化并对齐，原生支持多租户 scope 字段，并现代化了 OAuth 2.0（新增 Device Code 与 PKCE，移除隐式/密码流）与 mTLS 安全声明。
 
 ## 4. Coordinator
 

@@ -73,9 +73,9 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 
 **参考答案**：
 
-- AutoGen 以“对话/群聊”为核心抽象，Agent 通过消息历史共享状态，适合探索性对话与代码执行场景；2025 年 10 月起进入维护模式，不建议新项目采用。
-- AutoGen 的两条演进线：社区分叉 AG2（v1.0 重写为 Network hub + 类型化 channel，不向后兼容）与微软官方继任者 Microsoft Agent Framework（合并 Semantic Kernel，1.0 GA，提供 typed-graph Workflows、Handoff、原生 MCP/A2A）。
-- LangGraph 以“状态图”为核心抽象，Agent 是图节点，共享显式 State，1.0 GA 后内置 durable execution（自动 checkpoint/恢复）、条件边、人工介入，适合复杂生产工作流。
+- AutoGen 以“对话/群聊”为核心抽象，Agent 通过消息历史共享状态，适合探索性对话与代码执行场景；其最终版本为 v0.7.5（2025 年 9 月），2026 年 10 月仓库已被微软正式**归档（archived）**、不再维护，不建议任何新项目采用。
+- AutoGen 的两条演进线：社区分叉 AG2（v1.0 重写为 Network hub + 类型化 channel，不向后兼容，2026 年 10 月已迭代到 v1.2.x）与微软官方继任者 Microsoft Agent Framework（合并 Semantic Kernel，2026 年 4 月 1.0 GA，提供 typed-graph Workflows、Handoff、原生 MCP/A2A，2026 年 7 月起可用 hosting-a2a 包直接把 Agent 以 A2A 端点暴露）。
+- LangGraph 以“状态图”为核心抽象，Agent 是图节点，共享显式 State，2025 年 10 月 17 日 1.0 GA（与 LangChain 1.0 同日）后内置 durable execution（自动 checkpoint/恢复）、条件边、人工介入，2026 年 10 月已迭代到 1.2.x，适合复杂生产工作流。
 
 ### Q10：如何处理 Agent 之间的冲突？
 
@@ -101,9 +101,9 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 
 **参考答案**：
 
-- 定位：MCP 是 Agent↔工具的纵向协议（能力发现与调用），A2A 是 Agent↔Agent 的横向协议（跨框架、跨组织协作），两者互补，均由 Linux Foundation 旗下的 Agentic AI Foundation 治理。
+- 定位：MCP 是 Agent↔工具的纵向协议（能力发现与调用），A2A 是 Agent↔Agent 的横向协议（跨框架、跨组织协作），两者互补：MCP 已由 Linux Foundation 旗下的 Agentic AI Foundation（AAIF）托管，A2A 则由 Linux Foundation 治理（技术委员会由 Google、Microsoft、AWS、Cisco、Salesforce、ServiceNow、SAP、IBM 八家各一席组成）。
 - A2A 核心概念：Agent Card（`/.well-known/agent-card.json`，描述能力、端点与认证方式）、Task（有状态工作单元，生命周期 submitted → working → completed/input-required/auth-required）、SSE 流式更新。
-- v1.0（2026 年 4 月）关键特性：签名 Agent Card（域名级身份验证）、多租户支持、gRPC 传输选项、OAuth 2.0/mTLS 认证、配套 Agent Payments Protocol（AP2）。
+- v1.0（2026 年 3 月 12 日发布，v1.0.1 于 5 月 28 日）关键特性：Agent Card 签名验证（JWS + RFC 8785 规范化，域名级身份验证）、多租户支持（gRPC scope 字段）、三种协议绑定规范化（JSON-RPC / gRPC / HTTP+JSON）、现代化 OAuth 2.0（Device Code + PKCE，移除隐式/密码流）、mTLS 安全声明、ListTasks 操作与版本协商机制。
 
 ### Q13：为什么 Multi-Agent 系统会失败？如何系统性排查？
 
@@ -125,3 +125,5 @@ Blackboard 是多个 Agent 共享的工作区，保存任务目标、中间结�
 - [OpenAI Agents SDK — Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
 - [Why Do Multi-Agent LLM Systems Fail?（MAST）](https://arxiv.org/abs/2503.13657)
 - [A2A Protocol 文档](https://a2a-protocol.dev/)
+- [A2A GitHub Releases](https://github.com/a2aproject/A2A/releases)
+- [AutoGen 仓库（已归档）](https://github.com/microsoft/autogen)
