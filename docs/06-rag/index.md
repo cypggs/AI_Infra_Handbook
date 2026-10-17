@@ -13,6 +13,7 @@ RAG（Retrieval-Augmented Generation，检索增强生成）通过在生成前�
 - 拆解端到端 RAG 流水线，并说明每一步的关键权衡。
 - 根据业务场景选择 chunking、embedding、retrieval、reranking 的组合。
 - 设计可水平扩展、可实时更新、可观测的 RAG 服务架构。
+- 掌握 2025 年后的新范式：Contextual Retrieval、混合检索标配、Agentic 检索与长上下文融合。
 - 在 Agent 系统中把 Retriever 作为工具或 MCP Server 集成。
 - 建立 RAG 系统的评估、迭代与生产运维闭环。
 
@@ -34,12 +35,12 @@ RAG 不是孤立的“向量搜索”，它需要与 LLM 服务、Agent 运行�
 
 ## 章节导航
 
-1. [背景：为什么需要 RAG](/06-rag/01-background) — 从 Prompt Engineering 到 Fine-tuning 再到 RAG 的演进，以及 RAG 与长上下文、持续预训练的关系。
-2. [核心概念](/06-rag/02-core-ideas) — 数据流水线、chunking、embedding、检索策略、reranking、生成增强与评估指标。
-3. [架构设计](/06-rag/03-architecture) — 端到端 RAG 系统架构，数据平面与控制平面，离线索引与在线服务。
-4. [RAG 流水线](/06-rag/04-rag-pipeline) — 查询预处理、检索、重排、上下文组装、生成与后处理的状态机。
+1. [背景：为什么需要 RAG](/06-rag/01-background) — 从 Prompt Engineering 到 Fine-tuning 再到 RAG 的演进，RAG vs 长上下文 2025 年论战的新结论，以及推理时代的 Agentic 检索。
+2. [核心概念](/06-rag/02-core-ideas) — 数据流水线、chunking（含 Contextual Retrieval / Late Chunking）、embedding、检索策略、reranking、多模态 RAG、生成增强与评估指标。
+3. [架构设计](/06-rag/03-architecture) — 端到端 RAG 系统架构，数据平面与控制平面，离线索引与在线服务，以及 Agentic 检索架构演进。
+4. [RAG 流水线](/06-rag/04-rag-pipeline) — 查询预处理、检索、重排、上下文组装、生成与后处理的状态机，含推理循环与检索质量自检。
 5. [核心模块](/06-rag/05-core-modules) — Document Loader、Chunker、Embedder、Vector Store、Retriever、Reranker、Query Engine、Generator、Memory/Cache、Evaluator、Observer。
-6. [源码与生态分析](/06-rag/06-source-analysis) — LangChain、LlamaIndex、Haystack、RAGFlow/Dify、向量库、Embedding/Reranker 模型、GraphRAG 实现对比。
+6. [源码与生态分析](/06-rag/06-source-analysis) — LangChain/LangGraph、LlamaIndex、Haystack、RAGFlow/Dify/FastGPT、向量库、Embedding/Reranker 模型、GraphRAG（LightRAG/HippoRAG）与 Agentic RAG 实现对比。
 7. [Mini Demo](/06-rag/07-mini-demo) — 本主题配套示例说明：目录结构、运行方式、关键代码与生产差异。
 8. [企业生产实践](/06-rag/08-production-practice) — 大规模索引、实时更新、多租户、PII 与权限、缓存、成本延迟、可观测、故障模式。
 9. [最佳实践](/06-rag/09-best-practices) — chunking、检索、重排、提示、评估与迭代的检查清单和反模式。

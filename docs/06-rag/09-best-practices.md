@@ -9,19 +9,22 @@ RAG 系统的效果往往取决于大量细节。本章整理了一份可直接�
 - [ ] 对结构化文档优先按标题/章节切分，而不是纯按长度。
 - [ ] 保留 metadata（source、section、page、updated_at）。
 - [ ] 对表格、代码等特殊内容使用专用切分策略。
+- [ ] 预算允许时为 chunk 注入文档级上下文（Contextual Retrieval），或评估 Late Chunking。
 
 ## Embedding 检查清单
 
-- [ ] 选择支持业务语言的模型（中文场景考虑 BGE-M3、GTE）。
+- [ ] 选择支持业务语言的模型（中文场景考虑 BGE-M3、Qwen3-Embedding、GTE-Qwen）。
+- [ ] 用 MTEB/MTEB-Chinese 榜单做候选初筛，用自有评估集做最终选型。
 - [ ] 对 query 和 chunk 使用同一模型、同一池化策略。
 - [ ] 监控 embedding 的 average cosine similarity 分布，发现漂移。
 - [ ] embedding 模型版本变更后，全量重建索引或双版本并存。
 
 ## Retrieval 检查清单
 
-- [ ] 至少同时评估 dense 与 keyword 召回率，选择混合策略。
+- [ ] **默认上混合检索（BM25 + Dense + RRF）**，2025 年这已是生产基线，不要裸奔纯 dense。
 - [ ] metadata 过滤放在 ANN 搜索之前，减少无效计算。
 - [ ] 对复杂查询使用 query rewriting / multi-query 提高召回。
+- [ ] 多跳、比较类查询走 Agentic 迭代检索，但必须配置迭代预算。
 - [ ] 设置最大检索数量与超时，防止单次请求拖垮系统。
 
 ## Reranking 检查清单
@@ -42,21 +45,24 @@ RAG 系统的效果往往取决于大量细节。本章整理了一份可直接�
 
 - [ ] 建立离线评估集，覆盖高频问题、边缘问题、负面案例。
 - [ ] 同时看检索指标（Recall@K、MRR）和生成指标（Faithfulness、Relevance）。
+- [ ] 用 RGB/RAGTruth 类鲁棒性集定期测噪声与拒答行为。
 - [ ] 收集线上用户反馈，形成闭环。
 - [ ] 每次改动（chunk 大小、模型、prompt）都跑 A/B 或 shadow test。
+- [ ] Agentic 链路额外跟踪迭代轮数、预算熔断率与每次正确答案成本。
 
 ## 常见反模式
 
 | 反模式 | 后果 | 修正 |
 |---|---|---|
 | Chunk 过大 | 检索精度差、token 浪费 | 按问题粒度切分 |
-| 只用 dense 检索 | 漏掉关键词、专有名词 | hybrid retrieval |
+| 只用 dense 检索 | 漏掉关键词、专有名词 | hybrid retrieval（BM25 + Dense + RRF） |
 | 忽略 metadata | 跨租户/跨版本污染 | 严格 metadata 过滤 |
 | 没有 reranker | Top-K 质量不稳定 | 加入轻量 reranker |
 | 不做引用校验 | 幻觉引用 | 后处理校验 |
+| Agentic 循环无预算 | token 成本失控、延迟不可控 | 最大轮数 + 熔断 + 路由降级 |
 | 把 RAG 当万能药 | 创造性任务表现差 | 明确适用边界 |
 | 上线后不再迭代 | 效果逐渐衰减 | 建立评估与反馈闭环 |
 
 ## 一句话总结
 
-RAG 的最佳实践可以用一句话概括：**小块、好嵌入、混合召回、轻量重排、严格引用、持续评估**。
+RAG 的最佳实践可以用一句话概括：**小块带上下文、好嵌入、混合召回、轻量重排、严格引用、Agentic 有度、持续评估**。

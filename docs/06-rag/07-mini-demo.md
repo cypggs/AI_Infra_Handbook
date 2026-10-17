@@ -58,14 +58,16 @@ rag-demo
 Question: What is Acme Corp's return policy?
 
 Retrieved chunks:
-  1. [returns] Acme Corp accepts returns within thirty days of purchase ...
-  2. [products] Acme Corp offers a wide range of products ...
-  3. [company-history] Acme Corp was founded in 1985 ...
+  1. [products] Acme Corp offers a wide range of products including the Acme Smart Widget, Acme Power Bank, and Acme...
+  2. [returns] five to seven business days. Opened consumables, such as batteries and cleaning solution, are not el...
+  3. [company-history] Acme Corp was founded in 1985 by Jane Doe and John Smith. Originally a small hardware shop in Seattl...
 
 Answer: Acme Corp accepts returns within thirty days of purchase with the
 original receipt. Items must be unused and in original packaging, and refunds
 are processed within five to seven business days.
 ```
+
+注意：由于混合检索对 dense 与 keyword 两路排名做 RRF 融合，候选顺序是融合后的结果，第一条未必是最相关的——这正体现了 Reranker 的价值。
 
 ## 关键代码片段
 
@@ -127,7 +129,7 @@ print(answer.text)
 pytest tests/ -q
 ```
 
-当前测试覆盖：
+当前 37 个测试全部通过，覆盖：
 
 - 分块边界与重叠逻辑
 - 嵌入器确定性与向量维度
@@ -156,6 +158,7 @@ pytest tests/ -q
 3. 在 `Retriever` 中加入查询改写（query rewriting）模块。
 4. 给 `Generator` 接入真实的 LLM API，并增加引用校验。
 5. 用 RAGAS 评估这个 demo 的 faithfulness 与 answer relevance。
+6. 把 `Retriever.hybrid_search` 包装成一个带 schema 的检索工具，写一个外层循环模拟 Agentic 检索（检索 → 判断信息是否足够 → 改写再检索，最多 N 轮）。
 
 ## 小结
 

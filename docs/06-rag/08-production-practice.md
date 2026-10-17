@@ -10,6 +10,8 @@
 | 索引时间长 | 批量编码、pipeline 并行、增量更新 |
 | 版本管理 | 为每个索引版本打标签，支持灰度切换与回滚 |
 | 脏数据 | 在 parser 阶段做质量打分，过滤低质量文档 |
+| 分块质量 | 结构化文档按标题切分；预算允许时上 Contextual Retrieval / Late Chunking，但二者都会显著增加索引阶段的 LLM 调用与模型推理成本，需在索引成本与检索质量之间显式权衡 |
+| 视觉文档 | 合同/财报类版式复杂文档考虑 ColPali 式视觉索引，但要提前评估多向量带来的存储放大（每页数十个向量） |
 
 ## 2. 实时更新策略
 
@@ -58,23 +60,30 @@
 
 | 手段 | 效果 |
 |---|---|
+| 混合检索（BM25 + Dense + RRF） | 以低成本拿到稳定召回，已是生产基线 |
 | 减小 chunk | 降低 embedding 与检索开销 |
 | ANN 索引 | 用可接受的精度损失换检索速度 |
 | 异步 embedding | 把索引阶段成本摊平到离线 |
-| 轻量 reranker | 在线用 BGE-Reranker 替代大 cross-encoder |
+| 轻量 reranker | 在线用 BGE-Reranker/Qwen3-Reranker 0.6B 替代大 cross-encoder |
 | 模型路由 | 简单问题走小模型，复杂问题走大模型 |
 | 结果缓存 | 减少重复 LLM 调用 |
+| Prompt Caching | 长上下文“检索粗筛 + 整段精读”模式下，缓存前缀大幅降低重复推理成本 |
+| 迭代预算熔断 | Agentic 检索必须设最大轮数与 token 上限 |
+
+**Agentic 模式下的成本模型**：迭代式 Agent 检索相比单次 RAG，延迟约 4 倍、token 约 3 倍，但有行业评测显示多跳类问题准确率可从三成多提升到近八成。因此**不要只按单次调用成本做路由决策**，而应按“每个正确答案的成本”（cost per correct answer）评估：对简单查询走单次 RAG、复杂查询走 Agentic 循环，才是最优解。上线前用 Router 在离线评估集上测出路由阈值。
 
 ## 7. 可观测性
 
-- **Trace**：OpenTelemetry/LangSmith 记录完整流水线。
+- **Trace**：OpenTelemetry/LangSmith/Langfuse 记录完整流水线；Agentic 模式下必须记录每一步的检索查询、候选数量、反思结论与停止原因。
 - **Metrics**：
   - 检索延迟 P50/P99
   - 检索命中率 / 空召回率
   - Rerank 前后 Top-1 变化率
+  - Agentic 循环：平均迭代轮数、预算熔断率、每次正确答案成本
   - 生成 token 成本 / 延迟
   - 用户反馈（点赞/点踩）
 - **日志**：query、rewritten query、retrieved chunks、prompt、answer（注意 PII）。
+- **Trace + Eval 平台成为标配**：2025 年后的共识是把评估（RAGAS/自定义 judge）嵌入 trace 平台持续运行，而不是一年做一次的离线评测；Langfuse、LangSmith、Arize Phoenix 是主流选择。
 
 ## 8. 故障模式与应对
 
@@ -86,6 +95,8 @@
 | 延迟飙升 | 检索或生成超时 | 缓存、超时降级、批量限制 |
 | 索引落后 | 答案基于旧文档 | 增量更新、版本切换、 freshness 权重 |
 | 租户越权 | 用户看到他人数据 | 前置过滤 + ACL 校验 |
+| Agent 循环失控 | token 费用暴涨、迟迟不返回答案 | 最大迭代轮数、token 预算熔断、路由降级到单次 RAG |
+| 过度检索 | 重复检索已知信息、浪费 token（RL 检索模型的已知毛病） | 循环内去重、结果摘要缓存、反思提示约束 |
 
 ## 9. 人机协同反馈闭环
 
