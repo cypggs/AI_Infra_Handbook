@@ -51,6 +51,8 @@ flowchart TB
 
 生产系统中，内部反馈与外部反馈通常混合使用：内部反馈快速定位表面问题，外部反馈验证关键事实与约束。
 
+> 2025-2026 年的研究进一步强化了“外部反馈优先”的共识：SCoRe（ICLR 2025）证明仅靠模型自评做自我纠正基本无效，甚至会把对的改错；推理模型内部的反思也大多是确认性的（arXiv:2510.08308）。因此，没有外部工具接地的纯内部 Critic，只适合风格、结构等主观维度，关键正确性必须靠工具验证。
+
 ## 3. 行动反思 vs 计划反思
 
 Reflection 可以作用于不同层次：
@@ -78,6 +80,20 @@ flowchart TB
 | **Meta Reflection** | 反思机制本身 | “Critic 对风格过于敏感，导致反复修改无意义细节” |
 
 Action Reflection 成本低、见效快；Plan Reflection 能避免底层反复试错；Meta Reflection 用于长期优化 Reflection 策略本身。
+
+### 按时机划分：回顾式 vs 前瞻式
+
+2025 年之后，学界开始按“反思发生在执行前还是执行后”划分范式：
+
+| 维度 | 回顾式 Retrospective | 前瞻式 Prospective |
+|---|---|---|
+| 反思时机 | 行动之后、观察失败之后 | 计划生成后、行动执行前 |
+| 代表 | Self-Refine、Reflexion、CRITIC | PreFlect（2026） |
+| 优点 | 有真实执行结果做依据，反馈具体 | 在不可逆错误发生前拦截，不污染轨迹 |
+| 缺点 | 失败代价已付出，反思噪声会污染记忆 | 依赖对“计划哪里会错”的预判，没有真实反馈 |
+| 适用 | 错误可逆、可重试的任务 | 高风险、长链路、失败成本高的任务 |
+
+实践中两者结合：执行前做前瞻式计划批判，执行中触发动态重规划，执行失败后再做回顾式总结沉淀经验。
 
 ## 4. 个体反思 vs 群体反思
 
@@ -174,6 +190,8 @@ Reflection: 在每次“行动”或“回答”后增加“批判 → 评估 �
 
 因此，Reflection 应该**按需启用**，而不是无差别开启。
 
+> 注意：随着 reasoning models 普及，“prompt 级反思”的收益正在收窄。2025-10 的一项对 8 个推理模型的分析（arXiv:2510.08308）发现，推理链中的反思大多是确认性的、很少改变初始答案，提前截断这些反思可省约 24.5% 的 token 而精度损失不足 2.9%。Reflection 的增量价值越来越集中在**外部工具接地**与**跨任务经验沉淀**上，而非“让模型多自查一遍”。
+
 ## 本章小结
 
 Agent Reflection 的核心思想是把单轮生成扩展为“生成—批判—评估—修订”的迭代闭环。内部反馈与外部反馈各有优劣，应混合使用；行动反思、计划反思与元反思分别作用于不同抽象层次；个体反思成本低，群体反思质量高；与 Memory 结合后，反思结果可沉淀为长期经验。Reflection 不是替代 ReAct，而是与之叠加，在关键节点提供质量把关。
@@ -183,5 +201,7 @@ Agent Reflection 的核心思想是把单轮生成扩展为“生成—批判—
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [SCoRe: Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)

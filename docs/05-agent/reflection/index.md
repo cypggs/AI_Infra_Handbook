@@ -18,7 +18,7 @@
 3. 区分内部反馈与外部反馈、行动反思与计划反思、个体反思与群体反思。
 4. 画出 Agent Reflection 的分层架构，并说明与 Generator、Critic、Evaluator、Revision Controller 的关系。
 5. 描述 Reflection Loop 的完整状态流转与终止条件。
-6. 对比 Self-Refine、Reflexion、CRITIC、Tree of Thoughts、LangGraph Reflection、AutoGen Reflection、OpenAI o1 的设计取舍。
+6. 对比 Self-Refine、Reflexion、CRITIC、Tree of Thoughts、LangGraph Reflection、AutoGen Reflection、o1/DeepSeek-R1、SCoRe、PreFlect、A-Mem/ACE 的设计取舍。
 7. 知道如何为自己的 Agent 选择 Critic 模型、评分标准、终止策略与人工兜底方案。
 8. 理解 Mini Demo 的设计与运行方式，能在本地复现“生成—批判—修订”过程。
 9. 回答关于 Reflection 与 ReAct 区别、Critic 设计、避免无限循环、与 Memory 集成等面试问题。
@@ -47,9 +47,9 @@
 3. [架构设计](03-architecture) — Generator / Critic / Evaluator / Revision Controller / Workspace / Reflection Memory / Policy / Observer / Human Gate。
 4. [反思循环](04-reflection-loop) — generate → critique → score → revise → terminate，状态与序列图、终止条件、护栏、HITL。
 5. [核心模块](05-core-modules) — 各模块职责、输入输出、关键接口、生产注意事项。
-6. [源码分析](06-source-analysis) — Self-Refine、Reflexion、CRITIC、Tree of Thoughts、LangGraph Reflection、AutoGen Reflection、OpenAI o1 / reasoning models。
+6. [源码分析](06-source-analysis) — Self-Refine、Reflexion、CRITIC、Tree of Thoughts、LangGraph Reflection、AutoGen Reflection、o1/DeepSeek-R1、SCoRe、PreFlect、A-Mem/ACE。
 7. [工程实践](07-mini-demo) — 纯 Python Mini Demo 设计与运行说明。
-8. [企业生产实践](08-production-practice) — 何时启用 Reflection、Critic 模型选择、评分校准、在线/离线反思、与 Runtime/Memory 集成、评测基准。
+8. [企业生产实践](08-production-practice) — 何时启用 Reflection、Critic 模型选择、评分校准、在线/离线反思、反思预算、记忆卫生、与 Runtime/Memory 集成、评测基准。
 9. [最佳实践](09-best-practices) — criteria-first、聚焦 Critic、避免无限循环、人工兜底、持久化反思结果、策略版本管理。
 10. [面试题](10-interview-questions) — 初级/中级/高级面试题。
 11. [延伸阅读](11-further-reading) — 官方文档、论文、工程文章、相关主题、学习路径。
@@ -68,6 +68,10 @@ Agent Reflection 是 Agent 基础设施中负责“自我纠错”的一层：�
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL](https://arxiv.org/abs/2501.12948)
+- [SCoRe: Training Language Models to Self-Correct via RL](https://arxiv.org/abs/2409.12917)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [OpenAI o1 / Reasoning Models](https://openai.com/index/learning-to-reason-with-llms/)

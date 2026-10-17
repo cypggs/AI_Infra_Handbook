@@ -118,6 +118,22 @@ Multi-Agent 提供通信与协调机制，Reflection 提供“批判—修订”
 
 实际系统中可以结合：用 o1 作为 Generator 或 Critic，同时在更高层用显式框架做策略控制和人工兜底。
 
+### Q16：DeepSeek-R1 之后，Reflexion 这类显式反思框架还有必要吗？
+
+有必要，但角色变了。R1 证明了反思能力可以通过 RL 训练进模型（可验证奖励 + GRPO，涌现自我验证与回溯），prompt 级自批判的收益随之收窄——研究显示推理模型的内隐反思大多是确认性的，很少真正改变答案。
+
+显式框架仍然不可替代的价值在三点：
+
+1. **外部工具接地**：编译器、单元测试、检索等客观验证只能由外部系统编排。
+2. **可控与可观测**：内隐反思不可见、不可审计，业务关键链路需要显式的 criteria、score 与决策日志。
+3. **跨任务经验沉淀**：模型权重里的反思不积累业务记忆，Reflexion/A-Mem/ACE 式的 Memory 才能复用经验。
+
+### Q17：什么是前瞻式反思？与回顾式反思如何取舍？
+
+回顾式（Reflexive）先执行、失败后反思补救（Reflexion、Self-Refine）；前瞻式（Prospective，代表 PreFlect）在执行前对计划做批判与修订，用错误模式库预判“这个计划哪里会错”，在不可逆错误发生前拦截，并保留执行中的动态重规划。
+
+取舍原则：错误可逆、可重试的任务用回顾式（反馈真实具体）；高风险、长链路、失败代价高的任务加前瞻式（成本低但依赖预判质量）。成熟系统两者结合：执行前前瞻批判、执行中动态重规划、失败后回顾式沉淀。
+
 ## 本章小结
 
 Reflection 面试题从概念到架构、从模块设计到生产实践层层递进。回答时抓住三个核心：
@@ -132,6 +148,9 @@ Reflection 面试题从概念到架构、从模块设计到生产实践层层递
 - [Reflexion: Self-Reflective Agents](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL](https://arxiv.org/abs/2501.12948)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [OpenAI o1 / Reasoning Models](https://openai.com/index/learning-to-reason-with-llms/)

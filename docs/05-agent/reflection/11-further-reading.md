@@ -11,6 +11,14 @@
 | **CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing** | 引入外部工具交互进行批判，解决 LLM 自评的事实性问题 | [arXiv](https://arxiv.org/abs/2305.11738) |
 | **Tree of Thoughts: Deliberate Problem Solving with Large Language Models** | 用树搜索结构组织多步推理与评估，支持回溯和全局决策 | [arXiv](https://arxiv.org/abs/2305.10601) |
 | **Language Models Can Teach Themselves to Program Better** | 展示代码生成任务中自我批判与测试反馈结合的效果 | [OpenReview](https://openreview.net/forum?id=r5yEsZo9Qn) |
+| **DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning** | 纯 RL（GRPO）在可验证奖励上训练，自我验证与回溯反思行为自然涌现（“aha moment”） | [arXiv](https://arxiv.org/abs/2501.12948) |
+| **SCoRe: Training Language Models to Self-Correct via Reinforcement Learning** | 证明 prompt 自纠错基本无效，两阶段 on-policy 多轮 RL 才能训出稳定自纠错（MATH +15.6%） | [arXiv](https://arxiv.org/abs/2409.12917) |
+| **Revisiting the Role of Reflection in Reasoning Models** | 8 个推理模型实证：反思多为确认性、很少改答案；提前截断省约 24.5% token | [arXiv](https://arxiv.org/abs/2510.08308) |
+| **PreFlect: From Retrospective to Prospective Reflection in LLM Agents** | 前瞻式反思代表：执行前批判修订计划 + 动态重规划，GAIA 上超多个复杂框架 | [arXiv](https://arxiv.org/abs/2602.07187) |
+| **A-Mem: Agentic Memory for LLM Agents** | Zettelkasten 式 agentic 记忆：笔记动态构建、自主链接、随反思演化（NeurIPS 2025） | [arXiv](https://arxiv.org/abs/2502.12110) |
+| **Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models** | 把上下文当作持续生长的 playbook，生成—反思—精选循环带来约 +10.6% agent 基准提升 | [arXiv](https://arxiv.org/abs/2510.04618) |
+| **Search-R1: Training LLMs to Reason and Leverage Search Engines with RL** | RL 训练推理与检索交错，涌现出“下结论前多检索一轮自验证”的行为 | [arXiv](https://arxiv.org/abs/2503.09516) |
+| **Self-Improvements in Modern Agentic Systems: A Survey** | 2026 综述：自生成演示、评估反馈、探索轨迹与 prompt/记忆改进的统一分类 | [arXiv](https://arxiv.org/abs/2607.13104) |
 
 ## 框架与官方文档
 
@@ -46,10 +54,12 @@
 ## 推荐学习路径
 
 1. **先读论文**：Self-Refine → Reflexion → CRITIC，理解三种典型反思范式。
-2. **再看框架**：LangGraph Reflection Tutorial 动手跑一遍代码。
-3. **结合本主题**：阅读本主题 01~07 章，理解架构与 Mini Demo。
-4. **深入学习**：结合 Agent Runtime、Memory、Multi-Agent 主题，思考 Reflection 在整个 Agent 系统中的位置。
-5. **动手实践**：在真实任务中尝试构建一个最小 Reflection 系统，用真实 LLM 替换 Demo 中的 MockLLMClient。
+2. **再读 2025-2026 新范式**：DeepSeek-R1（反思能力的 RL 涌现）→ SCoRe（训练式自纠错）→ 《Revisiting the Role of Reflection》（对 prompt 级反思的现实检验）。
+3. **然后看演进方向**：PreFlect（前瞻式）与 A-Mem / ACE（状态化记忆），理解反思从“循环”走向“预判 + 生长”。
+4. **再看框架**：LangGraph Reflection Tutorial 动手跑一遍代码。
+5. **结合本主题**：阅读本主题 01~07 章，理解架构与 Mini Demo。
+6. **深入学习**：结合 Agent Runtime、Memory、Multi-Agent 主题，思考 Reflection 在整个 Agent 系统中的位置。
+7. **动手实践**：在真实任务中尝试构建一个最小 Reflection 系统，用真实 LLM 替换 Demo 中的 MockLLMClient。
 
 ## Mini Demo 本地入口
 
@@ -67,6 +77,14 @@ Agent Reflection 的延伸阅读覆盖了理论基础、工程框架、相关主
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL](https://arxiv.org/abs/2501.12948)
+- [SCoRe: Training Language Models to Self-Correct via RL](https://arxiv.org/abs/2409.12917)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
+- [Search-R1: Training LLMs to Reason and Leverage Search Engines with RL](https://arxiv.org/abs/2503.09516)
+- [Self-Improvements in Modern Agentic Systems: A Survey](https://arxiv.org/abs/2607.13104)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [OpenAI o1 / Reasoning Models](https://openai.com/index/learning-to-reason-with-llms/)

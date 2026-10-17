@@ -149,13 +149,33 @@ Reflection 是手段，不是目的。在引入 Reflection 前，先问自己：
 
 如果答案多为否，可能更好的做法是优化 base prompt、增加 few-shot 示例，或引入 Retrieval。
 
+## 12. 给反思设预算，允许提前终止
+
+反思是稀缺资源，不是免费循环：
+
+- **critique budget 控制在 1~3 轮**：生产 runbook 的通行上限，超出即降级或升级人工。
+- **token 硬顶独立于 max_iter**：reasoning models 的内隐反思会消耗大量 token，必须有每任务预算。
+- **允许跳过确认性反思**：模型高置信且无外部验证信号时，不必每轮都跑 Critic（2025-10 研究显示提前截断确认性反思可省约 24.5% token、精度损失不足 2.9%）。
+- **按领域配置**：数学、代码多给预算；翻译、润色等收益不稳定的领域少给。
+
+## 13. 反思写记忆要做“卫生管理”
+
+Reflection 沉淀经验的同时也在制造风险：错误反思会被反复检索放大。纪律包括：
+
+- **写入门槛**：带外部验证信号（测试通过、人工确认）的经验才进长期 Memory。
+- **质量分 + 版本 + 衰减**：每条经验可演化（参考 A-Mem/ACE），保留版本历史，支持回滚与淘汰。
+- **污染审计**：定期抽样检查 Memory 命中效果，清理“坏经验”。
+
 ## 本章小结
 
-Agent Reflection 的最佳实践可以总结为：criteria-first、Critic 聚焦、循环有界、保留最佳版本、人工兜底、结果持久化、策略版本化、外部验证优先、按任务配置、持续监控。遵循这些原则，可以避免 Reflection 变成“多轮生成却不见效”的形式主义，真正发挥自我纠错的价值。
+Agent Reflection 的最佳实践可以总结为：criteria-first、Critic 聚焦、循环有界、保留最佳版本、人工兜底、结果持久化、策略版本化、外部验证优先、按任务配置、持续监控。2025-2026 年新增两条：给反思设预算（轮数、token、按领域分配、允许提前终止），以及反思记忆的卫生管理（写入门槛、版本演化、污染审计）。遵循这些原则，可以避免 Reflection 变成“多轮生成却不见效”的形式主义，真正发挥自我纠错的价值。
 
 **参考来源**
 
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

@@ -31,6 +31,7 @@ Critic 是 Reflection 系统的“质量守门人”，其选型直接影响反�
 | **小尺寸专用 Critic** | 高频调用、规则明确 | 成本低、延迟低 | 通用性差，需要微调 |
 | **多 Critic 投票** | 高风险、复杂任务 | 降低单一 Critic 偏差 | 成本与延迟显著增加 |
 | **外部验证工具** | 代码、事实、约束 | 客观、可解释 | 只覆盖可验证维度 |
+| **Reasoning model 兼任** | 底层模型已具备内隐自检 | 无需额外 Critic 轮次，延迟低 | 不可观测、不可定制，无法替代工具验证 |
 
 工程建议：
 
@@ -38,6 +39,7 @@ Critic 是 Reflection 系统的“质量守门人”，其选型直接影响反�
 2. **Critic 比 Generator 更“保守”**：Critic 的温度应偏低，提示词要求明确、严格。
 3. **小模型 Critic 需要微调**：用人工标注的 critique 数据微调 7B~13B 模型，可在低成本下获得不错效果。
 4. **多 Critic 用于高风险场景**：如代码安全审查、医疗建议，可使用 3 个 Critic 投票。
+5. **Reasoning model 时代重排优先级**：如果底层已是 o1/R1 级模型，其内隐自检已覆盖大量表面问题，外部 Critic 应聚焦工具验证和业务规则，而不是重复“通读检查”。注意内隐反思不可观测，关键链路仍需外部验证兜底。
 
 ## 评分校准
 
@@ -79,6 +81,24 @@ Evaluator 的 score 必须与人感知的质量一致，否则 Reflection Loop �
 | **混合反思** | 在线轻量反思 + 离线深度反思 | 大多数生产系统 | 在线做 1~2 轮快速修订，离线做 episode 级总结 |
 
 在线反思适合“当前回答必须更好”，离线反思适合“长期积累经验”。
+
+## 反思预算与提前终止
+
+2025-2026 年的生产实践把“反思预算”明确为一级工程对象——反思不再是“每轮必跑”，而是受预算约束的稀缺资源：
+
+- **critique budget 惯例为 1~3 轮**：LangGraph 生态的生产 runbook 普遍把批判/自愈预算设为最多 3 次迭代，超出即降级或升级人工，避免“过度自愈掩盖真实 bug”。
+- **确认性反思可提前截断**：arXiv:2510.08308 显示 reasoning models 的反思多为确认性、很少改变答案，提前截断可省约 24.5% token、精度损失不足 2.9%。
+- **收益按领域分配**：NeurIPS 2025 Efficient Reasoning Workshop 的《Finding the Sweet Spot》表明反思收益强依赖领域与模型——数学推理收益明显，翻译、本地化等任务收益不稳定，应按领域配置预算而非全局统一。
+- **token 硬顶**：除 max_iter 外再设每任务反思 token 上限，防止 reasoning model 的长链内隐反思失控拉高成本。
+
+## 记忆卫生（Memory Hygiene）
+
+Reflection 写 Memory 是双刃剑：错误反思一旦沉淀，会被后续任务反复检索、放大、自我强化。2025-2026 年的实践要求：
+
+- **写入有门槛**：只有带外部验证信号（测试通过、人工确认）的反思才允许写入长期 Memory；纯模型自评的反思标记为“未证实”。
+- **条目带质量分与版本**：可演化记忆（A-Mem/ACE 式）每次更新保留版本历史，支持回滚。
+- **衰减与淘汰**：低命中率、被后续经验证伪的条目要降权或废弃，防止记忆膨胀与噪声累积。
+- **污染监控**：定期抽样审计 Memory 命中效果，发现“学了坏经验”及时清理。
 
 ## 与 Runtime 集成
 
@@ -144,9 +164,10 @@ Reflection 产生的数据是 Memory 的宝贵输入：
 | **模块级** | Critic 准确率、Evaluator 与人工一致性 | 单独评估 Critic 和 Evaluator |
 | **Loop 级** | 通过率、平均迭代次数、首次通过时间 | 评估整个反思循环的效率 |
 | **端到端** | 任务成功率、人工满意度、延迟、成本 | 评估 Reflection 对最终用户体验的贡献 |
-| **长期** | 重复错误率、Memory 命中率 | 评估反思经验是否真正被复用 |
+| **轨迹级** | 单步决策正确率、轨迹与最优路径偏离度 | 2025 年后 agent 评测标配，避免只看最终答案 |
+| **长期** | 重复错误率、Memory 命中率、坏经验污染率 | 评估反思经验是否真正被复用且未被污染 |
 
-建议用离线数据集定期回归，避免线上 A/B 测试才能发现问题。
+2025 年后生产 agent 评测的通行做法是**三层评测**（最终回答、完整轨迹、单步决策分别建 eval）配合 **Pass^k 可靠性指标**（同一任务跑 k 次要求全部通过，而非 Pass@k 只看最好一次），并接入 OpenTelemetry/LangSmith 做轨迹追踪。建议用离线数据集定期回归，避免线上 A/B 测试才能发现问题。
 
 ## 人工兜底（Human-in-the-Loop）
 
@@ -186,12 +207,14 @@ Reflection 产生的数据是 Memory 的宝贵输入：
 
 ## 本章小结
 
-生产级 Agent Reflection 需要综合考虑 Critic 模型选型、评分校准、在线/离线模式、与 Runtime 和 Memory 的集成、评测基准、人工兜底和成本延迟优化。它不是万能药，应在错误成本较高、评估标准明确、延迟可接受的场景启用，并通过持续监控和校准保证反思结果真正提升输出质量。
+生产级 Agent Reflection 需要综合考虑 Critic 模型选型、评分校准、在线/离线模式、与 Runtime 和 Memory 的集成、评测基准、人工兜底和成本延迟优化。它不是万能药，应在错误成本较高、评估标准明确、延迟可接受的场景启用，并通过持续监控和校准保证反思结果真正提升输出质量。2025-2026 年的增量共识：给反思设预算（critique budget 1~3 轮 + token 硬顶 + 提前终止）、做记忆卫生（写入门槛、版本、衰减、污染监控）、评测补轨迹级与 Pass^k 可靠性指标，并在 reasoning model 之上把外部 Critic 聚焦到工具验证与业务规则。
 
 **参考来源**
 
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)

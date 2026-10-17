@@ -61,6 +61,8 @@ flowchart LR
     多 Agent 互相批判]
     E --> F[Reasoning Models
     模型内部隐式反思]
+    F --> G[状态化与训练式反思
+    记忆演化 + RL 习得]
 ```
 
 | 阶段 | 核心特征 | 代表 |
@@ -70,7 +72,8 @@ flowchart LR
 | **记忆化反思** | 把反思结论写入长期记忆，影响未来任务 | Reflexion |
 | **工具化反思** | 调用编译器、搜索引擎、数据库等外部工具验证 | CRITIC |
 | **群体反思** | 多个 Agent 互相审阅、投票、合并意见 | AutoGen Reflect、Multi-Agent 审稿 |
-| **内隐反思** | 模型在内部进行长链推理与自我修正 | OpenAI o1 / o3 |
+| **内隐反思** | 模型在内部进行长链推理与自我修正 | OpenAI o1 / o3、DeepSeek-R1 |
+| **状态化/训练式反思** | 反思结论被结构化沉淀、演化，或经 RL 直接训练进模型 | A-Mem、ACE、SCoRe、PreFlect |
 
 ## 5. 典型应用场景
 
@@ -115,9 +118,37 @@ Reflection 在以下场景中价值最大：
 
 Reflection 的核心价值在于**可解释、可量化、可迭代、可沉淀**。
 
+## 7. 2025-2026：反思范式的三次转向
+
+2025 年以来，reasoning models 的爆发和 agentic memory 的成熟，让显式反思（Reflexion 式外部循环）的定位发生了明显变化。业界和学界大致形成了三个共识：
+
+### 转向一：内隐反思规模化，prompt 级自批判收益收窄
+
+OpenAI o1（2024-09）和 DeepSeek-R1（2025-01）证明了：用强化学习（R1 采用 GRPO）在**可验证奖励**上直接训练基座模型，模型会自发涌现出自我验证、回溯修正等反思行为——R1-Zero 训练中的“aha moment”模型学会了主动重新评估初始思路。反思从“外部系统编排的循环”部分下沉为“模型权重里的能力”。
+
+但同期研究也给出了一针见血的现实检验：
+
+- **SCoRe**（Kumar et al., ICLR 2025）：仅靠 prompt 要求模型自我纠正基本无效，甚至会让正确答案改错；只有用多轮 on-policy RL 才能训出真正的自纠错能力（MATH +15.6%、HumanEval +9.1%）。
+- **《Revisiting the Role of Reflection in Reasoning Models》**（2025-10）：对 8 个 reasoning model、5 个数学数据集的 rollouts 分析发现，推理模型内部的“反思”大多是**确认性**的——模型很少真正改变自己的初始答案；反思型训练数据主要提升的是**首次作答**正确率，而非纠错率。
+
+结论：对前沿推理模型，单纯再加一层“请你检查一遍”的 prompt 循环，收益已经很薄；显式反思的剩余价值集中在**外部工具接地**（编译器、检索、执行反馈）和**跨任务经验沉淀**这两件事上。
+
+### 转向二：从回顾式到前瞻式反思
+
+Reflexion、Self-Refine 都是**回顾式（retrospective）**：先执行、失败、再反思补救。但失败之后再改，代价已经付出：有些错误不可逆，反思过程还会污染轨迹和记忆。2026 年的 PreFlect 等工作提出**前瞻式（prospective）**反思：在执行之前，先对“计划”做批判与修订——在认知窗口内拦截错误，而不是在行动之后追悔。实验上 PreFlect 在 GAIA 基准上超过多个更复杂的 agent 框架，且成本更低。
+
+### 转向三：反思从“文本”进化为“状态”
+
+Reflexion 把反思写成自然语言塞进记忆，但记忆本身不会生长。2025 年的两条工作改变了这一点：
+
+- **A-Mem**（NeurIPS 2025）：受 Zettelkasten 卡片盒启发，把记忆笔记的**构建、链接、演化**都做成 agentic 过程，记忆条目会随新经验自主更新关系和摘要。
+- **ACE（Agentic Context Engineering）**（2025-10）：把上下文视为一本持续生长的“playbook”，通过“生成 → 反思 → 精选”循环做结构化增量更新，避免传统摘要的上下文坍缩；在 agent 基准上带来约 +10.6% 的提升，小模型（DeepSeek-V3.1）借此在 AppWorld 上追平 GPT-4.1 级别的生产 agent。
+
+同时，agentic 搜索领域（如 Search-R1，2025-03）用 RL 训练模型自主交替“推理与检索”，并涌现出“下结论前再多检索一轮做自我验证”的行为——反思与外部验证在训练时就被融为一体。
+
 ## 本章小结
 
-Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播问题。人类元认知提供了“生成—批判—评估—修订”的直觉框架。工程上，Reflection 从 prompt 级反思逐步演进到 Self-Refine、Reflexion、CRITIC、群体反思，直至 reasoning models 的内隐反思。它在代码、写作、规划、工具使用、数学推理等需要高正确率的场景中尤为关键。
+Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播问题。人类元认知提供了“生成—批判—评估—修订”的直觉框架。工程上，Reflection 从 prompt 级反思逐步演进到 Self-Refine、Reflexion、CRITIC、群体反思与 reasoning models 的内隐反思，并在 2025-2026 年进一步走向状态化记忆（A-Mem、ACE）、前瞻式反思（PreFlect）与 RL 训练式自纠错（SCoRe、DeepSeek-R1）。它在代码、写作、规划、工具使用、数学推理等需要高正确率的场景中尤为关键。
 
 **参考来源**
 
@@ -126,4 +157,11 @@ Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
+- [SCoRe: Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models](https://arxiv.org/abs/2510.04618)
+- [Search-R1: Training LLMs to Reason and Leverage Search Engines with RL](https://arxiv.org/abs/2503.09516)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

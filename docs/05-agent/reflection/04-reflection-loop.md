@@ -192,14 +192,53 @@ stateDiagram-v2
 | **越改越差** | score 下降 | 引入回滚机制，保留历史最佳版本 |
 | **外部工具失败** | 编译器/测试不可用 | 降级为内部反馈 + 标记待人工确认 |
 
+## 变体一：前瞻式反思循环（Prospective Loop）
+
+2026 年的 PreFlect 等工作把反思从“失败后补救”前移到“执行前拦截”。前瞻式循环把批判对象从 draft 换成**计划（plan）**，并在执行中保留动态重规划入口：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Plan: 接收任务
+    Plan --> PreCritique: 生成计划
+    PreCritique --> PreRevise: 发现风险（约束未验证 / 工具选择不当 / 验证过浅）
+    PreRevise --> PreCritique: 修订计划（最多 N 轮）
+    PreCritique --> Execute: 计划通过
+    Execute --> Monitor: 逐步执行
+    Monitor --> RePlan: 进展停滞 / 假设失效
+    RePlan --> PreCritique: 新计划也需前瞻批判
+    Monitor --> PostReflect: 执行完成
+    PostReflect --> [*]: 回顾式总结写入 Memory
+```
+
+与标准回顾式循环相比：
+
+| 维度 | 回顾式 Loop | 前瞻式 Loop |
+|---|---|---|
+| 批判对象 | 已产出的 draft / 行动结果 | 尚未执行的计划 |
+| 反馈来源 | 真实执行结果 | 错误模式库 + Critic 预判 |
+| 代价 | 失败已发生，可能不可逆 | 额外的前瞻批判延迟 |
+| 适用 | 可重试任务 | 高风险、长链路、失败成本高的任务 |
+
+工程上两者不互斥：前瞻式负责“别犯错”，回顾式负责“犯了错能学到”。
+
+## 变体二：自适应反思预算
+
+固定“每轮都批判、最多 N 轮”的策略在 reasoning models 时代显得浪费——模型内部已经做过大量自检。2025-10 的研究（arXiv:2510.08308）表明，推理模型推理链中的反思大多是确认性的，提前截断可节省约 24.5% token、精度损失不足 2.9%；NeurIPS 2025 Efficient Reasoning Workshop 的《Finding the Sweet Spot》进一步指出反思的收益具有**领域与模型依赖性**：数学推理收益明显，翻译/本地化等任务收益不稳定。据此，生产循环建议：
+
+- **按领域分配预算**：可客观验证的任务（代码、数学）多给预算，主观任务少给。
+- **置信度触发**：Generator 自评置信度高且无外部验证信号时，跳过或压缩 Critic 轮次。
+- **token 预算硬顶**：除 max_iter 外，再设每任务反思 token 上限，防止 reasoning model 的长链反思失控。
+
 ## 本章小结
 
-反思循环是 Agent Reflection 的执行核心，按照“生成 → 批判 → 评估 → 修订 → 终止”的顺序反复运转。终止条件包括质量达标、最大迭代次数、改进饱和、外部验证通过和人工批准。max_iter 是必须配置的硬护栏，HITL 是高风险场景的安全网。实际运行中需要警惕 Critic 过严/过松、Generator 不改、越改越差等失败模式。
+反思循环是 Agent Reflection 的执行核心，按照“生成 → 批判 → 评估 → 修订 → 终止”的顺序反复运转。终止条件包括质量达标、最大迭代次数、改进饱和、外部验证通过和人工批准。max_iter 是必须配置的硬护栏，HITL 是高风险场景的安全网。实际运行中需要警惕 Critic 过严/过松、Generator 不改、越改越差等失败模式。2025-2026 年的两个重要变体是：把批判前移到执行之前的前瞻式循环，以及按领域、置信度和 token 预算动态分配的自适应反思预算。
 
 **参考来源**
 
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
+- [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

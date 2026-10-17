@@ -235,15 +235,35 @@ Agent Runtime → Reflection Service → LLM Gateway
 
 使用云厂商或框架提供的托管 Reflection 能力，例如 LangGraph Cloud、AutoGen 托管运行时。
 
+## 2025-2026 架构演进趋势
+
+reasoning models 与 agentic memory 成熟后，Reflection 架构出现了三个值得注意的演进方向：
+
+### 1. 内隐反思下沉，显式循环“瘦身”
+
+DeepSeek-R1 之后，Generator / Critic 的底层模型普遍自带长链自我验证能力。架构上表现为：显式 Critic 轮次减少（甚至只在工具验证失败时触发），Revision Controller 从“固定 N 轮循环”变为**事件驱动**——由外部验证结果（编译失败、测试红灯、检索矛盾）触发反思，而非无条件每轮批判。
+
+### 2. 状态层从“记录”走向“演化”
+
+传统 Reflection Memory 是只追加的日志；A-Mem（NeurIPS 2025）与 ACE（2025-10）把它升级为**会生长的状态**：记忆条目会被后续反思更新摘要、重建链接、合并淘汰。Workspace 与 Reflection Memory 的边界随之模糊——两者共同构成一份“演化中的 playbook”，控制器读写的是同一份结构化上下文。
+
+### 3. 控制器走向自适应与学习化
+
+固定 threshold + max_iter 的策略正在被自适应策略补充：根据任务类型、模型置信度、历史收敛曲线动态分配“反思预算”（哪一步该反思、花多少 token 反思）。学术侧则出现直接训练反思策略的工作（如长程反思训练的 AREX-2、从轨迹反思构建启发式池的 ERL），让反思策略本身成为可学习的对象，而不是手写规则。
+
 ## 本章小结
 
-Agent Reflection 的架构核心是“生成—批判—评估—修订”的闭环。Generator、Critic、Evaluator 是执行层，Revision Controller 和 Policy 是编排层，Workspace 和 Reflection Memory 是状态层，Observer 和 Human Gate 是可观测与兜底层。控制面负责策略与终止条件，数据面负责高并发的生成与批判。部署形态可以是库、独立服务、Sidecar 或托管，选择取决于延迟、隔离和可扩展需求。
+Agent Reflection 的架构核心是“生成—批判—评估—修订”的闭环。Generator、Critic、Evaluator 是执行层，Revision Controller 和 Policy 是编排层，Workspace 和 Reflection Memory 是状态层，Observer 和 Human Gate 是可观测与兜底层。控制面负责策略与终止条件，数据面负责高并发的生成与批判。部署形态可以是库、独立服务、Sidecar 或托管，选择取决于延迟、隔离和可扩展需求。2025-2026 年的趋势是：内隐反思下沉到模型、状态层走向演化、控制器走向自适应与学习化。
 
 **参考来源**
 
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL](https://arxiv.org/abs/2501.12948)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
+- [Self-Improvements in Modern Agentic Systems: A Survey](https://arxiv.org/abs/2607.13104)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

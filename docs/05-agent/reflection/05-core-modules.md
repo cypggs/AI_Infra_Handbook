@@ -281,6 +281,8 @@ class ReflectionMemory:
 - 只沉淀高价值经验，避免把每次反思都写入 Memory 导致噪声。
 - 经验需要定期人工审核，防止错误模式被固化。
 - 与 Agent Memory 的存储后端复用，降低维护成本。
+- **记忆要会演化，不是只追加**：A-Mem（NeurIPS 2025）与 ACE（2025-10）的实践表明，记忆条目应支持后续反思触发的摘要更新、链接重建与合并淘汰，否则会积累矛盾经验和上下文噪声。
+- **做记忆卫生（memory hygiene）**：错误反思一旦写入会被反复检索放大，应为经验条目打质量分、带版本、支持衰减与废弃，并警惕无可靠外部信号时“自我强化式”反思造成的记忆污染。
 
 ## Policy（策略）
 
@@ -308,6 +310,7 @@ class ReflectionPolicy:
 - Policy 应该版本化管理，便于回滚与 A/B 测试。
 - 不同业务场景使用不同 Policy，避免一刀切。
 - 策略变更需要与评估基准联动，避免盲目调整。
+- 2025-2026 的趋势是**自适应反思预算**：除 max_iter 外，按任务领域、模型置信度配置反思强度，并设每任务反思 token 硬上限——reasoning models 内化了大量自检，无条件全量反思浪费 token（参见 04 章“自适应反思预算”）。
 
 ## Observer（观测器）
 
@@ -388,6 +391,8 @@ Agent Reflection 的核心模块包括 Generator、Critic、Evaluator、Revision
 - [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 - [Reflexion: Self-Reflective Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
+- [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
+- [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)
