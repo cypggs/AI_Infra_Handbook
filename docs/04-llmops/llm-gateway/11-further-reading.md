@@ -63,6 +63,8 @@
 - [Triton Inference Server 详解](/04-llmops/triton/) — 多框架推理服务入口，常与 Gateway 配合使用。
 - [KServe 详解](/03-ai-platform/kserve/) — Kubernetes 模型服务平台，可为 Gateway 提供集群内模型端点、扩缩与金丝雀能力。
 - [Ray 详解](/03-ai-platform/ray/) — Ray Serve 可作为 Gateway 上游的分布式推理引擎，Ray Serve LLM 提供 OpenAI-compatible 端点。
+- [LLM 推理缓存与 KV Cache 管理详解](/04-llmops/kv-cache/) — 网关层 prefix 路由与缓存亲和（KV-cache 感知调度）的基础设施视角，与 Gateway API Inference Extension / llm-d 呼应。
+- [Perplexity 案例研究](/09-case-study/perplexity/) — 推理经济学典型案例：网关/路由层如何在高吞吐搜索场景下管理推理成本与延迟。
 
 ## 推荐学习路径
 

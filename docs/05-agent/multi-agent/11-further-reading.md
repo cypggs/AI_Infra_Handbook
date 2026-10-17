@@ -42,6 +42,7 @@
 - [Planning 详解](/05-agent/planning/) — Coordinator 做任务拆分与重规划的核心能力。
 - [Tool Use 详解](/05-agent/tool-use/) — 每个 Agent 的工具调用、解析、执行与权限控制。
 - [Agent OS 详解](/05-agent/agent-os/) — Multi-Agent 运行在 Agent OS 提供的进程、调度、沙箱与消息总线之上。
+- [Personal AI Agent 详解](/05-agent/personal-agent/) — 个人智能体常是单用户多 Agent 编排（如助理 + 子代理分工）的产品化形态。
 - RAG（后续主题）— 多个 Agent 可共享的外部知识检索能力。
 
 ## 推荐学习路径

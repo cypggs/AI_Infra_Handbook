@@ -132,6 +132,8 @@
 | Meta 案例研究 | /09-case-study/meta/ | 同步训练可靠性工程标杆：SDC 三件套检测、~50x 中断下降、>95% 有效训练时间、故障→checkpoint→auto-restart 闭环。 |
 | Linux 系统与性能调优 | /01-foundation/linux-systems/ | CPU、memory、I/O、network 指标都来自 Linux 内核；Linux 调优是 AI SRE 根因分析的基础。 |
 | Google 案例研究 | /09-case-study/google/ | 超大规模同步训练可用率标杆：NSDI'24 healthd + preflight 四层检测、reconfigure/reroute 双路径恢复、99.98% 可用率、OCS 把主机可用率要求从 99.9% 降到 99%。 |
+| DeepSeek 案例研究 | /09-case-study/deepseek/ | 开源 LLM 服务的生产可观测与故障恢复实践参照：推理集群 HAI-LLM 可观测、V3.1 灰度降级与 Fire-Flyer 文件系统容错。 |
+| xAI 案例研究 | /09-case-study/xai/ | Colossus 超算集群（20 万卡）的故障注入演练、训练中断自愈与 RDMA 网络治理是 AI SRE 容量与韧性治理的参照。 |
 
 ## 推荐学习路径
 

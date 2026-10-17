@@ -27,6 +27,7 @@
 | MLflow | 训练实验追踪与模型注册 | [MLflow 总览](../mlflow/) |
 | Airflow | 工作流编排；Ray 作业可作为 Airflow 任务执行 | [Airflow 总览](../airflow/) |
 | AI SRE | 可观测、SLO、告警 | [AI SRE 总览](../../07-ai-sre/) |
+| RL Post-Training | RL rollout/训练集群可用 KubeRay 托管 | [RL Post-Training 总览](../../04-llmops/rl-post-training/) |
 
 ## 11.3 关键工程指南
 

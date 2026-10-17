@@ -43,6 +43,7 @@
 | KubeRay | Ray 在 K8s 上的 Operator，可与 KServe 组合 | [KubeRay](../kuberay/) |
 | Airflow | 工作流编排；可编排 KServe 部署流水线 | [Airflow](../airflow/) |
 | LLM Gateway | 可与 KServe 端点组合 | [LLM Gateway](../../04-llmops/llm-gateway/) |
+| 模型量化与压缩 | KServe 可部署量化后模型，降低推理资源成本 | [模型量化与压缩基础设施](../../04-llmops/model-quantization/) |
 | AI SRE | KServe 的可观测与 SLO | [AI SRE](../../07-ai-sre/) |
 
 ## 论文与博客

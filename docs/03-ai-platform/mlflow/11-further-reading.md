@@ -28,6 +28,7 @@
 | SGLang | 大模型结构化输出；可与 MLflow 模型服务结合 | [SGLang 总览](../../04-llmops/sglang/index.md) |
 | TensorRT-LLM | 高性能推理；模型可打包进 MLflow artifact | [TensorRT-LLM 总览](../../04-llmops/tensorrt-llm/index.md) |
 | Agent Runtime | Agent 训练实验追踪 | [Agent Runtime 总览](../../05-agent/agent-runtime/index.md) |
+| Feature Store | 特征/训练数据资产管理，与 MLflow 模型注册构成训练侧资产化闭环 | [Feature Store 总览](../feature-store/index.md) |
 
 ## 11.3 进阶论文与文章
 

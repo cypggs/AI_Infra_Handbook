@@ -95,6 +95,7 @@
 | [Ray](/03-ai-platform/ray/) | Ray on K8s 依赖 CNI / CSI | 训练任务网络与数据持久化是本主题的直接应用 |
 | [AI SRE](/07-ai-sre/) | CNI / CSI 可观测性 | Hubble、CSI 驱动 metrics、kubelet volume manager 指标 |
 | [安全](/08-security/) | NetworkPolicy、加密存储 | 本主题的 NetworkPolicy / StorageClass encryption 是执行点 |
+| [AI 集群网络](/02-cloud-native/ai-networking/) | RDMA/RoCE/IB、多轨网络与 NCCL 集合通信的网络侧实现 | SR-IOV CNI / Multus 是本主题在 AI 训练集群的直接应用 |
 
 ## 11.6 推荐学习路径
 

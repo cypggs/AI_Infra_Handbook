@@ -52,6 +52,8 @@
 - [Google 案例研究](../../09-case-study/google/)：Orbax / OCDBT / Zarr3 checkpoint。
 - [OpenAI 案例研究](../../09-case-study/openai/)：TB 级 checkpoint 与并行文件系统。
 - [Anthropic 案例研究](../../09-case-study/anthropic/)：TB 级 checkpoint 与 artifact 治理。
+- [LLM 推理缓存与 KV Cache 管理](../../04-llmops/kv-cache/)：KV Cache 分层卸载到 SSD/本地盘，Mooncake 分布式 KV 池的存储底座。
+- [向量数据库与 Embedding 基础设施](../../06-rag/vector-db/)：向量索引（HNSW/IVF）与 Embedding 数据的存储引擎。
 
 ## 11.5 社区与会议
 

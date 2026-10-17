@@ -91,6 +91,7 @@
 | [KubeRay](/03-ai-platform/kuberay/) | Ray on K8s 需要 GPU 资源与 Gang 调度 | 结合 Kueue/Volcano 做 Ray 集群调度 |
 | [计算机网络](/01-foundation/computer-networks/) | RDMA/RoCE/IB 是千卡训练网络基础 | 本主题讲“如何与 GPU 配合”，网络主题讲“为什么” |
 | [AI SRE](/07-ai-sre/) | GPU 可观测与故障响应是 SRE 核心 | DCGM 指标、Xid 告警、容量规划 |
+| [AI 集群网络](/02-cloud-native/ai-networking/) | GPU 拓扑感知调度依赖 NVLink/NVSwitch fabric 与机柜级网络拓扑 | 理解 scale-up/scale-out 网络才能做好拓扑感知与机柜级调度 |
 
 ## 11.6 推荐学习路径
 

@@ -59,6 +59,7 @@
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/) — NVIDIA 编译型 LLM 推理引擎，可作为 Triton TensorRT-LLM backend。
 - [LLM Gateway 详解](/04-llmops/llm-gateway/) — 位于 Triton 前的统一接入层，处理认证、限流、路由与多租户。
 - [AI 编译器与 Kernel 生成详解](/04-llmops/ai-compiler/) — 推理引擎之下的算子编译层：Triton 语言、Inductor、cuTile/CUTLASS、TileLang。注意区分：本主题的 Triton 是 NVIDIA 推理服务软件，该主题讲的是 OpenAI 的 Triton GPU 编程语言与编译器。
+- [模型量化与压缩基础设施详解](/04-llmops/model-quantization/) — Triton 后端（尤其 TensorRT-LLM backend）常加载量化后的引擎；量化方案选择直接影响 Triton 部署的成本与延迟。
 
 ## 推荐学习路径
 

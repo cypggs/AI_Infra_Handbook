@@ -45,6 +45,7 @@
 | AI SRE | [AI SRE](/07-ai-sre/) | CPU/memory/I/O/network 指标都来自 Linux 内核 |
 | Ray | [Ray](/03-ai-platform/ray/) | Ray worker 进程和对象存储依赖 Linux 进程调度和 I/O |
 | vLLM | [vLLM](/04-llmops/vllm/) | 推理延迟和吞吐受 Linux 调度、内存、网络影响 |
+| LLM 推理缓存与 KV Cache 管理 | [KV Cache](/04-llmops/kv-cache/) | KV Cache CPU offload 与分层存储直接依赖 Linux 内存管理、page cache 与 swap |
 
 ## 推荐学习路径
 

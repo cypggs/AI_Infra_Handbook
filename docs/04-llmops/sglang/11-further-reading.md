@@ -45,6 +45,8 @@
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)
 - [Triton Inference Server 详解](/04-llmops/triton/)
 - [LLM Gateway 详解](/04-llmops/llm-gateway/)
+- [LLM 推理缓存与 KV Cache 管理详解](/04-llmops/kv-cache/) — SGLang HiCache 分层缓存、Rust radix tree 与 PD 分离传输的基础设施视角，与本主题 RadixAttention 互为表里。
+- [模型量化与压缩基础设施详解](/04-llmops/model-quantization/) — 量化支持矩阵、精度-性能权衡与压缩工具链，与 SGLang 的量化推理路径互补。
 - [LLMOps 概述](/04-llmops/)
 - [学习路线](/10-roadmap/learning-path)
 - [面试指南](/10-roadmap/interview-guide)

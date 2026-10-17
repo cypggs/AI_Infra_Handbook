@@ -77,6 +77,7 @@
 - [Multi-Agent 主题](/05-agent/multi-agent/) — 共享或隔离的长期记忆池是多 Agent 协作的基础。
 - [Reflection 主题](/05-agent/reflection/) — Reflection 系统产出 critique、score 与改进经验，是 Episodic Memory 的重要输入。
 - [MCP 主题](/05-agent/mcp/) — Memory 可以暴露 `remember/recall` 接口供 Runtime 通过 [MCP](/05-agent/mcp/) 调用。
+- [向量数据库详解](/06-rag/vector-db/) — 记忆向量化存储的底座：Embedding、索引与混合检索的工程基础。
 
 ## 推荐学习路径
 

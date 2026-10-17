@@ -121,6 +121,7 @@ Kubernetes 是 AI 基础设施的底座，几乎所有上层主题都建立在�
 | **[LLM Gateway](/04-llmops/)** | 用 K8s Ingress/Gateway API 做七层路由 | Gateway API 是 Ingress 演进 |
 | **[案例研究：Meta / Google](/09-case-study/)** | Borg 是 K8s 祖先；Meta 的 cluster management 与 K8s 对照 | 读 Borg 论文理解 K8s 设计根源 |
 | **[AI SRE / 可观测性](/07-ai-sre/)** | K8s 监控（Prometheus/DCGM）是 AI 平台 SRE 的核心 | 本主题第 8 章可观测性是衔接点 |
+| **[AI 集群网络](/02-cloud-native/ai-networking/)** | 训练/推理集群的 RDMA、RoCE/IB、多轨网络与 SR-IOV CNI 都跑在 K8s 之上 | 读完本主题与 CNI/CSI 后再读 AI 集群网络，理解 K8s 网络原语如何支撑万卡互联 |
 
 ## 11.8 推荐学习路径
 

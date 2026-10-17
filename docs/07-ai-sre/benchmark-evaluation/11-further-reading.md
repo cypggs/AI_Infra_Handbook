@@ -111,6 +111,7 @@ Benchmark + Evaluation 与手册中多个主题紧密相关：
 - [RAG](/06-rag/)：RAG 的检索与生成质量需要专门的 benchmark 与指标。
 - [LLMOps](/04-llmops/)：模型版本、Prompt、实验管理为评估提供变更上下文。
 - [Security](/08-security/)：安全评估、红队、越狱测试是 Benchmark + Evaluation 不可或缺的子集。
+- [GraphRAG 详解](/06-rag/graphrag/) — 知识图谱检索的专项评估（如 GraphRAG-Bench）是结构化检索评测的代表方向。
 
 ## 推荐学习路径
 

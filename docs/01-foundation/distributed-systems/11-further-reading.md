@@ -65,6 +65,8 @@
 | Ray | ownership、GCS、对象存储、lineage | [总览](../../03-ai-platform/ray/index.md) |
 | Google 案例研究 | Borgmaster/Paxos、GFS/Bigtable | [总览](../../09-case-study/google/index.md) |
 | Meta 案例研究 | ZippyDB/Paxos、Twine 调度 | [总览](../../09-case-study/meta/index.md) |
+| LLM 推理缓存与 KV Cache 管理 | 分布式 KV 池、PD 分离下的缓存一致性与传输引擎 | [总览](../../04-llmops/kv-cache/index.md) |
+| AI 集群网络 | RDMA/RoCE/IB 与集合通信是分布式系统在 AI 集群的直接延伸 | [总览](../../02-cloud-native/ai-networking/index.md) |
 
 ## 11.5 推荐学习路径
 

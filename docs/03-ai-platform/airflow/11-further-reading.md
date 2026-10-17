@@ -42,6 +42,7 @@
 | Kubernetes | KubernetesExecutor / Celery on K8s 底座 | [Kubernetes 总览](../../02-cloud-native/kubernetes/index.md) |
 | Operator 模式 | Airflow 自身也依赖 K8s Operator 部署 | [Operator 模式总览](../../02-cloud-native/operator/index.md) |
 | AI SRE | Airflow 生产监控、告警、SLO | [AI SRE 总览](../../07-ai-sre/index.md) |
+| Feature Store | 特征管道可用 Airflow DAG 编排，构成训练数据流水线 | [Feature Store 总览](../feature-store/index.md) |
 
 ## 11.4 进阶论文、博客与演讲
 

@@ -73,6 +73,8 @@
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 编译型 LLM 推理引擎，大量依赖 Tensor Core 与 FP8；
 - [vLLM](/04-llmops/vllm/)：GPU 上的 LLM 推理服务与内存管理；
 - [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)：手写 CUDA 之上的算子编译与 kernel 自动生成（Triton、cuTile、TileLang）；
+- [模型量化与压缩基础设施](/04-llmops/model-quantization/)：FP8/INT4 量化 kernel 如何落到 Tensor Core 与 CUDA 编程模型上；
+- [AI 集群网络](/02-cloud-native/ai-networking/)：NVLink/NCCL 多卡互联与 RDMA 网络，把单卡 CUDA 知识扩展到集群层面；
 - [Ray](/03-ai-platform/ray/)：分布式 AI 计算，底层调用 CUDA + NCCL；
 - [大模型从 0 到 1](/01-foundation/llm-from-zero/)：Transformer、训练、推理全链路；
 - [OpenAI / Meta / Google 案例研究](/09-case-study/)：超大规模 GPU 集群的工程实践。
