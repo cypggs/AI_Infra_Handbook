@@ -79,8 +79,9 @@ Letta 在 2025–2026 年迭代非常快，记忆相关的重要变化包括：
 
 - **letta_v1_agent**：2026 年初的新默认 Agent 架构，原生支持 Responses API 风格的推理，适配 GPT-5 / Claude 4.5 Sonnet 等主流模型；ADE（Agent Development Environment）创建的 Agent 默认使用该架构。
 - **ADE（Agent Development Environment）**：Web 端的 Agent 开发环境，可在浏览器中查看和编辑 Agent 的 core memory、消息历史与工具调用，是调试记忆行为的利器。
-- **Letta Code（2025 年 12 月）**：记忆优先的编码 Agent，把“跨会话记住项目上下文”作为核心卖点。
+- **Letta Code（2025 年 12 月）**：记忆优先的编码 Agent，把“跨会话记住项目上下文”作为核心卖点。2026 年 10 月已迭代到 v0.34.x：引入 MemFS v2 记忆文件系统与配套 Memory 工具（v0.34.7），subagents 可以继承主 Agent 的记忆 vault，并支持挂载 Claude Code / Codex / OpenCode 作为编码 worker；CLI 提供 `letta mcp connect`（含 localhost OAuth 回调），方便把 Letta 记忆接入任意 MCP 客户端。
 - **架构精简与迁移**：letta_v1_agent 废弃了早期 MemGPT 时代的 send_message 工具、heartbeats、prompted reasoning tokens 等遗留设计；2026 年 Letta 进一步把部分服务端能力（模板、identities、服务端 MCP 等）迁移为客户端的 context repository（MemFS）、skills 与 subagents 体系，细节见其官方博客 *Letta's Next Phase*。
+- **服务端版本现状（截至 2026-10）**：letta 服务端最新为 v0.16.8（2026-05 发布）；v0.16.7 是一个大版本——自托管默认上下文从 32K 提升到 128K、compaction（记忆压缩）全面重做、git-backed memory block 取消硬限额（允许自由增长，随附 recompile 端点），整体在向 MemFS v2 的“可编译上下文”模型收敛。
 
 ### 优点与局限
 
@@ -211,8 +212,10 @@ Mem0 的核心抽象包括：
 
 ### 2026 年的重要更新
 
-- **Token-efficient memory algorithm（2026 年 4 月）**：单遍分层抽取 + 多信号检索，官方报告 LoCoMo 从 71.4 提升到 92.5、LongMemEval 从 67.8 提升到 94.4，且每次查询仅注入约 6.9K token（全量上下文方案往往需要 25K+）。开源 SDK 同步支持。
-- **成为 AWS Agent SDK 的独家记忆提供方**：标志着记忆中间件路线进入主流云厂商的默认技术栈。
+- **Token-efficient memory algorithm（2026 年 4 月）**：单遍分层抽取 + 多信号检索，官方报告 LoCoMo 从 71.4 提升到 92.5、LongMemEval 从 67.8 提升到 94.4，且每次查询仅注入约 6.9K token（全量上下文方案往往需要 25K+）。开源 SDK 同步支持。2026 年 7 月底该算法加入时序推理能力，让抽取到的事实自带时间维度。
+- **成为 AWS Agent SDK 的独家记忆提供方**：标志着记忆中间件路线进入主流云厂商的默认技术栈。2026 年 9 月 Mem0 又上架 Vercel Marketplace，并发布 Claude Connector，让 Claude 对话直接获得跨会话持久记忆。
+- **Dream：后台记忆整合（2026 年 9 月）**：对标 Letta sleep-time compute 的中间件侧实现。三个后台操作——Merge（旧记忆被完全包含则标记 `merged` 并默认从搜索隐藏）、Supersede（被取代事实标记 `superseded`，仍可通过 `include_merged` 检索、`latest_only` 过滤）、Synthesize（仅当多条独立观察支持时才综合出高层摘要，刻意保守）。设计原则：**不物理删除任何记忆**，生命周期状态是索引列，`latest_only` 过滤代价低。官方给出的动机数据：一个活跃项目的中位数就带有几百条重复或矛盾的记忆。
+- **DolphinBench（2026 年 9 月）**：Mem0 发布的开放基准，用“行动”而非“问答”评测记忆——三个模拟多年历史的 persona（每人约 50 万 token 历史），600 个依赖记忆的工具调用任务（Notion / Gmail / GitHub / Discord 等模拟应用），每个测试都做可解性认证（给出相关历史必通过、扣留必失败）。结果同时报告准确率、总成本与中位延迟：最好成绩为 Hermes + GPT-5.6-Luna + Mem0 的 70.67%；值得注意的是弱模型（MiniMax M3）配记忆系统可从 26.5% 提升到约 48%，而强模型仅靠内置记忆就有 65.7% 且最便宜——记忆系统与模型能力是需要一起设计的 Pareto 权衡。
 - **基准争议**：2025 年 Zep 曾公开质疑 Mem0 在 LoCoMo 上的评测配置；厂商自报基准分数普遍应谨慎对待，选型时应自行做 bake-off。
 
 ### 优点与局限
@@ -248,8 +251,9 @@ flowchart LR
 
 ### 工程要点
 
-- **写入重、查询轻**：写入路径包含 LLM 实体/关系抽取，延迟和成本集中在写侧；检索是“向量 + BM25 + 图遍历”的纯计算过程。
-- **MCP Server**：Graphiti 提供一等公民 MCP Server（2025 年 Q1 发布 1.0），Cursor 等 MCP 客户端可以直接挂载持久记忆；这也是 Thoughtworks 技术雷达在 2026 年 4 月把 Graphiti 从“评估”上调为“试验”的因素之一（同时提示了写入 LLM 成本和 pre-1.0 版本需要锁定依赖）。
+- **写入重、查询轻**：写入路径包含 LLM 实体/关系抽取，延迟和成本集中在写侧；检索是“向量 + BM25 + 图遍历”的纯计算过程。2026 年 v0.29–v0.31 版本重点优化写侧：合并抽取（单次 LLM 调用同时产出节点与边，v0.31.0 起为默认）与批量多 episode 抽取显著降低写入成本。
+- **Saga 线程摘要**：v0.29.0 引入 saga 抽象，把多条 episode 滚动压缩成“叙事摘要”，并用墙钟水位 + episode 时间双水位线控制摘要新鲜度——这是把 sleep-time 式后台整理引入图谱记忆的体现。
+- **MCP Server**：Graphiti 提供一等公民 MCP Server（2025 年 Q1 发布 1.0），Cursor 等 MCP 客户端可以直接挂载持久记忆；这也是 Thoughtworks 技术雷达在 2026 年 4 月把 Graphiti 从“评估”上调为“试验”的因素之一（同时提示了写入 LLM 成本和 pre-1.0 版本需要锁定依赖）。2026 年下半年 MCP Server 与核心库能力完全对齐（双时序、saga、社区、过滤器、triplet），并支持按 group_id 路由实现请求级多租户隔离；搜索过滤器加固了 Cypher 注入防护。截至 2026-10 核心库版本为 v0.31.x（默认 OpenAI 模型已切换为 gpt-6-luna），仍未发布 1.0 正式版。
 - **多图后端**：Neo4j、FalkorDB、Kuzu、Amazon Neptune。
 
 ### 优点与局限
@@ -370,19 +374,23 @@ pgvector 是 PostgreSQL 的向量扩展，把向量检索能力带入关系型�
 
 ## 本章小结
 
-Letta（MemGPT）把 OS 虚拟内存思想引入 Agent，提出 Core / Recall / Archival 三层记忆，Agent 主动编辑记忆，并在 2025 年后用 sleep-time compute 把记忆整理移出请求路径；Mem0 走自动抽取中间件路线，以 ADD/UPDATE/DELETE/NOOP 四操作解决记忆冲突，2026 年凭借 token-efficient 算法与 AWS Agent SDK 集成成为个性化记忆的事实标杆之一；Zep/Graphiti 以双时序知识图谱为核心，把“事实何时为真”做成一等公民，并通过 MCP Server 成为 Agent 框架无关的记忆服务；MemOS 则探索了“记忆操作系统”的统一抽象。LangGraph 通过 Checkpoint 与 Store 把状态持久化和跨会话记忆深度集成到图执行中；OpenAI Agents SDK Sessions 提供开箱即用的会话管理，但长期记忆需要自行扩展。向量数据库方面，Chroma 适合原型，Weaviate 适合模块化生产，Milvus 适合大规模，pgvector 适合已有 Postgres 的团队。选型时应认识到三条路线（Agent 管理型 / 中间件型 / 时序图谱型）的哲学差异，并结合厂商基准争议保持独立验证。
+Letta（MemGPT）把 OS 虚拟内存思想引入 Agent，提出 Core / Recall / Archival 三层记忆，Agent 主动编辑记忆，并在 2025 年后用 sleep-time compute 把记忆整理移出请求路径，2026 年进一步收敛到 MemFS v2“可编译上下文”模型，Letta Code 把记忆能力带到编码 Agent 场景；Mem0 走自动抽取中间件路线，以 ADD/UPDATE/DELETE/NOOP 四操作解决记忆冲突，2026 年凭借 token-efficient 算法、Dream 后台整合、DolphinBench 行动式基准与 AWS / Vercel / Claude 生态集成成为个性化记忆的事实标杆之一；Zep/Graphiti 以双时序知识图谱为核心，把“事实何时为真”做成一等公民，2026 年下半年以合并抽取、Saga 摘要与 MCP 多租户路由降低写入成本、补齐服务化能力，并通过 MCP Server 成为 Agent 框架无关的记忆服务；MemOS 则探索了“记忆操作系统”的统一抽象。LangGraph 通过 Checkpoint 与 Store 把状态持久化和跨会话记忆深度集成到图执行中；OpenAI Agents SDK Sessions 提供开箱即用的会话管理，但长期记忆需要自行扩展。向量数据库方面，Chroma 适合原型，Weaviate 适合模块化生产，Milvus 适合大规模，pgvector 适合已有 Postgres 的团队。选型时应认识到三条路线（Agent 管理型 / 中间件型 / 时序图谱型）的哲学差异，并结合厂商基准争议保持独立验证。
 
 **参考来源**
 
 - [Letta Documentation](https://docs.letta.com)
 - [Letta GitHub](https://github.com/letta-ai/letta)
+- [Letta Code Releases（v0.34.x）](https://github.com/letta-ai/letta-code/releases)
 - [Letta — Sleep-time Compute 论文（arXiv:2504.13171）](https://arxiv.org/abs/2504.13171)
 - [Letta — Sleep-time Compute 产品博客](https://www.letta.com/blog/sleep-time-compute/)
 - [Letta — Our Next Phase](https://www.letta.com/blog/our-next-phase/)
 - [Mem0 GitHub](https://github.com/mem0ai/mem0)
 - [Mem0 Documentation](https://docs.mem0.ai)
 - [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Mem0 Blog — Dream: Background Memory Consolidation（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
+- [Mem0 Blog — DolphinBench（2026-09）](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
+- [Graphiti Releases（v0.29–v0.31）](https://github.com/getzep/graphiti/releases)
 - [Thoughtworks Technology Radar — Graphiti](https://www.thoughtworks.com/en-gb/radar/platforms/graphiti)
 - [MemOS GitHub（MemTensor）](https://github.com/MemTensor/MemOS)
 - [MemOS 论文（arXiv:2505.22101）](https://arxiv.org/abs/2505.22101)

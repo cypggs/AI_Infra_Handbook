@@ -221,6 +221,7 @@ importance(t) = importance_0 * exp(-λ * t)
 - **mem0 的四操作模型**：LLM 对每条新抽取的事实输出 ADD（新增）、UPDATE（改写旧事实）、DELETE（删除旧事实）或 NOOP（与现有记忆一致，不动作），避免了“新旧事实并存导致回注矛盾”的问题。
 - **Graphiti 的时序失效**：新事实到来时，旧关系被打上失效时间戳（invalidation）而非物理删除，既保留了审计能力，又让检索可以区分“当前为真”与“历史上为真”的事实。
 - **Letta 的 sleep-time 整理**：后台 Agent 在空闲时扫描历史记忆，主动合并重复、升降级记忆分区，把冲突解决从请求路径上挪到了离线路径。
+- **Mem0 Dream 的生命周期状态（2026 年 9 月）**：后台整合作业对记忆做三种操作——Merge（旧记忆被新记忆完全包含则标记 `merged` 并默认隐藏）、Supersede（被取代的事实标记 `superseded`，仍可检索到、可用 `latest_only` 过滤）、Synthesize（多条独立观察综合成更高层摘要，刻意保守）。原则是**任何情况下不物理删除**，与 Graphiti 的失效思路殊途同归。
 
 生产经验：**“更新”比“追加”难一个数量级**——追加只是写入，更新需要先判定冲突、再决定覆盖/版本化，还要处理并发写。设计长期记忆 Schema 时应把 UPDATE/DELETE 语义作为一等公民。
 
@@ -252,6 +253,8 @@ importance(t) = importance_0 * exp(-λ * t)
 2. **成本与延迟**：把所有历史塞进 Prompt 意味着每轮都重复支付全量 token 的推理成本；外部记忆按需检索，成本和延迟都低一个量级（厂商测试显示 p95 延迟可降低约 90%）。
 3. **上下文是易失的**：窗口里的内容随会话结束消失，无法跨会话积累；外部记忆可以持久化、索引、治理。
 4. **上下文缺乏主动管理**：真正的记忆系统需要遗忘、冲突解决、TTL、审计，这些是“被动窗口”做不到的。
+
+2026 年 9 月的 DolphinBench 评测为这场争论补充了实证：在 600 个依赖记忆的工具调用任务上，**强模型 + 内置记忆的低成本方案与弱模型 + 外置记忆系统之间是 Pareto 权衡，而不是一方通吃**——弱模型（如 MiniMax M3）搭配记忆系统可以把准确率从 26.5% 提升到约 48%，而强模型（GPT-5.6-Luna）仅靠内置记忆就达到了 65.7% 且成本最低。结论不是“不需要记忆系统”，而是“记忆系统要与模型能力、成本预算一起设计”。
 
 当前的主流架构是**分层混合**：工作记忆直接用上下文承载，跨会话记忆走外部检索，企业级事实走 RAG/知识层——三者通过统一检索编排，而不是非此即彼。
 
@@ -288,3 +291,5 @@ Agent Memory 的核心思想可以概括为：把记忆按寿命和用途分层�
 - [LangGraph Add Memory](https://docs.langchain.com/oss/python/langgraph/add-memory)
 - [Mem0 Documentation](https://docs.mem0.ai)
 - [Lost in the Middle（Liu et al., TACL 2024）](https://arxiv.org/abs/2307.03172)
+- [Mem0 Blog — Dream: Background Memory Consolidation（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
+- [Mem0 Blog — DolphinBench（2026-09）](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)

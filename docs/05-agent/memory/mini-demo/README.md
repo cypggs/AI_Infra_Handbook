@@ -16,12 +16,12 @@ The demo is split into small, focused modules:
 | `retriever.py` | `MemoryRetriever`: vector / keyword / hybrid retrieval |
 | `working_memory.py` | `WorkingMemory`: current-session message buffer with budget truncation |
 | `short_term_memory.py` | `ShortTermMemory`: recent turns and session summaries |
-| `long_term_memory.py` | `LongTermMemory`: semantic facts and preferences |
+| `long_term_memory.py` | `LongTermMemory`: semantic facts and preferences, with supersede/merge lifecycle states |
 | `episodic_memory.py` | `EpisodicMemory`: task episodes (goal, actions, outcome) |
 | `procedural_memory.py` | `ProceduralMemory`: reusable patterns and few-shot examples |
 | `summarizer.py` | `SimpleExtractiveSummarizer`: lightweight text compression |
 | `storage.py` | `InMemoryStorage` / `JsonFileStorage`: pluggable persistence |
-| `memory_service.py` | `MemoryService`: unified `remember` / `recall` / `consolidate` / `save` / `load` API |
+| `memory_service.py` | `MemoryService`: unified `remember` / `recall` / `update` / `consolidate` / `save` / `load` API |
 | `demo.py` | Entry script: multi-session personalization demonstration |
 
 ### Why a deterministic embedder?
@@ -64,6 +64,11 @@ The demo runs a multi-session scenario:
    similar future tasks.
 4. **Hybrid retrieval**: vector + keyword search over long-term facts.
 5. **Summarization**: a long working memory is compressed into short-term memory.
+6. **Lifecycle states**: `update()` supersedes an outdated fact instead of
+   overwriting it (the old record stays auditable, hidden from `latest_only`
+   recall), and `consolidate_duplicates()` merges exact-duplicate facts — a
+   teaching-grade version of Mem0 Dream's merge/supersede and Graphiti's
+   temporal invalidation.
 
 ## Run tests
 

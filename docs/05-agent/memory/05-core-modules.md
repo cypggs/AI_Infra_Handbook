@@ -296,6 +296,7 @@ class GraphStore:
 生产要点：
 
 - 2025 年后以 Graphiti（Zep 开源引擎）为代表的实现采用**双时序模型**：每条关系记录生效时间（valid time）与系统记录时间（transaction time），更新事实时旧边失效而非删除。
+- 2026 年下半年 Graphiti 0.29–0.31 版本把写入效率与多租户作为重点：引入**合并抽取（combined extraction，单次 LLM 调用同时产出节点与边，0.31.0 起成为默认）**与批量多 episode 抽取，显著降低写入成本；新增 **Saga（线程摘要）抽象**，用墙钟水位与 episode 时间双水位线滚动压缩长叙事；MCP Server 与核心库能力对齐（双时序、saga、社区、过滤器、triplet），并支持按 group_id 路由实现请求级多租户隔离；搜索过滤器加固了 Cypher 注入防护。
 - 写入路径通常包含 LLM 实体/关系抽取，写入成本与延迟显著高于向量写入，需要异步化与批量处理。
 - 图检索与向量检索是互补关系：向量负责粗召回，图负责实体对齐、多跳遍历与时序过滤。
 - 图后端可选 Neo4j、FalkorDB、Kuzu、Amazon Neptune 等；轻量场景可用嵌入式图库或 Postgres 递归查询近似。
@@ -317,6 +318,7 @@ class GraphStore:
 
 - 长期记忆 Schema 应包含 `valid_from` / `valid_until` 字段，而不是只记 `created_at`。
 - 时序索引与衰减策略正交：前者回答“事实何时为真”，后者回答“哪条更优先”。
+- 2026 年 10 月的 TEM（Temporal State Tracking Memory，arXiv:2610.21900）验证了时序标签的价值：仅给事实加版本化时间标签（无需训练）就能让历史事实的检索命中率提升 17–56 个百分点——说明“什么时候为真”和“是什么”同样重要。
 
 ## 模块协作原则
 
@@ -337,3 +339,5 @@ Agent Memory 的核心模块包括 Memory Service、Working Memory、Short-term 
 - [Mem0 Architecture](https://docs.mem0.ai)
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)
+- [Graphiti Releases（v0.29–v0.31）](https://github.com/getzep/graphiti/releases)
+- [TEM: Temporal State Tracking Memory（arXiv:2610.21900）](https://arxiv.org/abs/2610.21900)

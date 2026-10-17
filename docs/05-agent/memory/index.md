@@ -71,3 +71,4 @@ Agent Memory 是 Agent 基础设施中承上启下的一层：它向上为 Agent
 - [Letta Documentation](https://docs.letta.com)
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Mem0 Blog — DolphinBench: Mapping the Pareto Frontier of Agent Memory](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)

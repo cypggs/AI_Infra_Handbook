@@ -193,6 +193,10 @@ sequenceDiagram
 - 被标记为敏感或低价值。
 - 达到 TTL。
 
+### 合规遗忘：被遗忘权落地仍是短板
+
+“用户要求删除”在纸面上简单，端到端落地却很难：记忆可能已被压缩进摘要、综合成洞察、缓存在索引里。2026 年 10 月的 Bemula 基准（arXiv:2610.18052）系统评测了主流记忆系统的**遗忘能力**，结论是没有任何系统能端到端通过超过 1.5% 的遗忘请求——删除一条记忆容易，证明它从所有派生产物（摘要、embedding、图节点、缓存）中都被清除则近乎不可能。工程上的缓解方向：写入时保留 provenance（来源指针），使删除可以沿派生链传播；TTL 与敏感标签前置，减少需要事后清除的数据量。
+
 ### Decay（衰减）
 
 给记忆赋予重要性分数，随时间或使用频率变化：
@@ -214,6 +218,7 @@ importance(t) = importance_0 * exp(-λ * t) + access_count * boost
 - **mem0 风格**：LLM 抽取新事实时，同时输出 ADD / UPDATE / DELETE / NOOP 决策，先判定与现有记忆的关系再写入，避免重复与矛盾。
 - **Graphiti 风格（时序失效）**：新事实到来时，不为旧事实打“删除”标记，而是写入失效时间戳（invalidation）；旧事实保留在图中，支持“当前为真”与“历史上为真”两种查询模式，兼顾审计与时序推理。
 - **Letta sleep-time 风格**：把记忆整理（合并重复、升降级、归档）放在后台 Agent 中离线执行，避免占用请求路径的延迟预算。
+- **Mem0 Dream 风格（2026 年 9 月）**：整理由后台作业异步执行，分为 Merge（完全包含则合并隐藏）、Supersede（取代但保留可检索）、Synthesize（多观察综合成摘要）三档，**任何操作都不物理删除**；记忆对象带 `lifecycle_state` 与 `replacement_memory_id` 字段，`latest_only` 过滤下沉为索引操作。这是“更新 = 状态迁移”而非“更新 = 覆盖写”的教科书实现。
 
 ### 遗忘决策流程
 
@@ -253,3 +258,5 @@ Agent Memory 的生命周期包括感知、编码、存储、索引、检索、�
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [LangGraph Add Memory](https://docs.langchain.com/oss/python/langgraph/add-memory)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)
+- [Mem0 Blog — Dream: Background Memory Consolidation（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
+- [Bemula: Memory Unlearning Benchmark（arXiv:2610.18052）](https://arxiv.org/abs/2610.18052)

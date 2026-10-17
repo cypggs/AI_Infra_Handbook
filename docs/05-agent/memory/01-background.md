@@ -124,9 +124,10 @@ flowchart LR
 
 1. **混合记忆成为默认架构**：生产 Agent 普遍采用“向量（快速模糊召回）+ 图（实体/时序推理）+ 情景缓冲区”的组合，而不是押注单一存储。Mem0g 在向量层之上叠加 Neo4j 图谱，Graphiti 以时序图谱为核心，都是这一趋势的体现。
 2. **记忆评估基准成型**：LoCoMo、LongMemEval 及其扩展 LongMemEval-V2、BEAM 成为评估记忆系统的事实标准；ICLR 2026 还开设了 MemAgents（Memory for LLM-Based Agentic Systems）专题研讨会。同时厂商自报基准分数屡有争议（如 Zep 公开反驳 Mem0 的 LoCoMo 配置），社区共识是“自己跑 bake-off，不信厂商数字”。
-3. **记忆管理走向后台化（sleep-time compute）**：Letta 把“睡眠时计算”从论文（arXiv:2504.13171，可降低约 5 倍测试时计算量）产品化，后台 Agent 在空闲时扫描历史、整理与升降级记忆，记忆整理不再占用用户请求的延迟。
-4. **记忆服务协议化**：Graphiti 的一等公民 MCP Server、Mem0 成为 AWS Agent SDK 的独家记忆提供方，说明记忆层正在从“内嵌库”演变为可通过 MCP 等标准协议接入的独立服务。
+3. **记忆管理走向后台化（sleep-time compute）**：Letta 把“睡眠时计算”从论文（arXiv:2504.13171，可降低约 5 倍测试时计算量）产品化，后台 Agent 在空闲时扫描历史、整理与升降级记忆，记忆整理不再占用用户请求的延迟。2026 年 9 月，中间件路线的 Mem0 也发布了 Dream 功能，用 Merge / Supersede / Synthesize 三种后台操作做记忆整合——“后台记忆整理”从单一框架的特性变成了跨路线的共识标配。
+4. **记忆服务协议化**：Graphiti 的一等公民 MCP Server、Mem0 成为 AWS Agent SDK 的独家记忆提供方，说明记忆层正在从“内嵌库”演变为可通过 MCP 等标准协议接入的独立服务。2026 年下半年 Graphiti 的 MCP Server 补齐了与核心库的能力对齐（双时序、saga、社区、过滤器），并支持按 group_id 路由实现多租户隔离；Mem0 也发布了 Claude Connector（2026 年 9 月），让 Claude 对话直接获得持久记忆。
 5. **“记忆操作系统”出现**：MemOS 提出 MemCube 抽象，把参数记忆、激活记忆与明文记忆统一纳管，并配套 MemScheduler、MemLifecycle 等“OS 级”组件，代表了把记忆提升为第一类基础设施资源的探索。
+6. **评测范式从“问答准确率”走向“行动 + 成本 + 可遗忘”**：2026 年 9 月 Mem0 发布 DolphinBench，不再用问答评测记忆，而是用 600 个依赖记忆的**工具调用动作任务**（三个模拟多年历史的 persona，每人约 50 万 token 历史）同时考察准确率、成本与延迟，并引入“可解性认证”。同期 arXiv 上的 FEB-30（2610.22209）指出下游 QA 会把记忆质量与检索/生成能力混为一谈，Bemula（arXiv:2610.18052）则首次系统评测“记忆删除权”——结论是没有系统能端到端通过超过 1.5% 的遗忘请求，合规遗忘成为公认短板。
 
 ## 本章小结
 
@@ -140,5 +141,8 @@ Agent Memory 的产生是 Agent 从“一次性问答”走向“长期服务”
 - [LangGraph Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [OpenAI Agents SDK Sessions](https://openai.github.io/openai-agents-python/sessions/)
 - [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
+- [Mem0 Blog — Dream: Background Memory Consolidation（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
+- [Mem0 Blog — DolphinBench（2026-09）](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)
+- [Bemula: Memory Unlearning Benchmark（arXiv:2610.18052）](https://arxiv.org/abs/2610.18052)
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [MemOS GitHub（MemTensor）](https://github.com/MemTensor/MemOS)

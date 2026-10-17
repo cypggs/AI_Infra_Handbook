@@ -95,12 +95,15 @@ class MemoryService:
         query: str,
         memory_type: Optional[str] = None,
         top_k: int = 5,
+        latest_only: bool = False,
     ) -> List[Dict[str, Any]]:
         """Recall memories relevant to ``query``.
 
         ``memory_type`` can be ``fact``, ``task``, ``example``, ``pattern``, or
         ``None`` to search all tiers. Long-term facts use hybrid retrieval
-        (vector + keyword); other tiers use vector search.
+        (vector + keyword); other tiers use vector search. With
+        ``latest_only=True`` facts superseded or merged by ``update`` /
+        ``consolidate_duplicates`` are hidden.
         """
         target = (memory_type or "all").lower()
         results: List[Dict[str, Any]] = []
@@ -129,8 +132,28 @@ class MemoryService:
             for record in self.procedural.recall(query, top_k):
                 results.append(fmt(record, "example"))
 
+        if latest_only:
+            results = [
+                r
+                for r in results
+                if r["metadata"].get("lifecycle_state", "active") == "active"
+            ]
         results.sort(key=lambda x: x.get("score") or 0.0, reverse=True)
         return results[:top_k]
+
+    def update(self, memory_id: str, new_content: str) -> str:
+        """Supersede a long-term fact and store its new version.
+
+        The old record is kept with a ``superseded`` lifecycle state so the
+        fact history remains auditable; returns the new memory id.
+        """
+        if not isinstance(new_content, str):
+            raise TypeError("updated fact expects a string")
+        return self.long_term.update_fact(memory_id, new_content)
+
+    def consolidate_duplicates(self) -> List[str]:
+        """Merge exact-duplicate long-term facts (Dream-style merge)."""
+        return self.long_term.consolidate()
 
     def consolidate(self) -> str:
         """Summarize working memory and move it into short-term memory.

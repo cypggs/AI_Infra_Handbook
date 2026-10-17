@@ -175,7 +175,7 @@ Agent Runtime → Memory Service → Vector Store / KV Store
 
 ### 形态 5：MCP Server
 
-2025 年后出现的新形态：把记忆系统封装成 MCP Server，通过 `remember/recall/search` 等工具暴露给任意支持 MCP 的 Agent（如 Cursor、Claude Code、LangGraph Agent）。Graphiti 的 MCP Server 于 2025 年 Q1 发布 1.0，成为 Thoughtworks 技术雷达 2026 年将 Graphiti 从“评估”上调为“试验”的考量因素之一。
+2025 年后出现的新形态：把记忆系统封装成 MCP Server，通过 `remember/recall/search` 等工具暴露给任意支持 MCP 的 Agent（如 Cursor、Claude Code、LangGraph Agent）。Graphiti 的 MCP Server 于 2025 年 Q1 发布 1.0，成为 Thoughtworks 技术雷达 2026 年将 Graphiti 从“评估”上调为“试验”的考量因素之一；2026 年下半年其 MCP Server 已与核心库能力对齐，并支持按 group_id 路由实现请求级多租户隔离。
 
 ```text
 Agent Runtime ←MCP 协议→ Memory MCP Server → Vector/Graph Store

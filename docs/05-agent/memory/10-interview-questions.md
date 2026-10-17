@@ -123,7 +123,7 @@
 - **业务价值**：有记忆 vs 无记忆的任务成功率、用户满意度。
 - **性能**：检索/写入延迟 P50/P99、存储成本、每次查询注入的 token 数。
 - **隐私合规**：敏感信息拦截率、用户删除响应时间。
-- **基准工具**：LoCoMo、LongMemEval、BEAM；厂商自报分数要谨慎，应自有数据 bake-off。
+- **基准工具**：LoCoMo、LongMemEval、BEAM，以及行动式评测 DolphinBench 与遗忘评测 Bemula；厂商自报分数要谨慎，应自有数据 bake-off。
 
 ### Q13：向量记忆和时序知识图谱记忆有什么区别？什么时候选后者？
 
@@ -140,11 +140,19 @@
 
 - Sleep-time compute 由 Letta / UC Berkeley 提出（arXiv:2504.13171）：让 Agent 在空闲时运行后台 LLM 调用，预处理输入、整理记忆，从而降低测试时（请求路径）计算量（论文报告约 5 倍）。
 - 对记忆系统的意义：记忆整理（事实合并、冲突消解、core/archive 升降级）本来要在请求路径上做，延迟高、成本大；移到后台离线做之后，请求路径只需要轻量检索。
-- 本质是把记忆的“写入与整理”从同步路径解耦到异步路径，代价是需要维护一个后台 Agent 与触发调度。
+- 本质是把记忆的“写入与整理”从同步路径解耦到异步路径，代价是需要维护一个后台 Agent 与触发调度。2026 年 9 月 Mem0 的 Dream 功能把同一思路带到了中间件路线：后台执行 Merge / Supersede / Synthesize，且任何操作都不物理删除记忆。
+
+### Q15：用户要求删除一条记忆，如何保证它真的被删除了？
+
+**参考答案**：
+
+- 难点在于派生链：一条记忆可能已被压缩进摘要、综合成洞察、编码进 embedding、投影到图节点、缓存在检索索引中，逐点删除容易、证明全部清除难。
+- 2026 年 10 月的 Bemula 基准（arXiv:2610.18052）显示，主流记忆系统端到端通过遗忘请求的比例不超过 1.5%——这是行业公认短板。
+- 工程缓解：写入时保留 provenance（来源指针），删除沿派生链传播；优先用 TTL 与敏感标签前置拦截，减少需要事后清除的数据量；删除操作本身进入审计日志并可验证。
 
 ## 本章小结
 
-Agent Memory 的面试问题通常集中在：**记忆分类与生命周期**、**向量检索策略**、**长期记忆与 RAG 的区别**、**多租户隔离**、**embedding 模型管理**、**遗忘与更新机制**、**隐私与安全**、**Memory 与 Runtime 的边界**。2025 年后还会考察**向量 vs 图谱 vs 时序记忆的选型**与 **sleep-time compute / 后台记忆整理**等新范式。掌握本章问题，基本可以覆盖初级到高级面试场景。
+Agent Memory 的面试问题通常集中在：**记忆分类与生命周期**、**向量检索策略**、**长期记忆与 RAG 的区别**、**多租户隔离**、**embedding 模型管理**、**遗忘与更新机制**、**隐私与安全**、**Memory 与 Runtime 的边界**。2025 年后还会考察**向量 vs 图谱 vs 时序记忆的选型**、**sleep-time compute / 后台记忆整理**（Letta sleep-time、Mem0 Dream）与**行动式记忆评测（DolphinBench）/ 合规遗忘（Bemula）**等新范式。掌握本章问题，基本可以覆盖初级到高级面试场景。
 
 **参考来源**
 
@@ -153,5 +161,7 @@ Agent Memory 的面试问题通常集中在：**记忆分类与生命周期**、
 - [Mem0 Documentation](https://docs.mem0.ai)
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [Sleep-time Compute（arXiv:2504.13171）](https://arxiv.org/abs/2504.13171)
+- [Bemula: Memory Unlearning Benchmark（arXiv:2610.18052）](https://arxiv.org/abs/2610.18052)
+- [Mem0 Blog — Dream（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)
 - [MemGPT Paper](https://arxiv.org/abs/2310.08560)

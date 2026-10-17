@@ -63,8 +63,10 @@ docs/05-agent/memory/mini-demo/
 | 检索器 | `retriever.py` | vector / keyword / hybrid |
 | 摘要 | `summarizer.py` | 简单抽取式摘要与事实提取 |
 | 可插拔存储 | `storage.py` | InMemoryStorage / JsonFileStorage |
-| 统一服务 | `memory_service.py` | remember / recall / forget 编排 |
+| 统一服务 | `memory_service.py` | remember / recall / forget / update 编排 |
 | 入口演示 | `demo.py` | 多会话个性化场景 |
+
+2026-10 版新增**记忆生命周期状态**：`long_term_memory.py` 实现了 Dream/Graphiti 风格的 `superseded` / `merged` 状态——`update_fact` 用新事实取代旧事实时，旧记录不被物理删除，而是打上 `lifecycle_state="superseded"` 并记录 `replaced_by` / `valid_until`；`consolidate()` 对完全重复的事实做确定性合并（`merged`）。`recall(..., latest_only=True)` 只返回当前生效的记忆，与 Mem0 Dream 的 `latest_only` 参数、Graphiti 的“当前为真”查询语义一致（教学版只做精确文本去重，真实系统靠 LLM 判定近似重复）。
 
 ## 快速运行
 
@@ -175,6 +177,14 @@ class MemoryService:
     ) -> bool:
         """删除指定记忆。"""
         ...
+
+    def update(self, memory_id: str, new_content: str) -> str:
+        """用新事实取代旧事实；旧记录保留 superseded 状态，可审计。"""
+        ...
+
+    def consolidate_duplicates(self) -> List[str]:
+        """合并完全重复的长期记忆（Dream 风格 merge 的教学版）。"""
+        ...
 ```
 
 ### 多会话个性化场景
@@ -201,11 +211,17 @@ tests/test_episodic_memory.py::test_store_and_recall_episodes PASSED
 tests/test_episodic_memory.py::test_episode_contains_actions_and_outcome PASSED
 tests/test_long_term_memory.py::test_remember_and_recall_facts PASSED
 tests/test_long_term_memory.py::test_fact_id_increments PASSED
+tests/test_long_term_memory.py::test_update_fact_supersedes_old_record PASSED
+tests/test_long_term_memory.py::test_consolidate_merges_exact_duplicates PASSED
+tests/test_long_term_memory.py::test_update_unknown_id_raises PASSED
 tests/test_memory_service.py::test_multi_session_recall PASSED
 tests/test_memory_service.py::test_remember_task_and_example PASSED
 tests/test_memory_service.py::test_forget_memory_and_session PASSED
 tests/test_memory_service.py::test_save_and_load_json PASSED
 tests/test_memory_service.py::test_consolidate_moves_working_to_short_term PASSED
+tests/test_memory_service.py::test_update_fact_and_latest_only_recall PASSED
+tests/test_memory_service.py::test_consolidate_duplicates_via_service PASSED
+tests/test_memory_service.py::test_lifecycle_state_survives_save_load PASSED
 tests/test_retriever.py::test_vector_retrieval PASSED
 tests/test_retriever.py::test_keyword_retrieval PASSED
 tests/test_retriever.py::test_hybrid_retrieval PASSED
@@ -220,7 +236,7 @@ tests/test_working_memory.py::test_truncate_preserves_system_messages PASSED
 tests/test_working_memory.py::test_truncate_word_mode PASSED
 tests/test_working_memory.py::test_invalid_budget_mode PASSED
 
-============================== 26 passed in 0.04s ==============================
+============================== 32 passed in 0.04s ==============================
 ```
 
 ## 生产差异说明

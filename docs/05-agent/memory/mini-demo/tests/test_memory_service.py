@@ -89,3 +89,52 @@ def test_consolidate_moves_working_to_short_term():
     assert service.working.get_messages() == []
     assert "Summary:" in service.short_term.get_context()
     assert summary in service.short_term.get_context()
+
+
+def test_update_fact_and_latest_only_recall():
+    service = MemoryService()
+    old_id = service.remember("fact", "Alice 住在北京")
+    new_id = service.update(old_id, "Alice 住在上海")
+    assert new_id != old_id
+
+    all_results = service.recall("Alice 住在", memory_type="fact", top_k=10)
+    assert len(all_results) == 2
+    latest = service.recall(
+        "Alice 住在", memory_type="fact", top_k=10, latest_only=True
+    )
+    assert len(latest) == 1
+    assert "上海" in latest[0]["text"]
+
+
+def test_consolidate_duplicates_via_service():
+    service = MemoryService()
+    service.remember("fact", "用户喜欢简洁的 Markdown 周报")
+    dup_id = service.remember("fact", "用户喜欢简洁的 Markdown 周报")
+
+    merged = service.consolidate_duplicates()
+    assert merged == [dup_id]
+
+    latest = service.recall(
+        "Markdown 周报", memory_type="fact", top_k=10, latest_only=True
+    )
+    assert len(latest) == 1
+
+
+def test_lifecycle_state_survives_save_load():
+    service = MemoryService()
+    old_id = service.remember("fact", "用户喜欢深色主题")
+    service.update(old_id, "用户喜欢浅色主题")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "memory.json")
+        service.save(path)
+        service2 = MemoryService()
+        service2.load(path)
+
+        old = service2.long_term.store.get(old_id)
+        assert old.metadata["lifecycle_state"] == "superseded"
+        latest = service2.recall(
+            "用户喜欢", memory_type="fact", top_k=10, latest_only=True
+        )
+        assert len(latest) == 1
+        assert "浅色" in latest[0]["text"]

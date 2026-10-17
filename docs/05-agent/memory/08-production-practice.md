@@ -88,10 +88,13 @@ Cold Archive: S3 / OSS
 | **LoCoMo** | 超长多会话对话记忆 | 多跳推理、信息聚合，社区使用最广，也是厂商争议最多的基准 |
 | **LongMemEval / LongMemEval-V2** | 长期交互记忆 | 覆盖信息抽取、时序推理、知识更新与拒答（abstention），V2 进一步拉长时间跨度 |
 | **BEAM** | 记忆质量综合评估 | 面向记忆系统的多维评测 |
+| **DolphinBench（2026-09）** | 行动式记忆评测 | Mem0 发布：600 个依赖记忆的工具调用任务（3 个约 50 万 token 历史的 persona），每个测试做可解性认证，同时报告准确率、总成本与中位延迟，强调记忆是“准确率 × 成本 × 延迟”的 Pareto 问题 |
+| **Bemula（2026-10）** | 记忆遗忘 / 被遗忘权 | arXiv:2610.18052：端到端评测删除请求的执行效果，当前没有任何系统能通过超过 1.5% 的遗忘请求，合规遗忘是公认短板 |
 
 需要特别注意：
 
 - **厂商自报分数谨慎对待**：2025 年 Zep 公开反驳过 Mem0 的 LoCoMo 评测配置，双方各执一词。任何“在某基准上提升 XX%”的说法，都应在自己的数据上复现后再采信。
+- **评测任务形态很重要**：DolphinBench 的教训是，问答式基准（QA）会同时考察检索与生成能力，掩盖记忆本身的缺陷（FEB-30，arXiv:2610.22209 系统论证了这一点）；尽量用“依赖记忆才能完成的动作任务”验证，而不是只看问答准确率。
 - **延迟与成本比准确率更重要**：记忆系统的准确率差距往往在几个百分点内，但延迟（p95）与每次查询注入的 token 数差异可能相差一个数量级。生产选型建议以“准确率 × 延迟 × 每查询 token 成本”三维权衡。
 - **注入 token 数是关键指标**：同样的准确率，注入 6.9K token 的方案明显优于注入 25K token 的方案，它直接决定了每轮请求的推理成本。
 
@@ -159,6 +162,8 @@ Embedding 模型升级时，向量空间会发生变化，必须处理：
 - **删除**：用户可删除单条或全部记忆。
 - **导出**：按法规要求支持数据导出。
 
+注意“删除”的端到端语义：Bemula 基准（2026-10）显示主流系统几乎无法彻底清除一条记忆的派生产物（摘要、embedding、图节点、缓存）。设计时应为记忆保留 provenance（来源指针），让删除沿派生链传播，并优先用 TTL 与敏感标签减少需要事后清除的数据量。
+
 ## 与 Agent Runtime 集成
 
 Memory Service 与 Agent Runtime 的集成点主要在：
@@ -217,6 +222,7 @@ sequenceDiagram
 | 记忆无限增长 | 无 TTL 与遗忘策略 | 按类型设置 TTL + 衰减策略 |
 | 基准选型踩坑 | 只看厂商宣传分数 | 用 LoCoMo / LongMemEval + 自有数据做 bake-off，关注延迟与注入 token 数 |
 | 时序事实丢失 | 更新即覆盖旧事实 | 引入时序失效（valid_from/valid_until）或时序图谱 |
+| 用户删除不彻底 | 记忆已被摘要/embedding/图派生 | 保留 provenance 让删除沿派生链传播 + TTL 前置 |
 | 写入路径拖慢请求 | 抽取/建图在同步路径执行 | 记忆抽取异步化、后台整理（sleep-time 模式） |
 
 ## 本章小结
@@ -231,6 +237,9 @@ sequenceDiagram
 - [Mem0 Blog — State of AI Agent Memory 2026](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [LongMemEval（Wu et al., 2024）](https://arxiv.org/abs/2410.10819)
+- [DolphinBench（Mem0, 2026-09）](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)
+- [Bemula: Memory Unlearning Benchmark（arXiv:2610.18052）](https://arxiv.org/abs/2610.18052)
+- [Beyond Downstream QA / FEB-30（arXiv:2610.22209）](https://arxiv.org/abs/2610.22209)
 - [Chroma Docs](https://docs.trychroma.com)
 - [Weaviate Docs](https://weaviate.io/developers/weaviate)
 - [Milvus Docs](https://milvus.io/docs)

@@ -128,8 +128,8 @@ class PrivacyFilter:
 - 人工抽查长期记忆，评估质量。
 - 在真实任务中对比“有记忆”与“无记忆”的表现差异。
 - 用影子运行做回归测试。
-- 使用公开基准做横向对比：**LoCoMo**（超长多会话对话记忆）、**LongMemEval / LongMemEval-V2**（长期交互记忆，含时序推理与知识更新）、**BEAM**（记忆质量综合评估）。
-- 对厂商报告的数字保持怀疑：2025 年 Zep 与 Mem0 曾就 LoCoMo 评测配置公开争执。基准分数只能作为初筛，最终选型必须用自有数据做 bake-off，并把“每次查询注入的 token 数”和“p95 检索延迟”纳入核心指标。
+- 使用公开基准做横向对比：**LoCoMo**（超长多会话对话记忆）、**LongMemEval / LongMemEval-V2**（长期交互记忆，含时序推理与知识更新）、**BEAM**（记忆质量综合评估）、**DolphinBench**（行动式记忆评测，同时报告成本与延迟）、**Bemula**（记忆遗忘能力，arXiv:2610.18052）。
+- 对厂商报告的数字保持怀疑：2025 年 Zep 与 Mem0 曾就 LoCoMo 评测配置公开争执，2026 年 FEB-30（arXiv:2610.22209）进一步指出问答式基准会把记忆质量与检索/生成能力混为一谈。基准分数只能作为初筛，最终选型必须用自有数据做 bake-off，并把“每次查询注入的 token 数”和“p95 检索延迟”纳入核心指标。
 
 ## 7. 不要过度设计
 
@@ -184,4 +184,5 @@ Agent Memory 的最佳实践围绕“分层、检索、遗忘、隐私、评测�
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
 - [LangGraph Production Concepts](https://docs.langchain.com/oss/python/langgraph/persistence)
 - [Letta Memory Guidelines](https://docs.letta.com)
+- [Mem0 Blog — Dream（2026-09）](https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents)
 - [Steve Kinney — Agent Memory Systems](https://stevekinney.com/writing/agent-memory-systems)

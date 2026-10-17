@@ -14,6 +14,8 @@
   - OpenAI 生态的会话与记忆管理。
 - [Mem0 Documentation](https://docs.mem0.ai)
   - 面向 AI 助手的记忆层，重点看 user/session/memory 抽象。
+- [Mem0 Dream 文档（后台记忆整合）](https://docs.mem0.ai/platform/features/dream)
+  - Merge / Supersede / Synthesize 三操作与 `latest_only` 过滤的工程实现。
 - [Graphiti GitHub（Zep 开源引擎）](https://github.com/getzep/graphiti)
   - 时序知识图谱记忆引擎，重点看双时序模型、episode/entity/community 子图与 MCP Server。
 - [MemOS GitHub（MemTensor）](https://github.com/MemTensor/MemOS)
@@ -50,6 +52,16 @@
   - 超长多会话对话记忆基准，目前社区使用最广，也伴随厂商评测争议。
 - [Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172)
   - 长上下文不等于好记忆的经典证据，理解为什么外部记忆仍然必要。
+- [DolphinBench: Mapping the Pareto Frontier of Agent Memory（Mem0, 2026-09）](https://mem0.ai/blog/introducing-dolphinbench-mapping-the-pareto-frontier-of-agent-memory)
+  - 行动式记忆基准：600 个依赖记忆的工具调用任务，同时报告准确率、成本与延迟。
+- [Bemula: Can Agents Forget When Asked?（arXiv:2610.18052, 2026-10）](https://arxiv.org/abs/2610.18052)
+  - 记忆遗忘（unlearning）基准：没有系统能端到端通过超过 1.5% 的遗忘请求，合规遗忘必读物。
+- [Beyond Downstream QA: Rethinking How We Evaluate Agent Memory / FEB-30（arXiv:2610.22209, 2026-10）](https://arxiv.org/abs/2610.22209)
+  - 论证问答式基准会把记忆质量与检索/生成能力混为一谈，提出基于已知事实轨迹生成的评测方法。
+- [TEM: Temporal State Tracking Memory for LLM Agents（arXiv:2610.21900, 2026-10）](https://arxiv.org/abs/2610.21900)
+  - 免训练的版本化事实 + 时间标签方案，历史事实检索命中率提升 17–56 个百分点。
+- [From Long Context to Selective Memory: A Survey of Memory-Centric Compression（arXiv:2610.21165, 2026-10）](https://arxiv.org/abs/2610.21165)
+  - 把上下文压缩重新表述为记忆生命周期管理的综述，区分“计算活跃记忆”与“计算非活跃记忆”。
 - [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)
   - Agent Runtime 的基础范式，理解 Runtime 如何调用 Memory。
 - [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401)
