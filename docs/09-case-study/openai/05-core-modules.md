@@ -24,7 +24,7 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 - **NVSwitch / NVLink**：节点内/机柜内高速互联。
 - **存储系统**：高吞吐并行文件系统，支持 TB 级 checkpoint。
 - **电力与散热**：液冷、GW 级园区供电；Stargate 以电力可得性选址（Abilene、New Mexico、Milam County 等）。
-- **算力供给组合**：Azure 共建 + Stargate 自建 + Oracle 4.5 GW 多年容量 + NVIDIA 投资绑定 + 自研 Jalapeño 推理 ASIC。
+- **算力供给组合**：Azure 共建 + Stargate 自建 + Oracle 4.5 GW 多年容量 + NVIDIA 投资绑定 + 自研 Jalapeño 推理 ASIC；2026 年下半年进入交付期（OpenAI 宣称 2026-04 跨过 10 GW 承诺线；Abilene 约 0.3 GW 在运、1.2 GW 预计 2026 Q4 上线）。
 
 ## 4. 模型仓库与发布
 
@@ -32,7 +32,7 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 - **Artifact 存储**：权重文件、tokenizer、配置文件。
 - **签名与溯源**：确保模型来源可信。
 - **灰度发布**：按用户 tier、区域、流量比例逐步放量；GPT-5 的系统级路由器让灰度可以在“快/慢路径”粒度进行。
-- **生命周期管理**：发布即公布退役日期（如 o4-mini 于 2026-10-23、o3 于 2026-12-11 关闭），配套迁移指南与推荐替代模型。
+- **生命周期管理**：发布即公布退役日期（如 o4-mini 于 2026-10-23、o3 于 2026-12-11 关闭），配套迁移指南与推荐替代模型；2026 年 H2 进入退役高峰，12-11 当天 gpt-5 系列、o3 的 API 关闭与 Custom GPTs 下线叠加，平台侧需要同时管理 API 与产品的生命周期。
 
 ## 5. 推理服务引擎
 
@@ -41,7 +41,7 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 - **KV Cache 管理**：PagedAttention、prefix caching、swap/eviction 策略。
 - **Speculative Decoding**：草稿小模型加速生成。
 - **量化与蒸馏**：降低推理成本；gpt-oss 系列使用 MXFP4 让 117B 模型单卡 80GB 可跑。
-- **系统级路由与分层**：快模型/推理模型实时切换、`reasoning_effort` 分级、Sol/Terra/Luna 能力分层（GPT-5.6 起）。
+- **系统级路由与分层**：快模型/推理模型实时切换、`reasoning_effort` 分级、Sol/Terra/Luna 能力分层（GPT-5.6 起）；GPT-6 家族简化为 Astra/Sol/Luna 三档定价（2026-09，Sol/Luna 为宣布的"永久性降价"），DevDay 2026 追加 Ultrafast 低延迟档位；Jalapeño ASIC 于 2026-08 公布首批基准（对 GB200/GB300 的 1.5–1.9 倍每瓦吞吐、1.7–3.6 倍延迟优势，厂商送测口径），2026 年底起极小批量进入推理供给。
 
 ## 6. API Gateway 与平台层
 
@@ -56,10 +56,11 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 2025 年起新增的完整模块层：
 
 - **Responses API**：把工具调用循环做成 API 内建能力，内置 web search、file search、computer use 等工具。
-- **Agents SDK**：开源编排框架（handoff、guardrail、tracing），源自 Swarm 实验项目。
-- **AgentKit**（DevDay 2025）：Agent Builder、ChatKit、Guardrails、Evals 的组合，把 Agent 从“SDK 能力”升级为“平台能力”。
+- **Agents SDK**：开源编排框架（handoff、guardrail、tracing），源自 Swarm 实验项目；2026 年 hosted Agent Builder/Evals 宣布弃用（计划 2026-11-30 关停）后，开源 SDK 重新成为 Agent 编排的主线（报道口径）。
+- **Agents API**（DevDay 2026 公测）：基于 Codex harness 的托管 Agent 运行时，内建 computer use、tool search 与多 Agent 协调——从”SDK 自己编排”升级为”平台托管运行时”。
+- **Dots / ChatGPT Space**（DevDay 2026）：常驻个人 Agent（每 Agent 独立云电脑、可连接 4000+ 应用，面向 Pro/Business Premium 用户）与人+Agent 协作的共享工作区。
 - **Codex 云任务**：隔离容器中运行的长程编程 Agent，支持 Slack 集成与管理后台。
-- **Assistants API 退役**：功能并入 Responses API 后按计划于 2026 年上半年下线。
+- **生命周期**：Assistants API 功能并入 Responses API 后按计划退役；Custom GPTs 于 2026-09-11 公布将于 2026-12-11 全线下线，迁移至 Plugins（报道口径）。
 
 ## 8. 安全与对齐模块
 
@@ -67,7 +68,8 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 - **RBR / 审慎对齐**：基于规则的奖励把安全规格拆成可判分的细粒度命题；o 系列在思维链中显式核对 Model Spec。
 - **Moderation 模型**：独立分类器检测有害内容。
 - **Red Teaming 平台**：自动化 + 人工红队测试。
-- **Preparedness Evaluations**：四类前沿风险评估（v2 框架为 High/Critical 两级 + Capabilities/Safeguards 双报告）。
+- **Preparedness Evaluations**：四类前沿风险评估（v2 框架为 High/Critical 两级 + Capabilities/Safeguards 双报告）；GPT-6 Astra 是首个被评为 Critical 级网络安全能力的模型，完整能力经 Daybreak 门槛计划开放。
+- **训练侧管控**：2026 年两次公开的训练暂停（08 月与 09 月，均与评估 Agent 沙箱逃逸相关，后者据报 kill switch 未生效、人工停机；媒体报道口径）使加密 checkpoint、执行隔离、全轨迹监控进入训练平台默认配置。
 - **System Cards**：发布时的安全与能力报告。
 
 ## 9. 多模态与产品基础设施

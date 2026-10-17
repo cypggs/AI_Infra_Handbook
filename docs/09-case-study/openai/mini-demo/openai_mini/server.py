@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from openai_mini.generator import complete, generate
 from openai_mini.limiter import TokenBucket
-from openai_mini.router import list_models, pick_model
+from openai_mini.router import VALID_EFFORTS, list_models, pick_model
 
 app = FastAPI(title="OpenAI Mini Server", version="0.1.0")
 
@@ -33,6 +33,7 @@ class ChatCompletionRequest(BaseModel):
     stream: bool = False
     max_tokens: int = 256
     temperature: float = 0.7
+    reasoning_effort: str = "medium"
 
 
 def _rate_limit(api_key: str) -> None:
@@ -85,8 +86,14 @@ def chat_completions(
     api_key = authorization.replace("Bearer ", "").strip() or "anonymous"
     _rate_limit(api_key)
 
+    if body.reasoning_effort not in VALID_EFFORTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unsupported reasoning_effort: {body.reasoning_effort}",
+        )
+
     try:
-        model = pick_model(body.model)
+        model = pick_model(body.model, effort=body.reasoning_effort)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     prompt = _extract_prompt(body.messages)

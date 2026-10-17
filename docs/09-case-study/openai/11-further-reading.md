@@ -19,6 +19,12 @@
 - [Introducing gpt-oss](https://openai.com/index/introducing-gpt-oss/) — 2025-08，七年来首批开放权重模型（gpt-oss-120b/20b）。
 - [Five new Stargate sites](https://openai.com/index/five-new-stargate-sites/) — 2025-09，Stargate 新增五座站点、接近 7 GW。
 - [OpenAI × Broadcom Jalapeño inference chip](https://openai.com/index/openai-broadcom-jalapeno-inference-chip/) — 2026-06，首款自研 LLM 推理 ASIC。
+- [TechCrunch: Jalapeño 首批基准（Hot Chips 2026-08-25）](https://techcrunch.com/2026/08/25/openais-jalapeno-chip-is-built-for-fast-inference-at-scale-benchmarks-show/) — SemiAnalysis InferenceX：对 GB200/GB300 的 1.5–1.9 倍每瓦吞吐、1.7–3.6 倍延迟优势（厂商送测口径）。
+- [GPT-6 Astra Critical 网络安全评级解读](https://www.quentir.ai/blog/2026/gpt-6-astra-critical-cyber-preparedness-framework-3-september-2026-eu-ai-act-article-55-sb-53) — 2026-09-03 发布、首个 Critical 评级、08-07~18 训练暂停与 EU AI Act Article 55 / SB 53 合规视角（分析文章，细节转述自 System Card 与 Axios 报道）。
+- [Axios: DevDay 2026 五大发布](https://www.axios.com/2026/09/29/openai-dev-day-2026-dots-space-sol) — 2026-09-29：Dots、ChatGPT Space、GPT-6.1 Sol、Agents API、Pro 500。
+- [TechCrunch: OpenAI launches Dots](https://techcrunch.com/2026/09/29/openai-launches-dots-its-bubbly-agentic-avatar/) — 常驻 Agent 产品形态分析。
+- [Epoch AI: OpenAI Stargate 各站点现状](https://epoch.ai/publications/openai-stargate-where-the-us-sites-stand) — 第三方站点级容量追踪（Abilene 0.3 GW 在运、1.2 GW 预计 2026 Q4）。
+- [Microsoft Foundry 模型退役时间表](https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule) — Azure OpenAI 侧的官方退役日历（与 OpenAI 直连 API 日期略有差异）。
 - [How we used Codex to ship Sora for Android in 28 days](https://openai.com/index/shipping-sora-for-android-with-codex/) — 模型参与自身工程交付的实例。
 
 ## Microsoft / Azure 合作
@@ -69,10 +75,10 @@
 ## 学习路径建议
 
 1. 先读 OpenAI 官方 latency optimization guide 与 Preparedness Framework v2。
-2. 看 Stargate 站点公告与 Jalapeño 芯片发布，理解 10 GW 时代的算力工程。
-3. 精读 GPT-5 System Card，理解统一系统 + 路由器的安全评估方式。
+2. 看 Stargate 站点公告、Epoch AI 追踪与 Jalapeño 芯片基准，理解 10 GW 时代与定制硅的交付节奏。
+3. 精读 GPT-5 System Card 与 GPT-6 Astra System Card（2026-09），对比"High 风险缓解"与"Critical 风险门槛访问"两种处置方式。
 4. 跑通 Triton 官方 tutorial，理解 GPU kernel 编程。
-5. 用 openai/gpt-oss 做一次单卡部署，体验 MoE + MXFP4 量化的工程细节。
+5. 用 openai/gpt-oss 做一次单卡部署，体验 MoE + MXFP4 量化的工程细节（它也是 Jalapeño 的基准负载之一）。
 6. 结合本手册 LLMOps 与 LLM Gateway 主题，复现一个 mini API server。
 
 ## 小结

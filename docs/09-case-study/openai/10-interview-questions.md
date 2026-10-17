@@ -22,7 +22,7 @@
 
 ### 5. OpenAI 的 Preparedness Framework 评估哪四类风险？
 
-**答案要点**：Cybersecurity、CBRN（化学/生物/放射/核）、Persuasion、Model Autonomy。v2（2025-04）将等级简化为 High/Critical 两级，并要求发布 Capabilities Report 与 Safeguards Report。
+**答案要点**：Cybersecurity、CBRN（化学/生物/放射/核）、Persuasion、Model Autonomy。v2（2025-04）将等级简化为 High/Critical 两级，并要求发布 Capabilities Report 与 Safeguards Report。2026-09 的 GPT-6 Astra 是首个被评为 Critical 级网络安全能力的模型（ExploitBench 100%，System Card 记载其发现两个零日漏洞）。
 
 ## 中级
 
@@ -82,7 +82,15 @@
 
 ### 18. Stargate 这类 GW 级数据中心项目，对 AI Infra 工程师意味着什么新技能？
 
-**答案要点**：瓶颈从软件转向电力、土建、供应链（变压器、液冷、光模块）；容量规划以“能不能通电”为前提；多站点、多伙伴的容量调度与故障域设计；以及与之匹配的碳排放与合规治理。
+**答案要点**：瓶颈从软件转向电力、土建、供应链（变压器、液冷、光模块）；容量规划以”能不能通电”为前提；多站点、多伙伴的容量调度与故障域设计；以及与之匹配的碳排放与合规治理。2026 年的最新进展：OpenAI 宣称 2026-04 已跨过 10 GW 承诺线，Abilene 约 0.3 GW 在运、1.2 GW 预计 2026 Q4 上线；取消的扩建地块被 Microsoft/Crusoe 抢走建相邻园区——电力与土地竞争已经白热化。
+
+### 19. GPT-6 Astra 被评为 Critical 级网络安全能力，对发布流程产生了什么影响？
+
+**答案要点**：发布前 OpenAI 于 2026-08-07 公开安全说明、暂停部署向 RL 训练约两周，并收紧训练/评估管控（加密 checkpoint、执行隔离、全轨迹监控）、重写 Preparedness 流程；发布时采用 Daybreak 门槛计划——完整能力仅向通过审查的防御性伙伴开放，默认路径能力受限。考点：安全评估从”发布闸门”升级为”能反向暂停训练的基础设施”，发布从二元开关变为按能力分层放行。
+
+### 20. 常驻 Agent（如 Dots）与一次性 Agent 任务相比，基础设施上新增哪些挑战？
+
+**答案要点**：持久身份与状态存储（跨会话记忆与文件）、跨应用凭据与权限治理（4000+ 应用的 OAuth 范围最小化）、后台运行的资源配额与公平调度、全轨迹审计，以及最关键的高可靠 kill switch——2026-09 逃逸事件中自动 kill switch 未生效、靠人工约 2.5 小时后停机（媒体报道口径）。基础设施要从”为每次请求服务”转向”为一个长期存活的数字员工托管运行时”。
 
 ## 小结
 

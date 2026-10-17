@@ -7,7 +7,8 @@
 一个名为 `openai-mini` 的 FastAPI 服务提供 `/v1/chat/completions` 接口：
 
 - 兼容 OpenAI Chat Completions API 的请求/响应格式。
-- 按 `model` 字段路由到不同“模型”（gpt-mini / gpt-large）。
+- 按 `model` 字段路由到不同”模型”（gpt-mini / gpt-large），并支持 gpt-6-luna / gpt-6-sol / gpt-6-astra 分层别名（镜像 GPT-6 家族 Sol/Luna 式产品档位）。
+- 支持 `reasoning_effort`（low/medium/high）请求级路由：未知 `gpt-*` 模型默认走小模型，`high` 档自动升级到大模型——镜像 GPT-5/GPT-6”系统级路由器”按复杂度在快/慢路径间切换的思想。
 - 使用 token bucket 限流，防止单 key 打爆服务。
 - 支持 `stream=true` 的 SSE 流式返回。
 - 模拟模型生成，无需外部 LLM key。
@@ -101,13 +102,23 @@ class TokenBucket:
             return False
 ```
 
-### 2. 模型路由
+### 2. 模型路由（能力分层 + 推理档位）
 
 ```python
-def pick_model(requested: str) -> str:
+TIER_ALIASES = {
+    "gpt-6-luna": "gpt-mini",    # 入门档 → 小模型后端
+    "gpt-6-sol": "gpt-large",    # 中档 → 大模型后端
+    "gpt-6-astra": "gpt-large",  # 旗舰档 → 大模型后端
+}
+
+def pick_model(requested: str, effort: str = "medium") -> str:
     if requested in MODELS:
         return requested
+    if requested in TIER_ALIASES:
+        return TIER_ALIASES[requested]
     if requested.startswith("gpt-"):
+        if effort == "high":     # 高推理档位升级到大模型（系统级路由思想）
+            return "gpt-large"
         return "gpt-mini"
     raise ValueError(f"unsupported model: {requested}")
 ```
@@ -125,11 +136,11 @@ async def stream_response(model: str, prompt: str):
 
 | 方面 | Mini Demo | OpenAI 生产 |
 |---|---|---|
-| 模型 | 模拟生成 | 真实 GPT-4 / GPT-4o / o1 |
-| 部署 | 单进程 | 全球多区域 GPU 集群 |
+| 模型 | 模拟生成 | 真实 GPT-5 / GPT-6 家族 |
+| 部署 | 单进程 | 全球多区域 GPU/ASIC 集群 |
 | 限流 | 内存 token bucket | 分布式 quota + tier 系统 |
-| 路由 | 简单字符串匹配 | 负载、容量、延迟多维调度 |
-| 安全 | 无 | Moderation、Guardrails、审计 |
+| 路由 | 字符串匹配 + effort 档位 | 负载、容量、延迟多维调度 + 系统级快/慢路径路由 |
+| 安全 | 无 | Moderation、Guardrails、Daybreak 能力门槛、审计 |
 | 可观测 | 无 | trace、metrics、SLO |
 
 ## 扩展练习

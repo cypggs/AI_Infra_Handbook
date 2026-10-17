@@ -1,6 +1,6 @@
 # OpenAI 案例研究
 
-OpenAI 是当代最具代表性的 AI 基础设施实践之一。从 GPT-3 到 GPT-4、GPT-4o、o1/o3，再到 2025 年后 GPT-5 系列与 GPT-6 的快速迭代，它不仅要解决大规模分布式训练，还要支撑全球十亿级周活用户的在线推理，并通过 Stargate 与自研 Jalapeño 推理芯片把算力工程推到 GW 级。研究 OpenAI 的工程选择，是理解“如何把大模型从实验室搬到生产环境”的最佳入口。
+OpenAI 是当代最具代表性的 AI 基础设施实践之一。从 GPT-3 到 GPT-4、GPT-4o、o1/o3，再到 2025 年后 GPT-5 系列与 2026 年 GPT-6 家族（Astra/Sol/Luna）的快速迭代，它不仅要解决大规模分布式训练，还要支撑全球十亿级周活用户的在线推理，并通过 Stargate 与自研 Jalapeño 推理芯片把算力工程推到 GW 级。2026-09 发布的 GPT-6 Astra 更是首个被评为 Preparedness Framework 最高级（Critical）网络安全能力的模型，把”安全治理”从发布流程推进到训练流程本身。研究 OpenAI 的工程选择，是理解”如何把大模型从实验室搬到生产环境”的最佳入口。
 
 ## 一句话理解
 
@@ -12,7 +12,7 @@ OpenAI 是当代最具代表性的 AI 基础设施实践之一。从 GPT-3 到 G
 
 - 描述 OpenAI 训练基础设施的核心硬件、网络与软件栈（H100/GB200、InfiniBand、Stargate、Jalapeño）。
 - 解释 ChatGPT/API 推理服务面临的延迟、吞吐、可用性挑战与应对思路（系统级路由器、能力分层）。
-- 理解 OpenAI 的对齐、安全评估与红队体系如何嵌入模型生命周期（Preparedness Framework v2、Model Spec、审慎对齐）。
+- 理解 OpenAI 的对齐、安全评估与红队体系如何嵌入模型生命周期（Preparedness Framework、Model Spec、审慎对齐、GPT-6 Astra 的 Critical 评级与 Daybreak 门槛访问）。
 - 从 OpenAI 的开源项目（Triton、Whisper、CLIP、gpt-oss、Agents SDK 等）中学到可复用的工程模式。
 - 提炼对 AI Infra 工程师有直接借鉴意义的最佳实践与反模式。
 

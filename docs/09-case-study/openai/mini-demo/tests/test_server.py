@@ -73,6 +73,28 @@ def test_invalid_model():
     assert r.status_code == 400
 
 
+def test_reasoning_effort_routing():
+    # High effort upgrades an unknown gpt-* model to the large backend.
+    payload = {
+        "model": "gpt-6-sol",
+        "messages": [{"role": "user", "content": "Hi"}],
+        "reasoning_effort": "high",
+    }
+    r = client.post("/v1/chat/completions", json=payload, headers=HEADERS)
+    assert r.status_code == 200
+    assert r.json()["model"] == "gpt-large"
+
+
+def test_invalid_reasoning_effort():
+    payload = {
+        "model": "gpt-mini",
+        "messages": [{"role": "user", "content": "x"}],
+        "reasoning_effort": "extreme",
+    }
+    r = client.post("/v1/chat/completions", json=payload, headers=HEADERS)
+    assert r.status_code == 400
+
+
 def test_rate_limit():
     # Drain the bucket quickly; the first BURST should succeed then we hit 429.
     # Bucket capacity is 20, so 21st request should be limited.

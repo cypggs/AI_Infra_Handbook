@@ -1,6 +1,6 @@
 # OpenAI Mini Demo
 
-A tiny OpenAI-compatible Chat Completions API server demonstrating model routing, token-bucket rate limiting, and streaming SSE responses.
+A tiny OpenAI-compatible Chat Completions API server demonstrating model routing (capability tiers + `reasoning_effort`), token-bucket rate limiting, and streaming SSE responses.
 
 ## Install
 

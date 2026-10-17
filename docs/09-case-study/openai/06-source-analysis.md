@@ -53,14 +53,15 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
   - gpt-oss-120b：117B 总参数、每 token 激活约 5.1B 的 MoE 架构，MXFP4 量化后可单张 80GB GPU 运行；gpt-oss-20b 可在 16GB 内存的消费级设备运行。
   - 原生思维链、函数调用、结构化输出，便于企业私有化部署与政府合规场景。
   - 对齐上同样经过审慎对齐与拒绝训练，并通过 Preparedness Framework 评估为低风险。
+  - **成为自研芯片的基准负载**：OpenAI 在 2026-08 Hot Chips 公布的 Jalapeño 首批基准即以 gpt-oss-120b 为测试模型之一（另有 DeepSeek R1、Kimi K2.5），对 GB200/GB300 取得 1.5–1.9 倍每瓦吞吐与 1.7–3.6 倍延迟优势（厂商送测口径）——开放权重模型反过来成了定制硅的验收基准。
 - **仓库入口**：`openai/gpt-oss`（Hugging Face 与 GitHub 同步发布）。
 
 ## 6. Agents SDK / Codex CLI
 
 - **定位**：开源的 Agent 编排框架与命令行编程 Agent。
 - **价值**：
-  - Agents SDK 展示 handoff、guardrail、tracing 的最小完备抽象，是理解多 Agent 系统的最佳开源样本。
-  - Codex CLI 展示“本地沙箱 + 模型驱动”的编程 Agent 形态，直接影响了 2025 年后编程工具的形态。
+  - Agents SDK 展示 handoff、guardrail、tracing 的最小完备抽象，是理解多 Agent 系统的最佳开源样本；2026 年 hosted Agent Builder/Evals 宣布弃用后（计划 2026-11-30 关停，报道口径），开源 SDK 更明确地成为 Agent 编排主线，而托管运行时由 2026-09 公测的 Agents API 承接。
+  - Codex CLI 展示”本地沙箱 + 模型驱动”的编程 Agent 形态，直接影响了 2025 年后编程工具的形态；其 harness 同时是 Agents API 托管运行时的底座。
 - **仓库入口**：[openai-agents-python](https://github.com/openai/openai-agents-python)、[codex](https://github.com/openai/codex)。
 
 ## 7. System Cards
@@ -73,6 +74,7 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
   - 红队测试结果。
   - 缓解措施与剩余风险。
 - **工程意义**：把安全评估流程标准化、文档化，可作为企业内部模型发布的模板。
+- **2026 增量**：GPT-6 Astra System Card（2026-09-03）成为首份记载 Critical 级网络安全评级的 System Card——ExploitBench 100%、两个授权测试中的零日漏洞、约 91.5% 的网络攻击越狱拒绝率，以及 Daybreak 门槛访问这一缓解措施的完整描述；System Card 从"能力披露"进化为"高风险能力管控方案"。
 
 ## 8. Preparedness Framework 与 Model Spec
 
@@ -98,7 +100,8 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
 - **端到端模型库**：Whisper 展示如何把研究模型变成 `pip install` 即可用的产品。
 - **开放权重的工程细节**：gpt-oss 用 MoE + MXFP4 量化把“旗舰能力”压进单卡，是推理成本优化的公开教科书。
 - **标准化评估报告**：System Cards 把安全评估从内部文档变成可对外发布的 artifact。
-- **模型参与自身工程**：OpenAI 公开介绍用 Codex 在 28 天内交付 Sora Android 应用（[工程博客](https://openai.com/index/shipping-sora-for-android-with-codex/)），标志“模型开发自己使用的软件”成为现实工作流。
+- **评估反向约束训练**：2026-08 GPT-6 Astra 发布前，评估结果触发公开的训练暂停与 Preparedness 流程重写——“评估流水线”本身就是有权力停机的基础设施。
+- **模型参与自身工程**：OpenAI 公开介绍用 Codex 在 28 天内交付 Sora Android 应用（[工程博客](https://openai.com/index/shipping-sora-for-android-with-codex/)），标志”模型开发自己使用的软件”成为现实工作流。
 
 ## 小结
 
