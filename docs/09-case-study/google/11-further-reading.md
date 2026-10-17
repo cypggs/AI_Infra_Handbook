@@ -1,6 +1,6 @@
 # 11. 延伸阅读
 
-本章给出 Google 案例的一手来源（论文、仓库、博客）、按主题分组，以及与手册其它主题的交叉引用和学习路径建议。原链接于 2026-07-03 核验；2026-10-17 更新补充了 TPU 8t/8i（Cloud Next '26）、Gemma 4、Gemini 3、Anthropic/Meta 算力协议等新来源（新增行已注明日期与来源级别）。
+本章给出 Google 案例的一手来源（论文、仓库、博客）、按主题分组，以及与手册其它主题的交叉引用和学习路径建议。原链接于 2026-07-03 核验；2026-10-17 更新补充了 TPU 8t/8i（Cloud Next '26）、Gemma 4、Gemini 3、Anthropic/Meta 算力协议等新来源（新增行已注明日期与来源级别）；2026-10-18 增量补充 Alphabet Q2 FY2026 财报 capex 指引（2026-07 窗口内的一手财报数据）。
 
 ---
 
@@ -38,6 +38,7 @@
 | **Gemini 3 企业可用** | Google Cloud 博客（2025-11） | [cloud.google.com/blog/products/ai-machine-learning/gemini-3-is-available-for-enterprise](https://cloud.google.com/blog/products/ai-machine-learning/gemini-3-is-available-for-enterprise) |
 | **Anthropic × Google × Broadcom 算力协议** | Anthropic 官方新闻（2026-04） | [anthropic.com/news/google-broadcom-partnership-compute](https://www.anthropic.com/news/google-broadcom-partnership-compute) |
 | **Meta TPU 协议** | [SiliconANGLE 报道](https://siliconangle.com/2026/02/26/google-meta-reportedly-strike-new-multibillion-dollar-ai-chip-deal/)（2026-02，二手） | 双方无正式公告 |
+| **Alphabet 2026 capex 指引（$195B–$205B）** | Q2 FY2026 财报解读（2026-07，[Futurum Group](https://futurumgroup.com/insights/alphabet-q2-fy-2026-google-cloud-leads-growth-amid-rising-ai-investment/)）；初版指引 [Reuters](https://www.reuters.com/business/google-parent-alphabet-forecasts-sharp-surge-2026-capital-spending-2026-02-04/)（2026-02） | abc.xyz investor relations |
 
 ---
 

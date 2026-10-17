@@ -139,6 +139,7 @@ Google 在生产生态上的独特姿态（详见 [第 1 章](01-background) 对
 
 - **Anthropic**：2025-10 宣布获得至多 **100 万颗 Google TPU**、2026 年内上线超 **1 GW** 算力；2026-04 三方（Anthropic × Google × Broadcom）再扩至 2027 年起约 **3.5 GW** 的下一代 TPU 产能（协议最长至 2031）；2026-05 更有媒体报出 5 年 **$200B** 云支出承诺 [金额为一手之外的报道，标注待核]。
 - **Meta**：2026-02 被报道签下多年期、数十亿美元级 TPU 租用协议（含 v6e/Trillium，2027 年起可升级 Ironwood 级）[二手来源，双方未发正式公告]。
+- **资本开支侧的量化**：Alphabet 2026 Q2 财报（2026-07 发布）把 2026 全年 capex 指引上调至 **$195B–$205B**（Q1 时的 $180B–$190B → 2026-02 初版的 $175B–$185B，约为 2025 年 ~$80B 的 2.5×），管理层并预告 2027 年 capex 将继续"大幅增长"；当季 Google Cloud 收入 **$24.8B（同比 +82%）**、云订单积压约 **$514B**——数据中心与服务器（含 TPU 产能）是这笔开支的主体（财报口径，经 [Futurum Group](https://futurumgroup.com/insights/alphabet-q2-fy-2026-google-cloud-leads-growth-amid-rising-ai-investment/)/[Reuters](https://www.reuters.com/business/google-parent-alphabet-forecasts-sharp-surge-2026-capital-spending-2026-02-04/) 报道转引）。
 - **含义**：竞对实验室大规模采购 TPU，既验证了"垂直整合硅 + 开放软件栈"路线的商业可行性（训练/推理成本足够低，值得对手押注），也带来副作用——Google 内部研究员据报道也开始感到 TPU 算力紧张 [二手报道]。
 
 这是与第 1 章"开放姿态"对照的最新事实：**硬件虽闭源（只能租不能买），但强到对手也要租**。
