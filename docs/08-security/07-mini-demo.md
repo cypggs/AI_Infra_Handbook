@@ -2,6 +2,8 @@
 
 本章介绍 `docs/08-security/mini-demo/` 中的 AI 安全迷你示例。它用纯 Python 标准库演示一个 AI 安全网关的核心控制：API Key 认证、RBAC 授权、提示注入检测、PII 脱敏与审计日志。
 
+> 说明：2025-2026 年网关概念已演进出 MCP / Agent Gateway 等新形态（见第 3、5 章），但认证 → 授权 → 输入过滤 → 输出脱敏 → 审计这条最小闭环没有变。本 Demo 故意保持与演进前一致的极简结构，便于理解控制点本身。
+
 ## 场景
 
 一个名为 `SecureGateway` 的网关挡在所有模型调用之前：
@@ -162,11 +164,12 @@ class AuditLogger:
 
 ## 扩展练习
 
-1. 把 `PromptGuard` 接入 Llama Guard 或 OpenAI Moderation API，替换正则。
+1. 把 `PromptGuard` 接入 LlamaFirewall 的 Prompt Guard 2 或 OpenAI Moderation API，替换正则，观察误报/漏报差异。
 2. 把 `AuditLogger` 写入远程不可变存储（如 S3 Object Lock）。
 3. 增加细粒度 action 资源匹配（例如 `llm:chat:model=gpt-4`）。
 4. 集成 Vault 实现 API Key 动态签发与轮换。
 5. 在网关层增加 rate limit 与 token 成本上限。
+6. 模拟 MCP 工具描述 diff：在 `PromptGuard` 的配置里加入"已审批工具描述白名单"，请求中携带的工具描述与快照不一致时拒绝（对应 2025 年后的 Rug Pull 防御）。
 
 ## 小结
 

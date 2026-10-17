@@ -99,13 +99,24 @@ results = analyzer.analyze(text="My email is alice@example.com", language="en")
 print(anonymizer.anonymize(text="My email is alice@example.com", analyzer_results=results).text)
 ```
 
-## 7. Llama Guard / NeMo Guardrails
+## 7. Llama Guard / LlamaFirewall / NeMo Guardrails
 
-- **Llama Guard**：Meta 发布的输入/输出安全分类模型，基于 LLM 做 fine-grained 有害内容检测。
-- **NeMo Guardrails**：NVIDIA 开源的 Guardrails 框架，通过 YAML/Colang 定义对话策略与护栏。
-- **AI 场景**：内容安全、话题限制、防止越狱、输出合规。
-- **优势**：可本地部署、可针对场景微调。
-- **劣势**：增加推理成本与延迟，需持续更新安全类别。
+- **Llama Guard**（Meta）：输入/输出安全分类模型。2025-04 随 Llama 4 发布的 **Llama Guard 4** 扩展到多模态（文本 + 图像），作为内容安全层与 LlamaFirewall 搭配使用。
+- **LlamaFirewall**（Meta，2025-04 开源，PurpleLlama 项目）：面向 Agent 的组合式护栏系统，三个组件对应三道防线：
+  1. **Prompt Guard 2**：86M/22M 参数的注入/越狱检测分类器（基于多语言 BERT 微调），走"小模型低延迟"路线——官方报告 86M 版本在 1% 误报率下越狱召回率达 97.5%（v1 为 21.2%），多语言 AUC 最高 0.995。
+  2. **AlignmentCheck**：用大模型（Llama 4 Maverick）审计 Agent 的逐步推理轨迹，抓目标漂移与间接注入，走"大模型强审计"路线，代价是延迟。
+  3. **CodeShield**：生成代码的静态安全扫描（官方报告约 96% 精确率 / 79% 召回率）。
+  在 AgentDojo 基准上，Prompt Guard 2 (86M) + AlignmentCheck 把攻击成功率从 17.63% 降到 1.75%，是"专用分类器 + LLM 审计"双层架构的公开实证。
+- **NeMo Guardrails**（NVIDIA）：通过 YAML/Colang 定义对话策略与护栏，适合可编排的确定性流程（话题限制、流程分支），2025-2026 增加了面向 Agentic 工作流的护栏原语。
+- **AI 场景**：内容安全、话题限制、防止越狱、输出合规、Agent 行为审计。
+- **优势**：可本地部署、可针对场景微调；LlamaFirewall 的组合设计可直接借鉴。
+- **劣势**：增加推理成本与延迟，需持续更新安全类别；AlignmentCheck 类审计组件延迟较高，不适合全量实时路径。
+
+## 7b. 模型扫描：Picklescan / ModelScan
+
+- **Picklescan**：Python pickle 反序列化扫描器，检测模型文件中的恶意 opcode（`__reduce__` 调用、`os.system` 等）。作为 CI 门禁几乎是零成本。
+- **ModelScan**：Protect AI 开源的模型文件扫描器，覆盖 pickle、H5、Keras、SavedModel 等格式，检测恶意代码与可疑操作。注意 Protect AI 已于 2025 年被 Palo Alto 收购，使用该工具时应关注其维护状态（同公司的 LLM Guard 已归档）。
+- **为什么必须扫**：Hugging Face 上托管的模型持续被发现包含 pickle 武器化负载；`.safetensors` 只是"格式安全"，权重本身的后门无法靠格式解决，需要行为评测（CyberSecEval、Garak 的探测插件）兜底。
 
 ## 8. Sigstore / cosign / SLSA
 
@@ -134,10 +145,14 @@ print(anonymizer.anonymize(text="My email is alice@example.com", analyzer_result
 | SPIRE | 工作负载身份 | 服务间 mTLS | 高 | 高 |
 | Istio/Envoy | 零信任网络 | K8s 微服务安全 | 高 | 高 |
 | Presidio | PII 识别/脱敏 | 数据清洗、日志脱敏 | 低 | 低 |
-| Llama Guard | 内容安全分类 | 输入/输出过滤 | 中 | 中 |
+| Llama Guard 4 | 内容安全分类（多模态） | 输入/输出过滤 | 中 | 中 |
+| LlamaFirewall | Agent 组合护栏 | 注入/越狱/代码/行为审计 | 中 | 中 |
 | NeMo Guardrails | 对话策略 | Agent 行为约束 | 中 | 中 |
+| Picklescan / ModelScan | 模型文件恶意代码扫描 | 模型入库 CI 门禁 | 低 | 低 |
 | Sigstore/cosign | 签名/溯源 | 镜像/模型签名 | 低 | 低 |
 | Safetensors | 安全权重格式 | 模型存储分发 | 低 | 低 |
+
+> 注意：曾广泛使用的开源护栏库 **LLM Guard**（Protect AI）已于 2026 年归档停止维护，新项目不建议再引入；需要类似能力时考虑 LlamaFirewall 组件或商业产品。
 
 ## 小结
 
