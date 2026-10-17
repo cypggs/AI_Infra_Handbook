@@ -37,7 +37,7 @@ sglang/
 └── docs/
 ```
 
-需要留意的演进：v0.5.19 起统一 Radix Tree（`unified_radix_cache.py` 等）成为所有模型的默认缓存；v0.5.21 起前缀缓存的默认实现进一步迁移到 Rust 核心，旧的 Python Radix Cache 实现已被移除，阅读源码时以 `unified` 系列与 `rust/` 目录为准。
+需要留意的演进：v0.5.17 起引入 Rust 前端（网络接入层到 tokenized 请求交给 GPU 调度器之前的“前半段”迁移到多线程 Rust 实现）；v0.5.19 起统一 Radix Tree（`unified_radix_cache.py` 等）成为所有配置的默认缓存；v0.5.21 起前缀缓存的默认实现进一步迁移到 Rust 核心，旧的 Python Radix Cache 实现已被移除，阅读源码时以 `unified` 系列与 `rust/` 目录为准。
 
 ## 关键入口函数
 

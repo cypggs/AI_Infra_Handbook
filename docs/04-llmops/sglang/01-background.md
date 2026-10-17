@@ -17,10 +17,10 @@ SGLang 由 LMSYS 团队开发，论文 [SGLang: Efficient Execution of Structure
 
 截至 2026 年 10 月，SGLang 已发展到 [v0.5.21](https://github.com/sgl-project/sglang/releases)，支持 200+ 模型，主要进展包括：
 
-- **缓存体系升级**：HiCache 三层分层 KV 缓存（GPU HBM → 主机内存 → Mooncake / 3FS 等分布式存储）成熟落地，v0.5.19 起统一 Radix Tree 成为所有模型的默认缓存，v0.5.21 起前缀缓存默认迁移到 Rust 核心。
+- **缓存体系升级**：HiCache 三层分层 KV 缓存（GPU HBM → 主机内存 → Mooncake / 3FS 等分布式存储）成熟落地，v0.5.19 起统一 Radix Tree 成为所有配置的默认缓存（含 Full-attention-only 模型），v0.5.21 起前缀缓存默认迁移到 Rust 核心。
 - **分离式部署**：PD 分离支撑了 96 张 H100 上 DeepSeek-V3/R1 的大规模专家并行部署（约 5 倍于朴素 TP）；2026 年初进一步推出面向多模态的 EPD（Encoder-Prefill-Decode）分离；v0.5.21 支持 prefill / decode 实例运行时互换角色。
-- **Day-0 模型支持**：DeepSeek-V3.2（稀疏注意力 DSA）官方推荐推理引擎，以及 DeepSeek-V4.x、GLM-5.x、Kimi-K2.x、Qwen3.8 等新模型首发支持。
-- **RL 后训练**：提供 sleep / wake-up 显存卸载、`/update_weights_from_tensor` 权重热更新等能力，成为 veRL 等 RL 框架的事实标准 rollout 引擎。
+- **Day-0 模型支持**：DeepSeek-V3.2（稀疏注意力 DSA）官方推荐推理引擎；v0.5.17 起 day-0 支持 Kimi K3（2.8T 参数 LatentMoE、1M 上下文），后续版本又首发支持 Qwen3.8（v0.5.19）、GLM-5.3-Flash（v0.5.20）、DeepSeek-V4.1 Flash、MiMo-V2.6（v0.5.21）等新模型，并覆盖扩散模型与 VLA 模型。
+- **RL 后训练**：提供 sleep / wake-up 显存卸载、`/update_weights_from_tensor` 权重热更新、v0.5.20 起 `return_sampling_mask` 逐步返回采样支撑集与 logprob（训练侧可精确重放 rollout）等能力，成为 veRL 等 RL 框架的事实标准 rollout 引擎。
 
 ## 没有 SGLang 会怎样？
 

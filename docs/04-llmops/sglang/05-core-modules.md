@@ -20,7 +20,7 @@
 
 ### 扩展方式
 
-Python API 可以自定义 `function`、工具调用、prompt template；API Server 基于 FastAPI，可扩展中间件与认证。
+Python API 可以自定义 `function`、工具调用、prompt template；API Server 基于 FastAPI，可扩展中间件与认证。v0.5.21 起还新增了面向判别类任务的 **Decisions API**（`/v1/decisions`，把 LLM / VLM 变成低延迟分类与打分器）和 **Score API**（`/v1/score`，一次请求对全部候选打分），拓展了 SGLang 在 rerank、分类、评测场景的使用边界。
 
 ---
 
@@ -140,7 +140,7 @@ SGLang 的控制中心，连接编译器、调度器、缓存和执行后端。
 ### 扩展方式
 
 - **HiCache / UnifiedRadixTree**（v0.5.12 起）：支持 SSD offload、SWA 模型，L2 主机内存缓存可动态挂载/卸载，L3 兼容 Mooncake Store、3FS、NIXL、AIBrix 等多种后端。
-- **统一 Radix Tree**（v0.5.19 起）成为所有模型的默认缓存，替代原先按模型类型区分的多套实现。
+- **统一 Radix Tree**（v0.5.19 起）成为所有配置的默认缓存（含 Full-attention-only 模型），替代原先按模型类型区分的多套实现。
 - **Rust 核心**（v0.5.21 起）成为前缀缓存默认实现，提升大规模并发下的树操作性能。
 
 ---

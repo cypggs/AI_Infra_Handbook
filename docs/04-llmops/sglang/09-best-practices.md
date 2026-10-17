@@ -78,7 +78,7 @@ SGLang 适合以下场景：
 1. **默认参数不一定最优**：SGLang 参数与 vLLM 不完全相同，迁移时需实测。
 2. **结构化约束编译慢**：复杂 EBNF 或 JSON schema 可能显著增加首 token 延迟。
 3. **Radix Tree 命中率被低估**：system prompt 不稳定或模板太多会大幅降低收益。
-4. **版本升级带来 API 变化**：建议锁定 minor 版本，升级前阅读 Release Notes。
+4. **版本升级带来 API 变化**：建议锁定 minor 版本，升级前阅读 Release Notes。例如 v0.5.20 起 `/v1/responses` 默认不再在内存中保留结果，需要检索历史响应时必须显式启动 `--enable-response-store`；v0.5.19 起统一 Radix Tree 成为默认缓存，`SGLANG_ENABLE_UNIFIED_RADIX_TREE` 等旧开关被废弃。
 5. **与 vLLM 混合部署时的请求路由**：应根据请求特征（是否结构化、是否多轮）动态路由。
 6. **忽略约束输出正确率评估**：结构化生成不仅要快，还要保证格式合法、字段正确。
 

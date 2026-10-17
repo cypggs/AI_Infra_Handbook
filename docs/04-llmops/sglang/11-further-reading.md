@@ -19,6 +19,8 @@
 - [SGLang Day-0 Support for DeepSeek-V3.2 with Sparse Attention](https://www.lmsys.org/blog/2025-09-29-deepseek-V32/) — 2025-09
 - [Deploying DeepSeek with PD Disaggregation and Large-Scale Expert Parallelism on 96 H100 GPUs](https://www.lmsys.org/blog/2025-05-05-large-scale-ep/) — 2025-05
 - [EPD Disaggregation: Elastic Encoder Scaling for Vision-Language Models](https://www.lmsys.org/blog/2026-01-12-epd/) — 2026-01
+- [SGLang Day-0 Support for Kimi K3](https://www.lmsys.org/blog/2026-07-27-kimi-k3-day0-support/) — 2026-07，Kimi K3（2.8T LatentMoE / 1M 上下文）day-0 支持
+- [DSpark: Confidence-Driven Speculative Decoding in SGLang](https://www.lmsys.org/blog/2026-07-06-dspark-sglang/) — 2026-07，v0.5.16 新投机解码算法
 
 ## 结构化生成相关
 

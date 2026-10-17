@@ -61,6 +61,7 @@ SGLang 与 Mooncake（Kimi 开源的 KVCache-centric 分离式推理架构）深
 - **实测收益**：蚂蚁集团在生产环境的 DeepSeek-R1-671B PD 分离部署中，缓存命中时 TTFT 降低 84%；多轮对话基准中缓存命中率从 18% 提升到 78%，平均 TTFT 下降约 56%，输入吞吐提升约 2.3 倍（来源：[Mooncake HiCache 基准](https://kvcache-ai.github.io/Mooncake/performance/sglang/sglang-hicache-benchmark-results-v1.html)）。
 - **SSD Offloading**：Mooncake 于 2026 年 4 月发布 SSD Offloading，把 KV Cache 进一步下沉到 NVMe SSD，形成 GPU HBM → 主机内存 → SSD 的完整分层体系。
 - SGLang 侧需要 v0.5.13+ 才能稳定使用 Mooncake Store 后端。
+- **Kimi K3 day-0**：v0.5.17 发布当天即支持月之暗面的 Kimi K3（2.8T 参数 LatentMoE、896 专家、1M 上下文、KDA 线性注意力与 MLA 混合架构），配套 DCP、DSpark 投机解码、KDA-aware 前缀缓存、HiCache L2 over DCP、量化权重上的 LoRA，在 NVIDIA GB300 与 AMD MI35x 上完成验证；v0.5.21 进一步将 Kimi K3 在 PD serving 下的 prefill 吞吐提升 20.6%（来源：[LMSYS Kimi K3 day-0 博客](https://www.lmsys.org/blog/2026-07-27-kimi-k3-day0-support/)）。
 
 ### DeepSeek / 大模型推理
 
@@ -77,6 +78,7 @@ SGLang 是 DeepSeek 官方推荐的推理部署引擎之一，在 DeepSeek 系�
 - **sleep / wake-up**：训练与 rollout 共存同一批 GPU 时，可把推理引擎显存（含 CUDA Graph）卸载到 CPU，训练时让出显存，rollout 时秒级唤醒。
 - **权重热更新**：`/update_weights_from_tensor` 等端点支持训练侧新权重直接推送到推理进程，无需重启服务。
 - **确定性推理**：保证 rollout 与训练前向的数值一致性，避免 KL 散度失真。
+- **采样 mask 回放**（v0.5.20）：`return_sampling_mask` 让每个 decode step 返回采样实际使用的 token 支撑集及采样 token 的 logprob，训练侧无需重建 top-k / top-p 即可精确重放 rollout；mask 计算进入 overlap scheduling，官方实测 Qwen3-8B decode 吞吐在 batch 1 提升 17%、batch 64 提升 52%。
 - 典型组合：`veRL（训练）+ SGLang（rollout）+ FSDP`，支撑 GLM-4.6、Qwen3 等模型的 RL 后训练（来源：[SGLang for RL 文档](https://docs.sglang.ai/advanced_features/sglang_for_rl.html)）。
 
 ### 国内云厂商与创业公司
@@ -103,6 +105,7 @@ SGLang 是 DeepSeek 官方推荐的推理部署引擎之一，在 DeepSeek 系�
 SGLang 在 2026 年持续强化 Speculative Decoding：
 
 - v0.5.12 引入 Speculative Decoding V2（默认开启），支持 EAGLE-3、MTP（DeepSeek 系列）、NGRAM 等多种 draft 方式。
+- **DSpark**（v0.5.16）：confidence-driven 投机解码，draft 以块为单位半自回归生成，verify 窗口大小由 draft 自身置信度决定（而非固定 draft 长度）；官方实测 DeepSeek-V4-Pro 在 B300 TP8、bs=1 下达到 383.7 tok/s（接受长度约 5），通过 `--speculative-algorithm DSPARK` 启用。v0.5.20 起 DSpark 进一步支持在 PD 分离 + DCP（decode context parallelism）下运行，Kimi-Linear 等混合模型可在 8x B300 上经 NIXL / Mooncake 服务至 256K 输入。
 - 官方基准：LLaMA-3.1-8B 在单张 H100 上从 158 token/s（基线）提升到 EAGLE-2 244 token/s、EAGLE-3 373 token/s（2.36 倍）。
 - **自适应投机解码**（2026 年 10 月文档更新）：根据接受率和 batch 大小动态调整 draft 步数与 draft token 数，避免大 batch 下投机反而降速。
 - 在延迟敏感场景可显著降低 TPOT；与 PD 分离、HiCache 兼容。
@@ -140,5 +143,7 @@ SGLang 在生产环境中的成功取决于场景选择：它特别适合 Agent�
 - [Mooncake x SGLang HiCache 系统设计](https://kvcache-ai.github.io/Mooncake/design/hicache-design.html)
 - [SGLang Day-0 Support for DeepSeek-V3.2 with Sparse Attention](https://www.lmsys.org/blog/2025-09-29-deepseek-V32/)
 - [SGLang HiCache: Fast Hierarchical KV Caching](https://www.lmsys.org/blog/2025-09-10-sglang-hicache/)
+- [SGLang Day-0 Support for Kimi K3](https://www.lmsys.org/blog/2026-07-27-kimi-k3-day0-support/)
+- [DSpark: Confidence-Driven Speculative Decoding in SGLang](https://www.lmsys.org/blog/2026-07-06-dspark-sglang/)
 - [SGLang for RL Systems 官方文档](https://docs.sglang.ai/advanced_features/sglang_for_rl.html)
 - LMSYS / SGLang 团队技术博客与演讲

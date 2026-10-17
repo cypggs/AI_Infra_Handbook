@@ -199,3 +199,16 @@ RL 后训练（GRPO / PPO / DAPO 等）需要 rollout 引擎具备以下能力�
 4. **确定性推理**：保证 rollout 与训练前向数值一致，避免 KL 散度失真。
 
 因此 `veRL + SGLang` 成为 2025-2026 年大模型 RL 后训练的常见组合。
+
+---
+
+### Q17: DSpark 相比 EAGLE / MTP 等传统投机解码有什么创新？
+
+**参考答案：**
+
+DSpark 是 SGLang v0.5.16 引入的 confidence-driven 投机解码算法，核心差异有两点：
+
+1. **块级半自回归 draft**：draft 模型以块（block）为单位半自回归地生成候选，而不是逐 token 链式 draft。
+2. **自适应 verify 窗口**：每个 verify 窗口的大小由 draft 自身的置信度决定，而非固定 draft 长度——置信度高时一次验证更多 token，置信度低时收窄窗口，减少无效验证。
+
+官方实测 DeepSeek-V4-Pro 在 B300 TP8、bs=1 下达到 383.7 tok/s（接受长度约 5）。v0.5.20 起 DSpark 还支持在 PD 分离 + DCP（decode context parallelism）下运行，适用于 Kimi-Linear 等混合注意力模型。
