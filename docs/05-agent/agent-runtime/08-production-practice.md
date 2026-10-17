@@ -56,6 +56,17 @@ Client → Agent Runtime Service → LLM Gateway → LLM
 - 供应商锁定。
 - 自定义工具与策略可能受限。
 
+2026 下半年这一形态值得单独评估，头部厂商已把自家 harness 做成托管服务：
+
+| 托管 Runtime | 状态（截至 2026-10-17） | 关键点 |
+|---|---|---|
+| **OpenAI Agents API**（托管 Codex harness） | 2026-09-10 public beta | durable sessions、自动上下文压缩、tool search、并行 subagents；沙箱可 OpenAI 托管 / 自托管 / 第三方；托管更多 harness 职责，编排控制权仍在 SDK |
+| **Anthropic Claude Managed Agents** | 2026-04 public beta；dynamic workflows beta（2026-10-09） | $0.08/session-hour（仅 `running` 计费）；workflow run 上限 64 线程 / 1,000 agents / 24h |
+| **AWS Bedrock AgentCore Managed Harness** | 2026-07 GA | 模型 + prompt + 工具一站式托管；Runtime 配额 2026-07 提升最高 5 倍（美东/美西 5,000 并发会话）；AgentCore Payments 2026-08-18 GA |
+| **Azure Functions Serverless Agents Runtime** | Build 2026 发布 | Serverless 原生，MCP GA、durable 调度、microVM 沙箱 |
+
+选型判断：任务标准化程度高、团队不想养 Runtime 基建时托管形态很香；需要深度定制循环逻辑、跨模型供应商、或强合规隔离时仍应自建（或 SDK + 自有服务）。
+
 ## 与 LLM Gateway 集成
 
 Agent Runtime 通过 LLM Gateway 统一调用模型：
@@ -136,6 +147,12 @@ Agent 能执行代码或调用 API 时，沙箱是底线。2026 年的事实标�
 | 自研 | Docker + gVisor / Kata Containers | 完全可控 | 有合规与定制需求的团队 |
 
 2026-04 起 OpenAI Agents SDK 已把沙箱做成原生能力（首发集成 E2B、Modal、Cloudflare、Daytona、Blaxel、Runloop、Vercel 等），自建 Runtime 时通常直接采购沙箱 API 而不是自研。
+
+2026-07→10 的 sandbox 生态增量：
+
+- **快照 fork 成为通用原语**：E2B 在 2026-09-21 上线 v2 sandbox endpoints 与 CLI `sandbox fork`（`sandbox.fork({count})` 可对运行中的沙箱文件系统 + 内存做快照并一次拉起最多 20 个副本），2026-10-12 又增加仅文件系统快照与生命周期暂停模式；Daytona、Vercel 同期也提供 fork/暂停能力。“跑一个探路 → fork 出 N 个并行副本”成为并行 subagent 的标准玩法。
+- **自托管选项增加**：E2B Embed（2026-09-14，Apache-2.0 单机自托管包）让企业把沙箱运行时装进自有基础设施。
+- **竞争者补齐**：Cloudflare Sandbox SDK 1.0（2026-09-30）、Modal VM Sandboxes GA（2026-10-01）。
 
 文件、网络、API 三层权限依然要单独收紧：
 
@@ -221,6 +238,7 @@ Agent 上线前需要建立评测集：
 | 上下文爆炸 | 工具输出过长 | 摘要、截断、只保留关键结果 |
 | 工具参数幻觉 | 模型编造参数 | JSON Schema + 参数校验 + 重试 |
 | 状态丢失 | 进程崩溃 | Checkpoint 持久化；有副作用的任务改用 durable execution 引擎 |
+| 压缩后恢复错位 | compaction 后未落盘新 checkpoint | 压缩完成即写 checkpoint；压缩事件进 trace |
 | 崩溃重复副作用 | 恢复时重放已执行的外部调用 | journal + 幂等键；durable 引擎的活动去重 |
 | 安全风险 | Agent 执行任意代码 | Firecracker 级沙箱 + 工具权限标签 |
 | 可观测缺失 | 没记录 trace | 从 Day 0 接入 OpenTelemetry GenAI 约定 |
@@ -242,5 +260,9 @@ Agent 上线前需要建立评测集：
 - [AI Agent Evaluation (2026): Metrics, Frameworks, and Production Failures — Morph](https://www.morphllm.com/ai-agent-evaluation)
 - [LLM-as-a-Judge Best Practices in 2026: Calibration, Bias, and Cost](https://futureagi.com/blog/llm-as-a-judge-best-practices-2026/)
 - [Langfuse vs. LangSmith (2026)](https://www.datacamp.com/blog/langfuse-vs-langsmith)
+- [OpenAI Agents API: Do You Still Need to Build an Agent Harness? — ODSC](https://opendatascience.com/openai-agents-api-do-you-still-need-to-build-an-agent-harness/)
+- [Claude Managed Agents dynamic workflows (beta), 2026-10-09](https://claude-for.com/guides/claude-managed-agents-dynamic-workflows-2026-10-09)
+- [E2B Product Updates](https://e2b.dev/product-updates)
+- [AWS raises AgentCore runtime quotas by up to 5x — InfoWorld](https://www.infoworld.com/article/4192220/aws-raises-agentcore-runtime-quotas-by-up-to-5x-to-help-enterprises-scale-ai-agents.html)
 - [AWS Bedrock Agents Developer Guide](https://docs.aws.amazon.com/bedrock/)
 - [Azure AI Agent Service](https://learn.microsoft.com/en-us/azure/ai-services/agents/)

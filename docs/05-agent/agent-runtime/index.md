@@ -40,7 +40,7 @@
 5. [核心模块](05-core-modules) — Task Parser、Planner、Executor、Tool Registry、Memory、State、LLM Client、Guardrails、Observer、Recovery。
 6. [源码分析](06-source-analysis) — OpenAI Agents SDK、LangGraph、Smolagents、PydanticAI。
 7. [工程实践](07-mini-demo) — 纯 Python 可运行的 Mini Demo。
-8. [企业生产实践](08-production-practice) — 部署、持久化、沙箱、评测、与 LLM Gateway 集成。
+8. [企业生产实践](08-production-practice) — 部署、持久化、沙箱、评测、托管 Runtime（Agents API / Managed Agents / AgentCore）、与 LLM Gateway 集成。
 9. [最佳实践](09-best-practices) — 模型选择、工具设计、可观测、沙箱、评测、避免过度编排。
 10. [面试题](10-interview-questions) — 初级/中级/高级面试题。
 11. [延伸阅读](11-further-reading) — 官方文档、论文、工程文章。

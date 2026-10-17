@@ -1,14 +1,26 @@
-"""Working memory with simple token-budget truncation."""
+"""Working memory with token-budget truncation and deterministic compaction."""
 
-from typing import Any
+from typing import Any, Callable
+
+
+def _default_summarizer(messages: list[dict[str, Any]]) -> str:
+    """Deterministic placeholder summarizer: keep roles and first words."""
+    parts = [f"{m['role']}: {str(m.get('content', ''))[:20]}" for m in messages]
+    return "[compacted " + str(len(messages)) + " messages] " + " | ".join(parts[:3])
 
 
 class WorkingMemory:
     """Maintains conversation history for a session."""
 
-    def __init__(self, max_tokens: int = 500):
+    def __init__(
+        self,
+        max_tokens: int = 500,
+        summarizer: Callable[[list[dict[str, Any]]], str] | None = None,
+    ):
         self.messages: list[dict[str, Any]] = []
         self.max_tokens = max_tokens
+        self.summarizer = summarizer or _default_summarizer
+        self.compaction_count = 0
 
     def add_message(self, role: str, content: str, **kwargs: Any) -> None:
         message = {"role": role, "content": content, **kwargs}
@@ -41,6 +53,25 @@ class WorkingMemory:
 
     def get_messages(self) -> list[dict[str, Any]]:
         return list(self.messages)
+
+    def compact(self, keep_recent: int = 2) -> dict[str, Any]:
+        """Summarize oldest non-system messages into one compaction message.
+
+        Mirrors production harnesses (2026): compaction is a first-class
+        loop stage, not an afterthought. Deterministic given the same
+        messages and summarizer. Returns a stats dict for observability.
+        """
+        system = [m for m in self.messages if m["role"] == "system"]
+        rest = [m for m in self.messages if m["role"] != "system"]
+        if len(rest) <= keep_recent:
+            return {"compacted": 0, "remaining": len(self.messages)}
+        head, tail = rest[:-keep_recent], rest[-keep_recent:]
+        summary = self.summarizer(head)
+        self.messages = system + [
+            {"role": "user", "content": summary, "compacted": True}
+        ] + tail
+        self.compaction_count += 1
+        return {"compacted": len(head), "remaining": len(self.messages)}
 
     def _truncate(self) -> None:
         """Drop oldest non-system messages while over budget."""

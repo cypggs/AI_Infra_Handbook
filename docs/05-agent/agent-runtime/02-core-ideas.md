@@ -79,6 +79,7 @@ Runtime 需要在循环中维护上下文。常见记忆类型：
 生产要点：
 
 - 上下文长度有限，需要摘要或截断策略。
+- **上下文压缩（compaction）在 2026 年成为 Runtime 的一等能力**，而不是循环跑不下去时的补救措施：OpenAI Agents API（2026-09-10）把自动 compaction 做成托管原语（会话接近上下文上限时自动压缩早期交互）；Agents SDK v0.22 引入 session compaction，v0.24.0（2026-10-15）进一步规定**有待审批请求时推迟压缩**；Claude Code v2.1.x（2026-09/10）支持空闲会话自动压缩，且 PreCompact hook 可以阻断一次压缩并追加指令。压缩事件本身应进入 trace，否则重放与调试会对不上上下文。
 - 记忆读写应该可插拔，支持内存、Redis、向量数据库。
 - 敏感信息不能无差别存入长期记忆。
 
@@ -137,7 +138,7 @@ Agent 任务可能持续很久，Runtime 需要管理：
 - **Checkpoint**：把状态持久化，支持中断后恢复。
 - **Resume**：从上次状态继续执行，而不是从头开始。
 
-2025–2026 年这一思想进一步发展出 **durable execution（持久化执行）**：Runtime 把每一步执行记录到 journal（事件溯源），进程崩溃后从最后一条记录重放恢复，而不是依赖“定期 checkpoint + 最佳努力恢复”。LangGraph 自研了 checkpoint/resume 机制；Temporal、Inngest、Restate、DBOS 等通用 durable 引擎则把这一能力做成独立底座——Agent 循环跑在 workflow 里，每一步是一个 activity/step。经验法则是：**任务超过几分钟、或有外部副作用（写库、发邮件、扣费），就应该用 durable execution 而不是进程内状态机**。
+2025–2026 年这一思想进一步发展出 **durable execution（持久化执行）**：Runtime 把每一步执行记录到 journal（事件溯源），进程崩溃后从最后一条记录重放恢复，而不是依赖“定期 checkpoint + 最佳努力恢复”。LangGraph 自研了 checkpoint/resume 机制；Temporal、Inngest、Restate、DBOS 等通用 durable 引擎则把这一能力做成独立底座——Agent 循环跑在 workflow 里，每一步是一个 activity/step。2026 下半年厂商 SDK 也在补齐同一能力：OpenAI Agents SDK v0.20.0（2026-08-11）加入 `RunState.add_input()` 把用户输入暂存为 durable 输入，v0.21.0（2026-08-15）加固了 RunState 中断快照与递归 agent-tool 审批。经验法则是：**任务超过几分钟、或有外部副作用（写库、发邮件、扣费），就应该用 durable execution 而不是进程内状态机**。
 
 ```mermaid
 stateDiagram-v2
@@ -193,4 +194,6 @@ Agent Runtime 的九大核心思想——ReAct、Tool Calling、Memory、Plannin
 - [The state of the OpenTelemetry GenAI semantic conventions (July 2026)](https://john-hodge.com/blog/opentelemetry-genai-semantic-conventions/)
 - [The MCP 2026-07-28 Specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
 - [Claude Code Skills in 2026: The Complete Guide](https://www.totalum.app/blog/claude-code-skills-totalum)
+- [Claude Code Changelog（GitHub Releases）](https://github.com/anthropics/claude-code/releases)
+- [OpenAI Agents SDK Changelog（v0.19–v0.24，2026-07→10）](https://www.gradually.ai/en/changelogs/openai-agents-sdk/)
 - [从 Function Call 到 MCP → SKILLS](https://crossoverjie.top/2026/02/03/AI/MCP-Skills-intro/)

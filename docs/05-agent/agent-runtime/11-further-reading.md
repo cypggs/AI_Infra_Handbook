@@ -3,7 +3,11 @@
 ## 官方文档（必读）
 
 - [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
-  - 厂商原生 Agent SDK，学习 Agent、Tool、Handoffs、Guardrails、Tracing；2026-04 版重点看 subagents 与原生沙箱。
+  - 厂商原生 Agent SDK，学习 Agent、Tool、Handoffs、Guardrails、Tracing；2026-04 版重点看 subagents 与原生沙箱，2026-07→10 增量看 Programmatic Tool Calling（v0.19）、`agents.testing`（v0.21）与 session compaction（v0.22+）。
+- [OpenAI Agents SDK Changelog](https://www.gradually.ai/en/changelogs/openai-agents-sdk/)
+  - v0.19.0（2026-07-27）→ v0.24.0（2026-10-15）逐版本演进记录。
+- [OpenAI Agents API（DevDay 2026）](https://opendatascience.com/openai-agents-api-do-you-still-need-to-build-an-agent-harness/)
+  - 托管版 Codex harness：durable sessions、自动压缩、tool search、并行 subagents；与 Agents SDK 的分层口径。
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
   - 生产级状态图编排，重点看 StateGraph、Persistence、Human-in-the-loop。
 - [LangChain Function Calling](https://python.langchain.com/docs/concepts/tool_calling/)
@@ -14,6 +18,10 @@
   - 轻量级代码优先 Agent 框架。
 - [PydanticAI Documentation](https://ai.pydantic.dev/)
   - 类型安全 Agent 框架。
+- [Claude Code Releases（GitHub）](https://github.com/anthropics/claude-code/releases)
+  - Claude Agent SDK 的宿主：v2.1.x（2026-09/10）重点看 subagent 回注注入防御、fork subagents、`autoCompactWindow` 与 Agent View。
+- [Claude Managed Agents dynamic workflows (beta), 2026-10-09](https://claude-for.com/guides/claude-managed-agents-dynamic-workflows-2026-10-09)
+  - 托管 Runtime 的多阶段 workflow run 与事件流。
 - [CrewAI Documentation](https://docs.crewai.com/)
   - 角色化多 Agent 团队框架。
 
@@ -60,8 +68,12 @@
 
 - [E2B Documentation](https://docs.e2b.dev/)
   - Firecracker microVM 沙箱的事实标准，跑不可信 LLM 生成代码。
+- [E2B Product Updates](https://e2b.dev/product-updates)
+  - 2026-09/10 重点：v2 sandbox endpoints 与 CLI fork（09-21）、E2B Embed 自托管（09-14）、仅文件系统快照与暂停模式（10-12）。
 - [Modal Sandboxes](https://modal.com/docs)
-  - gVisor 隔离 + GPU，适合 GPU 密集型 Agent 负载。
+  - gVisor 隔离 + GPU，VM Sandboxes 于 2026-10-01 GA。
+- [Grok Build Open Source: xAI Agent Harness Architecture](https://dailyaiworld.com/workflow/grok-build-open-source-harness-workflow-2026)
+  - 2026-07 开源的完整 harness 实现（Rust/ACP），leader-follower subagents 与自动压缩的工程参照。
 - [Temporal Durable AI Agents](https://docs.temporal.io/ai)
   - Durable execution 在 Agent 场景的模式与 cookbook。
 
@@ -93,7 +105,7 @@
 
 ## 本章小结
 
-Agent Runtime 的生态系统正在快速分化又快速收敛：OpenAI Agents SDK（2026-04 平台化）、Google ADK 2.0、Claude Agent SDK 在 SDK 层补齐沙箱/subagents/skills；LangGraph 守住生产级状态编排与 durable execution；MCP（2026-07-28 无状态核心）与 A2A（v1.0）把互操作层标准化。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 Agent Runtime。
+Agent Runtime 的生态系统正在快速分化又快速收敛：OpenAI Agents SDK（2026-04 平台化，07→10 迭代 v0.19–v0.24：Programmatic Tool Calling、session compaction、`agents.testing`）、Google ADK 2.0、Claude Agent SDK（v2.1.x 并行化与压缩默认化）在 SDK 层补齐沙箱/subagents/skills；OpenAI Agents API（2026-09-10）、Claude Managed Agents（dynamic workflows beta，2026-10-09）、Bedrock AgentCore Managed Harness（2026-07 GA）把 Runtime 变成可采购的托管品类；LangGraph 守住生产级状态编排与 durable execution；MCP（2026-07-28 无状态核心）与 A2A（v1.0）把互操作层标准化。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 Agent Runtime。
 
 **参考来源**
 

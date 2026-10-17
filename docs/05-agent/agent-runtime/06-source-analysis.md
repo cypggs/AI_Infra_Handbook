@@ -57,6 +57,23 @@ Runner 内部实现了一个标准的 ReAct 循环：
 - **模型解绑**：通过 Chat Completions 兼容端点支持 100+ 模型（Claude、Gemini、Llama、DeepSeek 等）。
 - **三层护栏**：input / output / tool 三层并行执行；2026-06 增加防提示注入的 Lockdown Mode。
 
+### 2026-07→10 增量：工具编排、会话与测试
+
+| 版本 | 日期 | 关键变化 |
+|---|---|---|
+| v0.19.0 | 2026-07-27 | **Programmatic Tool Calling**：模型生成 JavaScript 编排合格工具（per-tool `allowed_callers`），与 streaming/guardrails/approvals/sessions/RunState 全链路集成；新增 `agents.decorators` 与 `@tool` 别名 |
+| v0.20.0 | 2026-08-11 | 默认模型切换为 `gpt-5.6-luna`；`RunState.add_input()` 暂存 durable 用户输入；同时支持 MCP Python SDK v1 与 v2（stdio / SSE / Streamable HTTP） |
+| v0.21.0 | 2026-08-15 | `agents.testing` provider 无关测试 API（无需真实 provider 的确定性测试）；RunState 中断快照加固、递归 agent-tool 审批 |
+| v0.22.x | 2026-09 | session compaction（含压缩期间并发写安全）；MCP server 级 guardrails；Unix-local 沙箱环境隔离可配置 |
+| v0.23.0 | 2026-10-02 | 沙箱 Docker removal 保护、可配置的 memory consolidation 轮数；会话历史加密扫描预算 |
+| v0.24.0 | 2026-10-15 | MCP annotations 透传到转换后的工具；**有待审批请求时推迟 compaction** |
+
+这一阶段的演进主题：**工具从“schema 列表”走向“可编排程序”，会话从“内存对象”走向“可恢复 durable 状态”，测试从“打 provider”走向“provider 无关”**。
+
+### OpenAI Agents API：harness 的托管化（2026-09-10 public beta）
+
+DevDay 2026 上 OpenAI 把内部 Codex harness 以 **Agents API** 形态开放（public beta）：durable sessions、自动上下文压缩、tool search（按需检索工具定义而非全量注入）、并行 subagents，沙箱可选 OpenAI 托管 / 自托管 / 第三方。官方口径把 Agents API 与 Agents SDK 明确分层：**API 托管更多 harness 职责（会话、压缩、工具检索），SDK 把编排控制权留给应用**。这是 2026 年“Runtime 作为产品品类”成立的标志性事件——自建 Runtime 的必要性要从“能力缺失”重新论证为“控制与定制需求”。
+
 ### Handoffs
 
 Handoffs 让 Agent 可以把任务交给另一个 Agent：
@@ -86,7 +103,7 @@ Runtime 会把 `handoff` 当作一种特殊 tool call 处理，切换当前 Agen
 
 ## LangGraph
 
-LangGraph 是“图编排式”Runtime 的代表，核心抽象是 `StateGraph`。LangChain 与 LangGraph 于 2025-10-22 同时发布 1.0 GA；2026 年的分工是：**LangChain 提供高层 Agent API（create_agent、middleware），LangGraph 是底下的编排/运行时引擎**，1.2.x 版本主要在打磨 durable execution 的正确性（resume 语义、子图恢复、checkpoint 清理）。
+LangGraph 是“图编排式”Runtime 的代表，核心抽象是 `StateGraph`。LangChain 与 LangGraph 于 2025-10-22 同时发布 1.0 GA；2026 年的分工是：**LangChain 提供高层 Agent API（create_agent、middleware），LangGraph 是底下的编排/运行时引擎**，1.2.x 版本主要在打磨 durable execution 的正确性（resume 语义、子图恢复、checkpoint 清理）——例如 1.2.16（2026-10-16）集中修复 resume/interrupt 与 checkpoint 写入边界，`langgraph-checkpoint-postgres` 3.2.0（2026-10-14）为 PostgresSaver 增加 prune（checkpoint 清理）。
 
 ### 核心抽象
 
@@ -197,8 +214,9 @@ def calculator(ctx, expr: str) -> str:
 | 项目 | 2026 年状态 | 一句话点评 |
 |---|---|---|
 | **Google ADK 2.0** | Python GA（2026-05）、Go（06）、TypeScript（08）；graph workflow、HITL 原语、skills 生命周期管理；Apache 2.0 | Google 生态的首选，多语言覆盖最全 |
-| **Claude Agent SDK**（原 Claude Code SDK） | 以 hooks（生命周期拦截）+ subagents（隔离上下文委派）+ skills 为核心；MCP 集成最深 | coding agent 场景的强候选；生产使用需注意权限默认拒绝 |
-| **Microsoft Agent Framework** | AutoGen 与 Semantic Kernel 合并，1.0 GA（2026-04）；AutoGen 独立版进入维护模式 | 企业/Azure 场景；actor + 消息传递模型 |
+| **Claude Agent SDK**（原 Claude Code SDK） | Claude Code v2.1.x（2026-09/10）：subagent 结果以带标记 header 回注防注入（v2.1.278）、fork subagents 默认开启、`autoCompactWindow`、Agent View（`claude agents`）；核心仍是 hooks + subagents + skills | coding agent 场景的强候选；生产使用需注意权限默认拒绝 |
+| **xAI Grok Build** | 2026-07 开源（约 132 万行 Rust，ACP 协议）：leader-follower subagents、自动上下文压缩 | 自研 Runtime 的完整开源参照，适合研究 harness 工程 |
+| **Microsoft Agent Framework** | AutoGen 与 Semantic Kernel 合并，1.0 GA（2026-04）；独立 harness 于 2026-07-22 GA；AutoGen 独立版进入维护模式 | 企业/Azure 场景；actor + 消息传递模型 |
 | **CrewAI** | 持续活跃，角色化 crew + 企业版 | 快速原型与角色扮演类任务 |
 | **LlamaIndex Workflows** | 1.0 线成熟，AgentWorkflow + 事件驱动 | 检索/RAG 为核心的数据密集型任务 |
 
@@ -223,10 +241,14 @@ OpenAI Agents SDK、LangGraph、Smolagents、PydanticAI 代表了 Agent Runtime 
 **参考来源**
 
 - [OpenAI Agents SDK Docs](https://openai.github.io/openai-agents-python/)
+- [OpenAI Agents SDK Changelog（v0.19–v0.24，2026-07→10）](https://www.gradually.ai/en/changelogs/openai-agents-sdk/)
+- [OpenAI Agents API: Do You Still Need to Build an Agent Harness? — ODSC](https://opendatascience.com/openai-agents-api-do-you-still-need-to-build-an-agent-harness/)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [LangGraph Releases (GitHub)](https://github.com/langchain-ai/langgraph/releases)
 - [Smolagents GitHub](https://github.com/huggingface/smolagents)
 - [PydanticAI Documentation](https://ai.pydantic.dev/)
 - [Google ADK 2.0](https://adk.dev/2.0/)
+- [Claude Code Releases（GitHub）](https://github.com/anthropics/claude-code/releases)
+- [Grok Build Open Source: xAI Agent Harness Architecture](https://dailyaiworld.com/workflow/grok-build-open-source-harness-workflow-2026)
 - [Claude Agent SDK vs OpenAI Agents SDK vs Google ADK: The 2026 Vendor SDK Showdown](https://niteagent.com/blog/vendor-agent-sdk-comparison-2026/)
 - [AI Agent Frameworks Compared 2026](https://agentmelt.com/blog/ai-agent-frameworks-compared-2026/)

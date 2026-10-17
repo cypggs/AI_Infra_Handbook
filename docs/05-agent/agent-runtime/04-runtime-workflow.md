@@ -191,7 +191,30 @@ idle → planning → acting → observing → acting → observing → done
 - **Handoffs**：当前 Agent 把任务整体移交给另一个 Agent（OpenAI Agents SDK 的 handoff、ADK 的 agent transfer），移交本身是主循环里的一个特殊 tool call。
 - **Subagents**：父 Agent 派生若干子 Agent 并行执行，子 Agent 拥有**隔离的上下文窗口**，完成后把摘要回注给父 Agent（OpenAI Agents SDK 2026-04 加入 subagents；Claude Agent SDK 的 subagent 不允许再嵌套委派）。
 
+2026-07→10 的增量让这一层快速成熟：
+
+- **并行 subagents 成为托管原语**：OpenAI Agents API（2026-09-10 public beta）把“tool search + 并行 subagents”作为服务端能力——工具太多时不再全量塞进上下文，而是按需检索相关工具定义再派生子 Agent。
+- **Subagent 回注的注入防御**：Claude Code v2.1.278（2026-09-18）起，subagent 结果以带标记的 header 回注主 Agent，避免子任务输出被当作会话指令执行；同时移除了旧的 TaskOutput 工具。
+- **fork subagents 默认化**：Claude Code 在 2026-09/10 把 `subagent_type: "fork"` 设为 `claude -p`、SDK、桌面端与 VS Code 的默认，并为 subagent frontmatter 增加 `autoCompactWindow`，让长时子任务自己管理压缩窗口；subagent 发起的后台命令不再有一小时时限。
+- **Multi-phase workflows**：Claude Managed Agents 的 dynamic workflows beta（2026-10-09）让 Agent 自主决定发起多阶段 workflow run（`workflow_run.created/phase_started/status_ended` 事件流），单 run 上限 64 并发线程、1,000 agents、24 小时。
+- **开源参照**：xAI 于 2026-07 开源 Grok Build harness（约 132 万行 Rust，走 ACP 协议），其 leader-follower subagents + 自动压缩的实现成为自研 Runtime 的重要参照。
+
 对 Runtime 而言，两者都只是“一个可暂停、可观测、可恢复的子任务”，状态机与 trace 模型不变。
+
+## 上下文压缩（Compaction）：循环的内生阶段
+
+2026 年的共识是：compaction 不是“跑不下去了再补救”，而是主循环里与 planning/acting 平权的一个阶段：
+
+```text
+... → acting → observing → [接近上下文上限?] → compact（摘要早期消息）→ acting → ...
+```
+
+落地要点：
+
+- **触发时机**：按 token 阈值自动触发（Agents SDK 的 session compaction、Claude Code 的空闲会话压缩），或在阶段边界主动触发。
+- **安全护栏**：有待审批的 HITL 请求时推迟压缩（Agents SDK v0.24.0，2026-10-15）；PreCompact hook 可阻断压缩并要求追加保留内容（Claude Code v2.1.x）。
+- **可观测**：压缩本身产生 trace event（压缩掉了多少消息、摘要内容、触发原因），否则恢复与调试时上下文对不上。
+- **子任务自治**：长时 subagent 应有自己的压缩窗口（`autoCompactWindow`），父 Agent 与子 Agent 的生命周期要分开管理，避免压缩打断父子通信。
 
 ## 人机协同（HITL）
 
@@ -222,3 +245,7 @@ Agent Runtime 的工作流程是“输入校验 → 规划 → 循环推理 → 
 - [OpenAI Agents SDK — Tracing](https://platform.openai.com/docs/guides/agents#tracing)
 - [OpenAI Agents SDK 2026: Sandbox Agents, Harness Architecture, Any LLM](https://abhs.in/blog/openai-agents-sdk-evolution-sandbox-harness-april-2026)
 - [LangGraph Human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)
+- [OpenAI Agents SDK Changelog（v0.19–v0.24）](https://www.gradually.ai/en/changelogs/openai-agents-sdk/)
+- [Claude Code Releases（v2.1.278 subagent 回注防御等）](https://github.com/anthropics/claude-code/releases)
+- [Claude Managed Agents dynamic workflows (beta), 2026-10-09](https://claude-for.com/guides/claude-managed-agents-dynamic-workflows-2026-10-09)
+- [Grok Build Open Source: xAI Agent Harness Architecture](https://dailyaiworld.com/workflow/grok-build-open-source-harness-workflow-2026)

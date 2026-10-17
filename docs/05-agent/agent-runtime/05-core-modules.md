@@ -151,6 +151,7 @@ result = registry.invoke("calculator", {"expr": "1+1"})
 
 - `WorkingMemory`：当前会话的 messages 列表。
 - `Summarizer`：上下文过长时压缩早期对话。
+- `Compactor`（2026 年成为一等模块）：按 token 阈值或阶段边界触发 compaction，把最早的非 system 消息摘要为一条压缩消息；触发原因、压缩消息数应写入 Observer，且要支持“有 HITL 待审批时推迟压缩”“hook 阻断压缩”等策略（参见 [Runtime 工作流程](/05-agent/agent-runtime/04-runtime-workflow) 的 compaction 一节）。
 - `LongTermMemory`：跨会话记忆（可插拔向量 DB）。
 
 详细实现参见 [Agent Memory 主题](/05-agent/memory/)。
@@ -190,9 +191,10 @@ Checkpoint 内容：
 
 生产演进方向（2026）：
 
-- **Durable execution**：把 checkpoint 升级为 journal + 重放恢复（Temporal / Inngest / Restate / DBOS），崩溃后已完成的 LLM 调用与外部副作用不会重复执行。
+- **Durable execution**：把 checkpoint 升级为 journal + 重放恢复（Temporal / Inngest / Restate / DBOS），崩溃后已完成的 LLM 调用与外部副作用不会重复执行；OpenAI Agents SDK v0.20.0（2026-08-11）以 `RunState.add_input()` 把外部输入暂存为 durable 输入，v0.21.0 加固中断快照。
 - **长任务会话恢复**：进程重启后由调度器认领“孤儿 session”，加载最近 snapshot 继续跑。
 - **HITL 暂停即持久化**：等待人工审批的 session 同样落盘，审批系统通过外部事件唤醒。
+- **压缩状态一致性**：compaction 后要及时落盘新的 checkpoint，避免“恢复到压缩前状态 + 压缩后消息”的错位（Agents SDK v0.22.x 修复了压缩期间的并发写安全问题）。
 
 ## 9. Guardrails
 
@@ -226,6 +228,7 @@ event_types = [
     "llm_response",
     "tool_executed",
     "observation_added",
+    "context_compacted",
     "output_guardrail_passed",
     "task_completed",
     "task_failed",
@@ -248,6 +251,7 @@ Observer 不应阻塞主循环；可以异步发送事件。事件模型与 OTel
 | `tool_executed` | `execute_tool` span，`gen_ai.tool.name` / `gen_ai.tool.call.id` |
 | `retrieval` 类事件 | `retrieval` span |
 | `hitl_requested` | `invoke_agent` span 上的事件/属性 |
+| `context_compacted` | `invoke_agent` span 上的事件，属性记录压缩消息数与触发原因 |
 
 ## 11. Recovery
 

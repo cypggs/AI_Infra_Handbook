@@ -136,6 +136,15 @@ Client → Agent Runtime Service → LLM Gateway → Tools
 优点：按需计费、自动扩缩、托管持久化。
 缺点：供应商锁定、自定义能力受限。
 
+2026 下半年起，这一形态进入“托管 harness 竞争”阶段：
+
+| 托管 Runtime | 上线时间 | 计费/特点 |
+|---|---|---|
+| **OpenAI Agents API**（托管 Codex harness） | 2026-09-10 public beta（DevDay 2026） | durable sessions、自动上下文压缩、tool search、并行 subagents；沙箱可选 OpenAI 托管 / 自托管 / 第三方 |
+| **Anthropic Claude Managed Agents** | 2026-04 public beta；2026-10-09 dynamic workflows beta | 按 $0.08/session-hour 计费（仅 `running` 状态计费）；dynamic workflows 单 run 最多 64 并发线程、1,000 agents、24h 生命周期，经 `workflow_run.*` 事件流回报进度 |
+| **AWS Bedrock AgentCore Managed Harness** | 2026-07 GA | 模型 + prompt + 工具一站式托管；2026-07 起 Runtime 配额提升最高 5 倍（美东/美西 5,000 并发会话）；AgentCore Payments 于 2026-08-18 GA |
+| **Azure Functions Serverless Agents Runtime** | Build 2026 发布 | Serverless 原生 Agent 运行时，MCP GA、durable 调度、microVM 沙箱 |
+
 ### 形态 4：Sidecar
 
 与业务容器一起部署，适合高隔离场景。
@@ -198,4 +207,7 @@ Agent Runtime 架构的核心是“一个中心循环 + 多个能力插件”。
 - [Temporal Durable AI Agents Docs](https://docs.temporal.io/ai)
 - [LangGraph vs Temporal: AI Agent Orchestration Compared](https://www.langchain.com/resources/langgraph-vs-temporal)
 - [Which Durable Execution Engine for AI Agents in 2026: Temporal vs Restate vs Inngest](https://startupik.com/durable-execution-engine-ai-agents/)
+- [OpenAI Agents API: Do You Still Need to Build an Agent Harness? — ODSC](https://opendatascience.com/openai-agents-api-do-you-still-need-to-build-an-agent-harness/)
+- [Claude Managed Agents dynamic workflows (beta), 2026-10-09](https://claude-for.com/guides/claude-managed-agents-dynamic-workflows-2026-10-09)
+- [AWS raises AgentCore runtime quotas by up to 5x — InfoWorld](https://www.infoworld.com/article/4192220/aws-raises-agentcore-runtime-quotas-by-up-to-5x-to-help-enterprises-scale-ai-agents.html)
 - [AWS Bedrock AgentCore](https://docs.aws.amazon.com/bedrock/)

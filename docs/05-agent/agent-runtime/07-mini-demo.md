@@ -10,7 +10,7 @@
 - **Tool Registry**：用 `@tool` 装饰器注册 Python 函数，自动生成 JSON Schema。
 - **Executor**：调用工具并捕获结果，教学版沙箱做超时与异常隔离。
 - **Runtime Loop**：实现标准的 ReAct 循环，含最大迭代次数保护。
-- **Memory**：维护会话级 message history；支持简单截断/摘要。
+- **Memory**：维护会话级 message history；支持简单截断/摘要 + 确定性 `compact()` 压缩（对应 2026 年 Runtime 的一等 compaction 能力）。
 - **State**：用状态机记录 `idle/planning/acting/observing/done/error`。
 - **Guardrails**：输入检查、工具调用次数限制、路径白名单、高风险操作需 HITL。
 - **Observer**：记录 trace event，输出树形执行路径。
@@ -51,7 +51,7 @@ docs/05-agent/agent-runtime/mini-demo/
 | 模拟 LLM | `llm_client.py` | 根据 prompt 返回 tool_calls 或最终答案 |
 | 工具注册 | `tool_registry.py` | `@tool` 装饰器 + 自动 JSON Schema |
 | 工具执行 | `executor.py` | 超时、异常隔离、权限前置检查 |
-| 记忆 | `memory.py` | messages 列表 + 截断策略 |
+| 记忆 | `memory.py` | messages 列表 + 截断策略 + 确定性 compaction（可注入 summarizer） |
 | 状态 | `state.py` | 会话状态机 |
 | 护栏 | `guardrails.py` | 输入/工具前置/输出/资源限制 |
 | 观测 | `observer.py` | event + span 记录 |
@@ -143,6 +143,18 @@ def run(self, task: str, session_id: str) -> Tuple[str, TraceObserver]:
     return f"Max iterations reached ({self.max_iterations})", self.observer
 ```
 
+### 记忆与压缩
+
+```python
+from agent_runtime_mini.memory import WorkingMemory
+
+mem = WorkingMemory(max_tokens=8000, summarizer=lambda msgs: f"[compacted {len(msgs)}]")
+for i in range(10):
+    mem.add_user_message(f"message {i}")
+stats = mem.compact(keep_recent=2)   # 最老的非 system 消息被压缩成一条
+assert stats["compacted"] == 8
+```
+
 ### 状态机
 
 ```python
@@ -173,6 +185,9 @@ tests/test_guardrails.py::test_denied_write PASSED
 tests/test_memory.py::test_add_and_retrieve_messages PASSED
 tests/test_memory.py::test_token_truncation_drops_oldest_non_system PASSED
 tests/test_memory.py::test_tool_messages PASSED
+tests/test_memory.py::test_compact_summarizes_oldest_and_keeps_recent PASSED
+tests/test_memory.py::test_compact_is_deterministic PASSED
+tests/test_memory.py::test_compact_noop_when_history_is_short PASSED
 tests/test_observer.py::test_record_events PASSED
 tests/test_observer.py::test_render_contains_events PASSED
 tests/test_runtime.py::test_math_task PASSED
@@ -187,7 +202,7 @@ tests/test_tool_registry.py::test_dispatch PASSED
 tests/test_tool_registry.py::test_write_file_requires_approval PASSED
 tests/test_tool_registry.py::test_write_file_with_approval PASSED
 
-============================== 27 passed in 0.11s ==============================
+============================== 30 passed in 0.11s ==============================
 ```
 
 ## 生产差异说明

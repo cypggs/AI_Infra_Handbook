@@ -50,6 +50,7 @@ ReAct = Reasoning + Acting。模型在每一步先进行推理（Thought），�
 - 使用外部持久化（Redis/Postgres）存储 checkpoint。
 - 失败或进程重启后从最近 checkpoint 恢复。
 - HITL 请求本身也是状态机的一部分。
+- compaction 之后立即写新 checkpoint，避免恢复到压缩前状态与压缩后消息错位。
 
 ### Q7：Agent Runtime 中 Guardrails 应该放在哪些位置？
 
@@ -82,7 +83,8 @@ ReAct = Reasoning + Acting。模型在每一步先进行推理（Thought），�
 **参考答案**：
 
 - **OpenAI Agents SDK**：SDK 式，Agent/Runner/Tool 抽象，快速落地；构建在 Responses API 上，2026-04 起支持任意 Chat Completions 兼容模型、原生沙箱与 subagents。
-- **LangGraph**：图编排式，StateGraph/Node/Edge，显式状态管理 + checkpoint/durable execution，强持久化与可观测，适合复杂生产工作流；2025-10 已 GA。
+- **LangGraph**：图编排式，StateGraph/Node/Edge，显式状态管理 + checkpoint/durable execution，强持久化与可观测，适合复杂生产工作流；2025-10 已 GA，1.2.x（2026-10 最新 1.2.16）持续打磨 resume/checkpoint 正确性。
+- **2026-09 之后的新变量**：OpenAI 把 Codex harness 以 **Agents API**（2026-09-10 public beta）托管化（durable sessions、自动压缩、tool search、并行 subagents），与 Agents SDK 分层——API 托管更多 harness 职责，SDK 保留编排控制权。
 - 选型：简单任务、SDK 平台化能力（沙箱/subagents）优先用 Agents SDK；复杂有状态、需要断点续跑与人工介入的任务用 LangGraph。2026 年两者都可对接 Temporal 等 durable 引擎与 OTel 可观测。
 
 ### Q10：Agent Runtime 中如何处理工具执行失败？
@@ -114,6 +116,15 @@ Durable execution 是把每次执行的输入输出记录到 journal，崩溃后
 - **A2A（Agent2Agent）**：Agent ↔ Agent 的协作协议，v1.0 于 2026-03 发布（签名 Agent Card、多租户、版本协商）；IBM 的 ACP 已于 2025-08 合并进 A2A。
 - Runtime 通过 MCP 接入工具生态（也可继续用 function calling），通过 A2A 与其他组织的 Agent 互通；两者互补，同属一个治理基金会。
 
+### Q14：2026 年托管 Agent Runtime（如 OpenAI Agents API、Claude Managed Agents）与自建 Runtime 如何取舍？
+
+**参考答案**：
+
+- **托管形态提供**：durable sessions、自动上下文压缩、tool search、并行 subagents、托管沙箱（如 Agents API 2026-09-10 public beta）；Claude Managed Agents 按 $0.08/session-hour 计费（仅 running 状态），2026-10-09 加入 dynamic workflows beta；AWS Bedrock AgentCore Managed Harness 2026-07 GA。
+- **托管的优势**：零基建、开箱即用的会话持久化与压缩、按量计费；适合任务标准化、团队小、上线速度优先的场景。
+- **自建的理由**：需要深度定制循环逻辑、跨模型供应商（托管通常绑定自家模型）、强合规隔离、或要把 Runtime 与内部权限/审计体系深度集成。
+- **中间路线**：用 Agents SDK / LangGraph 自建数据面，把沙箱、工具检索、durable 存储等横切能力外包给托管服务或专业引擎。
+
 ## 本章小结
 
 面试中关于 Agent Runtime 的问题通常集中在：**ReAct 循环**、**工具调用与参数校验**、**状态与持久化**、**Guardrails 与 HITL**、**可观测**、**框架对比**。掌握本章问题，基本可以覆盖中级到高级面试场景。
@@ -125,3 +136,5 @@ Durable execution 是把每次执行的输入输出记录到 journal，崩溃后
 - [ReAct Paper](https://arxiv.org/abs/2210.03629)
 - [The Agent Protocol Stack in 2026: MCP, A2A, and ACP](https://www.agenticfabriq.com/blog/agent-protocol-stack-2026)
 - [Durable AI agents in 2026](https://www.reactify-solutions.com/articles/durable-ai-agents-2026)
+- [OpenAI Agents API: Do You Still Need to Build an Agent Harness? — ODSC](https://opendatascience.com/openai-agents-api-do-you-still-need-to-build-an-agent-harness/)
+- [Claude Managed Agents dynamic workflows (beta), 2026-10-09](https://claude-for.com/guides/claude-managed-agents-dynamic-workflows-2026-10-09)

@@ -26,6 +26,8 @@
 ## 4. 记忆与上下文
 
 - **工作记忆保留完整对话**，但超过 token 阈值时摘要。
+- **compaction 是一等公民**：按阈值自动触发、在阶段边界主动触发，并保证“有 HITL 待审批时推迟压缩”；压缩事件必须进 trace。
+- **长时 subagent 独立管理压缩窗口**（如 Claude Code 的 `autoCompactWindow`），父子生命周期分开，避免压缩打断父子通信。
 - **长期记忆按需检索**，不要一次性塞进上下文。
 - **敏感信息不入长期记忆**。例如用户密码、Token、PII。
 - **多会话共享记忆需要用户授权**。
@@ -56,10 +58,11 @@
 ## 8. 沙箱
 
 - **任何会执行代码或访问外部系统的工具都必须沙箱**；跑不可信 LLM 生成代码的默认选项是 Firecracker microVM（E2B 等），需要 GPU 时考虑 Modal（gVisor）。
+- **用快照 fork 放大并行度**：先跑一个探路会话，再 fork 出 N 个并行副本执行独立子任务（E2B v2 fork、Daytona、Vercel 均已支持）。
 - **最小权限原则**：只开放必要的路径、网络、API。
 - **超时与资源限制**：CPU、内存、网络超时都要设上限。
 - **审计日志**：记录沙箱内所有行为。
-- **优先采购而非自研**：2026 年起主流 SDK（如 OpenAI Agents SDK）已原生集成多家沙箱供应商，自研沙箱只在强合规场景值得。
+- **优先采购而非自研**：2026 年起主流 SDK（如 OpenAI Agents SDK）已原生集成多家沙箱供应商，且有 Apache-2.0 自托管选项（如 E2B Embed，2026-09）；自研沙箱只在强合规场景值得。
 
 ## 9. 评测
 
@@ -92,7 +95,7 @@
 | 模型 | 强模型 + 简单框架；按任务选模型；多模型 fallback |
 | 工具 | 少而精、描述清晰、参数自解释、危险工具加标签 |
 | 循环 | 设 max_steps、检测重复、控制上下文 |
-| 记忆 | 工作记忆 + 摘要；长期记忆按需检索；敏感信息不入记忆 |
+| 记忆 | 工作记忆 + 摘要；compaction 一等公民（自动触发、推迟于 HITL、事件进 trace）；长期记忆按需检索；敏感信息不入记忆 |
 | 护栏 | 输入/工具前置/工具后置/输出/资源多层护栏 |
 | HITL | 高风险操作必须确认；提供清晰上下文 |
 | 可观测 | Day 0 trace；OTel GenAI 约定采集、后端可换；按 tenant 分大盘 |
@@ -113,3 +116,5 @@ Agent Runtime 的最佳实践覆盖了模型选择、工具设计、循环调优
 - [LLM-as-a-Judge Best Practices in 2026](https://futureagi.com/blog/llm-as-a-judge-best-practices-2026/)
 - [Durable Execution for AI Agents in 2026](https://turion.ai/blog/temporal-vs-restate-vs-hatchet-vs-inngest-durable-execution-agents-2026/)
 - [Agent Runtime 与 Agent OS — Diors.tech](https://www.diors.tech/blog/099-agent-runtime-os)
+- [OpenAI Agents SDK Changelog（v0.19–v0.24）](https://www.gradually.ai/en/changelogs/openai-agents-sdk/)
+- [E2B Product Updates](https://e2b.dev/product-updates)
