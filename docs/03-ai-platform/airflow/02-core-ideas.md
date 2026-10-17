@@ -35,11 +35,13 @@ TaskInstance = 某个 Task 在某次 DAG Run 中的具体执行
 
 ## 2.2 DAG：用 Python 写工作流
 
-DAG 是 Airflow 的核心抽象。一个最简单的 DAG：
+DAG 是 Airflow 的核心抽象。**Airflow 3 起，推荐的编写接口来自独立的 Task SDK**（`from airflow.sdk import DAG`），它与核心包解耦、向前兼容，是稳定的公开契约；旧的 `from airflow import DAG` 在 3.x 仍然可用。
+
+一个最简单的 DAG：
 
 ```python
-from airflow import DAG
-from airflow.operators.python import PythonOperator
+# Airflow 3 推荐写法（Task SDK）
+from airflow.sdk import DAG, task
 from datetime import datetime, timedelta
 
 with DAG(
@@ -48,14 +50,15 @@ with DAG(
     schedule=timedelta(days=1),
     catchup=False,
 ) as dag:
+
+    @task
     def say_hello():
         print("Hello Airflow!")
 
-    task = PythonOperator(
-        task_id="say_hello",
-        python_callable=say_hello,
-    )
+    say_hello()
 ```
+
+> Airflow 2 迁移注意：2.x 的 `from airflow.operators.python import PythonOperator` 等导入在 3.x 多已迁移到 `airflow.sdk` 或 provider 包，可用 ruff 规则 `AIR301` 自动改写（见第 8 章）。
 
 ### DAG 的关键属性
 
@@ -113,18 +116,21 @@ Executor 决定 TaskInstance 在哪里、以什么方式运行。这是 Airflow 
 |---|---|---|
 | **SequentialExecutor** | 单进程顺序执行 | 默认开发/测试，不能用于生产 |
 | **LocalExecutor** | 本地多进程/多线程并行 | 单机中小规模 |
-| **CeleryExecutor** | 基于 Celery + 消息队列分发到多个 worker | 传统多机扩展 |
-| **KubernetesExecutor` | 每个 Task 启动一个 K8s Pod | 云原生、弹性扩缩 |
-| **DaskExecutor** | 基于 Dask 分布式执行 | Dask 生态 |
-| **LocalKubernetesExecutor** | Airflow 2.10+，本地 + K8s 混合 | 混合工作负载 |
-| **CeleryKubernetesExecutor** | Airflow 2.10+，Celery + K8s 混合 | 混合工作负载 |
+| **CeleryExecutor** | 基于 Celery + 消息队列分发到多个 worker | 传统多机扩展（Airflow 3 起在 `providers/celery` 包） |
+| **KubernetesExecutor** | 每个 Task 启动一个 K8s Pod | 云原生、弹性扩缩（Airflow 3 起在 `providers/cncf/kubernetes` 包） |
+| **EdgeExecutor** | 边缘 worker 出站 HTTPS 轮询中心 API（AIP-69，3.x） | 混合云、数据主权、受限网络 |
+| **LocalKubernetesExecutor** | 本地 + K8s 混合 | 混合工作负载 |
+| **CeleryKubernetesExecutor** | Celery + K8s 混合 | 混合工作负载 |
+
+> 注：Airflow 3.0 把 Celery/Kubernetes Executor 移出核心包（DaskExecutor 则被完全移出核心），核心只保留 Local/Sequential；生产部署按需安装对应 provider。
 
 ### Executor 选型建议
 
 - **开发/CI**：SequentialExecutor 或 LocalExecutor。
 - **中小规模生产**：LocalExecutor（单台大机器）或 CeleryExecutor。
 - **K8s 原生/弹性需求**：KubernetesExecutor。
-- **混合**：Airflow 2.10+ 的多 Executor 能力，把轻量任务放 Local、重任务放 K8s。
+- **Worker 在异构/受限网络**（on-prem、客户环境、多公有云）：EdgeExecutor。
+- **混合**：Airflow 2.10+/3.x 的多 Executor 能力，把轻量任务放 Local、重任务放 K8s。
 
 ## 2.5 状态机：TaskInstance 与 DAG Run
 
@@ -203,39 +209,42 @@ with DAG("xcom_demo", ...) as dag:
 - 等待外部批处理完成。
 - 等待消息队列中的事件。
 
-## 2.8 Dataset / Asset 调度
+## 2.8 Asset 调度（原 Dataset）
 
-Airflow 2.4+ 引入 **Dataset 调度**（Airflow 3 演进为 **Asset**）：
-
-- DAG 可以声明自己产生或消费某些 dataset。
-- 当上游 dataset 更新时，自动触发下游 DAG Run。
-- 从“时间驱动”扩展到“数据驱动”。
+Airflow 2.4 引入 **Dataset 调度**，Airflow 3 将其全面演进为 **Asset（AIP-74/75）**：从“时间驱动”扩展到“数据驱动”。
 
 ```python
-from airflow.datasets import Dataset
+# Airflow 3 写法
+from airflow.sdk import dag, task, Asset
 
-my_dataset = Dataset("s3://bucket/output/data.parquet")
+my_asset = Asset("s3://bucket/output/data.parquet")
 
-with DAG("producer", schedule="@daily", ...):
-    task = PythonOperator(
-        task_id="generate",
-        python_callable=...,
-        outlets=[my_dataset],
-    )
+@dag(schedule="@daily", ...)
+def producer():
+    @task(outlets=[my_asset])
+    def generate():
+        ...
+    generate()
 
-with DAG("consumer", schedule=[my_dataset], ...):
+@dag(schedule=my_asset, ...)
+def consumer():
     ...
 ```
 
+- 上游产出方在 `outlets` 声明资产，下游用 `schedule=[asset]` 订阅；资产被更新即触发下游。
+- 支持 `@asset` 装饰器（一个 DAG 对应一个产资产任务）、资产别名（AssetAlias）、资产附加信息（extras）。
+- **AND/OR 组合**：`schedule=a & b` 等待全部、`a | b` 任一即可，还有 `AssetOrTimeSchedule` 混合时间/事件。
+- **Asset 分区（3.2+，AIP-76）**：下游可按资产分区（如按天的 `s3://bucket/dt=2026-10-17/`）粒度触发，3.3 进一步提供 Rollup/FanOut 等分区映射器——这是增量数据管道的事件驱动基础。
+
 ## 本章小结
 
-- **DAG**：用 Python 定义的工作流，包含有向无环的 Task 依赖。
+- **DAG**：用 Python 定义的工作流，包含有向无环的 Task 依赖；Airflow 3 起推荐 `airflow.sdk` 编写接口。
 - **Operator / Task / TaskInstance**：类 → 实例 → 某次具体执行。
-- **Executor**：决定 TaskInstance 在哪里执行，是扩展性的关键。
+- **Executor**：决定 TaskInstance 在哪里执行；3.x 插件化（Celery/K8s 移入 provider），新增 Edge Executor。
 - **状态机**：TaskInstance 从 none → scheduled → queued → running → success / failed，支持重试和 defer。
 - **XCom**：任务间传小数据，默认存在 Metadata DB，大数据用自定义 backend。
 - **Deferrable Operator + Triggerer**：异步等待不占用 worker slot。
-- **Dataset/Asset**：从时间驱动到数据驱动的调度演进。
+- **Asset（原 Dataset）**：从时间驱动到数据驱动，3.2+ 支持分区粒度的事件触发。
 
 **参考来源**
 
@@ -245,4 +254,4 @@ with DAG("consumer", schedule=[my_dataset], ...):
 - [Apache Airflow — Executor](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/index.html)
 - [Apache Airflow — XComs](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/xcoms.html)
 - [Apache Airflow — Deferrable Operators](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/deferring.html)
-- [Apache Airflow — Datasets](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/datasets.html)
+- [Apache Airflow — Data-aware scheduling with Assets](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/assets.html)

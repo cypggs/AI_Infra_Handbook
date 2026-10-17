@@ -193,11 +193,11 @@ class WaitFileOperator(BaseOperator):
 | 方面 | Mini Demo | 真实 Airflow |
 |---|---|---|
 | 数据库 | 内存 dict | PostgreSQL / MySQL |
-| DAG 解析 | 直接 import Python | DAG Processor 扫描目录 |
+| DAG 解析 | 直接 import Python | DAG Processor 扫描 DAG Bundle |
 | 调度 | 单次调用 | Scheduler 持续循环 |
-| 执行 | 同进程函数调用 | 子进程 / Pod / Celery Worker |
+| 执行 | 同进程函数调用 | 子进程 / Pod / Celery Worker / Edge Worker |
 | 日志 | print | 远程日志存储 |
-| Web UI | 无 | Flask/FastAPI UI |
+| Web UI | 无 | React UI + FastAPI API Server |
 | 并发 | 无 | 多进程 / K8s Pod |
 
 本 Demo 用于理解 Airflow 核心机制，不能直接用于生产。

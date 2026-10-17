@@ -39,9 +39,9 @@ t2 = BashOperator(task_id="t2", bash_command="...")  # 假设 t1 已完成
 
 - Task 应该是幂等的：多次执行结果一致。
 - 不要把 Airflow 当成状态机数据库，业务状态应放在外部系统。
-- 避免一个 Task 执行数小时；必要时拆分成多个 Task 或使用子 DAG / Task Group。
+- 避免一个 Task 执行数小时；必要时拆分成多个 Task 或使用 Task Group。
 
-## 9.3 使用 Task Group 和 SubDAG
+## 9.3 使用 Task Group 组织任务
 
 ### Task Group
 
@@ -61,10 +61,10 @@ with DAG("demo", ...) as dag:
     fe >> train
 ```
 
-### SubDAG（不推荐新项目使用）
+### SubDAG（已移除）
 
-- 历史遗留机制，已被 Task Group 取代。
-- 如果有复杂复用需求，考虑用 Dynamic Task Mapping 或单独 DAG + TriggerDagRunOperator。
+- Airflow 3.0 已**彻底移除** SubDAG（2.x 中即标记废弃）。
+- 复用需求用 Task Group、Dynamic Task Mapping，或单独 DAG + TriggerDagRunOperator。
 
 ## 9.4 动态任务映射
 
@@ -109,7 +109,7 @@ wait = S3KeySensor(
 ### 控制 Sensor 数量
 
 - 大量 Sensor 会消耗 Triggerer 资源。
-- 考虑用 Dataset/Asset 调度替代轮询。
+- 优先用 **Asset / Asset 分区调度**（3.x）替代轮询：上游产出即触发，而不是定时去“看”。
 
 ## 9.6 XCom 使用规范
 
@@ -192,23 +192,42 @@ def test_transform_data(tmp_path):
 
 ```bash
 airflow dags list
-airflow dags test my_dag 2026-07-01
+airflow dags test my_dag 2026-10-17
 ```
 
-## 9.9 回填与补数
+Airflow 3 迁移期建议在 CI 中加入 ruff 规则，阻止 2.x 写法回流：
+
+```bash
+ruff check dags/ --select AIR301,AIR302 --preview
+```
+
+## 9.9 善用 Airflow 3 新能力（3.x 项目优先）
+
+| 场景 | 旧做法（2.x 习惯） | Airflow 3 推荐 |
+|---|---|---|
+| 导入 DAG/Task | `from airflow import DAG` | `from airflow.sdk import DAG, task`（稳定契约） |
+| 上游就绪触发 | 定时 Sensor 轮询 | Asset / Asset 分区调度（3.2+） |
+| 错过时间告警 | `sla=` 参数（3.0 已移除） | Deadline Alerts（AIP-86，3.1+） |
+| 人工审批 | 外部系统 + 状态轮询 | HITL / Approval 任务（3.1+，`awaiting_input`） |
+| 增量处理游标 | 自建 KV 表存水位 | Task/Asset 状态存储（AIP-103，3.3） |
+| 重试策略 | 每个任务写 retries/backoff | 可插拔重试策略（AIP-105，3.3） |
+| 补历史数据 | CLI backfill 黑盒 | Scheduler 托管 backfill：UI/API 可见可停（AIP-78） |
+
+## 9.10 回填与补数
 
 - 使用 `airflow dags backfill` 补历史数据。
 - 大规模 backfill 前调整 `max_active_runs` 和 `concurrency`。
 - 避免在生产高峰期触发大规模 backfill。
 
-## 9.10 版本控制与代码规范
+## 9.11 版本控制与代码规范
 
 - DAG 代码必须进 Git。
-- 使用 `pre-commit` 做格式检查（black、isort、flake8）。
+- 使用 `pre-commit` 做格式检查（black、isort、flake8 / ruff）。
 - DAG 文件命名规范：`dag_<domain>_<name>.py`。
 - 不要硬编码连接信息，使用 Airflow Connections 和 Variables。
+- 3.x 项目统一从 `airflow.sdk` 导入编写接口，CI 用 ruff `AIR301/AIR302` 兜底。
 
-## 9.11 常见反模式
+## 9.12 常见反模式
 
 | 反模式 | 问题 | 改进 |
 |---|---|---|
@@ -216,7 +235,7 @@ airflow dags test my_dag 2026-07-01
 | 用 BashOperator 调 Python | 丢失异常和日志 | 用 PythonOperator |
 | 任务内部访问 Airflow DB | 耦合高、Airflow 3 禁止 | 用 XCom 或外部存储 |
 | 把 Airflow 当消息队列 | 不适合实时 | 用 Kafka / 专用队列 |
-| 不设置 retries | 偶发失败无自动恢复 | 配置合理的 retries 和 retry_delay |
+| 不设置 retries | 偶发失败无自动恢复 | 配置合理的 retries 和 retry_delay（3.3 可用可插拔重试策略 AIP-105） |
 | XCom 传大对象 | 撑爆 Metadata DB | 用 S3/GCS 传递数据 |
 
 ## 本章小结
@@ -225,8 +244,8 @@ airflow dags test my_dag 2026-07-01
 - 优先使用 Task Group、Dynamic Task Mapping、Deferrable Operator。
 - XCom 只传小数据，大数据用对象存储。
 - 用 Pool、Queue、K8s 资源限制做资源隔离。
-- DAG 需要解析测试、Task 逻辑单元测试、CI 集成。
-- 避免反模式：巨型 DAG、硬编码连接、XCom 传大数据、把 Airflow 当队列。
+- DAG 需要解析测试、Task 逻辑单元测试、CI 集成（3.x 加 ruff `AIR301`）。
+- Airflow 3 新范式：Asset 触发替代轮询、Deadline 替代 SLA、HITL 审批、状态存储替代自建水位表。
 
 **参考来源**
 
@@ -234,3 +253,4 @@ airflow dags test my_dag 2026-07-01
 - [Apache Airflow — Dynamic Task Mapping](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/dynamic-task-mapping.html)
 - [Apache Airflow — Deferring](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/deferring.html)
 - [Apache Airflow — Task Groups](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html#task-groups)
+- [Apache Airflow — Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)

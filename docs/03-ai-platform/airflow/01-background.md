@@ -38,6 +38,8 @@ Airflow 的几个核心设计哲学：
 - **可观测性优先**：每个 DAG Run、每个 Task Instance 的状态、日志、时长都在 UI 上可见。
 - **可扩展**：通过 Operator、Hook、Sensor、Executor 插件化扩展。
 
+> **版本现状（2026-10）**：Airflow 3.0 于 2025-04-22 GA，完成服务化架构重构（Task SDK + Execution API、Edge Executor、Asset 调度、React UI）；当前稳定版为 **3.3.2（2026-09-17）**。**Airflow 2 已于 2026-04-22 EOL**，生产应基于 3.1+ 规划。
+
 ## 1.3 Airflow 与相邻工具的对比
 
 | 工具 | 定位 | 与 Airflow 的关系 |
@@ -54,8 +56,8 @@ Airflow 的几个核心设计哲学：
 **关键区分**：
 
 - **Airflow vs Kubeflow Pipelines**：Airflow 通用，社区大、Operator 多；KFP 更适合完全 K8s 原生的 ML Pipeline。
-- **Airflow vs Prefect**：Prefect 更现代、动态；Airflow 更成熟、企业采用率高。
-- **Airflow vs Dagster**：Dagster 从数据资产视角设计；Airflow 从任务调度视角设计，近年也在补齐 asset 能力。
+- **Airflow vs Prefect**：Prefect 更现代、动态，更适合频繁变化的 Python/AI 工作流；Airflow 更成熟、企业采用率与生态（provider 数量、托管服务）更高。Airflow 3 补齐了 asset 驱动、事件触发、状态存储等现代能力后，差距在缩小。
+- **Airflow vs Dagster**：Dagster 从数据资产视角设计，血缘/数据质量治理更强；Airflow 从任务调度视角设计，3.x 的 Asset（AIP-74/75）与分区调度（AIP-76）正在补齐资产视角。
 
 ## 1.4 Airflow 解决了什么（和不解决什么）
 
@@ -110,16 +112,28 @@ Airflow 在这个链路里负责**把多个异构步骤按依赖关系串起来*
 - 对**ML 工程师**：编排训练、评估、注册、部署。
 - 对**平台/SRE**：提供统一监控、告警、资源隔离、审计。
 
+### AI/LLM 时代的新定位（2025-2026）
+
+随着 LLM 应用落地，Airflow 的角色从“ETL 调度器”扩展为 **AI 数据与评估流水线的编排层**：
+
+- **RAG / 特征流水线**：用 Asset 分区调度（3.2+）做增量索引更新——按分区触发下游重建，天然契合 embedding 刷新。
+- **评估与门禁**：批量评测、红队回归、A/B 数据准备等“批处理式 AI 任务”仍是 DAG 的强项；`logical_date=None`（AIP-83）让一次性/事件触发的 AI 作业不再被时间语义绑架。
+- **人在回路（HITL，3.1+）**：审批类任务进入 `awaiting_input` 状态，由人工在 UI 放行后继续——适合数据标注质检、模型发布审批。
+- **有状态任务（3.3，AIP-103）**：Task/Asset 级 KV 状态存储让增量处理、断点续跑不再需要外挂数据库。
+- **Agent 工作流的边界**：Airflow 不适合做 agent 运行时（高频、交互式、秒级决策），但适合编排 agent 的训练数据生产、离线评测、批量调用与结果归档；agent 本体运行时应放在 Agent Runtime 等专用系统。
+
 ## 本章小结
 
 - **痛点**：复杂依赖、失败处理、重试、回刷、可观测性是 Cron/脚本方案的瓶颈。
-- **定位**：Airflow 是用 Python 代码定义 DAG 的开源工作流编排平台。
-- **对比**：比 Cron 强大；比 Kubeflow Pipelines 更通用；比 Prefect/Dagster 更成熟、生态更广。
-- **价值**：把散落脚本变成可编排、可观测、可扩展、可审计的流水线。
+- **定位**：Airflow 是用 Python 代码定义 DAG 的开源工作流编排平台；Airflow 3（2025-04 GA，当前 3.3.2）已完成服务化重构，Airflow 2 于 2026-04 EOL。
+- **对比**：比 Cron 强大；比 Kubeflow Pipelines 更通用；比 Prefect/Dagster 更成熟、生态更广，3.x 正在补齐资产化与事件驱动能力。
+- **价值**：把散落脚本变成可编排、可观测、可扩展、可审计的流水线；在 AI 时代承担 RAG/评估/门禁类批处理编排。
 
 **参考来源**
 
 - [Apache Airflow — What is Airflow?](https://airflow.apache.org/docs/apache-airflow/stable/index.html)
 - [Apache Airflow — History](https://airflow.apache.org/docs/apache-airflow/stable/project.html)
+- [Apache Airflow — Release Notes (3.3.2)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- [Airflow 3.0 GA 公告](https://airflow.apache.org/blog/airflow-three-point-oh-is-here/)
 - [Astronomer — Airflow Components](https://www.astronomer.io/docs/learn/airflow-components)
 - 本手册 [Kubeflow](../kubeflow/)、[MLflow](../mlflow/)

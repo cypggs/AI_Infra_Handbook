@@ -1,6 +1,6 @@
 # 4. 调度工作流程：从 DAG 文件到 Task 执行
 
-> 一句话理解：Airflow 的一条完整调度链路是——**DAG 文件被 DAG Processor 解析成序列化 DAG 存进 Metadata DB；Scheduler 据此创建 DAG Run 和 TaskInstance；当依赖与资源满足时，Scheduler 把 TaskInstance 推进到 queued；Executor 把它交给 Worker 执行；Worker 把状态与 XCom 写回数据库**。
+> 一句话理解：Airflow 的一条完整调度链路是——**DAG 文件被 DAG Processor（经 DAG Bundle）解析成序列化 DAG 存进 Metadata DB；Scheduler 据此创建 DAG Run 和 TaskInstance；当依赖与资源满足时推进到 queued；Executor 把它交给 Worker 执行；Worker 通过 Task Execution API（3.x，2.x 为直连 DB）把状态与 XCom 回写**。
 
 ## 4.1 完整旅程时序图
 
@@ -17,11 +17,11 @@ DAG Processor 扫描并导入
         │
         │ 3. Scheduler 读取序列化 DAG
         ▼
-Scheduler 检查 schedule_interval
+Scheduler 检查 schedule
         │
         │ 4. 到达调度时间
         ▼
-创建 DAG Run (execution_date = 2026-07-01)
+创建 DAG Run (logical_date = 2026-07-01)
         │
         │ 5. 创建 TaskInstance
         ▼
@@ -72,8 +72,8 @@ DAG Processor 定期扫描 `dags/` 目录，对每个文件：
 
 Scheduler 读取 `dag` 表，对每个活跃的 DAG：
 
-- 根据 `schedule_interval` 计算下一个 execution_date。
-- 如果该 execution_date 还没有 DAG Run，则创建。
+- 根据 `schedule` 计算下一个 logical_date（2.x 称 execution_date）。
+- 如果该 logical_date 还没有 DAG Run，则创建。
 - 设置 DAG Run 状态为 `queued` 或 `running`。
 
 ### 阶段 3：创建 TaskInstance
@@ -178,9 +178,10 @@ default_args = {
 airflow dags backfill ml_pipeline -s 2026-06-01 -e 2026-06-30
 ```
 
-- Airflow 会为该区间内的每个 execution_date 创建 DAG Run。
-- 支持 `--rerun-failed-tasks` 只重跑失败任务。
-- 大规模 backfill 注意并发与资源池限制。
+- Airflow 会为该区间内的每个 logical_date 创建 DAG Run。
+- **Airflow 3.0 起 backfill 由 Scheduler 托管（AIP-78）**：不再是 CLI 一次性作业，而是持久实体——可以在 UI / REST API 中创建、暂停、查看进度、按 DAG bundle 版本重跑。
+- 支持只重跑失败任务；大规模 backfill 注意并发与资源池限制。
+- 3.3 起清除/重跑可指定 DAG bundle 版本，保证补数用的是当时的代码版本（AIP-66 DAG Versioning）。
 
 ## 4.6 传感器（Sensor）与 Defer
 
@@ -213,29 +214,31 @@ wait_file = FileSensor(
 - 第一次执行后进入 `deferred` 状态，释放 worker。
 - Triggerer 监听文件事件，触发后唤醒 TaskInstance。
 
-## 4.7 数据驱动调度（Dataset）
+## 4.7 数据驱动调度（Asset，原 Dataset）
 
-Airflow 2.4+ 支持 Dataset 调度：
+Airflow 3 全面采用 **Asset**（2.x 的 Dataset，AIP-74/75）：
 
 ```python
-from airflow.datasets import Dataset
+from airflow.sdk import DAG, task, Asset
 
-my_dataset = Dataset("s3://bucket/features/2026-07-01.parquet")
+my_asset = Asset("s3://bucket/features/2026-10-17.parquet")
 
-with DAG("consumer", schedule=[my_dataset], ...):
+with DAG("consumer", schedule=[my_asset], ...):
     consume = PythonOperator(task_id="consume", ...)
 ```
 
-- 当 `my_dataset` 被任意 DAG 的 `outlets` 更新后，下游 DAG 自动触发。
-- 从“时间驱动”演进到“数据驱动”。
+- 当 `my_asset` 被任意 DAG 的 `outlets` 更新后，下游 DAG 自动触发。
+- 支持 AND/OR 组合（`a & b`、`a | b`）、`AssetOrTimeSchedule` 混合调度。
+- **Asset 分区（3.2+）**：下游可按分区（如 `dt=2026-10-17`）粒度触发，配合 3.3 的分区映射器实现 rollup/fan-out——增量管道的事件驱动基础。
+- HITL 任务（3.1+）则是另一种等待：进入 `awaiting_input`，由人工放行后继续。
 
 ## 本章小结
 
-- 完整链路：**DAG 文件 → DAG Processor → 序列化 → Scheduler → DAG Run → TaskInstance → Executor → Worker → 状态回写**。
+- 完整链路：**DAG 文件 → DAG Processor → 序列化 → Scheduler → DAG Run → TaskInstance → Executor → Worker → （3.x：经 Execution API）回写状态**。
 - Scheduler 负责创建 DAG Run 和推进 TaskInstance 状态机。
 - Executor 负责把 TaskInstance 从 scheduled 推进到 running。
-- Worker 执行任务并回写状态、日志、XCom。
-- 重试、回填、Sensor、Defer、Dataset 是调度流程的扩展机制。
+- 重试、回填（3.x 由 Scheduler 托管、可按版本重跑）、Sensor、Defer、Asset 是调度流程的扩展机制。
+- Asset（原 Dataset）+ 分区调度让“数据/事件驱动”成为一等公民；HITL 提供人工审批等待态。
 
 **参考来源**
 
@@ -243,4 +246,4 @@ with DAG("consumer", schedule=[my_dataset], ...):
 - [Apache Airflow — Tasks](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html)
 - [Apache Airflow — Scheduler](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/scheduler.html)
 - [Apache Airflow — Deferring](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/deferring.html)
-- [Apache Airflow — Datasets](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/datasets.html)
+- [Apache Airflow — Data-aware scheduling with Assets](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/assets.html)

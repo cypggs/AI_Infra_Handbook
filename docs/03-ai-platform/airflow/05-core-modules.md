@@ -7,13 +7,13 @@
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         用户界面 / CLI / API                          │
-│                    Webserver / REST API / airflow CLI                 │
+│              React UI / REST API v2 / airflow CLI (FastAPI)           │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         解析层：DAG Processor                         │
-│         扫描 dags/ → 导入 Python → 序列化 → 写入 Metadata DB          │
+│         扫描 DAG Bundle → 导入 Python → 序列化 → 写入 Metadata DB     │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │
                                 ▼
@@ -27,14 +27,16 @@
             ▼                                       ▼
 ┌───────────────────────────┐           ┌───────────────────────────┐
 │      执行层：Executor      │           │    异步层：Triggerer      │
-│  Local / Celery / K8s      │           │  监听 deferred 事件       │
+│  Local / Celery / K8s /    │           │  asyncio 监听 deferred    │
+│  Edge（3.x）               │           │  （HITL 由 Scheduler 管） │
 └───────────┬───────────────┘           └───────────────────────────┘
             │
             ▼
 ┌───────────────────────────┐
-│     Task Runner / Worker   │
-│   执行命令、捕获输出、      │
-│   推送 XCom、更新状态       │
+│  Task Runner / Worker      │
+│  执行命令、捕获输出、        │
+│  经 Execution API 上报      │
+│  （3.x；2.x 直连 DB）       │
 └───────────────────────────┘
 ```
 
@@ -91,13 +93,13 @@
 
 ### 常见 Executor
 
-| Executor | 文件路径 | 特点 |
+| Executor | 位置 | 特点 |
 |---|---|---|
-| SequentialExecutor | `airflow/executors/sequential_executor.py` | 单进程，仅开发 |
-| LocalExecutor | `airflow/executors/local_executor.py` | 本地多进程 |
-| CeleryExecutor | `airflow/executors/celery_executor.py` | 基于 Celery |
-| KubernetesExecutor | `airflow/providers/cncf/kubernetes/executors/kubernetes_executor.py` | 每个任务一个 Pod |
-| DaskExecutor | `airflow/executors/dask_executor.py` | 基于 Dask |
+| SequentialExecutor | `airflow/executors/sequential_executor.py`（核心） | 单进程，仅开发 |
+| LocalExecutor | `airflow/executors/local_executor.py`（核心） | 本地多进程 |
+| CeleryExecutor | `providers/celery/.../celery_executor.py`（3.x 移入） | 基于 Celery |
+| KubernetesExecutor | `providers/cncf/kubernetes/.../kubernetes_executor.py`（3.x 移入） | 每个任务一个 Pod |
+| EdgeExecutor | `providers/edge3/`（3.x，AIP-69） | 边缘 worker 出站轮询 |
 
 ## 5.5 Task Runner
 
@@ -154,7 +156,8 @@ Task Runner 接收命令
 ### 自定义 XCom Backend
 
 ```python
-from airflow.models.xcom import BaseXCom
+# Airflow 3：BaseXCom 在 Task SDK 中
+from airflow.sdk.bases.xcom import BaseXCom
 
 class S3XComBackend(BaseXCom):
     @staticmethod
@@ -182,17 +185,19 @@ xcom_backend = my_package.S3XComBackend
 - 监听 deferred TaskInstance 的 trigger。
 - 当 trigger 条件满足时，通知 Scheduler 唤醒 TaskInstance。
 - 用 asyncio 实现高并发。
+- 注意：3.1+ 的 **HITL 任务不走 Triggerer**——人工审批任务由 Scheduler 直接管理 `awaiting_input` 状态。
 
 ### 关键类
 
-- `airflow/jobs/triggerer_job_runner.py`：Triggerer 主逻辑。
-- `airflow/triggers/base.py`：`BaseTrigger` 基类。
-- `airflow/triggers/temporal.py`、`airflow/triggers/file.py`：内置 trigger。
+- `airflow-core/src/airflow/jobs/triggerer_job_runner.py`：Triggerer 主逻辑。
+- `task-sdk/src/airflow/sdk/bases/trigger.py`：`BaseTrigger` 基类（3.x 起在 Task SDK）。
+- 内置 trigger（时间、文件等）随 Task SDK 提供。
 
 ### 自定义 Trigger
 
 ```python
-from airflow.triggers.base import BaseTrigger, TriggerEvent
+# Airflow 3：Trigger 基类在 Task SDK 中
+from airflow.sdk import BaseTrigger, TriggerEvent
 
 class MyTrigger(BaseTrigger):
     async def run(self):
@@ -207,13 +212,13 @@ class MyTrigger(BaseTrigger):
 
 Airflow 通过 Plugin 机制扩展：
 
-- 自定义 Operator、Sensor、Hook。
+- 自定义 Operator、Sensor、Hook（3.x 建议直接从 `airflow.sdk` 继承）。
 - 自定义 Executor。
-- 自定义 Flask 视图（Airflow 2 兼容，Airflow 3 将改用 FastAPI）。
+- UI 扩展：Airflow 2 用 Flask 视图；**Airflow 3 改为 React 插件系统（AIP-68，3.1+）**，FastAPI 提供后端接口。
 
 ```python
 from airflow.plugins_manager import AirflowPlugin
-from airflow.operators.bash import BashOperator
+from airflow.sdk import BaseOperator
 
 class MyPlugin(AirflowPlugin):
     name = "my_plugin"
@@ -237,13 +242,13 @@ class MyPlugin(AirflowPlugin):
 
 ## 本章小结
 
-- **DAG Processor**：解析并序列化 DAG 文件。
+- **DAG Processor**：解析并序列化 DAG 文件；3.x 为独立必需进程，数据源抽象为 DAG Bundle。
 - **Scheduler**：创建 DAG Run、推进 TaskInstance 状态机。
-- **Executor**：把 TaskInstance 分发到执行环境。
-- **Task Runner**：执行 Task 逻辑、捕获日志、写 XCom。
+- **Executor**：把 TaskInstance 分发到执行环境；3.x 插件化（Local 留核心，Celery/K8s/Edge 进 provider）。
+- **Task Runner**：执行 Task 逻辑、捕获日志、经 Execution API 上报（3.x）。
 - **XCom**：任务间数据交换，可自定义 backend。
-- **Triggerer**：异步监听事件，支持 Deferrable Operator。
-- **Plugins / Connections / Variables**：扩展机制与配置管理。
+- **Triggerer**：异步监听事件，支持 Deferrable Operator；HITL 由 Scheduler 管理。
+- **Plugins / Connections / Variables**：扩展机制与配置管理；3.x UI 插件走 React（AIP-68）。
 
 **参考来源**
 

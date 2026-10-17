@@ -1,29 +1,28 @@
 # 8. 企业生产实践：Metadata DB、Executor、K8s 部署与监控
 
-> 一句话理解：Airflow 从“本地 SQLite”到“生产平台”的关键跳跃，是 **Metadata Database、Executor 选型、Worker 部署形态、监控告警、高可用** 这五块的设计和运维。
+> 一句话理解：Airflow 从“本地 SQLite”到“生产平台”的关键跳跃，是 **Metadata Database、Executor 选型、组件拓扑（API Server / DAG Processor / Scheduler / Triggerer）、监控告警、高可用、以及 2→3 迁移** 这几块的设计和运维。注意：**Airflow 2 已于 2026-04-22 EOL**，新部署应直接基于 Airflow 3.1+（当前稳定版 3.3.2）。
 
 ## 8.1 部署形态选择
 
-### 形态 1：本地开发（SequentialExecutor + SQLite）
+### 形态 1：本地开发
 
 ```bash
 airflow standalone
 ```
 
-- 优点：一条命令启动，包含 Webserver、Scheduler、Triggerer、SQLite。
-- 缺点：不能并发，不能用于生产。
+- 一条命令拉起全部组件（Airflow 3 为 api-server / dag-processor / scheduler / triggerer + SQLite）。
+- 不能并发、不能用于生产。
 
-### 形态 2：LocalExecutor + PostgreSQL
+### 形态 2：Airflow 3 单机生产（LocalExecutor + PostgreSQL）
 
 ```bash
-airflow webserver
+airflow api-server       # FastAPI：REST API v2 + React UI + Execution API
+airflow dag-processor    # 必需组件（3.x 起不再是 scheduler 的一部分）
 airflow scheduler
 airflow triggerer
 ```
 
-- 适合：中小规模、单机大内存场景。
-- 优点：部署简单。
-- 缺点：Scheduler/Webserver 单点，Worker 单机资源受限。
+- 适合中小规模、单机大内存场景；组件可用 systemd / supervisor 托管。
 
 ### 形态 3：CeleryExecutor + Redis/RabbitMQ + PostgreSQL
 
@@ -31,15 +30,13 @@ airflow triggerer
 PostgreSQL          Redis
     │                  │
     ▼                  ▼
-Webserver ←── Scheduler ──→ Celery Workers
+API Server ←── Scheduler ──→ Celery Workers
               │
-              ▼
-          Triggerer
+   dag-processor   Triggerer
 ```
 
-- 适合：传统多机扩展，任务量中等。
-- 优点：成熟稳定，Celery 生态丰富。
-- 缺点：需要维护消息队列和 Celery Worker。
+- Airflow 3 中 CeleryExecutor 位于 `apache-airflow-providers-celery`。
+- 成熟稳定，但需要额外维护消息队列和 Celery Worker。
 
 ### 形态 4：KubernetesExecutor + PostgreSQL
 
@@ -47,17 +44,32 @@ Webserver ←── Scheduler ──→ Celery Workers
 PostgreSQL
     │
     ▼
-Webserver ←── Scheduler ──→ K8s API Server
-              │                   │
-              ▼                   ▼
-          Triggerer           per-task Pod
+API Server ←── Scheduler ──→ K8s API Server
+    │            │                │
+dag-processor  Triggerer      per-task Pod
 ```
 
-- 适合：云原生、任务异构、需要强隔离的场景。
-- 优点：每个任务一个 Pod，资源隔离好，自动扩缩。
-- 缺点：Pod 启动有 overhead，不适合超短任务。
+- Airflow 3 中 KubernetesExecutor 位于 `apache-airflow-providers-cncf-kubernetes`。
+- 每个任务一个 Pod，隔离好、弹性强；Pod 启动有 overhead，不适合超短任务。
 
-### 形态 5：Airflow on Kubernetes（官方 Helm Chart）
+### 形态 5：Edge Executor（混合云 / 数据主权场景，AIP-69）
+
+```
+                    ┌─────────── 中心 ───────────┐
+                    │ API Server (含 Execution   │
+PostgreSQL ──▶ Scheduler / API) + JWT           │
+                    └─────────────┬─────────────┘
+            出站 HTTPS 轮询        │ 下发任务/接收上报
+   ┌────────────────┬─────────────┴──────┐
+   ▼                ▼                    ▼
+Edge Worker     Edge Worker         Edge Worker
+(on-prem)      (客户机房)           (其他公有云)
+```
+
+- Worker 侧只需安装 `apache-airflow-providers-edge3`（自带 Task SDK 依赖，`pip install` 一条命令），无需 DB 连接串、无需入站端口；`airflow edge worker` 启动。
+- 适合 on-prem 遗留机房、跨云、数据主权受限环境。
+
+### 形态 6：Airflow on Kubernetes（官方 Helm Chart）
 
 ```bash
 helm repo add apache-airflow https://airflow.apache.org
@@ -66,24 +78,22 @@ helm upgrade --install airflow apache-airflow/airflow \
   --set executor=KubernetesExecutor
 ```
 
-- 官方 Helm chart 支持多种 Executor。
-- 可配置 PV、Ingress、Redis、PostgreSQL、Worker 资源等。
+- 官方 chart 在 3.x 已内置 api-server、dag-processor、triggerer 等全部组件模板。
+- 可配置 DAG Bundle（Git 同步）、远程日志、资源限制等。
 
 ## 8.2 Metadata Database 选型
 
 | 数据库 | 适用场景 | 注意 |
 |---|---|---|
-| SQLite | 本地开发 | 不能并发，无 Model Registry 等高级特性 |
+| SQLite | 仅本地开发 | 不能并发，Airflow 3 生产禁选 |
 | PostgreSQL | 生产首选 | 性能好、稳定、社区支持强 |
 | MySQL | 生产可选 | 注意字符集、max_allowed_packet、连接池 |
 
 ### 数据库表规模估算
 
-- 每个 DAG Run 产生 N 个 TaskInstance。
-- 每个 TaskInstance 可能产生多条 XCom、Log。
+- 每个 DAG Run 产生 N 个 TaskInstance；每个 TaskInstance 可能产生多条 XCom、Log。
+- 3.3 的 Task/Asset 状态存储（AIP-103）也会增加两张状态表（默认有 GC 策略）。
 - 大规模部署需要：**分区、归档、定期清理**。
-
-Airflow 提供 `db clean` 命令清理历史数据：
 
 ```bash
 airflow db clean --clean-before-timestamp '2025-01-01' --yes
@@ -92,97 +102,62 @@ airflow db clean --clean-before-timestamp '2025-01-01' --yes
 ## 8.3 Executor 选型决策树
 
 ```
-是否需要强隔离 / 异构任务？
+Worker 是否在 K8s 内 / 是否需要强隔离？
     ├── 是 → KubernetesExecutor
     │
-    └── 否
-         任务量是否大 / 是否需要水平扩展？
-              ├── 是 → CeleryExecutor
+    └── Worker 是否分布在受限网络 / 跨云 / on-prem？
+              ├── 是 → EdgeExecutor（3.x，AIP-69）
               │
-              └── 否
-                   是否只需要单机并发？
-                        ├── 是 → LocalExecutor
-                        │
-                        └── 否 → SequentialExecutor（仅开发）
+              └── 任务量是否需要水平扩展？
+                       ├── 是 → CeleryExecutor
+                       │
+                       └── 单机并发 → LocalExecutor（仅开发用 SequentialExecutor）
 ```
 
-### Airflow 2.10+ 多 Executor
+### Airflow 2.10+/3.x 多 Executor
 
-可以在一个 Airflow 实例中配置多个 Executor：
+一个实例可配置多个 Executor，轻量任务走 Local、重任务走 K8s：
 
 ```python
-from airflow.executors.local_executor import LocalExecutor
-from airflow.providers.cncf.kubernetes.executors.kubernetes_executor import KubernetesExecutor
-
 AIRFLOW__CORE__EXECUTOR = "airflow.executors.local_executor.LocalExecutor"
 AIRFLOW__CORE__HYBRID_EXECUTORS = (
-    "airflow.executors.local_executor.LocalExecutor,"
-    "airflow.providers.cncf.kubernetes.executors.kubernetes_executor.KubernetesExecutor"
-)
-```
-
-在 Task 级别指定 Executor：
-
-```python
-heavy_task = KubernetesPodOperator(
-    task_id="heavy_task",
-    executor_config={"pod_override": ...},
+    "airflow.providers.cncf.kubernetes.executors.kubernetes_executor.KubernetesExecutor,"
+    "airflow.executors.local_executor.LocalExecutor"
 )
 ```
 
 ## 8.4 高可用与扩展
 
-### Scheduler HA
-
-- Airflow 2.0+ 支持多个 Scheduler 实例。
-- 多个 Scheduler 通过数据库行锁协作。
-- 推荐至少 2 个 Scheduler，前置 Load Balancer（仅 Webserver 需要）。
-
-### Webserver HA
-
-- Webserver 无状态，可部署多副本。
-- 配置 `SECRET_KEY` 一致即可。
-
-### Triggerer HA
-
-- Airflow 2.4+ 支持多个 Triggerer。
-- Trigger 在多个 Triggerer 之间分片。
-
-### Worker 扩展
-
-- CeleryExecutor：增加 Celery Worker 副本。
-- KubernetesExecutor：依赖 K8s HPA / Cluster Autoscaler。
+| 组件 | HA 方式 |
+|---|---|
+| API Server | 无状态多副本（3.x）；gunicorn/uvicorn，3.2 起支持零停机 worker 回收 |
+| Scheduler | 多副本 + 数据库行锁协作（2.0+ 即支持） |
+| DAG Processor | 3.x 为独立进程，可多副本按 bundle 分担 |
+| Triggerer | 多副本分片（2.4+） |
+| Worker | Celery 加副本 / K8s HPA / Edge 节点横向加机 |
 
 ## 8.5 认证与安全
 
-### Web UI / API 认证
+### Airflow 3 认证体系
 
-Airflow 2.0+ 支持多种认证后端：
-
-```ini
-[webserver]
-auth_backend = airflow.providers.fab.auth_manager.api.auth.backend.basic_auth
-```
-
-或集成 LDAP/OAuth：
+- **默认 Simple Auth Manager**：开发友好，用户名/密码写在配置里，**生产不建议**。
+- **生产推荐 FAB Auth Manager**（`apache-airflow-providers-fab`）：延续 Flask-AppBuilder 的账号体系，支持密码、LDAP、OAuth/OIDC；也可用其他 auth manager provider。
+- **API 访问**：REST API v2 支持长期 API token（UI 内自助生成）；bearer/OAuth2 凭证优先于 session cookie。
+- **Execution API（任务通道）**：Worker/Task 使用 Scheduler/API Server 签发的**短期 JWT**，按任务发放、结束即失效。
 
 ```ini
-[webserver]
-auth_backend = airflow.providers.fab.auth_manager.api.auth.backend.openid_auth
+# Airflow 3 生产示例（FAB 认证管理器）
+[core]
+auth_manager = airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+
+[api]
+ssl_cert = /etc/airflow/cert.pem
 ```
 
 ### Connections 加密
 
-- 使用 Secrets Backend（AWS Secrets Manager、HashiCorp Vault、Azure Key Vault）。
+- 使用 Secrets Backend（AWS Secrets Manager、HashiCorp Vault、GCP Secret Manager、Azure Key Vault）。
 - 避免把密码写进代码或 Git。
-
-### Airflow 3 Execution API 与 JWT
-
-Airflow 3 引入 Execution API，Worker 不再直接访问 Metadata DB：
-
-- Scheduler 签发 JWT token 给 Worker。
-- Worker 通过 Execution API 拉取任务、上报状态。
-- 降低数据库暴露面，提升安全性。
 
 ## 8.6 监控与告警
 
@@ -190,42 +165,35 @@ Airflow 3 引入 Execution API，Worker 不再直接访问 Metadata DB：
 
 | 指标 | 工具 | 告警场景 |
 |---|---|---|
-| DAG Run 成功率 | StatsD / Prometheus | 失败率升高 |
-| TaskInstance 排队时间 | StatsD / Prometheus | 队列积压 |
+| DAG Run 成功率 / Deadline 告警 | StatsD / OTel / Prometheus | 失败率升高、错过 Deadline（AIP-86，3.1 起） |
+| TaskInstance 排队时间 | StatsD / OTel / Prometheus | 队列积压 |
 | Scheduler 心跳 / 延迟 | Airflow DB / Prometheus | Scheduler 卡住 |
+| dag-processor 解析耗时 | Airflow metrics | DAG 文件过大/bundle 拉取慢 |
+| API Server 延迟与错误率 | OTel / Prometheus | UI/API 不可用 |
 | Worker / Pod CPU 内存 | Prometheus + Grafana | 资源不足 |
-| DAG 解析时间 | Airflow metrics | DAG 文件过大 |
 | Metadata DB 连接数 | PostgreSQL exporter | 连接池耗尽 |
 
-### Airflow 内置 StatsD
+### Airflow 3 可观测性升级
 
-```ini
-[metrics]
-statsd_on = True
-statsd_host = localhost
-statsd_port = 8125
-statsd_prefix = airflow
-```
+- **Deadline Alerts（AIP-86）**：取代 2.x 的 SLA，支持参考点配置、同步/异步回调；UI 有 Deadlines 页面。
+- **结构化 JSON 日志**（3.2+）：API Server 输出可直接进 Loki/ELK。
+- **OpenTelemetry**：3.2 起计时指标改用 Histogram。
+- 远程日志存储（S3、GCS、Azure Blob、Elasticsearch）配置方式与 2.x 基本一致。
 
-### 日志管理
+## 8.7 托管服务动态（2026-10）
 
-- 配置远程日志存储（S3、GCS、Azure Blob、Elasticsearch）。
-- 设置日志保留策略，避免本地磁盘打满。
+| 服务 | Airflow 3 支持现状 |
+|---|---|
+| **Astronomer Astro** | 最激进：Runtime 3.3-x 已搭载 Airflow 3.3.2；Airflow 2 延长支持至 2027-04；多云、scale-to-zero worker、零停机升级 |
+| **Amazon MWAA** | 已支持 Airflow 3.x（2.10 起步，3.x 滚动跟进），Celery Executor + 自动扩缩 |
+| **Google Cloud Composer 3** | 支持 2.x 与 3.x 滚动升级，GKE Autopilot 底座 |
+| **Azure** | Data Factory 托管 Airflow 仍停留在 2.x，选型需注意 |
 
-```ini
-[logging]
-remote_logging = True
-remote_base_log_folder = s3://my-bucket/airflow/logs
-remote_log_conn_id = aws_default
-```
-
-## 8.7 与 Kubeflow / MLflow / KServe 集成
+## 8.8 与 Kubeflow / MLflow / KServe 集成
 
 ### Airflow + MLflow
 
 ```python
-from airflow.providers.http.operators.http import SimpleHttpOperator
-
 training = PythonOperator(
     task_id="train",
     python_callable=train_model,  # 内部调用 mlflow.log_params / log_metric
@@ -246,44 +214,64 @@ deploy = KubernetesApplyYamlJinja2Operator(
 )
 ```
 
-### Airflow + Kubeflow Pipelines
+### Airflow + Kubeflow Pipelines / Ray
 
-- 用 `Airflow` 编排上层业务逻辑。
-- 用 `KubeflowPipelineRunOperator` 触发 KFP pipeline。
+- 用 Airflow 编排上层业务逻辑，用 KFP 或 KubeRay 的 provider 触发训练 pipeline / RayJob。
+- 训练任务通过 Execution API 上报状态，Airflow 只负责编排与门禁（评估不达标不进入部署）。
 
-## 8.8 升级与维护
+## 8.9 升级与维护：Airflow 2 → 3 迁移要点
 
-### 升级 checklist
+**官方路径：先到 2.11（最后一个 2.x），再升 3.1+（跳过已 EOL 的 3.0）。**
 
-1. 阅读官方升级指南和 release note。
-2. 在 staging 环境验证所有 DAG。
-3. 备份 Metadata Database。
-4. 按顺序升级 Webserver、Scheduler、Worker。
-5. 运行 `airflow db migrate`。
-6. 验证 DAG 解析、调度、执行。
+1. **环境准备**：Python 3.9–3.12（3.1+ 支持 3.13，3.2+ 支持 3.14）；`pip install apache-airflow>=2.11`。
+2. **DAG 兼容性自动检查**——ruff 规则：
+
+```bash
+ruff check dags/ --select AIR301 --preview          # 必须修复（已移除的导入/参数）
+ruff check dags/ --select AIR302 --preview --fix    # 建议修复（已弃用写法）
+```
+
+3. **ruff 抓不住的语义变化（必须人工核对）**：
+   - `data_interval_start/end` 行为变化（3.0 起 cron 默认不再生成 data interval，`create_cron_data_intervals` 默认 False）。
+   - 模板变量：`execution_date` → `logical_date`，`prev_ds`/`next_ds` 等移除或改名。
+   - `sla=` 参数被移除 → 改用 Deadline Alerts（AIP-86）。
+   - SubDAG 移除 → 用 Task Group；pickling（DAG/XCom）移除。
+   - `xcom_pull()` 不带 `task_ids` 等行为差异。
+4. **配置迁移**：
+
+```bash
+airflow config update    # 自动改写 airflow.cfg
+airflow db migrate       # 数据库结构迁移
+```
+
+5. **拓扑变化**：新增必跑组件 `airflow dag-processor`、`airflow api-server`（替代 webserver）；Celery/K8s Executor 改从 provider 安装。
+6. **灰度**：staging 全量验证 DAG → 备份 Metadata DB → 滚动升级 → 观察调度延迟与失败率。
 
 ### 常见运维问题
 
 | 问题 | 原因 | 解决 |
 |---|---|---|
-| DAG 不显示 | DAG Processor 未解析成功 | 检查 import errors |
+| DAG 不显示 | dag-processor 未解析成功 / bundle 未同步 | 检查 import errors、bundle 配置 |
 | 任务不调度 | Scheduler 卡住 / DB 连接问题 | 重启 Scheduler，检查 DB |
 | Worker 内存爆炸 | 任务内存泄漏 / 并发过高 | 限制并发，增加资源 |
-| Pod 启动慢 | KubernetesExecutor image pull | 预热镜像，使用 imagePullSecrets |
+| Pod 启动慢 | KubernetesExecutor image pull | 预热镜像、镜像缓存、简化 init |
 | 日志丢失 | 远程日志配置错误 | 检查 connection 和 bucket 权限 |
+| 3.x 升级后时间语义不对 | cron data interval 默认值变化 | 显式 `CronDataIntervalTimetable` 或改配置 |
 
 ## 本章小结
 
-- 生产 Airflow = PostgreSQL + 多 Scheduler + 多 Webserver + 合适 Executor + Triggerer。
-- Executor 选型：Local 适合单机，Celery 适合多机，Kubernetes 适合云原生/隔离。
-- Airflow 2.10+ 支持多 Executor，可把轻量任务和重任务分开。
-- 认证、Secrets Backend、远程日志、监控告警是生产必备。
-- Airflow 3 将向 Execution API + JWT 演进，提升安全性和解耦。
+- 生产 Airflow 3 = PostgreSQL + API Server + dag-processor + 多 Scheduler + 合适 Executor + Triggerer。
+- Executor 选型：Local 单机、Celery 多机、Kubernetes 云原生隔离、**Edge 跨云/受限网络（3.x 新增）**。
+- 认证：3.x 默认 Simple Auth Manager 仅适合开发，生产用 FAB provider（OAuth/LDAP）+ API token + Execution API 短期 JWT。
+- 监控：Deadline Alerts 取代 SLA；3.2+ 结构化日志与 OTel Histogram。
+- **2.x 已 EOL**：迁移路径 2.11 → 3.1+，ruff `AIR301` 自动修复 + 人工核对语义变化。
 
 **参考来源**
 
 - [Apache Airflow — Production Deployment](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/production-deployment.html)
+- [Apache Airflow — Upgrading to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)
+- [Astronomer — Upgrading Airflow 2 to 3: A Checklist for 2026](https://www.astronomer.io/blog/upgrading-airflow-2-to-airflow-3-a-checklist-for-2026/)
+- [Astronomer — Astro Runtime release notes](https://www.astronomer.io/docs/runtime/runtime-release-notes)
 - [Apache Airflow — Kubernetes Executor](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/kubernetes.html)
-- [Apache Airflow — Celery Executor](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/executor/celery.html)
-- [Apache Airflow — Logging and Monitoring](https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/index.html)
-- [Astronomer — Airflow on Kubernetes](https://www.astronomer.io/docs/learn/airflow-kubernetes/)
+- [apache-airflow-providers-edge3 文档](https://airflow.apache.org/docs/apache-airflow-providers-edge3/stable/index.html)
+- [Airflow Release Notes (3.3.2)](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
