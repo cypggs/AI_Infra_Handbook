@@ -44,6 +44,8 @@
 
 一颗芯片是"稠密计算（MXU）+ 稀疏计算（SparseCore）+ 高带宽存储（HBM）+ 专用互联（ICI）"的协同样本。
 
+**第 8 代的演化（2026-04 公布，Google 自述）**：TPU 8t（训练，Broadcom 协同）维持"MXU + SparseCore + 3D-torus"路线，把单 superpod 推到 9600 芯片 / 121 FP4 Exaflops；TPU 8i（推理，MediaTek 协同）则换成"MXU + **CAE**（Collectives Acceleration Engine，取代 SparseCore，硬件加速 MoE all-to-all）+ Boardfly 拓扑 + 288GB HBM3E + 384MB 片上 SRAM（为大 KV cache 预留）"的组合。训练芯片为 gang 调度的同步集合通信优化，推理芯片为 agentic MoE 的延迟与缓存容量优化——同一套设计哲学，两种芯片取舍。
+
 ## 3.3 Pod 内电气层：ICI 与 3D-torus
 
 **ICI（Inter-Chip Interconnect）** 是 TPU 专用的芯片间互联，构成 **3D-torus**：
@@ -74,6 +76,8 @@ OCS 让拓扑成为"可调度资源"：Borg 不必担心 TPU 资源的物理连�
 - **Multislice**：在 DC-GN 之上，让一个训练 run 跨多个 slice。并行模型是分层的——**激活走 ICI，梯度走 DCN 归约**；XLA 编译器自动把一个 all-reduce 分解为"ICI 内 → DCN 跨 slice → ICI 内"的层次集合通信；引入"跨 DCN 的新分片维度"，支持 FSDP/模型/流水线并行。在 TPUv4 上对几十亿参数模型达到 **58.9% MFU**，且"多 slice 的 MFU 与单 slice 相当"。
 
 跨 Pod 时 ICI 不再可达，所以集合通信要跨"ICI 域 → DCN"两层，这是 Multislice 的核心工程点。
+
+**2026 年的延伸：Virgo 网络。** 第 8 代训练芯片 8t 配套的新 scale-out 织物 **Virgo** 把 OCS 从 Pod 内搬到数据中心级：官方称在单一数据中心内以全光路交换构建 **47 Pb/s 双向无阻塞带宽、可连接 13.4 万颗芯片**的单一训练域（跨站点互联宣称可达百万级芯片）——把 Multislice"跨 Pod 分层归约"的规模上限抬高了约一个数量级。注意这是 2026-04 公布的路线图指标，尚未有出货实测。
 
 ## 3.6 主机传输层：Falcon
 

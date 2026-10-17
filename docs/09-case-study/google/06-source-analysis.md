@@ -244,7 +244,7 @@ JetStream（→`tpu-inference`）是 XLA/TPU 推理引擎，README 自述"a thro
 | **MaxText** | [`AI-Hypercomputer/maxtext`](https://github.com/AI-Hypercomputer/maxtext) | 活跃；Apache-2.0；PyPI 可装 |
 | **MaxDiffusion**（扩散兄弟） | [`AI-Hypercomputer/maxdiffusion`](https://github.com/AI-Hypercomputer/maxdiffusion) | 活跃 |
 | **JetStream** | [`AI-Hypercomputer/JetStream`](https://github.com/AI-Hypercomputer/JetStream) | 挂归档通知，迁至 `tpu-inference` |
-| **Gemma** | HF `google/gemma-3` / `ai.google.dev/gemma` | 开放权重（Gemma Terms of Use） |
+| **Gemma** | HF `google/gemma-3` / `google/gemma-4` / [ai.google.dev/gemma](https://ai.google.dev/gemma) | 开放权重；Gemma 3 为 Gemma Terms of Use，**Gemma 4（2026-07 起）改以 Apache-2.0 发布**，并附带 MTP 投机解码 drafter（Hugging Face 可下载） |
 | **Pax / Paxml** | [`google/paxml`](https://github.com/google/paxml) | 维护/参考角色（新 LLM 工作转向 MaxText） |
 | **T5X** | [`google-research/t5x`](https://github.com/google-research/t5x) | 长期维护 |
 | **Lingvo** | [`tensorflow/lingvo`](https://github.com/tensorflow/lingvo) | 遗留（TF 时代，已被 JAX 栈取代） |

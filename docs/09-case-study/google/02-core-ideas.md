@@ -20,6 +20,8 @@
 
 从 v4 起还增加了 **SparseCore**——面向稀疏嵌入/动态路由的数据流处理器，"用 5% 的面积和功耗换取 5×–7× 的嵌入加速"，让稠密部分走 MXU、稀疏部分走 SparseCore，互不拖累。
 
+**2026 年的深化：按 workload 分化芯片本身。** 第 8 代 TPU 首次拆成两颗专用芯片：**8t（训练）** 沿用 3D-torus，把规模推到 9600 芯片 superpod；**8i（推理）** 则针对 agentic MoE 服务重做取舍——用 **CAE（Collectives Acceleration Engine）取代 SparseCore**（把 MoE 关键的 all-to-all 集合通信下沉到硬件，官方称最多降 5× 集合通信延迟）、把片上 SRAM 扩到 384MB（3× Ironwood）以驻留大 KV cache、并改用 **Boardfly** 拓扑把网络直径从 16 跳压到 7 跳（官方称延迟降 ~56%）。领域专用的尽头不是"一颗更强的通用加速器"，而是"每种 workload 一颗为它而生的芯片"。
+
 **与相邻方案的区别**：GPU 用大量并发线程隐藏访存延迟（仍是"访存 + 计算"交替），TPU 直接把"访存"从热路径里删掉。这是 DSA（领域专用架构）相对 GPGPU 的本质差异。
 
 > 详见 [第 3 章 架构设计](03-architecture) 与 [第 5 章 核心模块](05-core-modules)。
@@ -35,7 +37,7 @@
 - **3D-torus**：每颗芯片有 6 个最近邻链路（±x ±y ±z，带回绕）。torus 的关键数学性质是——把一次 AllReduce 沿三个维度拆成短 ring，**延迟项 = 2·Σ(dᵢ−1)**，按**边长**线性增长；而把所有 N 颗芯片串成单一大环的延迟项是 2·(N−1)，按**芯片总数**指数增长。对 16×16×16 = 4096 芯片：torus 延迟项 = 90，单环 = 8190——torus 约为单环的 1.1%。这是 Google 选 torus 而非 fat-tree + 单一集合通信的拓扑根因（详见 [Mini Demo](07-mini-demo) 的定量演示）。
 - **OCS**：每个 Pod 配 48 台 128 端口的 Palomar MEMS 光路交换机，在光层按需把 cube（4×4×4 = 64 芯片）交叉连接成作业想要的 torus/扭曲 torus 形状。这让**逻辑拓扑与物理放置解耦**——Borg 不再需要担心 TPU 资源的物理连续性，"任意一组空闲 cube 都能通过 OCS 交叉连接给某个作业"。代价极低：OCS + 光纤 < 一台 v4 Pod 总资本成本的 5%，功耗 < 3%。
 
-**与相邻方案的区别**：NVIDIA 用 NVLink（机柜内）+ InfiniBand fat-tree（机柜间）的固定拓扑；Meta 用 fat-tree。Google 的 torus + OCS 用"线性增长的布线/交换 + 光路可重配"换来了更低的 AllReduce 延迟和更强的容错弹性。
+**与相邻方案的区别**：NVIDIA 用 NVLink（机柜内）+ InfiniBand fat-tree（机柜间）的固定拓扑；Meta 用 fat-tree。Google 的 torus + OCS 用"线性增长的布线/交换 + 光路可重配"换来了更低的 AllReduce 延迟和更强的容错弹性。**2026 年的延伸**：第 8 代训练芯片 8t 配套的 **Virgo 网络**把 OCS 的思想从 Pod 内搬到 scale-out 织物——官方称可在单一数据中心内用全光路交换把 **13.4 万颗芯片**连成 47 Pb/s 双向带宽的无阻塞域（跨站点可达百万级），OCS 从"Pod 内重配原语"升级为"超算级互联织物"。
 
 > 详见 [第 3 章](03-architecture)、[第 5 章](05-core-modules)，定量演示见 [Mini Demo](07-mini-demo)。
 
@@ -103,7 +105,7 @@ Pathways 的 headline 结果：在 2048 颗 TPU 上跑 SPMD 达到约 100% 加�
 - **XLA / OpenXLA**（`openxla/xla`）：把 HLO 降低为优化的 CPU/GPU/TPU 代码；GSPMD 是其中的分片 pass。
 - **MaxText**（`AI-Hypercomputer/maxtext`）：纯 Python/JAX 的高性能、可读 LLM 训练参考实现，"无 C++/CUDA"，靠 JAX + XLA 拿到高 MFU。
 - **JetStream**（→`tpu-inference`）：面向 XLA/TPU 的吞吐与内存优化推理引擎。
-- **Gemma**：开放权重模型族（1B–27B，多模态，128K 上下文）。
+- **Gemma**：开放权重模型族。Gemma 3 为 1B–27B（Gemma Terms of Use）；**Gemma 4**（arXiv:2607.02770，2026-07）扩到 2.3B–31B（dense + MoE），原生多模态（文本/图像/音频）、带 thinking 模式，且**全家改以 Apache-2.0 发布**（含 MTP 投机解码 drafter head）——开放程度超过 Gemma 3 代。
 
 这是 Google 区别于其它实验室的根本姿态：**唯一把跑在自己加速器上的"编译 + 训练 + 服务"软件栈都开放的玩家**，即便那些加速器（TPU）本身闭源。
 

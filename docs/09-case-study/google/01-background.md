@@ -26,14 +26,18 @@ TPU 的设计动机可以归结为三句话（来自 Google 的 TPU 架构文档
 | **TPU v5e / v5p** | 2023 | 成本优化（v5e）与性能（v5p）；更大 Pod | v5p Pod 8960 芯片 |
 | **Trillium / v6e** | 2024 | 256×256 MXU，918 TFLOPS BF16；v6e 成本档 | — |
 | **Ironwood（第 7 代）** | 2025 | 3nm，**原生 FP8**，192GB HBM（7.37 TB/s），液冷 ~10MW；9216 芯片 Pod | 单芯片 4614 TFLOPS FP8；Pod ≈ **42.5 Exaflops**；ICI 1.2 TBps 双向（= 9.6 Tbps 双向 / 4.8 Tbps 单向） |
+| **TPU 8t "Sunfish" / 8i "Zebrafish"（第 8 代）** | 2026 公布 | **训练/推理分化为两颗专用芯片**（8t 与 Broadcom、8i 与 MediaTek 协同设计）；TSMC 2nm；8t 走 3D-torus + Virgo 光路织物，8i 走 Boardfly 拓扑 + CAE | 8t：~12.6 PFLOPS FP4/芯片、216GB HBM3E，9600 芯片 superpod ≈ **121 FP4 Exaflops**；8i：~10.1 PFLOPS FP4/芯片、288GB HBM3E + 384MB 片上 SRAM，1152 芯片域（均为 Google 自述，2026-04 Cloud Next 公布路线图，GA 时间官方口径为 2026–2027 分批落地） |
 
 > **单位提示**：Google 对 Ironwood ICI 写的是 "1.2 TBps bidirectional"——大写 B 指**字节**，bidirectional 指双向合计。换算为比特：1.2 TBps × 8 = **9.6 Tbps 双向**，即每方向 4.8 Tbps。不要误读成"每条链路 1.2 Tbps"。
+>
+> **第 8 代提示**：8t/8i 的具体规格来自 2026-04 Cloud Next 主题演讲与二手报道，属**未出货硅片的官方预期指标**（且各方对 GA 时间的报道不一致），引用时请保留"Google 自述"的限定。
 
 这条演进线的三个转折点值得记住：
 
 - **v1→v2（推理→训练）**：v1 只能推理，且芯片间无互联；v2 引入 BF16 与 2D-torus，第一次让 TPU 能训练。这是 TPU 从"推理加速卡"变成"训练超算组件"的关键。
 - **v3→v4（电气互联→光电可重配）**：v4 用 **OCS（Optical Circuit Switch）** 在光层动态重配拓扑，让逻辑拓扑与物理放置解耦。这是 NSDI'24 整套可靠性设计（cube 级备用 + 替换）的物理基础。
 - **v4→Ironwood（INT8/BF16→原生 FP8 + Exascale）**：Ironwood 原生支持 FP8，把单 Pod 推到 ~42.5 Exaflops，直接对标当代最大规模的训练需求。
+- **Ironwood→第 8 代（一颗芯片打天下→训练/推理分化为两颗专用芯片）**：2026-04 Cloud Next 上，Google 首次把 TPU 拆成 **8t（训练，优化 gang 调度下的 goodput 与成本）** 与 **8i（推理，优化 agentic MoE 服务的延迟、KV cache 容量与集合通信）** 两颗芯片——推理侧甚至用 **CAE（Collectives Acceleration Engine）取代 SparseCore**、用 Boardfly 拓扑取代 3D-torus。这是"领域专用"思想的进一步深化：专用到按 workload 分化芯片本身。
 
 ## 1.4 SparseCore：为稀疏嵌入而生的第二条数据通路
 

@@ -1,6 +1,6 @@
 # 4. 训练与推理
 
-本章聚焦 Google TPU 栈上**训练**与**推理**两条 workload 的具体流程。训练侧讲清"一个跨 Pod 的训练步如何被编译、分片、调度、checkpoint"；推理侧讲清 JetStream 的服务化机制、投机解码的加速原理、Gemma 3 的架构选择，以及 Gemini 的服务形态。
+本章聚焦 Google TPU 栈上**训练**与**推理**两条 workload 的具体流程。训练侧讲清"一个跨 Pod 的训练步如何被编译、分片、调度、checkpoint"；推理侧讲清 JetStream 的服务化机制、投机解码的加速原理、Gemma 3/4 的架构选择，以及 Gemini 3 的服务形态。
 
 ---
 
@@ -95,7 +95,19 @@ Multislice 的本质：把"ICI 域内的高速集合通信"与"DCN 跨域的较�
 - **许可/下载**：Gemma Terms of Use（权重非 Apache）；Kaggle / Hugging Face。
 - **负责任 AI**：记忆率低于所有前代 Gemma/Gemini，记忆输出扫描未发现超阈个人信息。
 
-### 4.2.4 Gemini 服务形态
+### 4.2.4 Gemma 4：Apache-2.0 + 原生多模态 + 自带投机解码
+
+**Gemma 4**（arXiv:2607.02770，2026-07 技术报告）把 Gemma 的开放程度又抬高了一档：
+
+- **家族**：约 2.3B–31B，**dense 与 MoE 并存**——含 31B dense（60 层，256K 上下文）与 26B-A4B MoE（总 25.2B / 每 token 激活 ~3.8B），以及 E2B/E4B 边侧小模型。
+- **原生多模态**：文本 + 图像 + 音频统一建模；12B 采用**无编码器（encoder-free）架构**直接吃原始音频与图像 patch；各尺寸配增强的视觉/音频编码器。
+- **Thinking 模式**：可在回答前生成推理 trace（对标前沿模型的 reasoning 模式）。
+- **Apache-2.0**：全家（含 base 与微调变体）改用 Apache-2.0——Gemma 系列首次摆脱自定义 Terms of Use，开放程度与 Llama/Qwen 拉平。
+- **MTP 投机解码 drafter**（2026-05 随模型发布，Google AI 博客）：独立的 multi-token prediction drafter head（独立 embedder + 4 层小 Transformer，cross-attend 主模型 KV cache，免 MTP prefill、支持任意 draft 长度），对外宣称**最多 3× 推理加速且输出逐 bit 一致**；已接入 vLLM / SGLang / MLX / Ollama / LiteRT-LM——把 [4.2.2](04-training-and-inference#422-投机解码dflash-与-3-加速) 的 DFlash 思路做成了开放权重模型的标准配件。
+
+### 4.2.5 Gemini 3 服务形态
+
+**Gemini 3**（2025-11-18 发布）是 Google 当前的前沿模型代际，其基础设施含义在于：它是**完全在 Google 自研 TPU 上训练与服务**的前沿模型（官方口径为 DeepMind 始终在新一代 TPU 上训练 Gemini；第三方报道进一步指认 Gemini 3 动用 Ironwood 代际 [二手来源]）。发布时的公开指标：GPQA Diamond 91.9%、Humanity's Last Exam 37.5%、SWE-bench Verified 76.2%、LMArena 1501 Elo；配 **Deep Think** 长推理模式（后进入 API）。2026 年持续迭代 3.x 系列（含 I/O 2026 发布的 3.5 Flash 等 [第三方报道，以官方为准]）。
 
 Gemini 前沿模型经三条面对开发者的途径服务（均跑在 TPU 后端）：
 

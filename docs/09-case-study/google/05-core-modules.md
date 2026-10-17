@@ -19,11 +19,12 @@
 - **事实**（v4 论文）："用 5% 的晶圆面积和功耗，把依赖嵌入的模型加速 5×–7×"。
 - **代次差异**：v5p/Ironwood 每芯片 4 个，v6e 每芯片 2 个。
 - **设计要点**：让稠密（MXU）与稀疏（SparseCore）走两条数据通路，避免稀疏访存拖慢脉动阵列。对推荐系统、RAG 检索、MoE 这类"稠密 + 稀疏"混合 workload 尤为关键。
+- **2026 演化**：第 8 代把这条思路按 workload 分化——**训练芯片 8t 保留 SparseCore**，**推理芯片 8i 用 CAE（Collectives Acceleration Engine）取而代之**：不再加速嵌入查表，而是把 MoE 关键的 all-to-all 集合通信下沉到硬件（官方称最多降 5× 集合通信延迟），匹配 agentic 时代推理的瓶颈从"查表"变成"跨芯片通信"这一观察。
 
 ### 5.1.3 HBM（高带宽显存）
 
 - **职责**：存放权重、激活、优化器状态、KV cache。
-- **规模**：Ironwood 达 192GB / 7.37 TB/s。
+- **规模**：Ironwood 达 192GB / 7.37 TB/s；第 8 代推理芯片 8i 达 288GB HBM3E + **384MB 片上 SRAM**（3× Ironwood，专为大 KV cache 驻留设计）。
 - **设计要点**：大容量高带宽 HBM 是"权重驻留 + 激活流过"脉动阵列的存储后盾，也是推理时 KV cache 容量（决定可服务并发/上下文长度）的硬约束。JetStream 用 int8 KV cache 量化来压缩 cache 进 HBM。
 
 ---
@@ -54,6 +55,7 @@
 - **职责**：把多个 slice/Pod 串起来，承载 Multislice 跨 slice 通信。
 - **关键参数**：Jupiter 相对前代"流完成时间 −10%、吞吐 +30%、功耗 −40%、capex −30%、停机 −50×"（Multislice 博客引内部数据）。
 - **设计要点**：跨 slice 时 ICI 不可达，集合通信分两层（ICI 内 + DCN）；XLA 自动把 all-reduce 分解为层次集合通信。
+- **2026 演化（路线图）**：第 8 代训练芯片配套 **Virgo 网络**——把 OCS 全光路交换扩展为数据中心级 scale-out 织物，官方称单一域可连 13.4 万颗芯片、47 Pb/s 双向无阻塞带宽，把"跨 Pod"推向"跨半个数据中心"。
 
 ### 5.2.5 Falcon —— 主机 NIC 硬件传输
 
@@ -131,10 +133,10 @@
 | 模块 | 层 | 一句话职责 |
 |---|---|---|
 | MXU | 芯片 | 权重驻留脉动阵列，矩阵乘不访存 |
-| SparseCore | 芯片 | 稀疏嵌入数据流处理器（5% 面积换 5×–7×） |
-| HBM | 芯片 | 权重/激活/KV 的高带宽存储（Ironwood 192GB） |
+| SparseCore / CAE | 芯片 | 稀疏嵌入数据流处理器（5% 面积换 5×–7×）；8i 世代由 CAE（硬件集合通信引擎）接替 |
+| HBM | 芯片 | 权重/激活/KV 的高带宽存储（Ironwood 192GB；8i 288GB + 384MB SRAM） |
 | ICI | Pod 电气 | 50 GBps/链路 3D-torus，一个 ICI 域 4096 芯片 |
-| OCS | Pod 光路 | 48×128 端口 Palomar，按需重配拓扑（<5% 成本） |
+| OCS | Pod 光路 | 48×128 端口 Palomar，按需重配拓扑（<5% 成本）；8t 世代扩展为 Virgo 数据中心级光路织物 |
 | Jupiter/DC-GN | 跨 Pod | 数据中心织物，Multislice 跨 slice 通信 |
 | Falcon | 主机传输 | 200 Gbps/120 Mops 硬件传输，Swift 拥塞，不依赖 PFC |
 | Borg | 调度 | 集群管理，优先级/抢占/装箱，99.99% Borgmaster |

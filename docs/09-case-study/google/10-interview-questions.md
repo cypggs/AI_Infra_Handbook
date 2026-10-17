@@ -86,6 +86,12 @@
 
 **答**：（1）**优先修复**触发 reroute 的组件（NSDI'24 对 OCS 正是这么做），缩短 reroute 时长以控税；（2）**切换到 reconfigure**：若税持续超临界（Demo ~30%），迁移到健康 cube、从 checkpoint 重启、恢复零税（付一次性迁移停机）；（3）**检查 reroute 路径质量**：wild-first routing 的离线 ILP 是否仍最优，是否需要重算路由表；（4）**监控 reroute 活跃率**：生产应 <2%，超阈值告警；（5）**评估热备 cube**（NSDI'24 未来工作方向）：预配 hot-standby cube，迁移加速器状态而无需持久 checkpoint。（[8. 生产实践](08-production-practice)、[7. Mini Demo](07-mini-demo)）
 
+### Q19. 2026 年 Google 为什么把第 8 代 TPU 拆成 8t（训练）与 8i（推理）两颗芯片？各自的关键取舍是什么？
+
+**答**：因为训练与推理的瓶颈结构已经明显分化，"一颗芯片通吃"在两个方向上都留了浪费。**8t（Sunfish，训练）**延续"MXU + SparseCore + 3D-torus"路线，目标是 gang 调度同步训练的高 goodput 与每美元训练成本（官方称 ~2.7× 于 Ironwood）：9600 芯片 superpod、121 FP4 Exaflops，并配 Virgo 光路织物把训练域扩到 13.4 万芯片。**8i（Zebrafish，推理）**则为 agentic MoE 服务重做取舍：用 **CAE 取代 SparseCore**（瓶颈从嵌入查表变成 all-to-all 集合通信，官方称最多降 5× 延迟）、**384MB 片上 SRAM + 288GB HBM** 驻留大 KV cache、**Boardfly 拓扑**把网络直径从 16 跳压到 7 跳（官方称延迟降 ~56%）。这是"领域专用架构"思想从"芯片内的专用单元"升级到"按 workload 专用的芯片"，代价是两套设计、流片与供应链（Broadcom / MediaTek 分工）。（[1. 背景](01-background)、[2. 核心思想](02-core-ideas)、[5. 核心模块](05-core-modules)）
+
+> 注意：8t/8i 的数字均为 2026-04 Cloud Next 公布的官方预期指标（未出货硅片），GA 时间各方报道不一，面试中引用应带这个限定。
+
 ---
 
 下一章 [延伸阅读](11-further-reading) 给出论文、仓库、博客与交叉引用。

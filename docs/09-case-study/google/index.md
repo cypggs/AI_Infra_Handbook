@@ -12,7 +12,7 @@
 
 读完本主题后，你应该能够：
 
-- 描述 TPU 的演进脉络：从 2015 年 v1（28nm、256×256 INT8 脉动阵列、仅推理）到 v2/v3（BF16、可训练、2D-torus）、v4（7nm、4×MXU、3D-torus + OCS、4096 芯片 Pod、SparseCore）、v5e/v5p，再到 Trillium 与 Ironwood（3nm、原生 FP8、192GB HBM、9216 芯片 Pod ≈ 42.5 Exaflops）。
+- 描述 TPU 的演进脉络：从 2015 年 v1（28nm、256×256 INT8 脉动阵列、仅推理）到 v2/v3（BF16、可训练、2D-torus）、v4（7nm、4×MXU、3D-torus + OCS、4096 芯片 Pod、SparseCore）、v5e/v5p、Trillium 与 Ironwood（3nm、原生 FP8、192GB HBM、9216 芯片 Pod ≈ 42.5 Exaflops），再到 2026 年 Cloud Next 公布的第 8 代 **8t（训练）/ 8i（推理）**——训练/推理首次分化为两颗专用芯片（8t 保 SparseCore + 3D-torus + Virgo 光路织物；8i 用 CAE 取代 SparseCore + Boardfly 拓扑）。
 - 解释**脉动阵列（systolic array / MXU）**的权重驻留原理，以及为什么"矩阵乘法过程中无需访存"是 TPU 能效的根因（v1 相对当代 GPU/CPU 快 15–30×、TOPS/W 高 30–80×）。
 - 区分 Google 网络织物的四层：**ICI**（Pod 内 3D-torus，50 GBps/链路）、**OCS**（Palomar 光路交换，按需重配拓扑、<5% 成本 <3% 功耗）、**DC-GN/Jupiter**（跨 Pod/跨 DC）、**Falcon**（主机 NIC 硬件传输，200 Gbps / 120 Mops，Swift 拥塞控制）。
 - 理解为什么 **3D-torus + OCS** 是 Google 区别于 NVIDIA（fat-tree + NVLink）/ Meta（fat-tree）的拓扑选择：torus 把 AllReduce 延迟项从 2·(N−1) 压到 2·Σ(dᵢ−1)，OCS 让逻辑拓扑与物理放置解耦并提供"cube 级备用+替换"的故障单元。
@@ -20,7 +20,7 @@
 - 理解 **XLA/GSPMD** 的"标注即并行"哲学：用户写单设备 JAX，用少量 `PartitionSpec`/`with_sharding_constraint` 标注，编译器自动推断每个算子的分片并插入跨设备集合通信（FSDP/张量/流水线混合并行）。
 - 解释 **Pathways** 为何用单控制器 + 异步分片数据流（sharded dataflow of futures）+ 成组派发（grouped dispatch）来 gang-schedule 数千 TPU，以及在万亿参数、跨 Pod 训练上的意义。
 - 区分 Google 的开放姿态：**软件栈全开**（JAX/XLA/MaxText/JetStream，Apache-2.0）、**权重开放**（Gemma），但 **TPU 硬件闭源**（仅 GCP 可用）——并与 OpenAI/Anthropic（全闭）、Meta（权重 + OCP 硬件开放、软件栈第三方）对照。
-- 用 JetStream/tpu-inference + 投机解码（DFlash，~3×）+ Gemma 3（local/global 混合注意力、128K 上下文、SigLIP 多模态）理解 Google 的推理栈与开放模型定位。
+- 用 JetStream/tpu-inference + 投机解码（DFlash，~3×；Gemma 4 自带 MTP drafter）+ Gemma 3/4（local/global 混合注意力、多模态、Apache-2.0）理解 Google 的推理栈与开放模型定位；用 Gemini 3（2025-11，全 TPU 训练与服务）理解前沿模型的基础设施闭环。
 
 ## 与相邻主题的关系
 
@@ -43,11 +43,11 @@
 1. [背景：为什么研究 Google](01-background) — TPU 十年演进（v1→Ironwood）、领域专用硅的设计动机、垂直整合 + 软件开源的独特姿态。
 2. [核心思想](02-core-ideas) — 领域专用硅、可重配光路拓扑、可靠性即设计、编译器自动并行、开放软件栈五大支柱。
 3. [架构设计](03-architecture) — 芯片（MXU/SparseCore/HBM/ICI）→ Pod（3D-torus + OCS）→ 跨 Pod（DC-GN/Jupiter）→ 主机传输（Falcon）→ 调度（Borg）→ 软件（JAX/XLA/GSPMD/Pathways）分层架构。
-4. [训练与推理](04-training-and-inference) — GSPMD 分片、MaxText 训练循环、Multislice 跨 Pod（58.9% MFU）、Orbax checkpoint；JetStream 推理、投机解码（~3×）、Gemma 3、Gemini 服务。
+4. [训练与推理](04-training-and-inference) — GSPMD 分片、MaxText 训练循环、Multislice 跨 Pod（58.9% MFU）、Orbax checkpoint；JetStream 推理、投机解码（~3×）、Gemma 3/4（Apache-2.0 + MTP drafter）、Gemini 3 服务。
 5. [核心模块](05-core-modules) — MXU、SparseCore、ICI、OCS、3D-torus、Jupiter、Falcon、Borg/`healthd`、JAX Mesh、XLA/GSPMD、Pathways、Orbax、JetStream。
 6. [源码与生态分析](06-source-analysis) — MaxText 真实代码（注意力分片、Mesh+pjit、训练循环、FSDP）、Pathways 架构、GSPMD、JetStream、开源状态表。
 7. [Mini Demo](07-mini-demo) — 3D-torus 分维 AllReduce 延迟模型 + NSDI'24 双路径恢复（reconfigure vs reroute）模拟器。
-8. [企业生产实践](08-production-practice) — NSDI'24 生产可靠性、Borg 调度协同、Multislice 规模化、可持续性（PUE 1.09 / 24/7 CFE / 2030 净零）、AI Principles + Frontier Safety、开放生态。
+8. [企业生产实践](08-production-practice) — NSDI'24 生产可靠性、Borg 调度协同、Multislice 规模化、TPU 商业化（Anthropic 百万芯片 / Meta 协议）、可持续性（PUE 1.09 / 24/7 CFE / 2030 净零）、AI Principles + Frontier Safety、开放生态。
 9. [最佳实践](09-best-practices) — 可复用的设计原则与检查清单。
 10. [面试题](10-interview-questions) — 初/中/高级 Google 基础设施面试题。
 11. [延伸阅读](11-further-reading) — 论文、仓库、博客、OCP 与交叉引用。
