@@ -63,7 +63,7 @@
 
 ## Mini Demo 本地入口
 
-- [Mini Demo README](./mini-demo/README.md)
+- `mini-demo/README.md`
 - 源码包：`mini-demo/reflection_mini/`
 - 测试目录：`mini-demo/tests/`
 

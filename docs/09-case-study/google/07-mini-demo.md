@@ -5,7 +5,7 @@
 1. **3D-torus 分维 ring AllReduce 的延迟优势**——为什么 torus 的延迟项 2·Σ(dᵢ−1) 远低于单一大环的 2·(N−1)。
 2. **NSDI'24《Resiliency at Scale》的两条真实恢复路径**——reconfigure（迁移到空闲健康 cube）vs reroute（容错 ICI 路由，持续步时惩罚）的双轴权衡。
 
-> 源码与运行说明详见 [`mini-demo/README.md`](./mini-demo/README.md)。
+> 源码与运行说明详见 `mini-demo/README.md`。
 
 ## 7.1 设计目标
 

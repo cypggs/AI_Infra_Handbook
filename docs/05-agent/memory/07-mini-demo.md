@@ -237,7 +237,7 @@ tests/test_working_memory.py::test_invalid_budget_mode PASSED
 
 ## 本章小结
 
-Mini Demo 展示了一个零外部依赖、纯 Python 的 Agent Memory 系统：通过确定性 embedder、内存向量存储、可插拔 storage、多层记忆抽象与统一 Memory Service，实现了工作记忆、短期记忆、长期语义记忆、情景记忆、程序性记忆的存储与检索。虽然 embedder 和存储都是教学级实现，但已经覆盖了生产 Memory 系统的 80% 核心概念。推荐阅读 [`mini-demo/README.md`](./mini-demo/README.md) 获取完整运行说明，并在生产环境中替换为真实的 embedding 模型与向量数据库。
+Mini Demo 展示了一个零外部依赖、纯 Python 的 Agent Memory 系统：通过确定性 embedder、内存向量存储、可插拔 storage、多层记忆抽象与统一 Memory Service，实现了工作记忆、短期记忆、长期语义记忆、情景记忆、程序性记忆的存储与检索。虽然 embedder 和存储都是教学级实现，但已经覆盖了生产 Memory 系统的 80% 核心概念。推荐阅读 `mini-demo/README.md` 获取完整运行说明，并在生产环境中替换为真实的 embedding 模型与向量数据库。
 
 **参考来源**
 

@@ -162,7 +162,7 @@ Sent 6 prompts
 
 ## 完整代码
 
-完整代码与运行说明见 [mini-demo/README.md](./mini-demo/README.md)。
+完整代码与运行说明见 `mini-demo/README.md`。
 
 ## 本章小结
 

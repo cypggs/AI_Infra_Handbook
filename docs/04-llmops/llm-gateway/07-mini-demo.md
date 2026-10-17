@@ -266,7 +266,7 @@ tests/test_server.py::test_chat_completions_e2e PASSED
 
 ## 本章小结
 
-Mini Demo 展示了 LLM Gateway 的最小可行实现：通过配置驱动把 provider、路由、限流、重试、认证、转换、指标串成一条流水线。虽然代码量不大，但已经覆盖了生产网关的 80% 核心概念。推荐阅读 [`mini-demo/README.md`](./mini-demo/README.md) 获取完整运行说明。
+Mini Demo 展示了 LLM Gateway 的最小可行实现：通过配置驱动把 provider、路由、限流、重试、认证、转换、指标串成一条流水线。虽然代码量不大，但已经覆盖了生产网关的 80% 核心概念。推荐阅读 `mini-demo/README.md` 获取完整运行说明。
 
 **参考来源**
 

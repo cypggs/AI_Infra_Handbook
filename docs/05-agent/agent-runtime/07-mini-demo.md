@@ -204,7 +204,7 @@ tests/test_tool_registry.py::test_write_file_with_approval PASSED
 
 ## 本章小结
 
-Mini Demo 展示了 Agent Runtime 的最小可行实现：通过 ReAct 循环把 LLM、工具、记忆、状态、护栏、观测串成一条流水线。虽然代码量不大，但已经覆盖了生产 Runtime 的 80% 核心概念。推荐阅读 [`mini-demo/README.md`](./mini-demo/README.md) 获取完整运行说明。
+Mini Demo 展示了 Agent Runtime 的最小可行实现：通过 ReAct 循环把 LLM、工具、记忆、状态、护栏、观测串成一条流水线。虽然代码量不大，但已经覆盖了生产 Runtime 的 80% 核心概念。推荐阅读 `mini-demo/README.md` 获取完整运行说明。
 
 **参考来源**
 

@@ -211,7 +211,7 @@ tests/test_workspace.py::test_keys_returns_all_keys PASSED
 
 ## 本章小结
 
-Mini Demo 展示了一个零外部依赖、纯 Python 的 Agent Reflection 系统：通过 `MockLLMClient`、`GeneratorAgent`、`CriticAgent`、`Evaluator`、`Workspace`、`RevisionLoop` 与 `Observer`，实现了“生成 → 批判 → 评估 → 修订 → 终止”的完整闭环。虽然 LLM、Critic 与 Evaluator 都是教学级实现，但已经覆盖了生产 Reflection 系统的 80% 核心概念。推荐阅读 [`mini-demo/README.md`](./mini-demo/README.md) 获取完整运行说明，并在生产环境中替换为真实的 LLM 客户端、Critic 模型与评分机制。
+Mini Demo 展示了一个零外部依赖、纯 Python 的 Agent Reflection 系统：通过 `MockLLMClient`、`GeneratorAgent`、`CriticAgent`、`Evaluator`、`Workspace`、`RevisionLoop` 与 `Observer`，实现了“生成 → 批判 → 评估 → 修订 → 终止”的完整闭环。虽然 LLM、Critic 与 Evaluator 都是教学级实现，但已经覆盖了生产 Reflection 系统的 80% 核心概念。推荐阅读 `mini-demo/README.md` 获取完整运行说明，并在生产环境中替换为真实的 LLM 客户端、Critic 模型与评分机制。
 
 **参考来源**
 

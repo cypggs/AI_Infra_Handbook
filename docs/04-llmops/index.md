@@ -23,4 +23,4 @@
 
 > LLMOps 的核心问题：在有限的 GPU 显存和算力下，以最低的延迟和最高的吞吐服务大模型。
 
-vLLM 与 SGLang 已作为前两个完整主题上线，后续将持续补充 TensorRT-LLM、Triton、LLM Gateway 等内容。
+从 vLLM/SGLang/TensorRT-LLM 等推理引擎，到 KV Cache 管理、模型量化、多模态与语音推理，再到 AI 编译器与 RL Post-Training，LLMOps 篇已覆盖推理全链路的主要基础设施主题。

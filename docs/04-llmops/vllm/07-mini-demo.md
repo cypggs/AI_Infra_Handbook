@@ -105,7 +105,7 @@ python -m vllm_mini.demo
 
 ## 完整代码
 
-完整代码详见 [mini-demo/README.md](./mini-demo/README.md)。
+完整代码详见 `mini-demo/README.md`。
 
 ## 本章小结
 

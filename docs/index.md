@@ -64,6 +64,9 @@ hero:
       text: Kubernetes 详解
       link: /02-cloud-native/kubernetes/
     - theme: alt
+      text: 容器运行时详解
+      link: /02-cloud-native/container-runtime/
+    - theme: alt
       text: Helm 详解
       link: /02-cloud-native/helm/
     - theme: alt
