@@ -4,11 +4,11 @@ AI SRE 生态涵盖开源可观测性栈、商业 APM、LLM 专用可观测性�
 
 ## OpenTelemetry
 
-- **定位**：云原生可观测性的统一标准与 SDK/Collector。
-- **核心能力**：trace、metrics、logs 三信号；多语言 SDK；Collector 处理/路由。
-- **GenAI SIG**：正在制定 LLM、VectorDB、Agent 的语义约定。
+- **定位**：云原生可观测性的统一标准与 SDK/Collector；2026 年 5 月从 CNCF 毕业。
+- **核心能力**：trace、metrics、logs 三信号 + profiling（2026 Alpha，Elastic 捐献 eBPF 剖析器）；多语言 SDK；Collector 处理/路由；声明式配置已 Stable。
+- **GenAI 约定**：2026-06 的 semconv v1.42.0 把 GenAI/MCP 约定迁入独立的 `semantic-conventions-genai` 仓库；至今仍是 Development 状态，但 Datadog、New Relic、Langfuse 等已原生支持，`gen_ai.*` 成为事实契约。
 - **优点**：厂商中立、生态最广、与 Prometheus/Grafana/Jaeger 无缝集成。
-- **缺点**：概念多、配置复杂；GenAI 语义约定仍在演进。
+- **缺点**：概念多、配置复杂；GenAI 属性仍在更名期（如 `gen_ai.system` → `gen_ai.provider.name`），需锁定版本。
 
 ## Prometheus + Grafana
 
@@ -36,22 +36,49 @@ AI SRE 生态涵盖开源可观测性栈、商业 APM、LLM 专用可观测性�
 
 | 产品 | 特点 |
 |---|---|
-| **Datadog** | 一体化 APM、基础设施监控、日志、SLO、AI 助手 Bits AI |
-| **New Relic** | 全栈可观测、OpenTelemetry 原生支持 |
+| **Datadog** | 一体化 APM + LLM Observability，Bits AI 助手原生支持 OTel GenAI 约定 |
+| **New Relic** | 全栈可观测、OTel 原生；2026-07 发布 Autopilot（AI 故障调查 GA） |
 | **Dynatrace** | Davis AI 引擎、自动根因分析 |
-| **Splunk** | 日志起家，AIOps 与事件关联强 |
+| **Splunk** | 日志起家，AIOps 与事件关联强；2026 年推出 AI SRE Troubleshooting Agent |
+| **Azure Monitor / Azure SRE Agent** | 2026-03 GA；微软内部运行 1,300+ 实例，官方宣称缓解 35,000+ 事故；自治级别可调，按 Agent 计费 |
+
+## AI SRE Agent 生态（2026）
+
+2026 年被普遍视为 “agentic ops” 落地元年：Gartner 发布首份 AI SRE 工具市场指南，一次横评覆盖 60+ 工具。生态分三类：
+
+| 类别 | 代表 | 特点 |
+|---|---|---|
+| 独立 AI SRE 创业公司 | Resolve.ai、Traversal、Cleric、NeuBird Hawkeye | 深度调查 Agent，主打端到端 MTTR 下降（厂商报告 DigitalOcean 用 Traversal 降 38%） |
+| 可观测性厂商内置 | Datadog Bits AI、New Relic Autopilot、Splunk AI SRE Agent | telemetry 就在手边，调查链路最短 |
+| Incident 平台内置 | PagerDuty SRE Agent / Virtual Responder（2026-03 春季发布）、incident.io、Rootly AI | 作为“虚拟值班员”嵌入 escalation policy，主打 agent 间 MCP 互操作 |
+
+开源阵营同样活跃（均为 Apache 2.0、CNCF Sandbox）：**HolmesGPT**（Robusta，2025-10 进入 Sandbox；多步 ReAct 调查，30+ 数据源集成，Operator 模式 7×24 值守，默认只读、修复走人工 gate）、**K8sGPT**（50+ 内置分析器扫描 K8s 故障并用人话解释，只读不修复）、**Aurora**（多云，生成修复 PR）、NudgeBee、Keep。
+
+**AI SRE 与 AIOps 的关系**：AIOps 回答“怎么把告警变少、变准”（降噪、聚类、动态基线）；AI SRE Agent 回答“这个告警为什么会发生、该怎么办”（调查、假设、处置）。两者互补：前者是输入层，后者是行动层。
+
+## AI SRE 评测基准（2025–2026）
+
+给 AI SRE Agent 打分成为独立赛道，但分数要批判性地看（厂商自报分数普遍偏高，独立榜单更严格）：
+
+| 基准 | 出品方 | 形态 | 2026 分数现状 |
+|---|---|---|---|
+| **AIOpsLab** | 微软（SoCC'24） | DeathStarBench + Chaos Mesh 注入，拆分为检测/定位/根因/缓解四任务 | 独立实现报告 60–91%，口径差异大 |
+| **ITBench / ITBench-AA** | IBM（ICML'25）+ Artificial Analysis | 真实 K8s 事故快照（告警/事件/trace/指标/日志），RCA 按“全召回下的平均精度”计分 | 2026-05 发布时所有前沿模型低于 50%；2026-10 最佳 56.2% |
+| **OpenRCA / OpenRCA 2.0** | 微软（ICLR'25） | 3 个企业系统 335 起真实故障，输出时间/组件/原因三元组 | 命中根因服务 76%，因果链完整落地仅 61.5%，精确恢复根因集 20.7% |
+| **SREGym** | 学术（2026-05） | MCP 接入 metrics/logs/traces/kubectl 的端到端实战基准 | Agent 对硬件故障与 metastable failure 表现最差 |
+| **CCF AIOps 挑战赛（天池）** | CCF + 清华等 | 云环境真实注入故障，多模态数据（Log/Trace/Metric/Entity/Event），F1 计分 | 2026 届聚焦大模型故障定位 |
+
+一句话：**严格口径下 Agent 真实事故处置能力仍在 40–60% 量级**，benchmark 用于选型初筛，生产价值用自有回放集验证。
 
 ## LLM 专用可观测性平台
 
 | 产品 | 定位 |
 |---|---|
 | **LangSmith** | LangChain 生态，trace、eval、prompt 管理 |
-| **Langfuse** | 开源 LLM 可观测性，OpenTelemetry 支持 |
-| **Arize Phoenix** | LLM 可观测与评估，偏向模型质量 |
-| **TruLens** | RAG/LLM 评估与反馈 |
-| **DeepEval** | LLM 单元测试与评估框架 |
-| **OpenLLMetry** | 基于 OpenTelemetry 的 LLM 可观测 SDK |
-| **Braintrust** | 评估与实验平台 |
+| **Langfuse** | 开源 LLM 可观测性，OTLP 端点原生映射 `gen_ai.*` |
+| **Arize Phoenix** | LLM 可观测与评估，OpenInference `llm.*` 语义 + OTel 互操作层 |
+| **TruLens / DeepEval / Braintrust** | RAG 评估 / LLM 单测 / 评估实验平台 |
+| **OpenLLMetry** | 基于 OpenTelemetry 的 LLM 可观测 SDK（部分属性仍在迁移期） |
 
 ## AIOps / Incident Management
 
@@ -75,4 +102,4 @@ AI SRE 生态涵盖开源可观测性栈、商业 APM、LLM 专用可观测性�
 
 ## 小结
 
-大多数团队的最佳路径是：**用 OpenTelemetry 统一埋点，Prometheus/Grafana 做 metrics 与 SLO，Jaeger/Tempo 做 trace，再用 Langfuse/Arize 补充 LLM 质量评估**。商业 APM 适合缺少自运维能力或需要快速落地的场景。
+大多数团队的最佳路径是：**用 OpenTelemetry 统一埋点，Prometheus/Grafana 做 metrics 与 SLO，Tempo/ClickHouse 做 trace，再用 Langfuse/Arize 补充 LLM 质量评估**；事故管理从 PagerDuty/incident.io 起步，待告警噪音与重复调查成为明显负担后再引入 AI SRE Agent，并以只读模式先行。商业 APM 适合缺少自运维能力或需要快速落地的场景。

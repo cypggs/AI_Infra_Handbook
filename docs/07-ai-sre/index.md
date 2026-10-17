@@ -17,9 +17,11 @@ AI SRE 负责让 AI 系统在生产环境中跑得稳、看得清、修得快。
 - 解释 AI 系统与传统服务在可靠性上的核心差异。
 - 设计覆盖 trace、metrics、logs 的 AI 可观测性方案。
 - 为 LLM/Agent 服务定义 SLI/SLO/Error Budget 并配置多窗口 burn-rate 告警。
-- 构建基于 OpenTelemetry 的 AI 应用 instrumentation 与数据 pipeline。
+- 构建基于 OpenTelemetry（含 GenAI 语义约定）的 AI 应用 instrumentation 与数据 pipeline。
 - 理解 AIOps 在异常检测、根因分析、辅助修复中的定位与局限。
 - 制定 AI 生产事故的响应流程、runbook 与事后复盘机制。
+- 评估与治理 AI SRE Agent：自治级别、安全护栏、shadow mode 与效果度量。
+- 监控推理集群与 GPU 健康度：DCGM 硬件信号与推理引擎指标的联合分析。
 
 ## 与相邻主题的关系
 

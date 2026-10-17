@@ -9,7 +9,7 @@
 - 模拟 LLM 生成延迟与 token 用量。
 - 自动记录 HTTP trace。
 - 暴露 `/metrics` 供 Prometheus 抓取。
-- 附带脚本 `slo_demo.py` 计算可用性 SLO 与 burn rate。
+- 附带 `ai_sre_mini.slo` 模块计算可用性 SLO 与 burn rate。
 
 ## 目录结构
 
@@ -50,9 +50,10 @@ curl "http://127.0.0.1:8000/chat?q=hello"
 
 ```json
 {
-  "answer": "hello (tokens=15)",
+  "answer": "answer to 'hello' (15 tokens)",
   "model": "gpt-mini",
   "tokens": 15,
+  "success": true,
   "latency_ms": 23.4
 }
 ```
@@ -150,11 +151,12 @@ pytest tests/ -q
 
 ## 扩展练习
 
-1. 把 ConsoleSpanExporter 换成 OTLPSpanExporter，接入 OpenTelemetry Collector。
+1. 把 InMemory/Console exporter 换成 OTLPSpanExporter，接入 OpenTelemetry Collector。
 2. 增加 token 成本指标，并配置 cost-per-request SLO。
 3. 用 Prometheus + Alertmanager 实现 burn rate 告警。
 4. 增加一个模拟的“幻觉”错误类型，并记录到 span status。
 5. 用 Grafana 画出 TTFT、ITL、token 用量、burn rate 仪表板。
+6. 按 OTel GenAI 约定的 Agent span 树（`invoke_agent` 内嵌 `chat` / `execute_tool`），手工埋点一个模拟的“查库 → 生成”两步 Agent 调用，观察父子 span 结构。
 
 ## 小结
 

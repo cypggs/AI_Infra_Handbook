@@ -29,6 +29,29 @@ AI SRE 的工作流程以“检测 → 分类 → 响应 → 缓解 → 恢复 �
 [Improve] ──▶ Runbook / SLO / Instrumentation update
 ```
 
+AI SRE Agent 参与后，Triage 与 Response 之间多了一条自动调查回路：
+
+```mermaid
+sequenceDiagram
+    participant AL as Alertmanager
+    participant AG as AI SRE Agent
+    participant OB as Observability Backend
+    participant HU as Human On-call
+    AL->>AG: 触发告警（附 trace 链接）
+    loop ReAct 调查循环
+        AG->>OB: 查指标 / 日志 / trace / 近期变更
+        OB-->>AG: 证据
+        AG->>AG: 更新假设（写入审计链）
+    end
+    AG->>HU: 调查报告 + 置信度 + 建议处置
+    alt 置信度高且动作在白名单
+        HU->>AG: 批准执行
+        AG->>OB: 执行 runbook（限配额/熔断内）
+    else 低置信度或高风险
+        HU->>HU: 人工接管
+    end
+```
+
 ## 1. Telemetry Ingestion
 
 - 应用通过 OTLP 或 Prometheus exposition 上报。
@@ -41,9 +64,10 @@ AI SRE 的工作流程以“检测 → 分类 → 响应 → 缓解 → 恢复 �
 |---|---|
 | Metrics 告警 | Burn rate > 14.4x、P95 TTFT > 300ms |
 | Trace 异常 | LLM span error、tool call 失败、空召回 |
-| 评估器 | LLM-as-judge 质量分数低于阈值 |
+| 评估器 | LLM-as-judge 质量分数低于阈值、judge 哨兵样本漂移 |
 | 用户反馈 | 点踩率突增 |
 | 成本监控 | 单用户 token 用量异常 |
+| Agent 巡检 | AI SRE Agent 7×24 后台巡检发现的异常模式 |
 
 ## 3. Triage
 
@@ -53,11 +77,23 @@ On-call 工程师确认：
 - 严重等级：P0 服务完全不可用，P1 核心功能降级，P2 非核心问题。
 - 是否误报：采样偏差、阈值过严、依赖方抖动。
 
+2026 年的新实践：triage 之前通常已有一份 **AI SRE Agent 自动调查报告**（影响面、可疑变更、证据链），人类从“从零查起”变成“审核假设”。
+
 ## 4. Response
 
 - **Page**：需要立即人工介入。
 - **Ticket**：工作时间处理。
 - **Auto-remediation**：已知故障模式直接执行 runbook。
+- **Agent 响应（新）**：AI SRE Agent 按自治级别参与，形成渐进信任：
+
+```text
+L0 只读调查：agent 查 telemetry，产出报告，人来做所有决策
+L1 建议模式：agent 给出处置建议与证据，人确认后执行
+L2 批准执行：agent 在 runbook 白名单内执行，人工点“批准”
+L3 护栏自治：agent 在策略门禁（OPA/配额/熔断）内自动执行并留审计链
+```
+
+落地纪律：新 Agent 必须先以 L0 运行至少两周（shadow mode），用自己的事故回放集验证命中率后再逐级放权；降级永远比升级快。
 
 ## 5. Mitigation
 
@@ -82,6 +118,11 @@ On-call 工程师确认：
 - **Action Items**：具体、可Owner、有截止日期，直接进入 backlog。
 - **Blameless**：关注系统改进而非个人追责。
 
+AI 辅助的两个新实践：
+
+1. **Timeline 自动缝合**：Agent 从告警流、chat transcript、deploy 记录、trace 中抽取时间线草稿（标注来源与置信度），人只做校对——业界经验值是约 80% 自动化 + 20% 人工修正。
+2. **Agent 自身也要复盘**：如果事故由自动化引起（误执行 runbook、Agent 越权调用、MCP 工具被注入），postmortem 的对象就是 Agent 本身——检查其工具权限、提示词注入防线与审计日志。2026 年已出现多起“自动化即事故”的公开案例。
+
 ## 8. Improve
 
 - 更新 runbook。
@@ -101,4 +142,4 @@ On-call 工程师确认：
 
 ## 小结
 
-AI SRE 工作流程的核心是**快速止血、数据驱动、闭环改进**。下一章将拆解支撑这套流程的核心模块。
+AI SRE 工作流程的核心是**快速止血、数据驱动、闭环改进**；2026 年的增量是让 Agent 承担调查与执行的“粗活”，但把决策 gate 留在人手里。下一章将拆解支撑这套流程的核心模块。

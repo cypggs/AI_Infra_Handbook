@@ -30,6 +30,12 @@
 - **日志不够语义化**：需要记录 prompt、completion、tool I/O、retrieval chunks。
 - **静态阈值失效**：模型行为会随输入分布变化，需要动态基线。
 
+## 2026 年的三个新变化
+
+1. **Agent 开始上值班表**：AI SRE Agent 以“虚拟值班员”身份进入 on-call 轮值（PagerDuty Virtual Responder、Azure SRE Agent 等），从只读调查逐步走向护栏内自治——SRE 要管理的不只是服务，还有 Agent。
+2. **可观测性有了 AI 原生契约**：OpenTelemetry GenAI 语义约定成为事实标准（尽管尚未 Stable），Agent 步骤、MCP 工具调用、模型 token 成本第一次可以跨框架、跨后端统一观测。
+3. **AI 系统自身成为关键基础设施**：万卡训练与在线推理集群让 GPU 健康度、straggler 定位、推理路由成为 SRE 的核心议题，而不只是应用层告警。
+
 ## AI SRE 的核心目标
 
 1. **可见性**：看清每一次模型调用、Agent 步骤、RAG 检索的内部状态。
