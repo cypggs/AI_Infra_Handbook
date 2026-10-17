@@ -10,7 +10,7 @@
 2. 说清楚 Agent Runtime 与 workflow engine、LLM Gateway、MCP、Agent OS、Multi-Agent Framework 的边界。
 3. 画出典型 Agent Runtime 架构，并说明各模块职责。
 4. 描述一个任务从进入 Runtime 到完成的完整生命周期。
-5. 对比 OpenAI Agents SDK、LangGraph、CrewAI、Smolagents、PydanticAI 的设计取舍。
+5. 对比 OpenAI Agents SDK、LangGraph、Google ADK 2.0、Claude Agent SDK、CrewAI、Smolagents、PydanticAI 的设计取舍。
 6. 跑通并扩展本主题的 Mini Demo，理解 ReAct 循环与工具注册机制。
 7. 回答生产部署、沙箱、护栏、可观测、状态持久化相关的面试问题。
 

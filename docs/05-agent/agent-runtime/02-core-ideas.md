@@ -124,6 +124,11 @@ Runtime 是 Agent 执行路径上的唯一观测点，必须记录：
 
 没有 trace 的 Agent 就像没有日志的分布式系统，出了问题无法定位。
 
+2026 年的行业共识是：**用 OpenTelemetry GenAI 语义约定作为可移植的观测标准**。约定把一次 Agent 执行建模为 span 树：`invoke_agent` → `chat` → `execute_tool`，并用 `gen_ai.operation.name` 区分 `create_agent / invoke_agent / execute_tool / retrieval / plan` 等操作。需要注意两点：
+
+- 截至 2026 年，所有 `gen_ai.*` 属性仍处于 **Development** 状态（未稳定），2026-06 起规范迁移到独立的 `semantic-conventions-genai` 仓库后仍在快速演进（例如 `gen_ai.system` 已废弃、改用 `gen_ai.provider.name`），接入时要做好版本固定与 rename 预算。
+- Langfuse、Datadog、Arize Phoenix 等后端都已支持 OTel GenAI 约定，**采集层一次接入、后端可换**成为事实上的最佳实践。
+
 ## 7. Session & State：让任务可恢复
 
 Agent 任务可能持续很久，Runtime 需要管理：
@@ -131,6 +136,8 @@ Agent 任务可能持续很久，Runtime 需要管理：
 - **Session State**：当前处于 `idle/planning/acting/observing/done/error` 哪个状态。
 - **Checkpoint**：把状态持久化，支持中断后恢复。
 - **Resume**：从上次状态继续执行，而不是从头开始。
+
+2025–2026 年这一思想进一步发展出 **durable execution（持久化执行）**：Runtime 把每一步执行记录到 journal（事件溯源），进程崩溃后从最后一条记录重放恢复，而不是依赖“定期 checkpoint + 最佳努力恢复”。LangGraph 自研了 checkpoint/resume 机制；Temporal、Inngest、Restate、DBOS 等通用 durable 引擎则把这一能力做成独立底座——Agent 循环跑在 workflow 里，每一步是一个 activity/step。经验法则是：**任务超过几分钟、或有外部副作用（写库、发邮件、扣费），就应该用 durable execution 而不是进程内状态机**。
 
 ```mermaid
 stateDiagram-v2
@@ -163,8 +170,14 @@ Function Call → MCP → Skills
 ```
 
 - **Function Call**：最原始，模型直接输出 JSON。
-- **MCP**：标准化工具发现协议，但带来额外进程/网络开销。
-- **Skills**：在 Runtime 内声明式注册的能力单元，带 auth、telemetry、sandbox，开箱即用。
+- **MCP**：标准化工具发现协议，2026-07-28 规范转向无状态核心后部署成本大降，但跨进程/跨网络的协议开销依然存在。
+- **Skills**：在 Runtime 内声明式注册的能力单元，通常是“指令 + 脚本 + 资源”的文件夹形态，带 auth、telemetry、sandbox，可版本化、可分发，开箱即用。
+
+标志性进展：
+
+- Anthropic 2025 年底推出 Agent Skills 后，Claude Code 在 2026 年把自定义 slash commands 并入 skills 体系（v2.1.3），形成 `CLAUDE.md（上下文）→ skills（方法）→ hooks（确定性拦截）→ subagents（委派）` 的分层。
+- Google ADK 2.0（2026-05 Python GA）把 skills 生命周期管理（注册、加载、更新、下线）做成一等公民。
+- OpenAI Agents SDK 2026-04 版本加入了 Code Mode 与按需加载的 `ToolSearchTool`，解决“工具太多撑爆上下文”的问题——与 skills 的渐进式披露思路一致。
 
 本主题不深入 MCP，把 Skills 视为 Runtime 内部的原生能力单元。
 
@@ -177,4 +190,7 @@ Agent Runtime 的九大核心思想——ReAct、Tool Calling、Memory、Plannin
 - [ReAct Paper](https://arxiv.org/abs/2210.03629)
 - [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling)
 - [LangGraph Persistence](https://langchain-ai.github.io/langgraph/concepts/persistence/)
+- [The state of the OpenTelemetry GenAI semantic conventions (July 2026)](https://john-hodge.com/blog/opentelemetry-genai-semantic-conventions/)
+- [The MCP 2026-07-28 Specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
+- [Claude Code Skills in 2026: The Complete Guide](https://www.totalum.app/blog/claude-code-skills-totalum)
 - [从 Function Call 到 MCP → SKILLS](https://crossoverjie.top/2026/02/03/AI/MCP-Skills-intro/)

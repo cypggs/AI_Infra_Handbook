@@ -161,6 +161,32 @@ Gateway 解决“调哪家模型”，Runtime 解决“怎么循环调用模型�
 | Postgres | 强一致性、审计、长时任务 |
 | 对象存储 | checkpoint 快照、大 trace |
 
+2026 年的新选项是把持久化整体外包给 **durable execution 引擎**：
+
+| 引擎 | 特点 | 与 Agent 的结合 |
+|---|---|---|
+| Temporal | 事件溯源 + 重放恢复，多语言 SDK，生态最成熟 | Agent 循环 = workflow，每个 LLM/工具调用 = activity；OpenAI Agents SDK 的 Temporal 集成 2026-03 GA |
+| Inngest | Serverless 原生，自带 AgentKit 多 Agent 框架 | `step.ai.infer` 让 LLM 调用不占 serverless 计费时钟 |
+| Restate | 单二进制/sidecar 部署，journal 持久化 | 与 Vercel AI SDK、PydanticAI 有一等集成（2025-11） |
+| DBOS | 数据库即运行时（Postgres 后端，MIT） | 函数即 durable，适合轻量接入 |
+
+架构上它们是“**Agent 框架之下、存储之上**”的一层：
+
+```text
+Agent Runtime（LangGraph / Agents SDK / 自研循环）
+        ↓ 每一步作为 activity / step 提交
+Durable Execution Engine（Temporal / Inngest / Restate / DBOS）
+        ↓ journal / checkpoint
+Postgres / Redis / 对象存储
+```
+
+选型经验（2026 年社区共识）：
+
+- **分钟级以内、无外部副作用的任务**：进程内状态机 + Redis checkpoint 足够。
+- **长时任务（小时~天）、有外部副作用、审计要求高**：Temporal 这类成熟引擎；代价是学习曲线与运维成本。
+- **小团队、想快速上线**：Inngest / DBOS 这类轻量方案；注意 per-step 计费在“话多”的 Agent 循环里会被放大。
+- 引擎本身的费用通常不到 LLM token 账单的 1%，**真正的选型依据是架构匹配度，不是价格**。
+
 ## 本章小结
 
 Agent Runtime 架构的核心是“一个中心循环 + 多个能力插件”。Runtime 主循环负责调度，工具、记忆、规划、护栏、观测等模块以插件方式协同。控制面管理策略与生命周期，数据面负责执行。部署形态可以是库、服务、Serverless 或 Sidecar，选择取决于延迟、隔离和可观测需求。
@@ -169,4 +195,7 @@ Agent Runtime 架构的核心是“一个中心循环 + 多个能力插件”。
 
 - [LangGraph Architecture](https://langchain-ai.github.io/langgraph/concepts/high_level/)
 - [OpenAI Agents SDK — Agents](https://platform.openai.com/docs/guides/agents)
+- [Temporal Durable AI Agents Docs](https://docs.temporal.io/ai)
+- [LangGraph vs Temporal: AI Agent Orchestration Compared](https://www.langchain.com/resources/langgraph-vs-temporal)
+- [Which Durable Execution Engine for AI Agents in 2026: Temporal vs Restate vs Inngest](https://startupik.com/durable-execution-engine-ai-agents/)
 - [AWS Bedrock AgentCore](https://docs.aws.amazon.com/bedrock/)

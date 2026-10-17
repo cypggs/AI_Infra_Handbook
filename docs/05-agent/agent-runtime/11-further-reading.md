@@ -2,18 +2,29 @@
 
 ## 官方文档（必读）
 
-- [OpenAI Agents SDK](https://platform.openai.com/docs/guides/agents)
-  - 厂商原生 Agent SDK，学习 Agent、Tool、Handoffs、Guardrails、Tracing 设计。
+- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
+  - 厂商原生 Agent SDK，学习 Agent、Tool、Handoffs、Guardrails、Tracing；2026-04 版重点看 subagents 与原生沙箱。
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
   - 生产级状态图编排，重点看 StateGraph、Persistence、Human-in-the-loop。
 - [LangChain Function Calling](https://python.langchain.com/docs/concepts/tool_calling/)
   - 工具调用与 JSON Schema 生成机制。
+- [Google ADK 2.0](https://adk.dev/2.0/)
+  - Google 全栈 Agent 开发套件：graph workflow、HITL、skills 生命周期，Python/Go/TypeScript 三语言。
 - [Smolagents Documentation](https://huggingface.co/docs/smolagents/index)
   - 轻量级代码优先 Agent 框架。
 - [PydanticAI Documentation](https://ai.pydantic.dev/)
   - 类型安全 Agent 框架。
 - [CrewAI Documentation](https://docs.crewai.com/)
   - 角色化多 Agent 团队框架。
+
+## 协议与标准
+
+- [MCP 2026-07-28 Specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
+  - MCP 迄今最大改版：无状态核心、MRTR、OAuth 加固；由 Linux Foundation Agentic AI Foundation 治理。
+- [A2A Protocol](https://a2a-protocol.org)
+  - Agent-to-Agent 协作协议，v1.0（2026-03）起进入生产可用；与 MCP 互补。
+- [OpenTelemetry Semantic Conventions — GenAI](https://github.com/open-telemetry/semantic-conventions-genai)
+  - Agent 可观测的移植性标准：span 树 `invoke_agent` → `chat` → `execute_tool`（注意仍为 Development 状态）。
 
 ## 论文
 
@@ -32,12 +43,27 @@
   - 工具能力封装从 function call 到 skills 的演进。
 - [Agent Memory Systems — Steve Kinney](https://stevekinney.com/writing/agent-memory-systems)
   - Agent 记忆系统设计。
+- [Best AI agent frameworks (2026) — Braintrust](https://www.braintrust.dev/articles/best-ai-agent-frameworks-2026)
+  - 框架选型与 eval 落地的一线经验。
+- [AI Agent Evaluation (2026) — Morph](https://www.morphllm.com/ai-agent-evaluation)
+  - 生产环境 Agent 评测的指标、框架与常见失败模式。
+- [Durable AI agents in 2026 — Reactify](https://www.reactify-solutions.com/articles/durable-ai-agents-2026)
+  - Temporal / Inngest / DBOS / Restate 在 Agent 场景的组合用法。
 
 ## 云厂商 Runtime
 
 - [AWS Bedrock Agents / AgentCore](https://docs.aws.amazon.com/bedrock/)
 - [Azure AI Agent Service](https://learn.microsoft.com/en-us/azure/ai-services/agents/)
 - [Google Vertex AI Agent Engine](https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview)
+
+## 沙箱与代码执行
+
+- [E2B Documentation](https://docs.e2b.dev/)
+  - Firecracker microVM 沙箱的事实标准，跑不可信 LLM 生成代码。
+- [Modal Sandboxes](https://modal.com/docs)
+  - gVisor 隔离 + GPU，适合 GPU 密集型 Agent 负载。
+- [Temporal Durable AI Agents](https://docs.temporal.io/ai)
+  - Durable execution 在 Agent 场景的模式与 cookbook。
 
 ## 相关主题
 
@@ -59,20 +85,22 @@
 ## 推荐学习路径
 
 1. 先读 ReAct 论文，理解 reasoning + acting 的基础。
-2. 用 OpenAI Agents SDK 跑通一个带工具调用的简单 Agent。
+2. 用 OpenAI Agents SDK 跑通一个带工具调用的简单 Agent；再试 Google ADK 2.0 的 graph workflow。
 3. 用 LangGraph 实现一个带 checkpoint 的多步 Agent。
 4. 阅读本主题的 [Mini Demo](./07-mini-demo)，手写一个最小 ReAct Runtime。
-5. 结合 [生产实践](./08-production-practice) 思考沙箱、护栏、可观测与评测落地。
+5. 结合 [生产实践](./08-production-practice) 思考沙箱（E2B/Modal）、durable execution（Temporal/Inngest）、可观测（OTel GenAI）与评测落地。
 
 ## 本章小结
 
-Agent Runtime 的生态系统正在快速分化：OpenAI Agents SDK 适合快速落地，LangGraph 适合复杂生产工作流，Smolagents 适合教学，PydanticAI 适合强类型应用。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 Agent Runtime。
+Agent Runtime 的生态系统正在快速分化又快速收敛：OpenAI Agents SDK（2026-04 平台化）、Google ADK 2.0、Claude Agent SDK 在 SDK 层补齐沙箱/subagents/skills；LangGraph 守住生产级状态编排与 durable execution；MCP（2026-07-28 无状态核心）与 A2A（v1.0）把互操作层标准化。结合本主题的 [Mini Demo](./07-mini-demo)、[生产实践](./08-production-practice) 与 [最佳实践](./09-best-practices)，可以从理论到工程全面掌握 Agent Runtime。
 
 **参考来源**
 
-- [OpenAI Agents SDK Docs](https://platform.openai.com/docs/guides/agents)
+- [OpenAI Agents SDK Docs](https://openai.github.io/openai-agents-python/)
 - [LangGraph Docs](https://langchain-ai.github.io/langgraph/)
+- [Google ADK 2.0](https://adk.dev/2.0/)
 - [Smolagents Docs](https://huggingface.co/docs/smolagents/index)
 - [PydanticAI Docs](https://ai.pydantic.dev/)
+- [The Agent Protocol Stack in 2026](https://www.agenticfabriq.com/blog/agent-protocol-stack-2026)
 - [Diors.tech — Agent Runtime 与 Agent OS](https://www.diors.tech/blog/099-agent-runtime-os)
 - [quant67 — Agent 框架工程](https://quant67.com/post/llm-infra/19-agent-framework/19-agent-framework.html)

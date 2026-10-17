@@ -182,7 +182,16 @@ idle → planning → acting → observing → acting → observing → done
 | 工具执行异常 | 捕获异常信息作为 observation |
 | 迭代次数超限 | 强制终止，返回当前最佳结果 |
 | 护栏触发 | 根据策略阻断、告警或请求 HITL |
-| 状态丢失 | 从最近一次 checkpoint 恢复 |
+| 状态丢失 | 从最近一次 checkpoint 恢复；若运行在 durable execution 引擎上，则通过 journal 重放自动恢复，已完成的 LLM 调用与外部副作用不会重复 |
+
+## Subagents 与 Handoffs：循环的嵌套
+
+2026 年的主流 SDK 把单 Agent 循环扩展成“循环套循环”：
+
+- **Handoffs**：当前 Agent 把任务整体移交给另一个 Agent（OpenAI Agents SDK 的 handoff、ADK 的 agent transfer），移交本身是主循环里的一个特殊 tool call。
+- **Subagents**：父 Agent 派生若干子 Agent 并行执行，子 Agent 拥有**隔离的上下文窗口**，完成后把摘要回注给父 Agent（OpenAI Agents SDK 2026-04 加入 subagents；Claude Agent SDK 的 subagent 不允许再嵌套委派）。
+
+对 Runtime 而言，两者都只是“一个可暂停、可观测、可恢复的子任务”，状态机与 trace 模型不变。
 
 ## 人机协同（HITL）
 
@@ -211,4 +220,5 @@ Agent Runtime 的工作流程是“输入校验 → 规划 → 循环推理 → 
 
 - [ReAct Paper](https://arxiv.org/abs/2210.03629)
 - [OpenAI Agents SDK — Tracing](https://platform.openai.com/docs/guides/agents#tracing)
+- [OpenAI Agents SDK 2026: Sandbox Agents, Harness Architecture, Any LLM](https://abhs.in/blog/openai-agents-sdk-evolution-sandbox-harness-april-2026)
 - [LangGraph Human-in-the-loop](https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/)

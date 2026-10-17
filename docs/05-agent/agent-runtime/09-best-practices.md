@@ -4,9 +4,9 @@
 
 ## 1. 模型选择
 
-- **强模型 + 简单框架 > 弱模型 + 复杂编排**。当 Claude 3.7 / o1 / Gemini 3 能一次调用完成规划与执行时，不要把简单任务拆成多步图。
+- **强模型 + 简单框架 > 弱模型 + 复杂编排**。当 Claude 4.x / GPT-5.x / Gemini 3 能一次调用完成规划与执行时，不要把简单任务拆成多步图。
 - **按任务选模型**：简单分类用便宜模型；复杂推理用强模型；代码生成用 coding 模型。
-- **不要锁死一家**：通过 LLM Gateway 支持多模型 fallback。
+- **不要锁死一家**：通过 LLM Gateway 支持多模型 fallback；2026 年起 OpenAI Agents SDK 等也已支持任意 Chat Completions 兼容模型。
 
 ## 2. 工具设计
 
@@ -47,16 +47,19 @@
 ## 7. 可观测
 
 - **从 Day 0 接入 trace**。没有 trace 的 Agent 无法调试。
+- **采集层用 OpenTelemetry GenAI 约定，后端可换**（Langfuse / LangSmith / Datadog 任选），避免被某家私有 SDK 格式锁定。
 - **记录完整执行路径**：thought、tool call、observation、guardrail 事件。
-- **关注关键指标**：任务成功率、平均步数、工具调用错误率、token 成本。
+- **关注关键指标**：任务成功率、平均步数、循环卡死率、工具调用错误率、token 成本。
 - **按 tenant/user 拆分大盘**。
+- prompt/response 内容采集保持 opt-in。
 
 ## 8. 沙箱
 
-- **任何会执行代码或访问外部系统的工具都必须沙箱**。
+- **任何会执行代码或访问外部系统的工具都必须沙箱**；跑不可信 LLM 生成代码的默认选项是 Firecracker microVM（E2B 等），需要 GPU 时考虑 Modal（gVisor）。
 - **最小权限原则**：只开放必要的路径、网络、API。
 - **超时与资源限制**：CPU、内存、网络超时都要设上限。
 - **审计日志**：记录沙箱内所有行为。
+- **优先采购而非自研**：2026 年起主流 SDK（如 OpenAI Agents SDK）已原生集成多家沙箱供应商，自研沙箱只在强合规场景值得。
 
 ## 9. 评测
 
@@ -64,8 +67,18 @@
 - **覆盖成功、失败、边界、安全场景**。
 - **用影子运行做回归**：新版本与旧版本并行对比。
 - **把评测集成到 CI/CD**：每次代码变更跑一遍 eval。
+- **轨迹级归因**：失败定位要到“哪一步、哪个工具、什么参数”，而不是只看最终答案。
+- **生产流量异步采样评测**（5–20%），静态 benchmark 会系统性高估线上能力。
+- **LLM judge 要校准**：与 200+ 人工标注对齐（kappa > 0.7）、judge 与生成模型不同家族、季度刷新 gold set；主观打分前先跑确定性检查。
 
-## 10. 避免过度编排
+## 10. 持久化执行（durable execution）
+
+- **分钟级以内、无外部副作用**：进程内状态机 + Redis checkpoint 足够。
+- **长时任务或有外部副作用（写库、发邮件、扣费）**：交给 Temporal / Inngest / Restate / DBOS 这类 durable 引擎，journal + 重放保证“不重复 LLM 调用、不重复副作用”。
+- **HITL 暂停即持久化**：等待审批的 session 必须落盘，可被外部事件唤醒。
+- 引擎费用通常不到 token 账单的 1%，按架构匹配度选型，不要按价格选型。
+
+## 11. 避免过度编排
 
 - 单 Agent 能解决的问题不要上 Multi-Agent。
 - 简单线性任务用 SDK 或轻量 Runtime。
@@ -82,9 +95,10 @@
 | 记忆 | 工作记忆 + 摘要；长期记忆按需检索；敏感信息不入记忆 |
 | 护栏 | 输入/工具前置/工具后置/输出/资源多层护栏 |
 | HITL | 高风险操作必须确认；提供清晰上下文 |
-| 可观测 | Day 0 trace；记录完整路径；按 tenant 分大盘 |
-| 沙箱 | 代码/外部访问必须隔离；最小权限；审计 |
-| 评测 | 先建 eval 集；影子运行；CI 集成 |
+| 可观测 | Day 0 trace；OTel GenAI 约定采集、后端可换；按 tenant 分大盘 |
+| 沙箱 | 代码/外部访问必须隔离；Firecracker microVM 优先；最小权限 |
+| 评测 | 先建 eval 集；轨迹级归因；在线采样；judge 校准 |
+| 持久化 | 长时/有副作用任务用 durable execution 引擎；HITL 暂停即落盘 |
 | 编排 | 按需选型，避免过度设计 |
 
 ## 本章小结
@@ -95,4 +109,7 @@ Agent Runtime 的最佳实践覆盖了模型选择、工具设计、循环调优
 
 - [OpenAI Agents SDK Best Practices](https://platform.openai.com/docs/guides/agents)
 - [LangGraph Production Guide](https://langchain-ai.github.io/langgraph/concepts/production_concepts/)
+- [Best AI agent frameworks (2026): How to choose one and add evals — Braintrust](https://www.braintrust.dev/articles/best-ai-agent-frameworks-2026)
+- [LLM-as-a-Judge Best Practices in 2026](https://futureagi.com/blog/llm-as-a-judge-best-practices-2026/)
+- [Durable Execution for AI Agents in 2026](https://turion.ai/blog/temporal-vs-restate-vs-hatchet-vs-inngest-durable-execution-agents-2026/)
 - [Agent Runtime 与 Agent OS — Diors.tech](https://www.diors.tech/blog/099-agent-runtime-os)

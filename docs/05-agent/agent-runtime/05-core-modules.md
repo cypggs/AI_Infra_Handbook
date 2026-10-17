@@ -188,6 +188,12 @@ Checkpoint 内容：
 - 计划/subgoals。
 - trace id。
 
+生产演进方向（2026）：
+
+- **Durable execution**：把 checkpoint 升级为 journal + 重放恢复（Temporal / Inngest / Restate / DBOS），崩溃后已完成的 LLM 调用与外部副作用不会重复执行。
+- **长任务会话恢复**：进程重启后由调度器认领“孤儿 session”，加载最近 snapshot 继续跑。
+- **HITL 暂停即持久化**：等待人工审批的 session 同样落盘，审批系统通过外部事件唤醒。
+
 ## 9. Guardrails
 
 职责：在执行关键路径上实施策略。
@@ -229,11 +235,19 @@ event_types = [
 
 输出格式：
 
-- OpenTelemetry trace/span。
-- LangSmith run。
+- OpenTelemetry trace/span（推荐：对齐 GenAI 语义约定，span 树为 `invoke_agent` → `chat` → `execute_tool`，`gen_ai.operation.name` 标记操作类型）。
+- LangSmith run / Langfuse observation（两者均已支持 OTLP 接入）。
 - 结构化日志。
 
-Observer 不应阻塞主循环；可以异步发送事件。
+Observer 不应阻塞主循环；可以异步发送事件。事件模型与 OTel span 的大致映射：
+
+| Runtime 事件 | OTel GenAI 约定 |
+|---|---|
+| `task_received` / `task_completed` | `invoke_agent` span 的 start/end |
+| `llm_called` / `llm_response` | `chat`（或 `generate_content`）span，`gen_ai.usage.*` 记录 token |
+| `tool_executed` | `execute_tool` span，`gen_ai.tool.name` / `gen_ai.tool.call.id` |
+| `retrieval` 类事件 | `retrieval` span |
+| `hitl_requested` | `invoke_agent` span 上的事件/属性 |
 
 ## 11. Recovery
 
@@ -263,3 +277,5 @@ Agent Runtime 的 11 个核心模块——Task Parser、Planner、ReAct Loop、L
 - [LangGraph Concepts](https://langchain-ai.github.io/langgraph/concepts/high_level/)
 - [OpenAI Agents SDK — Agents and Tools](https://platform.openai.com/docs/guides/agents)
 - [PydanticAI — Tools](https://ai.pydantic.dev/tools/)
+- [The Agent Trace: OpenTelemetry GenAI Semantic Conventions in 2026](https://niteagent.com/blog/2026-08-07-otel-genai-agent-trace-field-guide/)
+- [Durable Execution for AI Agents: Inngest vs Trigger.dev vs Temporal in 2026](https://noqta.tn/en/blog/durable-execution-ai-agents-inngest-trigger-temporal-2026)

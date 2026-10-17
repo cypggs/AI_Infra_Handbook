@@ -81,9 +81,9 @@ ReAct = Reasoning + Acting。模型在每一步先进行推理（Thought），�
 
 **参考答案**：
 
-- **OpenAI Agents SDK**：SDK 式，Agent/Runner/Tool 抽象，快速落地，绑定 OpenAI 生态。
-- **LangGraph**：图编排式，StateGraph/Node/Edge，显式状态管理，强持久化与可观测，适合复杂生产工作流。
-- 选型：简单 OpenAI-only 任务用 SDK；复杂有状态任务用 LangGraph。
+- **OpenAI Agents SDK**：SDK 式，Agent/Runner/Tool 抽象，快速落地；构建在 Responses API 上，2026-04 起支持任意 Chat Completions 兼容模型、原生沙箱与 subagents。
+- **LangGraph**：图编排式，StateGraph/Node/Edge，显式状态管理 + checkpoint/durable execution，强持久化与可观测，适合复杂生产工作流；2025-10 已 GA。
+- 选型：简单任务、SDK 平台化能力（沙箱/subagents）优先用 Agents SDK；复杂有状态、需要断点续跑与人工介入的任务用 LangGraph。2026 年两者都可对接 Temporal 等 durable 引擎与 OTel 可观测。
 
 ### Q10：Agent Runtime 中如何处理工具执行失败？
 
@@ -98,7 +98,21 @@ ReAct = Reasoning + Acting。模型在每一步先进行推理（Thought），�
 
 **参考答案**：
 
-因为 Agent 的执行路径是模型动态决定的，无法像传统服务那样通过代码路径预测。必须记录完整的 thought-action-observation 链、guardrail 事件、token 成本，才能调试、审计和优化。
+因为 Agent 的执行路径是模型动态决定的，无法像传统服务那样通过代码路径预测。必须记录完整的 thought-action-observation 链、guardrail 事件、token 成本，才能调试、审计和优化。落地时用 OpenTelemetry GenAI 语义约定做采集层（span 树 `invoke_agent` → `chat` → `execute_tool`），后端可替换 Langfuse / LangSmith / Datadog。
+
+### Q12：什么是 durable execution？为什么 Agent 特别需要它？
+
+**参考答案**：
+
+Durable execution 是把每次执行的输入输出记录到 journal，崩溃后从最后记录重放恢复的执行模型。Agent 特别需要它是因为：任务长（分钟到小时级）、每一步 LLM 调用都要花钱、且有外部副作用（写库、发邮件）。普通 checkpoint 恢复容易重复已完成的调用与副作用；durable 引擎（Temporal / Inngest / Restate / DBOS）通过事件溯源保证 exactly-once 语义。典型模式：Agent 循环作为 workflow，每个 LLM/工具调用作为一个 activity/step。
+
+### Q13：MCP 与 A2A 分别解决什么问题？Runtime 如何使用它们？
+
+**参考答案**：
+
+- **MCP（Model Context Protocol）**：Agent ↔ 工具/数据的协议，解决能力发现与标准化调用；2026-07-28 规范转向无状态核心，部署成本大降，由 Linux Foundation Agentic AI Foundation 治理。
+- **A2A（Agent2Agent）**：Agent ↔ Agent 的协作协议，v1.0 于 2026-03 发布（签名 Agent Card、多租户、版本协商）；IBM 的 ACP 已于 2025-08 合并进 A2A。
+- Runtime 通过 MCP 接入工具生态（也可继续用 function calling），通过 A2A 与其他组织的 Agent 互通；两者互补，同属一个治理基金会。
 
 ## 本章小结
 
@@ -109,3 +123,5 @@ ReAct = Reasoning + Acting。模型在每一步先进行推理（Thought），�
 - [OpenAI Agents SDK Docs](https://platform.openai.com/docs/guides/agents)
 - [LangGraph Concepts](https://langchain-ai.github.io/langgraph/concepts/high_level/)
 - [ReAct Paper](https://arxiv.org/abs/2210.03629)
+- [The Agent Protocol Stack in 2026: MCP, A2A, and ACP](https://www.agenticfabriq.com/blog/agent-protocol-stack-2026)
+- [Durable AI agents in 2026](https://www.reactify-solutions.com/articles/durable-ai-agents-2026)

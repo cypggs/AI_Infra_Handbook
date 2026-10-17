@@ -6,16 +6,16 @@
 
 | 项目 | 仓库/文档 | 定位 | 分析重点 |
 |---|---|---|---|
-| **OpenAI Agents SDK** | [platform.openai.com/docs/guides/agents](https://platform.openai.com/docs/guides/agents) | 厂商原生、快速落地 | Agent loop、handoffs、guardrails、tracing |
-| **LangGraph** | [github.com/langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) | 生产级状态图编排 | StateGraph、checkpoint、edges、HITL |
+| **OpenAI Agents SDK** | [openai.github.io/openai-agents-python](https://openai.github.io/openai-agents-python/) | 厂商原生、快速落地 | Agent loop、handoffs、guardrails、tracing、subagents、沙箱 |
+| **LangGraph** | [github.com/langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) | 生产级状态图编排 | StateGraph、checkpoint、durable execution、HITL |
 | **Smolagents** | [github.com/huggingface/smolagents](https://github.com/huggingface/smolagents) | 轻量代码优先 | Minimal loop、code agent、tool execution |
 | **PydanticAI** | [github.com/pydantic/pydantic-ai](https://github.com/pydantic/pydantic-ai) | 类型安全 Agent | Typed tools、result validation、model-agnostic |
 
-> 注：开源项目迭代较快，本节基于 2026 年中主流分支结构进行分析，具体文件名可能随版本微调。
+> 注：开源项目迭代较快，本节基于 2026 年 10 月主流版本分析（LangGraph 1.2.x、smolagents 1.26、PydanticAI 2.5x），具体文件名可能随版本微调。
 
 ## OpenAI Agents SDK
 
-OpenAI Agents SDK 是“SDK 式”Runtime 的代表，核心设计目标是最小化样板代码。
+OpenAI Agents SDK 是“SDK 式”Runtime 的代表，核心设计目标是最小化样板代码。它构建在 **Responses API** 之上——模型推理与内置工具（web search、file search、code interpreter、computer use、远程 MCP 工具）在一次服务端调用中完成，Assistants API 已于 2026 年中正式废弃。
 
 ### 核心抽象
 
@@ -46,6 +46,17 @@ Runner 内部实现了一个标准的 ReAct 循环：
 3. 如果是 tool_calls，Runner 并行执行工具，把结果追加到 messages。
 4. 循环直到模型输出最终答案或达到最大步数。
 
+### 2026-04 大版本：从“OpenAI 专用”到“通用 harness”
+
+2026 年 4 月的版本（v0.14–0.15）是该 SDK 自实验性 Swarm 项目以来最大的改版，要点：
+
+- **原生沙箱执行**：Agent 可以在受控沙箱里检查文件、运行命令、改代码；首发集成 Blaxel、Cloudflare、Daytona、E2B、Modal、Runloop、Vercel 等沙箱供应商。
+- **Harness 架构**：把控制面（凭证、编排）与计算面（沙箱执行）分离，降低凭证泄露风险。
+- **Subagents**：父 Agent 派生并行子 Agent，子 Agent 上下文隔离。
+- **Code Mode**：面向代码生成/编辑场景的优化模式。
+- **模型解绑**：通过 Chat Completions 兼容端点支持 100+ 模型（Claude、Gemini、Llama、DeepSeek 等）。
+- **三层护栏**：input / output / tool 三层并行执行；2026-06 增加防提示注入的 Lockdown Mode。
+
 ### Handoffs
 
 Handoffs 让 Agent 可以把任务交给另一个 Agent：
@@ -61,20 +72,21 @@ Runtime 会把 `handoff` 当作一种特殊 tool call 处理，切换当前 Agen
 
 ### Guardrails 与 Tracing
 
-- Guardrails 可以在输入/输出层配置校验函数。
+- Guardrails 可以在输入/输出/工具三层配置校验函数，并行执行。
 - Tracing 默认集成 OpenAI 平台的 trace UI，记录每轮调用、工具执行、token 消耗。
 
 ### 优点与局限
 
 | 优点 | 局限 |
 |---|---|
-| 极简 API，快速原型 | 深度绑定 OpenAI 模型 |
-| 原生 handoffs、guardrails、tracing | 复杂状态机支持较弱 |
+| 极简 API，快速原型 | 最强能力（内置工具、Computer Use）仍绑定 OpenAI 模型 |
+| 原生 handoffs、subagents、guardrails、tracing、沙箱 | 复杂状态机支持不如 LangGraph |
+| 2026 起支持任意 Chat Completions 兼容模型 | Python 优先，TypeScript 支持滞后 |
 | 内置 MCP 支持 | 多 Agent 协作能力不如 LangGraph |
 
 ## LangGraph
 
-LangGraph 是“图编排式”Runtime 的代表，核心抽象是 `StateGraph`。
+LangGraph 是“图编排式”Runtime 的代表，核心抽象是 `StateGraph`。LangChain 与 LangGraph 于 2025-10-22 同时发布 1.0 GA；2026 年的分工是：**LangChain 提供高层 Agent API（create_agent、middleware），LangGraph 是底下的编排/运行时引擎**，1.2.x 版本主要在打磨 durable execution 的正确性（resume 语义、子图恢复、checkpoint 清理）。
 
 ### 核心抽象
 
@@ -101,9 +113,10 @@ result = app.invoke({"task": "..."})
 ### 为什么 LangGraph 适合生产
 
 1. **显式状态管理**：所有中间结果都在 State 里，可审计、可调试。
-2. **持久化**：内置 Postgres/Redis/MemorySaver checkpointer。
+2. **持久化**：内置 Postgres/Redis/SQLite checkpointer；2026 年新增 checkpoint 清理（prune）能力。
 3. **Human-in-the-loop**：通过 `interrupt` 节点实现人工确认。
-4. **可观测**：与 LangSmith 深度集成。
+4. **可观测**：与 LangSmith 深度集成，支持逐节点 state 检查与 trace 回放。
+5. **平台化**：LangGraph Platform / Server 提供托管的运行时与部署（langgraph-sdk、langgraph-prebuilt 持续迭代）。
 
 ### Agent Loop 在 LangGraph 中的表达
 
@@ -120,7 +133,7 @@ start → agent_node → tools_node → agent_node → ... → end
 | 优点 | 局限 |
 |---|---|
 | 状态显式、可持久化 | 学习曲线较陡 |
-| 复杂工作流表达力强 | 简单任务样板代码多 |
+| durable execution 语义完善（恢复/重放/time-travel） | 简单任务样板代码多 |
 | 生产可观测性强 | 依赖 LangChain 生态 |
 
 ## Smolagents
@@ -140,6 +153,8 @@ agent = CodeAgent(tools=[calculator], model=HfApiModel())
 agent.run("计算 25 * 4 + 10")
 ```
 
+2026 年的定位是“小而稳的库”：v1.26（2026-05）之后进入低频发版节奏；该版本移除了远程 WasmExecutor（安全面收敛），新增 Exa 作为 WebSearch 选项。
+
 ### 优点与局限
 
 | 优点 | 局限 |
@@ -150,18 +165,19 @@ agent.run("计算 25 * 4 + 10")
 
 ## PydanticAI
 
-PydanticAI 由 Pydantic 团队推出，核心特色是类型安全。
+PydanticAI 由 Pydantic 团队推出，核心特色是类型安全。2026 年主版本已到 2.5x（MIT 协议），保持每周发版节奏。
 
 ### 核心设计
 
 - 工具输入/输出、模型输出都通过 Pydantic model 校验。
 - 与 FastAPI 风格类似，对 Python 开发者友好。
 - 模型无关，可切换 OpenAI、Anthropic、Gemini 等。
+- 与 Restate 等 durable execution 引擎有一等集成（2025-11），可把 Agent 调用变成 durable 函数。
 
 ```python
 from pydantic_ai import Agent
 
-agent = Agent(model="openai:gpt-4o", result_type=Answer)
+agent = Agent(model="openai:gpt-5", result_type=Answer)
 
 @agent.tool
 def calculator(ctx, expr: str) -> str:
@@ -176,24 +192,41 @@ def calculator(ctx, expr: str) -> str:
 | 模型无关 | 生态较新 |
 | 结构化输出校验 | 多 Agent 协作支持有限 |
 
+## 其他框架 2026 速览
+
+| 项目 | 2026 年状态 | 一句话点评 |
+|---|---|---|
+| **Google ADK 2.0** | Python GA（2026-05）、Go（06）、TypeScript（08）；graph workflow、HITL 原语、skills 生命周期管理；Apache 2.0 | Google 生态的首选，多语言覆盖最全 |
+| **Claude Agent SDK**（原 Claude Code SDK） | 以 hooks（生命周期拦截）+ subagents（隔离上下文委派）+ skills 为核心；MCP 集成最深 | coding agent 场景的强候选；生产使用需注意权限默认拒绝 |
+| **Microsoft Agent Framework** | AutoGen 与 Semantic Kernel 合并，1.0 GA（2026-04）；AutoGen 独立版进入维护模式 | 企业/Azure 场景；actor + 消息传递模型 |
+| **CrewAI** | 持续活跃，角色化 crew + 企业版 | 快速原型与角色扮演类任务 |
+| **LlamaIndex Workflows** | 1.0 线成熟，AgentWorkflow + 事件驱动 | 检索/RAG 为核心的数据密集型任务 |
+
+框架选择的 2026 共识：MCP / A2A 协议成熟后，框架不再构成锁定——**选型看的是状态管理、持久化、可观测与团队熟悉度，而不是“哪家协议支持多”**。
+
 ## 共同模式总结
 
 | 能力 | OpenAI SDK | LangGraph | Smolagents | PydanticAI |
 |---|---|---|---|---|
 | 核心抽象 | Agent / Runner | StateGraph | CodeAgent | Agent |
-| 状态管理 | 隐式 | 显式 State | 隐式 | 隐式 |
+| 状态管理 | 隐式 | 显式 State + durable execution | 隐式 | 隐式 |
 | 工具注册 | 装饰器 | 函数/工具节点 | 列表 | 装饰器 |
-| 持久化 | 弱 | 强 | 无 | 弱 |
-| 可观测 | 内置 trace | LangSmith | 弱 | 弱 |
-| 最佳场景 | OpenAI 快速落地 | 复杂生产工作流 | 教学/轻量 | 强类型应用 |
+| 持久化 | 弱（依赖外部 harness） | 强（checkpoint/journal） | 无 | 弱（可接 Restate） |
+| 可观测 | 内置 trace（OTel 可导出） | LangSmith / OTel | 弱 | OTel / Langfuse 等 |
+| 沙箱 | 原生（2026-04 起） | 需自行集成 | 解释器内受限执行 | 需自行集成 |
+| 最佳场景 | 快速落地、SDK 平台化 | 复杂生产工作流 | 教学/轻量 | 强类型应用 |
 
 ## 本章小结
 
-OpenAI Agents SDK、LangGraph、Smolagents、PydanticAI 代表了 Agent Runtime 的四种设计取向：SDK 快速落地、图编排生产级、代码生成极简、类型安全可维护。理解它们的抽象差异，有助于在自己的场景中做出合理选型。
+OpenAI Agents SDK、LangGraph、Smolagents、PydanticAI 代表了 Agent Runtime 的四种设计取向：SDK 快速落地、图编排生产级、代码生成极简、类型安全可维护。2025–2026 年的共同演进方向是：原生沙箱执行、subagents、skills 化工具管理、durable execution、OpenTelemetry 可观测——理解这些抽象的差异与收敛趋势，有助于在自己的场景中做出合理选型。
 
 **参考来源**
 
-- [OpenAI Agents SDK Docs](https://platform.openai.com/docs/guides/agents)
+- [OpenAI Agents SDK Docs](https://openai.github.io/openai-agents-python/)
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
+- [LangGraph Releases (GitHub)](https://github.com/langchain-ai/langgraph/releases)
 - [Smolagents GitHub](https://github.com/huggingface/smolagents)
 - [PydanticAI Documentation](https://ai.pydantic.dev/)
+- [Google ADK 2.0](https://adk.dev/2.0/)
+- [Claude Agent SDK vs OpenAI Agents SDK vs Google ADK: The 2026 Vendor SDK Showdown](https://niteagent.com/blog/vendor-agent-sdk-comparison-2026/)
+- [AI Agent Frameworks Compared 2026](https://agentmelt.com/blog/ai-agent-frameworks-compared-2026/)
