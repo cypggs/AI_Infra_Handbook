@@ -141,9 +141,11 @@ overlayfs 是默认，但 snapshotter 是可替换的接口：
 | **btrfs / zfs** | 用文件系统原生 subvolume | 需要原生快照语义 |
 | **native** | 全量复制（无 COW） | 测试/简单环境 |
 | **stargz** | 惰性拉取（按需读层，不用全下完） | 冷启动优化 |
-| **nydus** | 阿里 Dragonfly 出品，按需下载 + 内容寻址 | 大镜像（模型镜像）冷启动 |
+| **nydus** | 阿里 Dragonfly 出品，按需下载 + 内容寻址（RAFS） | 大镜像（模型镜像）冷启动 |
+| **SOCI** | AWS 出品，对**未修改的原生 gzip 镜像**建可跳转索引（ztoc），索引作为 OCI 1.1 附属物存 registry | EKS/ECS Fargate 大规模在用，无需重打包镜像 |
+| **EROFS** | 内核 6.4+ 的只读文件系统，containerd 2.x 原生支持（含缓存预热指标） | 高密度只读场景，元数据/启动性能优于 overlayfs |
 
-> stargz/nydus 是"惰性拉取"方案——镜像不下载完就能启动容器，首次访问文件时才从 registry 拉那部分。对**带模型权重的超大镜像**（几十 GB）冷启动是杀手锏。containerd 2.x 的 Transfer Service 原生支持这类流式 snapshotter。
+> 惰性拉取的三条技术路线：**重打包**（eStargz 把层转为可随机访问格式）、**旁路索引**（SOCI 不改镜像、只追加 ztoc 索引，AWS 论文报告 1.3GB 镜像冷启动提速 7.4 倍、仅拉取约 11% 数据）、**内容寻址按需下载**（Nydus/Dragonfly RAFS，支持预取）。对**带模型权重的超大镜像**（几十 GB）冷启动都是杀手锏。containerd 2.x 的 Transfer Service 原生支持这类流式 snapshotter；此外 `zstd:chunked` 压缩格式（containers/storage 生态）让普通 zstd 镜像也能按 chunk 惰性加载，BuildKit/Podman 已支持。
 
 ## 4.6 阶段五：生成 OCI config.json
 
@@ -282,3 +284,5 @@ kubelet 收到 Pod 调度（bind 到本节点）
 - [Kubernetes CRI 架构与 Pod 沙箱](https://kubernetes.io/zh-cn/docs/concepts/architecture/cri/)
 - [The `pause` 容器的作用](https://www.alibabacloud.com/blog/the-pause-container)（多来源解析）
 - [stargz / nydus 惰性拉取](https://github.com/containerd/stargz-snapshotter)
+- [SOCI（Seekable OCI，AWS）](https://github.com/awslabs/soci-snapshotter)
+- [Nydus（Dragonfly RAFS）](https://nydus.dev/)

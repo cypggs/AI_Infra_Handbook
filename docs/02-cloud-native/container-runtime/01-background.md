@@ -159,7 +159,19 @@ Linux 内核   ── namespace + cgroup + overlayfs（真正的隔离）
 | 2017 | containerd 捐赠 CNCF | 运行时成为社区资产 |
 | 2019 | containerd 从 CNCF 毕业 | 生产可用，成为事实默认 |
 | 2022 | K8s v1.24 移除 dockershim | containerd/CRI-O 成默认，Docker Engine 退出 K8s 节点 |
-| 2024 | OCI Runtime Spec v1.2、Image Spec v1.1；containerd 2.x | 标准持续演进（zstd 压缩、subject/reference-types、cgroup v2） |
+| 2024 | OCI Runtime Spec v1.2、Image Spec v1.1；containerd 2.0 GA（11 月）、runc 1.2 | 标准持续演进（zstd 压缩、subject/reference-types、cgroup v2、idmap mounts）；高层运行时进入 2.x 时代 |
+| 2025 | containerd 2.2（新文件系统支持、artifact/分发能力增强、CRI 集成改进、cgroup v1 弃用）；Wasm 工作负载落地 K8s（runwasi、SpinKube 进入 CNCF Sandbox）；runc 一年内披露三个容器逃逸 CVE（CVE-2025-31133 / 52565 / 52881）并迅速修复 | 惰性拉取主流化（AWS SOCI 在 EKS/ECS Fargate 大规模使用）、GPU 注入转向 CDI 标准化、AI Agent 沙箱需求爆发 |
+| 2026 | containerd 2.3 LTS（4 月）与 2.4（8 月，2026-10 最新 2.4.2）；runc 1.5；K8s v1.36 的 Pod 级 user namespace GA | 标准化红利兑现：Pod 级 rootless 开箱可用（要求 containerd ≥2.0、runc ≥1.2/crun ≥1.9、内核 ≥6.3）；cgroup v1 进入移除倒计时（containerd 计划 2029 年移除） |
+
+### 2024–2026：三条并行主线
+
+近三年容器运行时的演进可以归纳为三条主线：
+
+1. **containerd 2.x 主线化**：2.0（2024-11）之后项目改为**时间驱动发布**（每年 4/8/12 月三个 minor），2.2 是 2025 年的特性大版本（EROFS 等新文件系统、OCI artifact 与新分发能力、CRI 集成增强），2.3 起分出 LTS 线。1.7 及更早版本已成为遗留。
+2. **低层运行时的多元化与安全化**：crun 成为 RHEL 9+/Fedora/Podman 的默认（启动快约 50%、每容器内存低一个量级），youki（Rust）持续发展，Wasm 模块也能作为"容器"被调度和运行；与此同时 runc 在 2025 年连曝三个容器逃逸 CVE——低层运行时虽小，安全水位却是全栈的短板，**保持 runc/containerd 版本最新成为运行时安全的第一原则**。
+3. **运行时边界向外扩展**：GPU 设备注入从"改 containerd 配置的 nvidia runtime"转向 **CDI（Container Device Interface）标准化注入**（NVIDIA GPU Operator v25.10 起默认）；沙箱运行时（gVisor/Kata）从"隔离不可信代码"扩展到 **AI Agent 代码执行沙箱**这一新战场。运行时的范畴早已超出"拉镜像、起进程"。
+
+> 这三条主线有一个共同的底层逻辑：**OCI 标准化之后，每一层都在被更快、更安全、更可插拔地替换**。这正是 2015 年拆分时想要的终局。
 
 ## 本章小结
 
@@ -174,5 +186,8 @@ Linux 内核   ── namespace + cgroup + overlayfs（真正的隔离）
 - [containerd 仓库与架构文档](https://github.com/containerd/containerd)
 - [Kubernetes CRI 文档](https://kubernetes.io/zh-cn/docs/concepts/architecture/cri/)
 - [Kubernetes v1.24 dockershim 移除公告](https://kubernetes.io/blog/2022/02/17/dockershim-faq/)
+- [containerd Releases（版本节奏与支持周期）](https://github.com/containerd/containerd/releases)
+- [containerd 版本与支持策略](https://containerd.io/releases/)
+- [Kubernetes User Namespaces（v1.36 GA）](https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/)
 - [LXC 项目](https://linuxcontainers.org/)
 - [FreeBSD Jail 文档](https://docs.freebsd.org/en/books/handbook/jails/)

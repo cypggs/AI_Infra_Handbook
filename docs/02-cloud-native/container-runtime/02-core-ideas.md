@@ -49,7 +49,7 @@
 
 `user namespace`（2013 进入内核，最晚成熟的）是容器安全的革命性能力：它允许**容器内的 uid 0（root）映射为宿主机上的一个普通 uid**。这意味着即使容器里的进程拿到了 root 权限，在宿主机看来它也只是个无权限用户——无法影响宿主。
 
-这直接催生了 **rootless 容器**（rootless Docker / rootless Podman / containerd 的 userns 支持）：非 root 用户也能跑容器，且容器逃逸的危害被限制到该用户。这是 8.x 章"运行时安全"的核心。
+这直接催生了 **rootless 容器**（rootless Docker / rootless Podman / containerd 的 userns 支持）：非 root 用户也能跑容器，且容器逃逸的危害被限制到该用户。这是 8.x 章"运行时安全"的核心。2026 年这一能力在 K8s 里正式开箱可用：**Pod 级 user namespace 自 K8s v1.36 GA**（设置 `hostUsers: false`），配合 containerd ≥2.0 与 runc ≥1.2/crun ≥1.9、内核 ≥6.3，容器内 root 映射为宿主机无特权用户——逃逸也无宿主权限。
 
 ## 2.3 三大基石之二：cgroups —— 限制"能用多少"
 
@@ -158,11 +158,10 @@ cgroup memory controller 给每个 cgroup 设一个软硬上限：
 - **职责**：给我一个 `config.json`（描述要哪些 namespace、cgroup、挂载点、要执行的命令），我**真的去 fork/exec 出那个容器进程**。
 - **做的事**：调用 `clone(CLONE_NEWPID|CLONE_NEWNET|...)` 创建 namespace、设置 cgroup、挂载 rootfs、`exec` 用户进程。
 - **代表实现**：
-  - **runc**（Go，OCI 参考实现，最广泛使用）
-  - **crun**（C，Red Hat 主导，更轻量、启动更快，CRI-O 默认之一）
-  - **youki**（Rust，内存安全方向）
-  - **runsc**（gVisor，沙箱运行时）
-  - **kata-runtime**（Kata Containers，每个容器一个轻量 VM）
+  - **runc**（Go，OCI 参考实现，containerd/Docker/K8s 默认，生态兼容性最好）
+  - **crun**（C，Red Hat 主导，RHEL 9+/Fedora/Podman 的默认；二进制约 1MB、启动快约 50%、每容器内存占用低一个量级，还是 cgroup v2 支持最完整的实现，并内置 Wasm 模块执行能力）
+  - **youki**（Rust，内存安全方向，CNCF sandbox 项目）
+  - **runsc**（gVisor，用户态内核沙箱）、**kata-runtime**（Kata Containers，每容器一个轻量 VM）
 - **不做的事**：不管镜像拉取、不管 CRI、不管卷/网络插件——这些是上层的事。
 
 > 低层运行时**只认 OCI bundle**（一个目录：rootfs + config.json）。它根本不知道"镜像"是什么——镜像的拉取、解包成 rootfs 是高层运行时的工作。
@@ -196,6 +195,10 @@ cgroup memory controller 给每个 cgroup 设一个软硬上限：
 
 > **为什么要分两层？** 因为"管理镜像/网络/卷/编排集成"（高层，重，频繁演进）和"创建隔离进程"（低层，薄，必须稳定）的关注点完全不同。把它们解耦，K8s 可以只换高层运行时（containerd↔CRI-O），底层 runc 不动；也可以只换低层（runc↔crun↔kata）做沙箱隔离，高层不动。这种可替换性是 OCI 标准化的核心红利。
 
+### 边界扩展：Wasm 也成了"容器"
+
+2025 年起，**WebAssembly 工作负载**开始以标准容器的方式被调度和运行：containerd 通过 **runwasi**（CNCF sandbox，containerd 的 Wasm shim，支持 WasmEdge/wasmtime/wasmer/Spin）把 Wasm 运行时挂进与 runc 相同的位置，K8s 侧用 **SpinKube**（2025 年进入 CNCF sandbox）等 operator 以普通 Pod/RuntimeClass 形式部署 Wasm 应用，Docker Desktop 也原生支持 `docker run --runtime=io.containerd.wasmedge.v1`。Wasm 的价值在**亚毫秒冷启动与跨平台**，适合轻量、事件驱动的边缘/Serverless 场景；对重 IO、需要完整 Linux 系统调用的 AI 训练/推理，传统容器仍是主流——两者是互补而非替代。
+
 ## 2.7 OCI 两大规范：钉死"接口"，解放"实现"
 
 OCI（Open Container Initiative）只定义**两个规范**，恰好对应镜像和运行时两个接口：
@@ -208,7 +211,7 @@ OCI（Open Container Initiative）只定义**两个规范**，恰好对应镜像
 - **config**：镜像的配置——`Env`、`Cmd`、`Entrypoint`、`WorkingDir`、各层的 diffID、要 expose 的端口。
 - **layers**：一组压缩的文件系统层（tar.gz / zstd）。
 - **manifest list / index**（多架构）：一个索引，列出 amd64/arm64 各自对应的 manifest——这是多架构镜像（`--platform`）的根基。
-- **v1.1（2023/2024）新增**：`subject` 字段（支持 referrers——把签名/SBOM/attestation 作为镜像的"附属物"关联）、reference types、**zstd 压缩**支持。
+- **v1.1（2023/2024，2025 年起全面落地）新增**：`subject` 字段（支持 referrers——把签名/SBOM/attestation 作为镜像的"附属物"关联）、reference types、**zstd 压缩**支持（层 mediaType 为 `application/vnd.oci.image.layer.v1.tar+zstd`）。配套的 **OCI Distribution Spec v1.1** 把 referrers API 标准化为 registry 标配，cosign 签名、SBOM 挂载从此成为跨 registry 的可移植实践。
 
 ### Runtime Specification（runtime-spec）
 
@@ -238,4 +241,7 @@ OCI（Open Container Initiative）只定义**两个规范**，恰好对应镜像
 - [Linux `cgroups(7)` man page](https://man7.org/linux/man-pages/man7/cgroups.7.html)
 - [overlayfs 文档（内核 Documentation）](https://docs.kernel.org/filesystems/overlayfs.html)
 - [runc 仓库](https://github.com/opencontainers/runc)
+- [crun 仓库](https://github.com/containers/crun)
+- [runwasi（containerd Wasm shim）](https://github.com/containerd/runwasi)
+- [SpinKube（K8s 上的 Wasm 应用部署）](https://www.spinkube.dev/)
 - [containerd 架构文档](https://github.com/containerd/containerd/blob/main/docs/ARCHITECTURE.md)

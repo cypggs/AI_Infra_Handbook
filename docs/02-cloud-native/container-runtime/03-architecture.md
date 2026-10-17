@@ -80,7 +80,7 @@
 
 ## 3.4 containerd：高层运行时核心
 
-**containerd** 是整个架构的"心脏"——一个精简、可嵌入、可扩展的高层运行时。它的内部架构（[官方 ARCHITECTURE.md](https://github.com/containerd/containerd/blob/main/docs/ARCHITECTURE.md)）分为多个解耦的子系统：
+**containerd** 是整个架构的"心脏"——一个精简、可嵌入、可扩展的高层运行时。**2.0 于 2024 年 11 月 GA**（runc 1.2+、Go 1.22+ 时代重构：Transfer Service 与 Sandbox service 稳定化、NRI/CDI 默认启用、daemon 配置 schema v3、CRI 支持 user namespace 与递归只读挂载）；此后改为**时间驱动发布**（每年 4/8/12 月一个 minor），2026-10 的最新稳定线是 **2.4.x**（2.3 为 LTS 线）。containerd 2.2 起**弃用 cgroup v1**（官方路线图计划 2029 年移除），cgroup v2 是唯一推荐。它的内部架构（[官方 ARCHITECTURE.md](https://github.com/containerd/containerd/blob/main/docs/ARCHITECTURE.md)）分为多个解耦的子系统：
 
 ```
                      containerd daemon (单个 gRPC server)
@@ -114,6 +114,7 @@
 | **Runtime Service** | 调用 OCI runtime（runc）+ shim 创建容器 |
 | **CRI plugin** | 实现 K8s CRI gRPC 接口，内置在 containerd 进程内 |
 | **Transfer Service** | 流式镜像 pull/push（containerd 2.x GA），支持 streaming + 惰性拉取 |
+| **Image verifier 插件** | pull 时按策略校验镜像签名/来源（containerd 2.0 引入），把供应链校验下沉到运行时 |
 | **NRI**（Node Resource Interface） | 运行时插件接口，让 Device Plugin/扩展介入容器创建 |
 
 ### 为什么 containerd 这么"碎"
@@ -151,7 +152,7 @@ shim 带来的三大好处：
 2. **接管 runc 的退出**：runc `create` + `start` 完容器就退出，shim 继续做容器进程的父进程，负责 reap 子进程、转发信号、收集退出码、上报状态给 containerd。
 3. **隔离故障**：一个容器的 shim 崩溃只影响那个容器，不会拖垮整个 containerd 或其他容器。
 
-> 不同低层运行时有不同 shim：`containerd-shim-runc-v2`（runc）、`containerd-shim-runsc-v1`（gVisor）、`containerd-shim-kata-v2`（Kata）。containerd 通过 shimbinary 名字 + OCI runtime 配置选择。换沙箱运行时 = 换 shim + 换 runtime。
+> 不同低层运行时有不同 shim：`containerd-shim-runc-v2`（runc）、`containerd-shim-runsc-v1`（gVisor）、`containerd-shim-kata-v2`（Kata）。Wasm 工作负载则通过 runwasi 项目提供的 `containerd-shim-wasmedge-v1` / `containerd-shim-wasmtime-v1` 等 shim 挂在同一位置——**换沙箱运行时或 Wasm 运行时 = 换 shim + 换 runtime**，containerd 的其余部分完全无感。containerd 通过 shimbinary 名字 + OCI runtime 配置选择。
 
 ### shim 还做：TTRPC 通信、PTY、日志
 
@@ -190,12 +191,15 @@ runc 的核心是 **libcontainer**（Go 包）——它直接调用内核 API �
 
 > runc 本身**不碰镜像、不碰 CRI、不碰网络插件**——它是个"纯执行器"。这让 OCI Runtime Spec 极度稳定（自 2015 几乎没大变），上层却可以快速演进。
 
-### 同层替代：crun / youki
+### 同层替代：crun / youki / Wasm shim
 
 因为 runc 只认 OCI bundle，**换低层运行时不影响上层**：
 
-- **crun**（C）：Red Hat 主导，二进制 < 1MB（runc 几十 MB），启动更快、内存占用更小，是 CRI-O 的可选默认。
-- **youki**（Rust）：主打内存安全（Rust 无 buffer overflow 类漏洞），适合安全敏感场景。
+- **crun**（C）：Red Hat 主导，二进制约 1MB（runc 含 Go runtime 大一个数量级），基准测试容器启动快约 50%、每容器内存占用低约一个量级；是 RHEL 9+/Fedora/Podman 的默认，也是 cgroup v2 支持最完整的 OCI 运行时，并内置 Wasm 模块执行能力（`--with-wasmedge`）。
+- **youki**（Rust）：主打内存安全（Rust 无 buffer overflow 类漏洞），CNCF sandbox 项目，适合安全敏感场景。
+- **Wasm shim**（runwasi）：不是 OCI bundle 运行时，而是在 containerd 的 shim v2 接口上直接嵌入 Wasm 引擎（WasmEdge/wasmtime），让 Wasm 模块享受与容器一致的拉取、调度和生命周期管理（详见第 2 章 Wasm 一节与第 8 章）。
+
+> 安全视角：低层运行时是全栈安全水位最薄的一层。2025 年 runc 一年内披露了三个容器逃逸 CVE（CVE-2025-31133、CVE-2025-52565、CVE-2025-52881）——crun 历史上仅有约 4 个 CVE。**无论选哪个，"运行时版本保持最新"都是生产安全的第一原则**（第 8 章详述）。
 
 ## 3.7 镜像构建子系统：BuildKit
 

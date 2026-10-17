@@ -50,6 +50,13 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 - [CRI API（protobuf）](https://github.com/kubernetes/cri-api)
 - [Kubernetes User Namespaces（GA）](https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/)
 
+### Wasm 运行时（2025 年起的新边界）
+
+- [runwasi（containerd Wasm shim，CNCF sandbox）](https://github.com/containerd/runwasi)
+- [SpinKube（K8s 上的 Wasm 应用部署，CNCF sandbox）](https://www.spinkube.dev/)
+- [WasmEdge Kubernetes 文档](https://wasmedge.org/book/en/kubernetes.html)
+- [crun 的 Wasm 支持](https://github.com/containers/crun)（`--with-wasmedge` 构建）
+
 ### Linux 内核
 
 - [`namespaces(7)` man page](https://man7.org/linux/man-pages/man7/namespaces.7.html)
@@ -80,8 +87,10 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 | [Sigstore / cosign](https://www.sigstore.dev/) | 镜像签名、keyless、Fulcio/Rekor |
 | [SLSA Framework](https://slsa.dev/) | 供应链可信度等级、provenance |
 | [Syft（SBOM）](https://github.com/anchore/syft) / [Trivy](https://trivy.dev/) / [Grype](https://github.com/anchore/grype) | SBOM 生成与漏洞扫描 |
-| [gVisor](https://gvisor.dev/) | 用户态内核架构、runsc |
-| [Kata Containers](https://katacontainers.io/) | 轻量 VM 沙箱、硬件隔离 |
+| [gVisor](https://gvisor.dev/) | 用户态内核架构、runsc、[GPU 支持（nvproxy）](https://gvisor.dev/docs/user_guide/gpu/) |
+| [Kata Containers](https://katacontainers.io/) | 轻量 VM 沙箱、硬件隔离、GPU 直通 |
+| [k8s-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox) | AI Agent 代码执行沙箱（gVisor/Kata 双后端 + 热池） |
+| [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/) / [GPU Operator CDI 文档](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/cdi.html) | GPU 容器注入的 CDI 标准实践 |
 | [Kubernetes Pod Security Standards](https://kubernetes.io/zh-cn/docs/concepts/security/pod-security-standards/) | restricted 基线、seccomp/capabilities 配置 |
 | [CIS Docker / Kubernetes Benchmark](https://www.cisecurity.org/benchmark/docker) | 安全加固基线 |
 
@@ -90,8 +99,11 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 | 资源 | 读什么 |
 |---|---|
 | [stargz-snapshotter（Lazy Pulling）](https://github.com/containerd/stargz-snapshotter) | estargz 惰性拉取原理与配置 |
-| [Nydus（Dragonfly）](https://nydus.dev/) | 内容寻址 + 预取的惰性拉取 |
+| [SOCI（awslabs）](https://github.com/awslabs/soci-snapshotter) | 不改镜像的旁路索引惰性拉取；论文《Seekable OCI》（arXiv:2607.06868）：ztoc 索引、referrers API 挂载、7 倍级冷启动提速 |
+| [Nydus（Dragonfly）](https://nydus.dev/) | 内容寻址 + 预取的惰性拉取（RAFS） |
 | [containerd Transfer Service（2.x）](https://github.com/containerd/containerd/blob/main/docs/transfer.md) | 流式镜像传输 |
+| [zstd:chunked（containers/storage）](https://github.com/containers/storage) | 标准 zstd 镜像按 chunk 惰性加载与去重 |
+| [EROFS（内核只读文件系统）](https://docs.kernel.org/filesystems/erofs.html) | containerd 2.x 的高密度只读快照方案（内核 6.4+） |
 | [crun 性能对比](https://github.com/containers/crun#performance) | crun vs runc 启动/内存对比 |
 | [cgroup v2 与 systemd 驱动](https://systemd.io/CGROUP_DELEGATION/) | K8s 与容器运行时的 cgroup 一致性 |
 
@@ -170,7 +182,7 @@ OCI 规范是容器运行时的"宪法"，没有比它更权威的来源：
 
 ## 本章小结
 
-容器运行时的学习路径以 **OCI 规范**为最高权威（runtime-spec/image-spec/distribution-spec），辅以 containerd/runc 的官方文档与源码；经典论文（Resource Containers、Solaris Zones）和 Liz Rice 的"从零实现容器"演讲帮你把抽象规范变成"原来就这么几个系统调用"的直观认知；生态工具链（docker/nerdctl/crictl/crane/dive/trivy/cosign/Harbor）覆盖了构建、调试、安全、分发的全流程。对 AI 方向的读者，重点是**镜像优化（多阶段/distroless/分层缓存）+ 大镜像冷启动（stargz/nydus）+ 运行时安全（restricted 基线）+ 沙箱（gVisor/Kata 用于不可信代码）**，并顺着本手册的 Kubernetes、[Helm](../helm/)、vLLM、Triton、安全、AI SRE 主题看运行时如何被上层使用。最重要的是**动手**——本地跑一遍 Mini Demo、用 dive 拆开一个真实镜像、在 kind 上用 crictl 看一次容器创建，远比读十遍文档有效。容器运行时是"看得见的 K8s 地基"，掌握它，你就拥有了从镜像冷启动一路追到内核 cgroup 的全栈视野。
+容器运行时的学习路径以 **OCI 规范**为最高权威（runtime-spec/image-spec/distribution-spec），辅以 containerd/runc 的官方文档与源码；经典论文（Resource Containers、Solaris Zones）和 Liz Rice 的"从零实现容器"演讲帮你把抽象规范变成"原来就这么几个系统调用"的直观认知；生态工具链（docker/nerdctl/crictl/crane/dive/trivy/cosign/Harbor）覆盖了构建、调试、安全、分发的全流程。对 AI 方向的读者，重点是**镜像优化（多阶段/distroless/分层缓存）+ 大镜像冷启动（stargz/SOCI/nydus，及 zstd:chunked）+ GPU 注入（CDI，GPU Operator ≥ v25.10）+ 运行时安全（restricted 基线、Pod 级 user namespace、运行时版本 SLA）+ 沙箱（gVisor/Kata 用于不可信代码与 Agent 沙箱）**，并顺着本手册的 Kubernetes、[Helm](../helm/)、vLLM、Triton、安全、AI SRE 主题看运行时如何被上层使用。对关注前沿的读者，**Wasm 运行时（runwasi/SpinKube）**是容器边界扩展最值得跟踪的方向。最重要的是**动手**——本地跑一遍 Mini Demo、用 dive 拆开一个真实镜像、在 kind 上用 crictl 看一次容器创建，远比读十遍文档有效。容器运行时是"看得见的 K8s 地基"，掌握它，你就拥有了从镜像冷启动一路追到内核 cgroup 的全栈视野。
 
 **参考来源**
 

@@ -166,10 +166,10 @@
 ### Q19：gVisor 和 Kata Containers 各自的隔离机制和适用场景？
 
 **答题要点**：
-- gVisor（runsc）：用户态内核（Sentry），拦截容器 syscall 用 Go 重新实现后安全转发——隔离强于普通容器（屏蔽大部分内核攻击面），性能损耗 10–50%（CPU/IO 密集），适用多租户/不可信代码。不支持 GPU 直通。
-- Kata：每个 Pod 一个轻量 VM（KVM/Firecracker/Cloud Hypervisor），容器跑 VM 内——硬件级隔离（≈VM），启动秒级、内存开销大，适用极不可信/合规。
+- gVisor（runsc）：用户态内核（Sentry），拦截容器 syscall 用 Go 重新实现后安全转发——隔离强于普通容器（屏蔽大部分内核攻击面），性能损耗 10–50%（CPU/IO 密集），适用多租户/不可信代码/AI Agent 沙箱。2024–2025 起通过 **nvproxy** 支持 NVIDIA GPU（ioctl 白名单，无硬件级隔离），Google/Groq/Modal 等已用于 GPU 推理沙箱。
+- Kata：每个 Pod 一个轻量 VM（KVM/Firecracker/Cloud Hypervisor），容器跑 VM 内——硬件级隔离（≈VM），启动慢、内存开销大，但支持 **GPU 直通**（每 Pod 独占），适合多租户不可信 GPU 推理与合规场景；GKE/AKS 提供托管 RuntimeClass。
 - 共同点：都实现 OCI Runtime Spec，通过对应 shim 接入 containerd/K8s，上层无感切换。
-- GPU 场景：gVisor 不支持，Kata 支持但复杂——所以 GPU 推理通常用 runc + 网络隔离，不可信代码沙箱用 gVisor（CPU）。
+- 选型原则：先 gVisor，实测隔离不够再 Kata；Firecracker 无 GPU 直通，基本退出 GPU 沙箱选型；可叠加 Pod 级 user namespace（K8s v1.36 GA）做纵深防御。
 
 ### Q20：runc 创建容器的核心系统调用有哪些？pivot_root 和 chroot 有什么区别？
 
@@ -178,13 +178,14 @@
 - pivot_root vs chroot：chroot 只改进程的 `/` 视图，进程仍能访问原文件系统（不安全）；pivot_root 在 mount namespace 里把根**整体换掉**、旧根卸载，配合 mount namespace 真正隔离。容器用 pivot_root。
 - runc "re-exec self as init"：通过 `/proc/self/exe init` 重新执行自己，在新 namespace 里完成初始化再 exec 用户命令。
 
-### Q21：惰性拉取（stargz/nydus）解决什么问题？原理是什么？
+### Q21：惰性拉取（stargz/nydus/SOCI）解决什么问题？原理是什么？
 
 **答题要点**：
 - 问题：传统镜像必须整镜像下载完才能启动，大镜像（几十 GB 模型镜像）冷启动分钟级，拖慢弹性扩缩。
-- 原理：把镜像层重组为"可随机访问/内容寻址"格式，containerd 的 stargz/nydus snapshotter 让运行时按需从 registry 读文件——不必下载完即启动，首次访问文件才拉那部分。
+- 三条路线：(1) **重打包**——eStargz 把层转为可随机访问格式；(2) **旁路索引**——SOCI 对原生 gzip 镜像生成 ztoc 可跳转索引（作为 OCI 1.1 附属物），不改镜像，AWS 论文报告提速 7 倍以上、仅拉约 11% 数据，已用于 EKS/ECS Fargate；(3) **内容寻址**——Nydus/Dragonfly RAFS 按需下载 + 预取。
+- 新趋势：`zstd:chunked` 让普通 zstd 镜像按 chunk 惰性加载，无需特殊格式。
 - nydus 支持预取（优先拉代码启动、模型后台流式拉）。
-- 对 AI：模型权重不打进镜像 + nydus = 秒级拉起几十 GB 镜像。
+- 对 AI：模型权重不打进镜像 + 惰性拉取 = 秒级拉起几十 GB 镜像。
 - 落地：containerd 2.x Transfer Service 原生支持流式 + 惰性 snapshotter。
 
 ### Q22：生产里如何防止"镜像 tag 漂移"导致两次部署拉到不同内容？
@@ -200,7 +201,7 @@
 - 基础：user namespace——容器内 uid 0（root）映射到宿主一个非特权 uid。
 - 安全意义：即使容器逃逸，宿主看来只是个普通用户，无法影响系统/其他容器。
 - 代价：部分功能受限（端口 <1024 需 sysctl、某些 mount 不可、网络需 slirp/pasta）。
-- 趋势：rootless 是运行时安全的方向，Podman 默认 rootless，containerd/K8s 的 user namespace 支持在完善（K8s 1.30+ GA 的 user namespace 支持）。
+- 趋势：rootless 是运行时安全的方向，Podman 默认 rootless；K8s 的 Pod 级 user namespace 已正式落地——**v1.36 GA**（`hostUsers: false`），要求内核 ≥6.3、containerd ≥2.0（或 CRI-O ≥1.25）、runc ≥1.2（或 crun ≥1.9）；每个 Pod 分配独立的宿主 UID/GID 映射，逃逸也无宿主权限。
 
 ### Q24：设计一个 AI 推理服务的镜像与运行时方案，兼顾冷启动、安全、GPU。
 
@@ -209,7 +210,16 @@
 - 模型权重不打进镜像：挂 PVC/对象存储 或 nydus 惰性拉取。
 - 多阶段构建 + distroless 运行层；代码与依赖分层缓存。
 - 运行时安全：非 root、只读根、drop ALL、seccomp（Pod Security restricted）。
-- GPU：GPU Operator + containerd runtimeClass 注入设备；resources 声明 `nvidia.com/gpu`。
+- GPU：containerd 2.x + GPU Operator ≥ v25.10，走 **CDI 默认注入**（不再配 `runtimeClassName: nvidia`），resources 声明 `nvidia.com/gpu`。
 - 版本：语义版本 + SHA + digest；cosign 签名 + Trivy 扫描 + SBOM 门禁。
-- 冷启动：nydus/stargz 惰性拉取 + 副本预热（HPA 扩容时提前 pull）。
-- 沙箱：可信推理用 runc；不可信用户代码（Agent 代码沙箱）用 gVisor（CPU）。
+- 冷启动：nydus/SOCI 惰性拉取 + 副本预热（HPA 扩容时提前 pull）。
+- 沙箱：可信推理用 runc；不可信用户代码（Agent 代码沙箱）用 gVisor（CPU），多租户不可信 GPU 推理用 Kata 直通。
+
+### Q25：容器里的 GPU 是怎么注入的？CDI 解决了什么问题？
+
+**答题要点**：
+- 老路：NVIDIA Container Toolkit 在 containerd 注册专用 `nvidia` runtime（runc 包装），Pod 要配 `runtimeClassName: nvidia`——污染全局 runtime 配置，多一个分支要维护。
+- 新路：**CDI（Container Device Interface）** 是 containerd/CRI-O 内置的通用设备注入标准（类比 CNI 之于网络），设备规格是 JSON（设备节点、驱动库、挂载、env），默认 runc 路径直接注入，**不需要专用 runtime**。
+- 分水岭：**GPU Operator v25.10（2025）起 CDI 成为默认**；`nvidia-ctk cdi generate` 自动生成规格；CDI 还能表达 MIG 配置、IMEX 通道、按 GPU 的显存限额（`NVIDIA_GPU_MEMORY_LIMIT`）。
+- 安全面：2025-07 修复了 toolkit 的 CVE-2025-23266/23267（影响 CDI 模式），版本要进漏洞 SLA。
+- 一句话：CDI 让"GPU 注入"成为与 CNI/CSI 同级的标准插件接口。

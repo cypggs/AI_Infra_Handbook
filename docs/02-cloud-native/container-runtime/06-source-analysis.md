@@ -16,7 +16,9 @@
 
 ## 6.2 runc：从命令到内核的完整链路
 
-### 仓库结构（runc 1.2.x）
+### 仓库结构（runc 1.2–1.5）
+
+runc 1.2（2024-10）对齐 OCI runtime-spec 1.2（cgroup v2 强化、idmap mounts），此后 1.3/1.4/1.5（2026 年中的当前线）以安全修复与小特性为主，仓库结构保持稳定：
 
 ```
 runc/
@@ -178,6 +180,8 @@ ctr/images.go / CRI PullImage
     → 解析 manifest → 注册 Image 元数据（images table）
 ```
 
+containerd 2.0 起这条链上还能挂 **image verifier 插件**：在 pull 阶段按策略（如 cosign 公钥/issuer）校验镜像，校验失败直接拒绝拉取——把供应链校验从"部署时准入"下沉到"运行时拉取"，代码入口同样在 `plugins/` 之下。
+
 ### 关键调用链：一次 `CreateContainer` + `Start`
 
 ```
@@ -258,7 +262,7 @@ crun/
 
 对照阅读 runc（Go）和 crun（C）对同一份 OCI config 的处理，能看清"OCI 规范与语言无关"的本质——同一个 `config.json`，无论用 Go 还是 C 解析、用 libcontainer 还是 libcrun 落地，最终产生**完全一致**的隔离容器。
 
-> crun 的优势：二进制 ~1MB（runc 含 Go runtime 几十 MB）、启动更快、内存更省。高密度节点（一节点上千容器）这些差异有意义——这也是 CRI-O 倾向配 crun 的原因。
+> crun 的优势：二进制约 1MB（runc 含 Go runtime 大一个数量级）、启动快约 50%、内存更省；是 RHEL 9+/Fedora/Podman 的默认，也内置 Wasm 模块执行能力。高密度节点（一节点上千容器）这些差异有意义——这也是 CRI-O 倾向配 crun 的原因。
 
 ## 6.6 moby/moby：Docker Engine 的历史角色
 

@@ -24,7 +24,7 @@ Kubernetes 主题讲透了"编排"，但 K8s 自己**不启动容器**——它�
 4. 读懂 **OCI 两大规范**：Runtime Specification（容器如何被创建/启动/挂载/cgroup 设置）与 Image Specification（镜像 manifest / config / layers 如何组织、内容寻址如何工作）。
 5. 描述 `docker run`（或 `crictl run`）的完整链路：解析镜像引用 → 拉取 manifest → 下载+解压 layers → snapshotter 组成 rootfs → OCI runtime 创建 namespace/cgroup → exec 用户进程 → shim 接管。
 6. 看懂 containerd 的核心模块：image store、content store、snapshotter（overlayfs）、containerd-shim、CRI plugin、Transfer Service、NRI，以及 runc/libcontainer 的实现要点。
-7. 在生产中做**镜像优化**（多阶段构建、scratch/distroless、分层缓存、多架构 buildx）、**镜像安全**（签名、SBOM、扫描、seccomp/AppArmor/capabilities、rootless）、**沙箱隔离**（gVisor/Kata）、**多架构**（manifest list）。
+7. 在生产中做**镜像优化**（多阶段构建、scratch/distroless、分层缓存、多架构 buildx）、**镜像安全**（签名、SBOM、扫描、seccomp/AppArmor/capabilities、rootless、Pod 级 user namespace）、**沙箱隔离**（gVisor/Kata，含 AI Agent 沙箱）、**GPU 注入**（CDI）、**多架构**（manifest list）、**冷启动**（stargz/SOCI/nydus 惰性拉取）。
 8. 跑通并扩展本主题的 Mini Demo——一个纯 Python、可在 macOS/CPU 上运行的"容器运行时概念模拟器"（镜像分层 + union/COW + namespace 隔离抽象 + cgroup 计量 + OCI runtime 创建/启动 + 多架构 manifest）。
 9. 回答镜像分层、namespace/cgroup、CRI/dockershim、容器与虚拟机本质差异、运行时选型相关的面试题。
 
@@ -52,7 +52,7 @@ Kubernetes 主题讲透了"编排"，但 K8s 自己**不启动容器**——它�
 5. [核心模块](05-core-modules) — image/content store、snapshotter（overlayfs）、containerd-shim、runc/libcontainer、CRI plugin、Transfer Service、NRI、镜像 manifest/config/layers。
 6. [源码分析](06-source-analysis) — `opencontainers/runc` 的 libcontainer 与 `create/start` 实现；`containerd/containerd` 仓库结构与关键调用链；`moby/moby` 历史角色。
 7. [工程实践](07-mini-demo) — 纯 Python 可运行的"容器运行时概念模拟器"：镜像分层 + union/COW + namespace 抽象 + cgroup 计量 + OCI 创建/启动 + 多架构 manifest。
-8. [企业生产实践](08-production-practice) — 镜像优化、镜像安全（签名/SBOM/扫描）、运行时安全（seccomp/AppArmor/capabilities/rootless）、沙箱运行时（gVisor/Kata）、多架构、惰性拉取、registry 运营。
+8. [企业生产实践](08-production-practice) — 镜像优化、镜像安全（签名/SBOM/扫描）、运行时安全（seccomp/AppArmor/capabilities/rootless/user namespace/版本治理）、沙箱运行时（gVisor/Kata/AI Agent 沙箱）、GPU 注入（CDI）、多架构、惰性拉取（stargz/SOCI/nydus）、registry 运营。
 9. [最佳实践](09-best-practices) — Dockerfile 黄金法则、分层与缓存、基础镜像选型、镜像瘦身、运行时配置、CI/CD 集成。
 10. [面试题](10-interview-questions) — 初/中/高级面试题。
 11. [延伸阅读](11-further-reading) — 官方文档、OCI 规范、源码、论文、生产实践。

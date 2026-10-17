@@ -147,7 +147,7 @@ AI（CUDA/torch）                → pytorch/pytorch:*-runtime 或 nvidia/cuda:
 | capabilities | drop ALL，按需 add | `capabilities.drop: [ALL]` |
 | seccomp | RuntimeDefault | `seccompProfile: {type: RuntimeDefault}` |
 
-这套 = Pod Security **restricted** 级别，是生产基线。
+这套 = Pod Security **restricted** 级别，是生产基线。2026 年的增量动作：(1) 确认节点 **containerd 2.x + cgroup v2**（containerd 2.2 起 cgroup v1 已弃用，2029 年移除）；(2) 对不可信负载开启 **Pod 级 user namespace**（`hostUsers: false`，K8s v1.36 GA，要求内核 ≥6.3、runc ≥1.2/crun ≥1.9）。
 
 ### 资源声明（必填）
 
@@ -224,6 +224,7 @@ jobs:
 | `apt-get install` 不清理 | 缓存留在镜像、变大 | 同 RUN 内 `rm -rf /var/lib/apt/lists/*` |
 | 单架构构建 | 跨架构集群拉不到镜像 | buildx 多架构 |
 | 不签名不扫描 | 供应链攻击面 | cosign + trivy + SBOM 门禁 |
+| 节点运行时版本长期不升级 | 2025 年 runc 三个逃逸 CVE、NVIDIA toolkit 漏洞都 hitting 老旧节点 | 不可变节点镜像 + 补丁滚动升级（见 8.3.5） |
 
 ## 9.8 一份"达标"的生产 Python AI 服务 Dockerfile
 

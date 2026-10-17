@@ -57,9 +57,9 @@
 }
 ```
 
-### image-spec v1.1 新增：subject / referrers
+### image-spec v1.1 新增：subject / referrers（已全面落地）
 
-v1.1（2023/2024）给 manifest 加了 **`subject`** 字段——允许一个"附属 manifest"声明它指向另一个镜像。配合 registry 的 **referrers API**，可以给镜像挂载：
+v1.1（2023/2024 定稿，2025 年起成为事实标准）给 manifest 加了 **`subject`** 字段——允许一个"附属 manifest"声明它指向另一个镜像。配合 **OCI Distribution Spec v1.1** 标准化的 registry **referrers API**，可以给镜像挂载：
 
 - **签名**（cosign 签名作为一个独立 manifest，subject 指向被签镜像）；
 - **SBOM**（软件物料清单）；
@@ -135,6 +135,7 @@ containerd 通过约定找到对应 shim：
 - `io.containerd.runc.v2` → `containerd-shim-runc-v2`（runc 默认）
 - `io.containerd.runsc.v1` → `containerd-shim-runsc-v1`（gVisor）
 - `io.containerd.kata.v2` → `containerd-shim-kata-v2`（Kata）
+- `io.containerd.wasmedge.v1` / `io.containerd.wasmtime.v1` → runwasi 项目提供的 Wasm shim（WasmEdge/wasmtime 引擎）
 
 换运行时 = 换 shim binary + containerd 配置 `default_runtime`。
 
@@ -182,12 +183,16 @@ func (c *linuxContainer) Start(process *Process) error {
 
 > libcontainer 是第 6 章源码分析的重点——它是"OCI Runtime Spec 是如何用 Go 落地成系统调用"的最佳教材。
 
+### runc 的版本与状态（2026-10）
+
+runc 保持活跃但刻意稳定：1.2（2024-10，OCI runtime-spec 1.2 + idmap mounts）→ 1.3/1.4（2025–2026）→ **1.5.x（2026 年中的当前线）**，1.6 在研（去掉 1024 CPU 的 cpuAffinity 上限、二进制再瘦身约 15%）。它是 containerd/Docker/K8s 的默认低层运行时，兼容性最好；但 2025 年连曝三个容器逃逸 CVE（CVE-2025-31133/52565/52881）说明它代码量大、攻击面相对大——**节点上 runc/containerd 版本必须纳入漏洞响应 SLA**。
+
 ### runc 的对手：crun / youki
 
-- **crun**（C）：更小的二进制、更低的内存、更快的启动（对高密度节点有意义）。CRI-O 常配 crun。
-- **youki**（Rust）：内存安全（杜绝 C/Go 罕见但仍可能的内存漏洞类风险）。
+- **crun**（C）：RHEL 9+/Fedora/Podman 的默认；二进制约 1MB、启动快约 50%、每容器内存低约一个量级，cgroup v2 支持最完整（2025 年它还随 runc 1.3.2 一起修复了 cgroup v1→v2 CPU weight 换算的老 bug），并内置 Wasm 执行能力。历史 CVE 约 4 个。
+- **youki**（Rust）：内存安全（杜绝 C/Go 罕见但仍可能的内存漏洞类风险），CNCF sandbox。
 
-因为都实现 OCI Runtime Spec，上层无感知地切换。
+因为都实现 OCI Runtime Spec，上层无感知地切换（K8s 里用 RuntimeClass 按工作负载混用）。
 
 ## 5.6 CRI 插件：containerd 与 K8s 的桥梁
 
@@ -251,12 +256,12 @@ containerd 2.x 把镜像 pull/push 重构为 **Transfer Service**——一个**�
 
 **NRI** 是 containerd/CRI-O 共同支持的**运行时插件接口**，允许第三方在容器创建时介入——典型用途：
 
-- **GPU/设备注入**：NVIDIA 的 GPU Operator 通过 NRI 注入 GPU 设备、环境变量；
+- **GPU/设备注入**：NVIDIA 曾通过 NRI 插件路径注入 GPU，但 **2025 年 GPU Operator v25.10 起已默认改用 CDI（Container Device Interface）原生注入**（containerd/CRI-O 内置 CDI 支持，`nvidia-ctk cdi generate` 自动生成设备规格）——CDI 是更标准的方向（详见第 8 章 GPU 注入一节）；NRI 路径仍保留给高级场景；
 - **资源调整**：在容器创建时动态改 cgroup；
 - **sidecar 注入**：服务网格（Istio）的 sidecar 注入有部分路径走 NRI；
 - **安全策略**：强制 seccomp/capabilities 收窄。
 
-NRI 弥补了"静态 CRI"的不足——CRI 调用是声明式的，但有时需要在容器真正创建的瞬间做干预，NRI 提供了这个 hook。
+NRI 弥补了"静态 CRI"的不足——CRI 调用是声明式的，但有时需要在容器真正创建的瞬间做干预，NRI 提供了这个 hook。截至 2026-10 NRI 仍未 GA，生产默认路径应优先用 CDI 等已稳定的机制。
 
 ## 5.9 模块全景与数据流
 
@@ -297,3 +302,5 @@ NRI 弥补了"静态 CRI"的不足——CRI 调用是声明式的，但有时需
 - [NRI（Node Resource Interface）](https://github.com/containerd/nri)
 - [Kubernetes CRI API](https://github.com/kubernetes/cri-api)
 - [crun 仓库](https://github.com/containers/crun) / [youki 仓库](https://github.com/containers/youki)
+- [NVIDIA Container Toolkit CDI 支持](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html)
+- [runwasi（Wasm shim）](https://github.com/containerd/runwasi)
