@@ -99,7 +99,7 @@ Gateway 是统一观测点，必须输出：
 - **成功率/错误码**：2xx/4xx/5xx 分布。
 - **缓存命中率**：如果实现了 prompt 缓存。
 
-这些指标通常以 Prometheus 格式暴露，再由 Grafana 做大盘。2025 年后，主流网关还把 GenAI 专属指标纳入标准导出：TTFT、TPOT、各类型 token 分开计量（input / output / cached / reasoning tokens），并对接 OpenTelemetry GenAI 语义约定与 OpenInference 追踪格式。
+这些指标通常以 Prometheus 格式暴露，再由 Grafana 做大盘。2025 年后，主流网关把 GenAI 专属指标纳入标准导出：TTFT、TPOT、各类型 token 分开计量（input / output / cached / reasoning tokens），并对接 OpenTelemetry GenAI 语义约定与 OpenInference 追踪格式；Agent Router v1.1（2026 年 8 月）起支持跨 provider token 计数与可选的 OTel GenAI 追踪，2026 年多档缓存计费普及后 cached token 计量已从“可选”变为成本核算刚需。
 
 ## 2025-2026 新增的三类横切能力
 
@@ -141,7 +141,7 @@ Gateway 是统一观测点，必须输出：
 当客户端从“人写的应用”变成“Agent”，网关需要理解 MCP 协议语义：
 
 - **工具注册表**：聚合多个上游 MCP Server 的工具列表，对外暴露统一入口。
-- **工具级鉴权**：deny-by-default 白名单，按虚拟 key / JWT claims 决定能调哪些工具（Envoy AI Gateway 的 `MCPRouteSecurityPolicy` 用 CEL 表达式实现）。
+- **工具级鉴权**：deny-by-default 白名单，按虚拟 key / JWT claims 决定能调哪些工具（Agent Router 的 `MCPRouteSecurityPolicy` 用 CEL 表达式实现）。
 - **工具级限流与计量**：按工具名（如 `create_order`）分别限流、计费、观测。
 - **协议适配**：新旧 MCP 协议转换（Higress 支持 modern↔legacy 双向桥接）。
 
@@ -194,5 +194,5 @@ LLM Gateway 的 8 大基础能力——Provider 抽象、统一 API、路由、�
 - [LiteLLM Proxy — Rate Limits](https://docs.litellm.ai/docs/proxy/rate_limiting)
 - [LiteLLM Guardrails](https://docs.litellm.ai/docs/proxy/guardrails/quick_start)
 - [Kong ai-semantic-cache 插件](https://docs.konghq.com/hub/kong-inc/ai-semantic-cache/)
-- [Envoy AI Gateway MCP 文档](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router MCP 文档](https://aigateway.envoyproxy.io/docs/)
 - [Kong AI Gateway Overview](https://docs.konghq.com/gateway/latest/ai-gateway/)

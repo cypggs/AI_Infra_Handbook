@@ -133,9 +133,10 @@ HALF-OPEN → 探测失败 → OPEN
 
 - 解析上游响应的 `usage` 字段，得到 input/output token 数。
 - 用内置价格表计算：`cost = input_tokens * input_price + output_tokens * output_price`。
+- 2026 年起必须按档细分：cached input / cache write / output / reasoning token 价格不同（缓存读取常见约 1 折，写入可能 1.25×），网关要透传上游返回的 cached token 计数并分档计量。
 - 按 tenant / user / model / provider 聚合。
 - 暴露 Prometheus 指标，并写入成本数据库做月结。
-- 对没有 `usage` 的 provider，用本地 tokenizer 估算。
+- 对没有 `usage` 的 provider，用本地 tokenizer 估算；价格表要随厂商调价更新（2026 年降价频繁，如 LiteLLM 内置价格表随版本跟进）。
 
 ### Q13：语义缓存和精确缓存有什么区别？生产上怎么搭配？
 
@@ -168,4 +169,4 @@ HALF-OPEN → 探测失败 → OPEN
 
 - [LiteLLM Proxy Reliability](https://docs.litellm.ai/docs/proxy/reliability)
 - [OpenAI API Errors](https://platform.openai.com/docs/guides/error-codes)
-- [Envoy AI Gateway Routing](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router Routing](https://aigateway.envoyproxy.io/docs/)

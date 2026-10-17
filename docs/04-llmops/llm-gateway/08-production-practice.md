@@ -43,7 +43,7 @@ App Pod [App Container + Gateway Sidecar]
 
 ### 边缘网关
 
-Cloudflare AI Gateway、AWS API Gateway 等属于此类。
+Cloudflare AI Gateway、AWS API Gateway 等属于此类。深度 AWS 生态的团队还可以评估 **AWS Bedrock AgentCore Gateway**（2025 年 10 月 GA）：全托管地把 REST API / Lambda / OpenAPI / Smithy 转为 MCP 工具，用 Cedar 策略做默认拒绝的工具级访问控制，并在网关边界集成 Bedrock Guardrails（2026 年 6 月 GA）；按调用量计费（约 $0.005/千次调用），适合不想运维网关但要求企业级工具治理的场景。
 
 适用：
 
@@ -72,7 +72,7 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: ghcr.io/berriai/litellm:main-latest
+          image: ghcr.io/berriai/litellm:main-latest   # 生产建议锁定具体版本（如 v1.105.x）并跟进安全补丁
           args: ["--config", "/etc/litellm/config.yaml"]
           ports:
             - containerPort: 4000
@@ -185,7 +185,7 @@ providers:
 
 - **deny-by-default 工具白名单**：默认拒绝全部工具，按业务逐个放行；不要默认放开上游 MCP Server 的全部能力。
 - **工具级身份隔离**：每个调用方（应用 / 用户）使用独立虚拟 key，工具权限挂在 key 上而不是网关全局。
-- **关闭默认 master key，保持版本更新**：2026 年披露的 CVE-2026-59822（LiteLLM MCP 认证绕过，影响 < 1.84.0）表明 MCP 端点是新的攻击面，升级与 key 轮换必须进入常规运维。
+- **关闭默认 master key，保持版本更新**：2026 年披露的 CVE-2026-59822（LiteLLM MCP 认证绕过，影响 < 1.84.0）表明 MCP 端点是新的攻击面，升级与 key 轮换必须进入常规运维；2026 年 10 月最新稳定版为 v1.105，v1.104 起已强制 master key 校验并默认关闭 stdio MCP。
 - **stdio MCP 默认关闭**：远程 Gateway 只暴露 HTTP 类 MCP Server；stdio 仅用于受信内网。
 - **工具调用审计**：按 `Mcp-Method` / 工具名记录调用日志，高危工具（支付、删除类）额外告警。
 
@@ -230,8 +230,9 @@ Backup 3  : 自研 vLLM (on-prem)
 1. **模型降级**：默认用便宜模型处理简单任务，复杂任务才用贵模型。
 2. **缓存**：重复 prompt 直接返回缓存结果，减少调用。
 3. **批量调用**：把多个小请求合并成 batch，降低 per-request 开销。
-4. **智能路由**：按 prompt 长度/复杂度选择 cheapest provider。
+4. **智能路由**：按 prompt 长度/复杂度选择 cheapest provider；更进一步用自动路由（如 LiteLLM Auto Router 的 Fuse/Capability 策略）按成本/延迟/能力自动选模，并先以 shadow eval 量化效果再切流。
 5. **监控成本异常**：按应用/用户设置预算告警，防止某处 burst。
+6. **跟上 2026 年的计费细化**：缓存读取折扣（主流厂商约 90%，DeepSeek 约 98%）、缓存写入费（如 1.25×）、长上下文附加费已成常态，计费从 input/output 两档变成 input / cached input / cache write / output / reasoning 多档。网关成本核算必须按档计量并透出对应指标（LiteLLM 内置价格表随版本跟进降价，v1.96 即跟进 GPT-5.6 降价；Agent Router v1.1 起支持跨 provider token 计数）；同时可利用厂商错峰计价（LiteLLM v1.101 off-peak pricing）与批量计费（v1.99 end-to-end batch billing）进一步降本。
 
 ## 可观测体系
 
@@ -269,6 +270,7 @@ Backup 3  : 自研 vLLM (on-prem)
 | 配置热更新导致状态不一致 | 部分实例先加载新配置 | 使用配置版本号 + 原子切换 |
 | 日志泄露敏感信息 | prompt 含 PII | 日志脱敏，只记录 token 长度与 hash |
 | MCP 工具被越权调用 | 默认放开上游全部工具 / 默认 master key 未关 | deny-by-default 白名单 + 虚拟 key 隔离 + 关闭 master key（参考 CVE-2026-59822） |
+| 成本核算与账单对不上 | 只按 input/output 两档估算，忽略 cached input / cache write / reasoning 分档计费 | 按档计量并透出指标，价格表随厂商调价更新（2026 年缓存折扣与附加费频繁变化） |
 | 语义缓存“串味” | 相似度阈值过低或场景上下文依赖强 | 提高阈值、按租户隔离缓存命名空间、敏感请求禁用缓存 |
 
 ## 本章小结
@@ -280,7 +282,9 @@ Backup 3  : 自研 vLLM (on-prem)
 - [LiteLLM Proxy — Deploy](https://docs.litellm.ai/docs/proxy/deploy)
 - [LiteLLM Production Guide](https://docs.litellm.ai/docs/proxy/production)
 - [LiteLLM MCP 文档](https://docs.litellm.ai/docs/mcp)
-- [Envoy AI Gateway — Backend](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router — Backend](https://aigateway.envoyproxy.io/docs/)
 - [Kubernetes Gateway API Inference Extension](https://github.com/kubernetes-sigs/gateway-api-inference-extension)
 - [llm-d Prefix-Cache-Aware Routing](https://markellr-redhat.github.io/llm-d-prefix-cache-routing/)
 - [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/)
+- [AWS Bedrock AgentCore Gateway 文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
+- [Agent Router Release Notes](https://theagentrouter.ai/release-notes/)

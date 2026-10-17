@@ -217,6 +217,8 @@ OpenAI-compatible provider（vLLM、Triton OpenAI frontend、LiteLLM）通常直
 | `llm_gateway_fallback_total` | Counter | `from`, `to` | fallback 次数 |
 | `llm_gateway_circuit_breaker_state` | Gauge | `provider` | 熔断器状态 |
 
+2026 年后需补充两类指标：`tokens` 指标按 input / output / cached / reasoning 分档（cached 计量决定缓存经济账是否算得清），以及 MCP 网关场景下按 `Mcp-Method` / 工具名聚合的调用量与失败率。
+
 暴露方式：
 
 - Prometheus `/metrics` 文本端点。
@@ -271,7 +273,7 @@ request ──► exact hash 查询 ──命中──► 返回
 职责：面向 Agent 的 MCP 协议接入与工具治理。
 
 - **工具聚合**：把多个上游 MCP Server 的工具列表聚合成统一入口，按调用方身份过滤可见工具。
-- **工具级鉴权**：deny-by-default 白名单 + 按虚拟 key / JWT claims 授权（Envoy AI Gateway 用 `MCPRouteSecurityPolicy` + CEL 表达式实现）。
+- **工具级鉴权**：deny-by-default 白名单 + 按虚拟 key / JWT claims 授权（Agent Router 用 `MCPRouteSecurityPolicy` + CEL 表达式实现）。
 - **工具级限流与计量**：按工具名限流、计费、出指标。
 - **协议桥接**：modern（无状态 HTTP Tools）↔ legacy（握手 + 会话）双向转换；Higress v2.2.4 起在协议层把方法与工具名放入 HTTP Header，网关无需解析 JSON Body 即可路由与计量。
 - **存量 API 转化**：Higress 支持把存量 REST API “零代码”包装成 MCP Server，是存量系统接入 Agent 的低成本路径。
@@ -286,5 +288,5 @@ LLM Gateway 的核心模块——Config、Registry、Auth、Rate Limiter、Route
 - [LiteLLM Caching](https://docs.litellm.ai/docs/proxy/caching)
 - [Kong ai-semantic-cache 插件](https://docs.konghq.com/hub/kong-inc/ai-semantic-cache/)
 - [APISIX ai-proxy / ai-prompt-guard 插件](https://apisix.apache.org/docs/apisix/plugins/ai-proxy/)
-- [Envoy AI Gateway Filters](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router Filters 文档](https://aigateway.envoyproxy.io/docs/)
 - [Prometheus Best Practices](https://prometheus.io/docs/practices/naming/)

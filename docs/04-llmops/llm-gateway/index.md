@@ -8,10 +8,10 @@
 
 1. 解释为什么企业在 vLLM / TensorRT-LLM / Triton / OpenAI / Azure 共存时需要 LLM Gateway。
 2. 说清楚 LLM Gateway 的 8 大核心能力：Provider 抽象、统一 API、路由、负载均衡、限流、重试降级、认证、可观测。
-3. 了解 2025-2026 年的三个新能力方向：语义缓存（Semantic Caching）、Guardrails、MCP 工具治理（MCP Gateway）。
+3. 了解 2025-2026 年的新能力方向：语义缓存（Semantic Caching）、Guardrails、MCP 工具治理（MCP Gateway），以及随模型降价升级的成本分档计量。
 4. 画出典型 LLM Gateway 架构，并说明控制面与数据面的职责边界。
 5. 理解一个请求从进入网关到返回的完整生命周期，以及 MCP 工具调用的生命周期。
-6. 对比 LiteLLM Proxy、Envoy AI Gateway、Kong AI Gateway、Higress、Apache APISIX、Portkey、Cloudflare AI Gateway、OpenRouter 的侧重点。
+6. 对比 LiteLLM Proxy、Agent Router（原 Envoy AI Gateway）、Kong AI Gateway、Higress、Apache APISIX、Portkey、AWS Bedrock AgentCore Gateway、Cloudflare AI Gateway、OpenRouter 的侧重点。
 7. 理解自托管 vLLM 集群的 KV-Cache 感知路由（Gateway API Inference Extension）。
 8. 跑通并扩展本主题的 Mini Demo，理解其代码组织。
 9. 回答生产部署、多租户、成本追踪、MCP 安全相关的面试问题。

@@ -62,6 +62,7 @@
 - **注意缓存失效**。模型版本更新、上下文变化时要失效或版本化缓存。
 - **敏感数据不缓存**。涉及 PII 或商业机密的 prompt 应跳过缓存，并考虑按租户隔离缓存命名空间。
 - **观测命中率**。`cache_hit_total{mode="exact|semantic"}` 进大盘，命中率长期过低说明场景不适合或阈值有问题。
+- **算清缓存经济账**：2026 年主流厂商缓存读取折扣普遍约 90%（DeepSeek 约 98%），但部分模型收 1.25× 缓存写入费并设最小 token 阈值（1,024+）。网关应透传并计量 cached tokens，把“前缀稳定性”当一等公民（Agent 系统提示词稳定且共享），命中率直接决定账单；同时关注厂商错峰计价等时间维度优惠。
 
 ## 9. 安全与合规
 
@@ -97,7 +98,8 @@
 - **工具权限挂在虚拟 key 上**：不同应用/用户使用不同 key，工具可见性与配额随 key 走，便于审计与回收。
 - **高危工具单独治理**：支付、删除、写操作类工具单独限流并开启调用告警。
 - **保持网关版本与补丁更新**：MCP 端点是新攻击面（如 CVE-2026-59822），纳入常规漏洞管理流程。
-- **协议桥接交给网关**：modern / legacy MCP 协议错配期，不要让每个 Agent 自己处理兼容，由网关统一桥接。
+- **协议桥接交给网关**：modern / legacy MCP 协议错配期，不要让每个 Agent 自己处理兼容，由网关统一桥接（如 Higress 的 `protocolStrategy: auto`）。
+- **托管替代方案**：不想自建时，AWS Bedrock AgentCore Gateway 提供 Cedar 默认拒绝策略、网关侧 Guardrails 与双向认证的全托管 MCP 治理（按调用量计费），适合深度 AWS 生态的团队。
 
 ## 14. 与推理引擎协同
 
@@ -133,4 +135,6 @@ LLM Gateway 的最佳实践覆盖了供应商管理、路由、限流、重试�
 - [LiteLLM Caching](https://docs.litellm.ai/docs/proxy/caching)
 - [Portkey Semantic Cache](https://docs.portkey.ai/docs/product/ai-gateway/cache-simple-and-semantic)
 - [OpenAI API — Rate Limits](https://platform.openai.com/docs/guides/rate-limits)
+- [LLM API Pricing Comparison 2026（CloudZero，第三方比价）](https://www.cloudzero.com/blog/llm-api-pricing-comparison/)
+- [AWS Bedrock AgentCore Gateway 文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html)
 - [Google SRE Book — Reliability](https://sre.google/sre-book/table-of-contents/)

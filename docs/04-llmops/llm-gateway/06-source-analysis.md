@@ -6,12 +6,12 @@
 
 | 项目 | 仓库 | 定位 | 分析重点 |
 |---|---|---|---|
-| **LiteLLM** | [BerriAI/litellm](https://github.com/BerriAI/litellm) | 开源 LLM 统一调用库 + Proxy | Provider 抽象、Router、Rate Limit、Fallback、MCP Gateway |
-| **Envoy AI Gateway** | [envoyproxy/ai-gateway](https://github.com/envoyproxy/ai-gateway) | 基于 Envoy 的 AI 网关（2026 年 v1.0 GA 后又称 Agent Router） | Gateway API CRD、Filter 链、MCPRoute 工具级鉴权 |
-| **Kong AI Gateway** | [Kong/kong](https://github.com/Kong/kong) | API Gateway 的 AI 插件集 | Plugin 体系、ai-semantic-cache、token 计数 |
-| **Higress** | [alibaba/higress](https://github.com/alibaba/higress) | 云原生 AI 网关（CNCF Sandbox，Envoy + Wasm） | Wasm 插件机制、MCP 网关、推理扩展负载均衡 |
+| **LiteLLM** | [BerriAI/litellm](https://github.com/BerriAI/litellm) | 开源 LLM 统一调用库 + Proxy（2026 年 10 月稳定版 v1.105） | Provider 抽象、Router、Rate Limit、Fallback、MCP Gateway、Auto Router |
+| **Agent Router**（原 Envoy AI Gateway） | [envoyproxy/ai-gateway](https://github.com/envoyproxy/ai-gateway) | 基于 Envoy 的 AI 网关（2026 年 v1.0 GA，v1.2 起更名 Agent Router，CRD 不变） | Gateway API CRD、Filter 链、MCPRoute 工具级鉴权 |
+| **Kong AI Gateway** | [Kong/kong](https://github.com/Kong/kong) | API Gateway 的 AI 插件集（AI Gateway 2.2，2026 年 9 月 GA） | Plugin 体系、ai-semantic-cache、MCP ACL、token 计数 |
+| **Higress** | [alibaba/higress](https://github.com/alibaba/higress) | 云原生 AI 网关（CNCF Sandbox，Envoy + Wasm，v2.2.5） | Wasm 插件机制、MCP 网关、推理扩展负载均衡 |
 
-> 注：开源项目迭代较快，本节基于 2026 年 7 月前后主流分支的结构进行分析，具体文件名可能随版本微调。
+> 注：开源项目迭代较快，本节基于 2026 年 10 月前后主流分支的结构进行分析，具体文件名可能随版本微调。
 
 ## LiteLLM 架构概览
 
@@ -151,24 +151,29 @@ LiteLLM Proxy 支持两种模式：
 
 成本计算依赖 `litellm.get_model_cost_map()`，其中维护了各 provider/model 的 input/output token 单价。
 
-## LiteLLM 的 MCP Gateway 与 Guardrails（2025-2026 新增）
+## LiteLLM 的 MCP Gateway、Guardrails 与 Auto Router（2025-2026 新增）
 
-除 chat completions 外，LiteLLM Proxy 近两年的演进重点在两个方向：
+除 chat completions 外，LiteLLM Proxy 近两年的演进重点在三个方向：
 
 ### MCP Gateway
 
 - 配置中声明上游 MCP Server（SSE / Streamable HTTP），Proxy 聚合其工具列表并暴露统一的 MCP 端点。
-- 支持 **deny-by-default 的工具白名单**：默认拒绝所有工具，按 server 配置 `allowed_tools` 逐个放行；可按虚拟 key / access group 做工具级权限。
-- 支持按 server 固定 MCP spec 版本，modern / legacy 协议并存时做桥接。
-- 安全教训：2026 年披露的 **CVE-2026-59822**（MCP 认证绕过，影响 < 1.84.0，曾出现默认 master key 被利用的案例）说明 MCP 端点的鉴权路径必须作为重点审计对象，生产部署应保持版本 ≥ 1.84 并关闭默认 master key。
+- 支持 **deny-by-default 的工具白名单**：默认拒绝所有工具，按 server 配置 `allowed_tools` 逐个放行；可按虚拟 key / access group 做工具级权限（v1.100 起 access group 可设预算）。
+- 支持按 server 固定 MCP spec 版本，modern / legacy 协议并存时做桥接；v1.101 起支持**语义 MCP 工具检索**（按 embedding 相似度在上百个工具中检索，缩小 Agent 提示体积）。
+- 安全收紧：v1.104（2026 年 10 月）起**强制 master key 校验、stdio MCP 默认关闭**。
+- 安全教训：2026 年披露的 **CVE-2026-59822**（MCP 认证绕过，影响 < 1.84.0，曾出现默认 master key 被利用的案例）说明 MCP 端点的鉴权路径必须作为重点审计对象，生产部署至少保持版本 ≥ 1.84 并及时跟进最新稳定版（2026 年 10 月为 v1.105.x），同时关闭默认 master key。
 
 ### Guardrails Hook
 
-`litellm_settings.guardrails` 配置一组 hook，在请求前/后执行自定义或内置检查（如 AWS Bedrock Guardrails、Lakera），命中即短路返回 `400`。Hook 与日志回调（`proxy_logging.py`）共用同一事件总线，是 LiteLLM 插件化的主扩展点。
+`litellm_settings.guardrails` 配置一组 hook，在请求前/后执行自定义或内置检查（如 AWS Bedrock Guardrails、Lakera），命中即短路返回 `400`。Hook 与日志回调（`proxy_logging.py`）共用同一事件总线，是 LiteLLM 插件化的主扩展点。v1.97 起增加 tool-result guardrails（对工具返回内容做检测）。
 
-## Envoy AI Gateway 的过滤器链
+### Auto Router（v1.101 ~ v1.103）
 
-Envoy AI Gateway 不是独立网关，而是基于 Envoy 的扩展：
+LiteLLM 2026 年下半年的重要新方向是**自动路由**：v1.101 引入启发式 Auto Router，按请求特征（成本/延迟/能力需求）在候选模型间自动选择；v1.103 增加 **Fuse**（融合多策略打分）与 **Capability**（按能力标签匹配）两种路由策略，v1.98 起支持 shadow eval（影子评估）——把自动路由的决策与基线路由并行对比，量化路由效果后再上线。v1.105 进一步把网关推向 Agent 层：新增 **Decisions API**（`/v1/decisions`，面向决策类工作负载）、`litellm.agent()`（编码 Agent 经网关调用）与 **Lens**（Agent Traces 追踪）。
+
+## Agent Router（原 Envoy AI Gateway）的过滤器链
+
+Agent Router 不是独立网关，而是基于 Envoy 的扩展：
 
 ```text
 Client -> Envoy Listener -> HTTP Connection Manager -> AI Gateway Filters -> Upstream Cluster
@@ -180,11 +185,16 @@ Client -> Envoy Listener -> HTTP Connection Manager -> AI Gateway Filters -> Ups
    - **AI Input Filter**：解析 OpenAI 请求，提取 model、messages、stream。
    - **AI Routing Filter**：根据 model / backend 选择 upstream cluster。
    - **AI Output Filter**：转换响应格式，统计 token。
-2. **Gateway API**：v1.0（2026 年 6 月 GA）将 6 个 CRD 升级为稳定 API：`AIGatewayRoute`、`AIServiceBackend`、`BackendSecurityPolicy`、`GatewayConfig`、`MCPRoute`、`MCPRouteSecurityPolicy`，并承诺 1.x 内不做破坏性变更（项目在 GA 后以 Agent Router 之名继续演进）。
+2. **Gateway API**：v1.0（2026 年 6 月 GA）将 6 个 CRD 升级为稳定 API：`AIGatewayRoute`、`AIServiceBackend`、`BackendSecurityPolicy`、`GatewayConfig`、`MCPRoute`、`MCPRouteSecurityPolicy`，并承诺 1.x 内不做破坏性变更（项目在 GA 后以 Agent Router 之名继续演进，API group 与 CRD 名称不变）。
 3. **BackendSecurityPolicy**：集中管理上游凭证——OpenAI/Anthropic/Azure API key、AWS 凭证链（IRSA、EKS Pod Identity）、GCP Workload Identity，密钥不出现在应用配置里。
 4. **Backend Policy**：把 provider（OpenAI、vLLM 等）声明为 Backend，配置 credential、timeout、retry。
 
 v1.0 同时带来了几项企业级能力：请求/响应体敏感字段脱敏（合规）、token 感知的限流与配额（区分 input / output / cached / reasoning token 计量）、provider fallback/failover、对接 InferencePool 的自托管模型支持。语义缓存则仍未内置，需要 `ext_proc` 外接处理器 + 向量库实现。
+
+v1.0 之后的版本节奏：
+
+- **v1.1（2026 年 8 月）**：补齐跨 provider token 计数、按请求透传上游凭证（per-request upstream credentials）、流式空闲超时 failover（stream idle timeout with failover）、MCP 按域名路由与 CEL backend 选择、可选 OpenTelemetry GenAI 追踪、HTTP CONNECT 正向代理出站。
+- **v1.2（2026 年 10 月，首个以 Agent Router 之名发布的版本）**：MCP 安全强化——`MCPRoute` 支持策略合并（policy merging）、调用方凭证（caller-supplied credentials）与裸工具名（bare tool names），跨命名空间引用加固；新增 AWSOpenAI、TypeSafe 两种后端 schema、header 值过滤器与按后端粒度指标；底层升级到 Envoy Gateway v1.9.2、Gateway API v1.6 与推理扩展 v1.6。
 
 Envoy 的优势在于：
 
@@ -204,7 +214,7 @@ Kong 通过一系列 AI 插件实现 LLM 网关能力：
 - **`ai-prompt-template`**：预定义 prompt 模板。
 - **`ai-semantic-cache`**（3.8+）：embedding + 向量存储的语义缓存，命中时官方称延迟降低 3~10 倍；可配置相似度阈值与“精确 + 语义”混合模式。
 - **`ai-token-rate-limiting`**：按 token 限流。
-- **MCP 工具治理**（独立 AI Gateway 2.2，2026 年 9 月）：MCP 工具代理与治理、身份感知 AI 策略。
+- **MCP 工具治理**（独立 AI Gateway 2.2，2026 年 9 月 30 日 GA）：MCP Server Bundling 把多个上游 MCP Server 聚合到单一路由，由网关代管 MCP 握手并聚合工具列表；**MCP ACL 插件**让未授权工具在 `tools/list` 发现阶段即被隐藏，而不是只在执行阶段拦截；同时引入基于 Kong Identity 的身份感知 AI 策略（按认证主体做限流、成本归集与访问控制）与文本/音频/图像/视频分模态成本管理（含 cache read/write 区分）。
 
 Kong 的插件链与 NGINX/OpenResty 的 access/content/log 阶段对应，适合已有 Kong 基础设施的团队；注意语义缓存、语义路由、MCP 代理等高级插件属于 Enterprise / Konnect 档位。
 
@@ -212,15 +222,15 @@ Kong 的插件链与 NGINX/OpenResty 的 access/content/log 阶段对应，适�
 
 Higress 基于 Istio + Envoy，但把扩展点从原生 C++ filter 换成了 **Wasm 插件**：插件用 Go/Rust/JS 等多语言编写，以沙箱形式挂在请求链路上，兼顾性能与生态：
 
-- **AI 插件族**：`ai-proxy` / `ai-proxy-multi`（多供应商代理与路由）、`ai-statistics`（token/TTFT 等指标，可按 MCP 方法与工具名聚合）、`ai-cache`、`ai-prompt-guard` 等。
-- **MCP 网关插件**：存量 REST API 通过注解“零代码”转换为 MCP Server；支持 modern↔legacy 协议桥接；MCP 方法/工具名以 HTTP Header 传递，插件无需解析 JSON Body 即可限流与计量。
-- **推理扩展**：AI 负载均衡支持 AdaptiveScore——综合首 Token 延迟、并发数、失败率对上游打分，并可接 Redis 在多实例间协同；同时对接 Gateway API 的推理扩展（Inference Extension）。
+- **AI 插件族**：`ai-proxy` / `ai-proxy-multi`（多供应商代理与路由）、`ai-statistics`（token/TTFT 等指标，可按 MCP 方法与工具名聚合）、`ai-cache`、`ai-prompt-guard` 等；v2.2.4（2026 年 8 月）起新增 `ai-context-limit`（上下文长度治理）与 `ai-security-guard`（集成 Qwen3Guard 等模型做输入/输出双向安全检测与脱敏），`ai-proxy` 增加 failover 冷却、模型映射 header 与流式 usage 控制。
+- **MCP 网关插件**：存量 REST API 通过注解“零代码”转换为 MCP Server；支持 modern↔legacy 协议桥接（`server.protocolStrategy: auto`），v2.2.4 实现 2026-07-28 MCP 协议标准，v2.2.5（2026 年 10 月）进一步增强 MCP 演示与运维安全；MCP 方法/工具名以 HTTP Header 传递，插件无需解析 JSON Body 即可限流与计量。
+- **推理扩展**：AI 负载均衡支持 AdaptiveScore——综合首 Token 延迟、并发数、失败率对上游打分，并可接 Redis 在多实例间协同；同时对接 Gateway API 的推理扩展（Inference Extension），运行时支持 v1.4 并跟进 Gateway API v1.6。
 
 这种“Envoy 数据面 + Wasm 插件 + Kubernetes Gateway API 控制面”的结构，是 2025-2026 年云原生 AI 网关的典型形态。
 
 ## 源码层面的共同模式
 
-| 能力 | LiteLLM | Envoy AI Gateway | Kong AI Gateway | Higress |
+| 能力 | LiteLLM | Agent Router | Kong AI Gateway | Higress |
 |---|---|---|---|---|
 | Provider 抽象 | `model_list` + `litellm_params` | AIServiceBackend + BackendSecurityPolicy | `ai-proxy` upstream | `ai-proxy` / `ai-proxy-multi` |
 | 路由 | `router.py` | AI Routing Filter | Route + Plugin | 路由 + Wasm 插件 |
@@ -233,16 +243,18 @@ Higress 基于 Istio + Envoy，但把扩展点从原生 C++ filter 换成了 **W
 
 ## 本章小结
 
-LiteLLM、Envoy AI Gateway、Kong AI Gateway、Higress 虽然实现不同，但都遵循“配置驱动 + 插件/过滤器链 + 统一协议适配”的模式。LiteLLM 适合快速落地和多样化 provider；Envoy AI Gateway 以稳定 CRD 成为 Kubernetes 体系的标准答案；Kong 适合已有 API 网关基础设施的团队；Higress 则以 Wasm 插件和 MCP 网关能力在国内 Agent 场景中领先。2025-2026 年的共同演进方向是：语义缓存降本、MCP 工具治理、与推理引擎的 KV-cache 感知协同。
+LiteLLM、Agent Router、Kong AI Gateway、Higress 虽然实现不同，但都遵循“配置驱动 + 插件/过滤器链 + 统一协议适配”的模式。LiteLLM 适合快速落地和多样化 provider，2026 年下半年以 Auto Router 与 Decisions API 向 Agent 层延伸；Agent Router 以稳定 CRD 成为 Kubernetes 体系的标准答案，v1.2 起更名并强化 MCP 安全；Kong 适合已有 API 网关基础设施的团队，2.2 把 MCP 治理推进到工具发现阶段；Higress 则以 Wasm 插件和 MCP 网关能力在国内 Agent 场景中领先。2025-2026 年的共同演进方向是：语义缓存降本、MCP 工具治理、与推理引擎的 KV-cache 感知协同，以及随模型降价升级的成本分档计量。
 
 **参考来源**
 
 - [LiteLLM GitHub](https://github.com/BerriAI/litellm)
 - [LiteLLM Proxy Docs](https://docs.litellm.ai/docs/proxy/)
 - [LiteLLM Release Notes](https://docs.litellm.ai/release_notes/)
-- [Envoy AI Gateway v1.0 Release Notes](https://theagentrouter.ai/release-notes/v1.0/)
-- [Envoy AI Gateway Docs](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router Release Notes（v1.0 ~ v1.2）](https://theagentrouter.ai/release-notes/)
+- [Agent Router Docs](https://aigateway.envoyproxy.io/docs/)
 - [Kong AI Gateway Plugins](https://docs.konghq.com/hub/?q=ai)
+- [Kong AI Gateway 2.2 GA（PR Newswire）](https://www.prnewswire.com/news-releases/kong-ai-gateway-expands-with-new-capabilities-bringing-enterprise-governance-to-the-agentic-ai-era-302894215.html)
 - [Kong AI Gateway 3.8 发布博客](https://konghq.com/blog/product-releases/ai-gateway-3-8)
 - [Higress GitHub](https://github.com/alibaba/higress)
+- [Higress Releases](https://github.com/alibaba/higress/releases)
 - [LiteLLM MCP 认证绕过分析（CVE-2026-59822）](https://nhimg.org/litellm-mcp-auth-bypass-2026-cve-2026-59822-ai-gateway-keys)

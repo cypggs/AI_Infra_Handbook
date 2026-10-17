@@ -281,7 +281,7 @@ sequenceDiagram
 
 与 chat completions 流水线的差异：
 
-- **鉴权粒度**：从“模型级”细化到“工具级”，推荐 deny-by-default 白名单（LiteLLM、Envoy AI Gateway 的 `MCPRouteSecurityPolicy` 均支持）。
+- **鉴权粒度**：从“模型级”细化到“工具级”，推荐 deny-by-default 白名单（LiteLLM、Agent Router 的 `MCPRouteSecurityPolicy` 均支持）；Kong AI Gateway 2.2 的 MCP ACL 更进一步，让未授权工具在 `tools/list` 发现阶段就被隐藏，调用方根本“看不见”无权工具。
 - **限流粒度**：可按工具名单独限流（Higress 的 `cluster-key-rate-limit` 插件支持按工具名如 `create_order` 分别限流）。
 - **协议适配**：新旧 MCP 协议（有状态握手 vs 无状态 HTTP Tools）之间需要网关桥接，Higress v2.2.4 起支持 modern↔legacy 双向转换，并把 MCP 方法/工具名放入 HTTP Header 以便不解析 JSON Body 即可路由与计量。
 - **可观测**：按 `Mcp-Method` / 工具名聚合调用量、延迟与失败率，而不是只看模型维度。
@@ -296,4 +296,4 @@ LLM Gateway 的请求生命周期是“**先拒绝、再决策、后调用、终
 - [LiteLLM Proxy — Fallbacks](https://docs.litellm.ai/docs/proxy/reliability)
 - [LiteLLM MCP Gateway 文档](https://docs.litellm.ai/docs/mcp)
 - [Portkey 缓存文档](https://docs.portkey.ai/docs/product/ai-gateway/cache-simple-and-semantic)
-- [Envoy AI Gateway — Routing](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router — Routing](https://aigateway.envoyproxy.io/docs/)

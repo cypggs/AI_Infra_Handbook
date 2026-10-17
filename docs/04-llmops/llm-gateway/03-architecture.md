@@ -27,7 +27,7 @@ flowchart TB
 | 层级 | 职责 | 典型组件/能力 |
 |---|---|---|
 | **接入层（Ingress）** | TLS 终止、HTTP/2、负载均衡、WAF | Nginx、Envoy、Cloudflare、AWS ALB |
-| **网关数据面** | 认证、限流、路由、转换、重试、指标 | LiteLLM Proxy、Envoy AI Gateway、Kong AI Gateway、自研 |
+| **网关数据面** | 认证、限流、路由、转换、重试、指标 | LiteLLM Proxy、Agent Router（原 Envoy AI Gateway）、Kong AI Gateway、自研 |
 | **网关控制面** | 配置、provider 注册、配额、审计 | Postgres/Redis、Admin API、Vault |
 | **上游 Provider** | 实际模型推理 | OpenAI、Azure、vLLM、Triton、SGLang |
 | **可观测层** | 日志、指标、追踪、成本分析 | Prometheus、Grafana、OpenTelemetry、Langfuse |
@@ -117,7 +117,7 @@ Cloudflare AI Gateway 是典型代表，适合缓存、全球加速、边缘安�
 
 ### 形态 4：Service Mesh 扩展
 
-Envoy AI Gateway 通过 Envoy filter + Gateway API 实现，适合已经使用 Istio/Envoy 的团队。
+Envoy AI Gateway（2026 年 10 月 v1.2 起更名 **Agent Router**，CRD 与 API group 不变）通过 Envoy filter + Gateway API 实现，适合已经使用 Istio/Envoy 的团队。
 
 ### 形态 5：MCP / Agent 网关（2025-2026 新形态）
 
@@ -128,7 +128,7 @@ Agent --MCP (tools/list, tools/call)--> MCP Gateway --HTTP/REST--> 存量业务 
                                      \--MCP--> 上游 MCP Server
 ```
 
-典型实现：LiteLLM MCP Gateway（聚合 + 工具白名单 + 虚拟 key 隔离）、Higress（REST API 零代码转 MCP Server + MCP Marketplace）、Envoy AI Gateway（MCPRoute / MCPRouteSecurityPolicy CRD + CEL 工具级鉴权）。
+典型实现：LiteLLM MCP Gateway（聚合 + 工具白名单 + 虚拟 key 隔离）、Higress（REST API 零代码转 MCP Server + MCP Marketplace）、Agent Router（`MCPRoute` / `MCPRouteSecurityPolicy` CRD + CEL 工具级鉴权）、AWS Bedrock AgentCore Gateway（全托管，REST/Lambda/OpenAPI 自动转 MCP 工具 + Cedar 默认拒绝策略）。
 
 ## 网关 × 推理引擎集成的新范式：KV-Cache 感知路由
 
@@ -191,7 +191,8 @@ LLM Gateway 架构的核心是“统一入口 + 数据面快速决策 + 控制�
 **参考来源**
 
 - [LiteLLM Architecture](https://docs.litellm.ai/docs/proxy/architecture)
-- [Envoy AI Gateway Architecture](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router（原 Envoy AI Gateway）架构文档](https://aigateway.envoyproxy.io/docs/)
+- [Agent Router Release Notes](https://theagentrouter.ai/release-notes/)
 - [Kubernetes Gateway API Inference Extension](https://github.com/kubernetes-sigs/gateway-api-inference-extension)
 - [llm-d 官网](https://www.llm-d.ai/)
 - [GKE Inference Gateway：KV-Cache-Aware 路由](https://www.spheron.network/blog/gke-inference-gateway-kv-cache-aware-llm-routing/)
