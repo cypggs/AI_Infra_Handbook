@@ -93,9 +93,15 @@ graph TB
 
 - **文件系统**：只读挂载必要目录，工作区按 Agent 隔离。
 - **网络**：出站网络白名单，禁止横向扫描。
-- **Secret**：通过 Vault 等 Secret Manager 注入，避免泄露到 Agent 上下文。
+- **Secret**：通过 Vault 等 Secret Manager 注入，避免泄露到 Agent 上下文；优先 JIT 临时凭证（OWASP ASI:2026 建议），避免 Agent 持有长期密钥。
 - **资源**：CPU、内存、磁盘、网络带宽限制。
 - **时间**：单次工具调用与总执行时间上限。
+
+### 2026 年的沙箱基线
+
+- **不可信代码一律 microVM**：Firecracker/Kata 提供独立内核隔离（约 125ms 冷启动），容器仅用于可信代码（OWASP ASI05）。
+- **快照即恢复**：选择支持 pause/resume/fork 的沙箱（E2B、AWS Bedrock AgentCore、Vercel Sandbox、Perplexity SPACE 均基于 Firecracker 快照），让抢占恢复与分支探索由 OS 层兜底，Agent 框架无需自建状态序列化。
+- **平台选型参考**：自托管用 E2B（Apache 2.0）；AWS 上托管用 AgentCore Runtime（会话级 microVM、8 小时长会话）；边缘/纯计算工具用 Wasm 沙箱降低成本。
 
 ## 调度生产实践
 
@@ -156,6 +162,23 @@ graph LR
 
 ## 安全
 
+### 以 OWASP ASI:2026 为风险基线
+
+OWASP Agentic AI Top 10（2025-12-09 发布，配套《State of Agentic AI Security and Governance v2.01》2026-06 更新）是 2026 年 Agent 安全的事实基线，落地时按风险逐条映射控制措施：
+
+| 风险 | 等级 | 主要控制 | 责任模块 |
+|---|---|---|---|
+| ASI01 目标劫持 | 高 | 输入意图校验、计划审计 | Policy Engine |
+| ASI02 工具误用（占实测发现 64%） | 高 | Intent Gate、参数校验、白名单 | Policy Engine + MCP Host |
+| ASI03 身份与权限滥用 | 高 | 工作负载身份、最小权限、JIT 凭证 | Capability Manager + Identity Plane |
+| ASI04 供应链投毒 | 中 | AIBOM/SBOM、MCP Server 准入审查 | Registry |
+| ASI05 意外代码执行 | 高 | microVM 沙箱、命令白名单 | Sandbox |
+| ASI06 记忆与上下文投毒 | 中 | 记忆内容校验、回滚 | Workspace + Recovery |
+| ASI07 不安全的 Agent 间通信 | 中 | mTLS、调用链上下文（Transaction Tokens） | Message Bus |
+| ASI08 级联故障 | 中 | 熔断、配额隔离 | Recovery + Scheduler |
+| ASI09 人机信任剥削 | 中 | HITL 确认界面防伪、操作公示 | Human Gate |
+| ASI10 流氓 Agent | 高 | 持续行为监控、终止开关 | Observer + Process Manager |
+
 ### 最小权限原则
 
 - 每个 Agent 只能访问完成任务所需的最小能力集合。
@@ -163,9 +186,16 @@ graph LR
 
 ### MCP Host 安全
 
-- 对 MCP Server 进行身份验证（如 OAuth、MTLS）。
-- 对每次工具调用进行参数校验与策略检查。
+- 对 MCP Server 进行身份验证（MCP 2026-07-28 落地 OAuth 2.1：RFC 9728 元数据发现、RFC 8707 resource 参数强制、RFC 9207 iss 校验）。
+- 对每次工具调用进行参数校验与策略检查——Intent Gate 应在执行前拦截，而非执行后审计。
+- 策略语言可参考 Cedar 系（AWS Bedrock AgentCore Policy 使用兼容 Cedar 的 Dogwood）。
 - 敏感操作触发 HITL。
+
+### Agent 身份与委托链
+
+- **"Agent 是谁"**：用 SPIFFE/SPIRE 或企业 IdP（如 Microsoft Agent 365 把 Agent 注册为 Entra ID 主体）发放工作负载身份；IETF WIMSE/AIMS 草案提供了组合方案。
+- **"能做什么、代表谁"**：MCP 访问走 OAuth 2.1；跨 Agent 多跳调用链用 Transaction Tokens / Token Exchange（RFC 8693）传播上下文。
+- **未解难题**：多跳委托的权限衰减（token attenuation）尚无定稿标准，敏感链路建议保守策略 + 每跳显式审批。
 
 ### ProbeLogits 集成
 
@@ -179,6 +209,7 @@ graph LR
 - 所有 Agent 操作可追溯：谁创建、谁审批、谁调用、结果如何。
 - 支持按租户、按 Agent 类型、按工具导出审计报告。
 - 符合 SOC2、GDPR、HIPAA 等合规要求。
+- 2026-08 CSA 发布的 AIUC-1 ↔ OWASP Agentic 交叉映射可作为合规对照表。
 
 ## 成本核算
 
@@ -234,14 +265,17 @@ graph LR
 
 - 生产级 Agent OS 需要综合考虑部署拓扑、多租户隔离、沙箱策略、调度、可观测、安全、成本、升级与恢复。
 - Kubernetes 原生式适合强隔离，服务式适合快速迭代，混合式适合大型企业。
-- 可观测应覆盖 trace、metrics、logs、reasoning path；安全应以 MCP Host 为策略执行点。
+- 可观测应覆盖 trace、metrics、logs、reasoning path；安全应以 MCP Host 为策略执行点，以 OWASP ASI:2026 为风险基线，以"SPIFFE/WIMSE + OAuth 2.1/事务令牌"两层模型落地 Agent 身份。
 - 成本核算需要按 Token、工具调用、计算、存储、网络多维度拆分。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
 - [DeltaBox: Checkpoint and Rollback for LLM Agents](https://arxiv.org/abs/2605.22781)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)

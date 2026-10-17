@@ -231,11 +231,27 @@ def priority(agent):
 
 来源：[HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
 
+### Continuum：面向推理引擎的 Agent 调度
+
+**论文**：Continuum: Efficient and Robust Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live（arXiv:2511.02230，ICLR 2026）
+
+**核心思想**：与 AgentRM/HiveMind 在"任务级"调度 Agent 不同，Continuum 下沉到**推理引擎层**：多轮 Agent 的工具调用间隙，KV Cache 常被立即驱逐导致 re-prefill 与重新排队。Continuum 为缓存设置 TTL——工具按时返回则续算，超时则驱逐兜底。
+
+**关键设计**：
+
+- **KV Cache TTL**：按预测时长钉住 GPU 缓存，兼顾延迟与显存安全。
+- **Program 级 FCFS**：保持同一 Agent 多轮的执行顺序，减少调度气泡。
+- 基于 vLLM 实现，SWE-Bench / BFCL 类负载延迟下降约 1.12×–3.66×，吞吐提升约 1.10×–3.22×。
+
+**与 Agent OS 的关系**：Scheduler 模块需要向下暴露"暂停/恢复"语义给推理层，Token 预算之外还要感知 KV Cache 占用——这是 2026 年 Agent 调度器与传统任务调度器的本质差异。
+
+来源：[Continuum](https://arxiv.org/abs/2511.02230)、[vllm-continuum](https://github.com/Hanchenli/vllm-continuum)
+
 ## 6. MCP Host：协议式 Agent OS 入口
 
-**来源**：Model Context Protocol Specification（2025-03-26）
+**来源**：Model Context Protocol Specification（2026-07-28 修订版）
 
-**核心思想**：MCP 定义了 Host、Client、Server 三方模型，Host 负责管理 Client 与 Server 的生命周期、能力协商、权限边界。Host 本质上是 Agent OS 的“系统调用门面”。
+**核心思想**：MCP 定义了 Host、Client、Server 三方模型，Host 负责管理 Client 与 Server 的生命周期、能力协商、权限边界。Host 本质上是 Agent OS 的”系统调用门面”。
 
 **架构图**：
 
@@ -254,17 +270,20 @@ graph TB
 
 **关键设计**：
 
+- **无状态核心（2026-07-28）**：取消 initialize/initialized 握手与 `Mcp-Session-Id`，每个请求自带协议版本、Client 身份与能力声明，Host 可无状态水平扩展、部署在标准网关之后。
+- **能力协商与发现**：`server/discover` 取代初始化期发现；`tools/list` 结果可缓存（`ttlMs`）；正式扩展框架（Tasks、MCP Apps、EMA 等）按需启用。
+- **授权**：HTTP 传输落地 OAuth 2.1 精选子集——强制 RFC 9728 Protected Resource Metadata、RFC 8707 resource 参数、RFC 9207 iss 校验；Bearer 只允许走 Header。
 - **Lifecycle Management**：Host 创建/销毁 Client，维护 Server 连接（stdio、Streamable HTTP）。
-- **Capability Negotiation**：Host 聚合 Server 提供的 tools、resources、prompts、roots。
-- **Sampling**：Host 可以代表 Server 向 LLM 请求采样。
+- **Sampling**：Host 可以代表 Server 向 LLM 请求采样；MRTR（Multi Round-Trip Requests）支持工具执行中反向请求用户补充信息。
 - **Security Boundary**：Host 是可信边界，Client 与 Server 之间的通信由 Host 控制。
 
 **与 Agent OS 的关系**：
 
 - MCP Host 是 Agent OS 中 Capability Manager 与 Policy Engine 的协议化身。
 - Agent OS 负责 Host 的多实例管理、调度、审计、多租户隔离。
+- 无状态化意味着"会话状态"这一传统 Host 职责上移到 Agent OS 的 Workspace 模块。
 
-来源：[MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+来源：[MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 
 ## 7. OpenAI Agents SDK Runner
 
@@ -334,7 +353,51 @@ graph TB
 
 来源：[AutoGen Documentation](https://microsoft.github.io/autogen/stable/)
 
-## 9. 开源 AgentOS 项目
+## 9. Amazon Bedrock AgentCore：托管式 Agent OS 参照实现
+
+**来源**：Amazon Bedrock AgentCore（2025 年底 GA）
+
+如果说 AIOS 是学术蓝图，Bedrock AgentCore 是 2026 年工业界"模块对齐全套 Agent OS 原语"的代表：它把本主题的核心模块做成一组可独立使用的托管服务。
+
+```mermaid
+graph TB
+    subgraph AgentCore
+        RT[Runtime<br/>会话级 microVM 隔离]
+        MEM[Memory<br/>短/长期记忆]
+        GW[Gateway<br/>API/Lambda → MCP 工具]
+        ID[Identity<br/>对接企业 IdP]
+        POL[Policy<br/>Dogwood/Cedar 拦截每次工具调用]
+        REG[Registry<br/>Agent/工具目录]
+        OBS[Observability<br/>OTel 标准]
+        EVAL[Evaluations / Optimization]
+        CI[Code Interpreter<br/>隔离代码沙箱]
+    end
+    A[Agent] --> RT
+    RT --> MEM
+    RT --> GW
+    GW --> POL
+    GW --> REG
+    RT --> OBS
+    EVAL --> OBS
+```
+
+**与本主题模块的映射**：
+
+| AgentCore 服务 | 对应 Agent OS 模块 | 要点 |
+|---|---|---|
+| Runtime | Process Manager + Sandbox | 每个会话运行在隔离 microVM，支持 8 小时长会话与异步 Agent |
+| Identity | Capability Manager（身份侧） | Agent 作为身份主体接入企业 IdP（Cognito、Okta、Entra ID） |
+| Policy | Policy Engine | Dogwood（兼容 Cedar）声明式策略，在 Gateway 拦截**每一次**工具调用 |
+| Registry | Registry | Agent/MCP Server/工具的统一目录与审批发布流 |
+| Memory | Workspace | 短期多轮 + 跨会话长期记忆，可跨 Agent 共享 |
+| Gateway | MCP Host | 把既有 API/Lambda 包装为 MCP 工具 |
+| Observability + Evaluations + Optimization | Observer | OTel 标准 trace + 评测 + A/B 优化闭环 |
+
+**启示**：生产级 Agent OS 的竞争焦点已从"能不能跑"转向"治理闭环"——注册、策略、观测、评测、优化形成飞轮；策略语言（Cedar 系）成为 Policy Engine 的事实选择之一。
+
+来源：[Amazon Bedrock AgentCore 官方文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)
+
+## 10. 开源 AgentOS 项目
 
 ### Rivet agentOS
 
@@ -359,7 +422,9 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 - 策略定义与执行。
 - 审计与合规报告。
 
-这些项目代表了 Agent OS 从“调度运行时”向“治理平台”演进的工业实践。
+2026-04 的更新版把 OWASP ASI:2026 十大风险映射到具体控制：能力沙箱、MCP 安全网关、身份策略，代表”治理框架 + 风险基线”的整合方向。
+
+这些项目代表了 Agent OS 从”调度运行时”向”治理平台”演进的工业实践。
 
 ## 设计取舍对比表
 
@@ -370,9 +435,11 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 | Quine | POSIX 进程 | 依赖外部 OS | 高 | 文件系统 | 依赖外部 | Unix/Linux 集成 |
 | AgentRM | 资源管理 | MLFQ | 弱 | 无 | 无 | 大规模调度 |
 | HiveMind | Token 预算 | Token-aware | 弱 | 无 | 无 | 成本敏感 |
+| Continuum | KV Cache TTL | 推理引擎级 | 无 | KV Cache | 无 | 多轮 Agent 延迟优化 |
 | MCP Host | Host/Client/Server | 无 | 协议边界 | 无 | Host 层策略 | 工具标准化 |
 | OpenAI Agents SDK Runner | Runner | 单 Agent | 低 | 无 | Guardrails | 单 Agent 应用 |
 | AutoGen Runtime | 消息驱动 | 消息路由 | 低 | 无 | 基础 | Multi-Agent 协作 |
+| Bedrock AgentCore | 模块化托管服务 | 有 | 会话级 microVM | 有 | 强（Policy/Registry） | 企业级托管治理 |
 | 开源 AgentOS | 治理平台 | 有 | 中/高 | 有 | 强 | 企业治理 |
 
 ## 选型建议
@@ -382,18 +449,20 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 | 研究 Agent OS 抽象 | AIOS、Agent libOS |
 | 与现有 Linux 生态集成 | Quine |
 | 大规模 Agent 调度优化 | AgentRM、HiveMind |
-| 标准化工具接入 | MCP Host |
+| 多轮 Agent 推理延迟优化 | Continuum（结合 vLLM） |
+| 标准化工具接入 | MCP Host（2026-07-28 无状态规范） |
 | 单 Agent 应用快速开发 | OpenAI Agents SDK Runner |
 | 多 Agent 协作原型 | AutoGen Runtime |
-| 企业级 Agent 治理 | Microsoft Agent Governance Toolkit、Framers AgentOS |
+| 企业级托管 Agent OS | Amazon Bedrock AgentCore |
+| 企业级 Agent 治理 | Microsoft Agent Governance Toolkit、Framers AgentOS、ServiceNow AI Control Tower |
 
 ## 本章小结
 
 - AIOS 是系统化的 Agent OS 学术原型；Agent libOS 与 Quine 分别代表库式与 POSIX 进程式实现。
-- AgentRM 与 HiveMind 专注于调度，分别从 MLFQ 与 Token 预算角度优化。
-- MCP Host 是 Agent OS 在协议层的关键入口，负责工具/资源的能力协商与权限边界。
+- AgentRM 与 HiveMind 专注于任务级调度（MLFQ 与 Token 预算）；Continuum 下沉到推理引擎层，用 KV Cache TTL 优化多轮 Agent 延迟——两者组合才是完整的调度栈。
+- MCP Host 是 Agent OS 在协议层的关键入口；2026-07-28 规范无状态化后，会话状态上移到 OS 层，Host 可以更纯粹地做策略执行点。
 - OpenAI Agents SDK Runner 与 AutoGen Runtime 是 Runtime/Multi-Agent 层的优秀实现，Agent OS 在其之上提供调度、隔离与治理。
-- 工业界开源项目正从“运行时”向“治理平台”演进。
+- Amazon Bedrock AgentCore 代表了”模块对齐十大原语 + 治理闭环”的托管式工业实现；开源项目正从”运行时”向”治理平台”演进。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
@@ -401,9 +470,11 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 - [Quine: LLM agents as native POSIX processes](https://arxiv.org/abs/2603.18030)
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
 - [AutoGen Documentation](https://microsoft.github.io/autogen/stable/)
+- [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)
 - [Rivet](https://rivet.gg/)
 - [Framers AgentOS](https://www.framers.ai/)
 - [Microsoft Agent Governance Toolkit](https://www.microsoft.com/en-us/security/blog/2025/05/06/introducing-the-microsoft-agent-governance-toolkit/)

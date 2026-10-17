@@ -30,6 +30,8 @@
   - MLFQ 风格的 Agent 调度，根据历史行为调整优先级。
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
   - 以 Token 为核心资源进行调度、预算与抢占。
+- [Continuum: Efficient and Robust Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
+  - ICLR 2026；把 KV Cache 纳入调度资源，工具调用间隙钉住缓存，多轮 Agent 延迟下降 1.12×–3.66×。
 
 ### 隔离与恢复
 
@@ -44,17 +46,27 @@
   - 在 MCP Host 层实现治理：能力注册、授权、审计、consent、HITL。
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
   - 通过探测 LLM logits 识别有害输出与越权意图。
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+  - 十大 Agentic 风险与 Intent Gate、JIT 凭证等控制措施，是 Agent 安全的事实基线。
+- [OWASP State of Agentic AI Security and Governance v2.01](https://letsdatascience.com/news/owasp-releases-agentic-ai-security-report-v201-b6926a1d)
+  - 把十大风险映射到真实 CVE 与部署架构（2026-06 更新）。
+- [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
+  - 面向多跳委托链的可验证授权：IBCT + Biscuit 令牌；IETF 侧对应 AIMS/WIMSE/Transaction Tokens 草案。
 
 ## 规范与协议
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
-  - MCP 官方规范，定义 Host/Client/Server 架构、生命周期、能力协商、stdio/Streamable HTTP 传输。
+- [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+  - MCP 最新规范：无状态核心、`server/discover`、OAuth 2.1 授权、扩展框架（Tasks、MCP Apps）。
 - [MCP Official Introduction](https://modelcontextprotocol.io/)
   - MCP 官方介绍与文档入口。
 - [Anthropic MCP Announcement](https://www.anthropic.com/news/model-context-protocol)
   - Anthropic 发布 MCP 的官方博客。
-- [Google A2A Protocol](https://google.github.io/A2A/)
-  - Agent-to-Agent 协议，定义 Agent Card、Task、Message、Artifact 等概念。
+- [A2A Protocol（Linux Foundation）](https://a2a-protocol.org/)
+  - Agent-to-Agent 协议 v1.0（2026）：Agent Card、Task、Message、Artifact；TSC 含 AWS、Cisco、Google、Microsoft 等。
+- [AGNTCY](https://www.partitech.com/en/technical-blog-article/mcp-a2a-and-agntcy-understanding-the-interoperability-of-ai-agents-in-2026)
+  - Cisco 发起、Linux Foundation 托管：Agent 目录（OASF）、身份与消息基础设施；自有 ACP 已归档，社区收敛到 A2A。
+- [Agent Identity Protocol（IETF draft）](https://www.ietf.org/archive/id/draft-prakash-aip-01.html)
+  - 跨 MCP/A2A 的可验证委托草案，与 WIMSE、Transaction Tokens 等 IETF OAuth 草案互为参照。
 
 ## 开源项目
 
@@ -70,6 +82,10 @@
   - 企业级 Agent 管理平台，强调注册、治理与多环境部署。
 - [Microsoft Agent Governance Toolkit](https://www.microsoft.com/en-us/security/blog/2025/05/06/introducing-the-microsoft-agent-governance-toolkit/)
   - 微软 Agent 治理工具包，提供注册、策略、审计、合规能力。
+- [Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)
+  - 模块化托管 Agent OS：Runtime（会话级 microVM）、Memory、Gateway（MCP）、Identity、Policy（Dogwood/Cedar）、Registry、Observability、Evaluations。
+- [E2B](https://e2b.dev/resources/best-code-execution-sandboxes-for-ai-agents)
+  - Apache 2.0 开源 Firecracker 沙箱平台，快照冷启动 5–30ms，提供 OpenAI Agents SDK 沙箱 Provider。
 
 ## 博客与工程文章
 
@@ -81,6 +97,12 @@
   - LangGraph 中的计划抽象。
 - [OpenAI Agents SDK Handoffs](https://openai.github.io/openai-agents-python/handoffs/)
   - Agent 之间 handoff 的实现与最佳实践。
+- [Best microVM Sandboxes for AI Code Execution in 2026（Modal）](https://modal.com/resources/best-microvm-sandboxes-ai-code-execution)
+  - Firecracker vs gVisor vs 容器在 Agent 沙箱场景的对比较。
+- [MCP Authorization: OAuth 2.1, PKCE, and Agent Identity（Aembit）](https://aembit.io/blog/mcp-oauth-2-1-pkce-and-the-future-of-ai-authorization/)
+  - MCP 2026-07-28 授权模型的工程解读。
+- [AI Agent Identity in 2026: WIMSE, SPIFFE, and OAuth](https://namoid.in/blog/ai-agent-identity-wimse-spiffe-oauth)
+  - Agent 身份两层模型与多跳委托开放问题综述。
 
 ## 相邻主题
 
@@ -94,12 +116,12 @@
 
 ## 推荐学习路径
 
-1. **入门**：先读 [AIOS 论文](https://arxiv.org/abs/2403.16971) 与 [LLM as OS, Agents as Apps](https://arxiv.org/abs/2312.03815)，建立“Agent 即进程”的直觉。
-2. **协议**：学习 [MCP 官方规范](https://modelcontextprotocol.io/specification/2025-03-26/architecture) 与 [A2A](https://google.github.io/A2A/)，理解 Agent-工具、Agent-Agent 的通信边界。
-3. **调度**：读 [AgentRM](https://arxiv.org/abs/2603.13110) 与 [HiveMind](https://arxiv.org/abs/2604.17111)，掌握 MLFQ 与 Token-aware 调度。
-4. **隔离与恢复**：读 [AgentSys](https://arxiv.org/abs/2602.07398) 与 [DeltaBox](https://arxiv.org/abs/2605.22781)，理解进程隔离与 checkpoint。
-5. **治理**：读 [Governed MCP](https://arxiv.org/abs/2604.16870) 与 [ProbeLogits](https://arxiv.org/abs/2604.11943)，理解 Host 层与模型层的双重治理。
-6. **实践**：跑通 [agiresearch/AIOS](https://github.com/agiresearch/AIOS) 与本主题的 Mini Demo，再尝试接入 OpenAI Agents SDK Runner 或 AutoGen Runtime。
+1. **入门**：先读 [AIOS 论文](https://arxiv.org/abs/2403.16971) 与 [LLM as OS, Agents as Apps](https://arxiv.org/abs/2312.03815)，建立”Agent 即进程”的直觉。
+2. **协议**：学习 [MCP 2026-07-28 规范](https://modelcontextprotocol.io/specification/2026-07-28/architecture) 与 [A2A v1.0](https://a2a-protocol.org/)，理解 Agent-工具、Agent-Agent 的通信边界，以及 AGNTCY 在发现/身份层的定位。
+3. **调度**：读 [AgentRM](https://arxiv.org/abs/2603.13110)、[HiveMind](https://arxiv.org/abs/2604.17111) 与 [Continuum](https://arxiv.org/abs/2511.02230)，掌握任务级（MLFQ/Token）与推理引擎级（KV Cache TTL）两层调度。
+4. **隔离与恢复**：读 [AgentSys](https://arxiv.org/abs/2602.07398) 与 [DeltaBox](https://arxiv.org/abs/2605.22781)，再用 E2B 或 Bedrock AgentCore 跑一个带快照 pause/resume 的沙箱会话。
+5. **治理**：读 [Governed MCP](https://arxiv.org/abs/2604.16870)、[ProbeLogits](https://arxiv.org/abs/2604.11943) 与 [OWASP ASI:2026](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)，理解 Host 层与模型层的双重治理；再读 [AIP](https://arxiv.org/abs/2603.24775) 了解多跳委托的未解难题。
+6. **实践**：跑通 [agiresearch/AIOS](https://github.com/agiresearch/AIOS) 与本主题的 Mini Demo，再对照 [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) 的模块划分检查自己的实现缺了哪些原语。
 
 ## 本章小结
 

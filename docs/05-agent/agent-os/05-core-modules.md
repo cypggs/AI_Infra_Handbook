@@ -54,6 +54,7 @@ class AgentProcess:
 | Priority Queue | 按优先级调度 | 客服、告警处理 |
 | MLFQ | 多级反馈队列 | 混合负载，惩罚长任务 |
 | Token Budget | 按 Token 消耗调度 | 成本敏感场景 |
+| KV Cache TTL | 工具调用间隙钉住 KV Cache 一段时间 | 多轮 Agent，降低 re-prefill 延迟 |
 | Fair Share | 按租户/用户公平分配 | 多租户 |
 
 ### MLFQ 示例
@@ -81,6 +82,8 @@ class MLFQScheduler:
 
 AgentRM（arXiv:2603.13110）在此基础上增加了失败惩罚、预算感知与依赖感知。
 
+调度器还应与推理层协同：由于 LLM 推理不可中断，抢占粒度只能是"单次推理调用"（request-level preemption）；Continuum（arXiv:2511.02230）进一步把 **KV Cache 纳入调度资源**——工具调用间隙钉住缓存（TTL），返回后直接续算，SWE-Bench / BFCL 类负载延迟下降约 1.12×–3.66×。
+
 ## 3. Sandbox（沙箱）
 
 ### 职责
@@ -93,17 +96,21 @@ AgentRM（arXiv:2603.13110）在此基础上增加了失败惩罚、预算感知
 
 | 级别 | 机制 | 开销 | 隔离强度 |
 |---|---|---|---|
-| 进程级 | 独立进程、文件描述符限制 | 低 | 中 |
-| 容器级 | Docker/containerd | 中 | 高 |
-| VM 级 | Firecracker/Kata | 高 | 最高 |
 | 语言级 | Python venv、限制 builtins | 低 | 低 |
+| 进程级 | 独立进程、文件描述符限制 | 低 | 中 |
+| Wasm 级 | Wasmtime 等 Wasm 沙箱 | 极低（微秒启动） | 中 |
+| 容器级 | Docker/containerd（共享内核） | 中 | 中–高 |
+| 用户态内核 | gVisor（拦截系统调用，无需 KVM） | 中（syscall 密集 +5–15%） | 高 |
+| microVM 级 | Firecracker/Kata（独立内核） | 高（~125ms 冷启动，快照可至毫秒） | 最高 |
+
+2026 年的行业共识：**不可信的 LLM 生成代码跑 microVM，可信代码跑容器，纯计算工具跑 Wasm**；OWASP ASI:2026（ASI05）把沙箱列为强制控制。Firecracker 的快照能力（pause/resume/fork）也让沙箱同时承担 checkpoint 恢复的载体角色。
 
 ### 实现要点
 
 - 工作目录隔离（chroot/bind mount）。
 - 网络访问白名单。
 - 工具调用次数/频率限制。
-- 环境变量与 Secret 注入控制。
+- 环境变量与 Secret 注入控制——优先使用 JIT 临时凭证而非长期 Secret。
 
 AgentSys（arXiv:2602.07398）采用 worker agent 进程隔离，确保一个 Agent 崩溃不影响全局。
 
@@ -263,7 +270,9 @@ Google A2A 协议定义了 Agent 之间的能力发现与任务委托：
 - Message：Agent 间消息格式。
 - Artifact：任务产物。
 
-Agent OS 的 Message Bus 可以实现 A2A 语义，同时管理消息路由、持久化与审计。
+A2A 于 2025-06 捐赠给 Linux Foundation，2026 年发布 v1.0（150+ 组织支持，TSC 含 AWS、Cisco、Google、Microsoft 等），IBM 的 ACP 已并入；Cisco 发起的 AGNTCY 则收敛为发现/身份/消息基础设施（Agent Directory + OASF），其自有 ACP 于 2026-04 归档。
+
+Agent OS 的 Message Bus 可以实现 A2A 语义，同时管理消息路由、持久化与审计。安全上应按 OWASP ASI07 要求为 Agent 间通信启用密码学认证（PKI/mTLS）与调用链上下文传播（Transaction Tokens）。
 
 ## 8. Policy Engine（策略引擎）
 
@@ -298,7 +307,7 @@ class PolicyEngine:
         return Decision(allow=True)
 ```
 
-Governed MCP（arXiv:2604.16870）强调把策略引擎嵌入 MCP Host，使每一次工具调用都可被治理。
+Governed MCP（arXiv:2604.16870）强调把策略引擎嵌入 MCP Host，使每一次工具调用都可被治理。工程化落地参考 AWS Bedrock AgentCore Policy：用兼容 Cedar 的策略语言（Dogwood）声明规则，在 Gateway 拦截每一次工具调用前做确定性判定——这是 Intent Gate 模式的工业实现。策略判定所需的 Agent 身份，在无状态的 MCP 2026-07-28 下由每个请求自带的 client identity 声明承载，应与 SPIFFE/WIMSE 工作负载身份绑定而非裸令牌。
 
 ## 9. Observer（观测器）
 
@@ -383,8 +392,11 @@ graph TB
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
 - [AgentSys: Building Efficient Multi-Agent Systems with Worker Agents](https://arxiv.org/abs/2602.07398)
 - [DeltaBox: Checkpoint and Rollback for LLM Agents](https://arxiv.org/abs/2605.22781)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [Amazon Bedrock AgentCore Policy](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)

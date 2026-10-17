@@ -419,5 +419,5 @@ Final answer: 20
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)

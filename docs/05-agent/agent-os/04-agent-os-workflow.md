@@ -124,6 +124,8 @@ Observer 在每个执行步骤收集数据：
 
 DeltaBox（arXiv:2605.22781）把 checkpoint/rollback 作为 Agent OS 的核心原语，支持分支执行与状态对比。
 
+2026 年工程实践的变化是：**checkpoint 的载体从应用层状态序列化扩展到沙箱级快照**。Firecracker microVM 快照让"暂停整个 Agent 执行环境（文件系统 + 进程 + 上下文）→ 稍后恢复或 fork 出分支"进入毫秒级且成为平台标配（E2B、AWS Bedrock AgentCore、Perplexity SPACE 均提供 pause/resume/fork）。这意味着抢占恢复不再依赖 Agent 框架自己实现状态持久化，而可以由 OS 层兜底。
+
 ## 6. Terminate：终止
 
 终止阶段确保资源被正确回收：
@@ -212,3 +214,4 @@ graph TD
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [DeltaBox: Checkpoint and Rollback for LLM Agents](https://arxiv.org/abs/2605.22781)
 - [AgentSys: Building Efficient Multi-Agent Systems with Worker Agents](https://arxiv.org/abs/2602.07398)
+- [Amazon Bedrock AgentCore（会话级 microVM 隔离）](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)

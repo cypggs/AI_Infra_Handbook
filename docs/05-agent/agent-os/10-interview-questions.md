@@ -55,10 +55,10 @@
 **参考答案要点**：
 
 - 调度目标：公平性、优先级、成本、延迟、成功率。
-- 资源维度：Token、调用次数、CPU、内存、网络、时间。
-- 策略选择：FIFO、优先级队列、MLFQ、Fair Share、Token-aware。
+- 资源维度：Token、调用次数、CPU、内存、网络、时间、KV Cache 占用。
+- 策略选择：FIFO、优先级队列、MLFQ、Fair Share、Token-aware、KV Cache TTL。
 - 准入控制：系统负载、租户配额、依赖服务健康状态。
-- 抢占与恢复：支持暂停/恢复，保存 checkpoint。
+- 抢占与恢复：LLM 推理不可中断，抢占粒度是单次推理调用；被抢占任务依赖沙箱快照或 checkpoint 恢复。
 
 ### 7. AgentRM 与 HiveMind 的调度思路有什么不同？
 
@@ -99,9 +99,19 @@
 - Reasoning Trace：记录 Agent 思考路径，支持审计。
 - 与 OpenTelemetry、Prometheus、Loki/ELK 集成。
 
+### 11. MCP 2026-07-28 规范把核心协议改成了无状态，这对 Agent OS 设计有什么影响？
+
+**参考答案要点**：
+
+- 变化：取消 initialize/initialized 握手与 `Mcp-Session-Id`，每个请求自带协议版本、Client 身份与能力声明；授权落地 OAuth 2.1 精选子集。
+- 影响一：MCP Host 可以无状态水平扩展，部署在标准负载均衡/网关之后，Host 集群化门槛大幅降低。
+- 影响二：原本由 Host 持有的"会话状态"上移到 Agent OS 的 Workspace 模块，OS 层成为唯一的状态权威。
+- 影响三：每次请求都携带 Client 身份声明，与 SPIFFE/WIMSE 工作负载身份绑定后，策略引擎可以对每次调用做细粒度身份感知判定。
+- 影响四：Client 身份声明也扩大了伪造面，必须校验令牌签名与 audience（RFC 8707/9728）。
+
 ## 高级
 
-### 11. 比较 AIOS、Agent libOS、Quine 三种 Agent OS 实现路径的优劣。
+### 12. 比较 AIOS、Agent libOS、Quine 三种 Agent OS 实现路径的优劣。
 
 **参考答案要点**：
 
@@ -110,7 +120,7 @@
 - **Quine**：POSIX 进程式，与 Linux 生态完全兼容，隔离强；但对 Token/上下文等 LLM 特定资源调度不够原生。
 - 选型取决于场景：研究/统一调度选 AIOS，边缘/低延迟选 libOS，强隔离/云原生选 Quine。
 
-### 12. 如果 Agent 调用外部工具时陷入死循环，Agent OS 应该如何处理？
+### 13. 如果 Agent 调用外部工具时陷入死循环，Agent OS 应该如何处理？
 
 **参考答案要点**：
 
@@ -121,7 +131,7 @@
 - **恢复**：暂停后保存 checkpoint，人工或自动分析原因后恢复。
 - **终止**：无法恢复时安全终止并回收资源。
 
-### 13. 如何在大规模 Agent 集群中实现一致性调度状态？
+### 14. 如何在大规模 Agent 集群中实现一致性调度状态？
 
 **参考答案要点**：
 
@@ -131,7 +141,7 @@
 - 关键事件（spawn/terminate/预算耗尽）持久化到消息队列，保证最终一致。
 - 控制面多活，数据面分区。
 
-### 14. Governed MCP 与 ProbeLogits 分别从哪个层面增强 Agent 安全？
+### 15. Governed MCP 与 ProbeLogits 分别从哪个层面增强 Agent 安全？
 
 **参考答案要点**：
 
@@ -139,7 +149,7 @@
 - **ProbeLogits**：在 LLM 生成阶段探测 logits，识别有害输出或越权意图，是“模型生成级”治理。
 - 两者互补：Governed MCP 管外部能力，ProbeLogits 管模型内部输出。
 
-### 15. 设计一个企业级 Agent OS，你会如何划分模块与边界？
+### 16. 设计一个企业级 Agent OS，你会如何划分模块与边界？
 
 **参考答案要点**：
 
@@ -151,11 +161,21 @@
   - Workspace 管存储访问控制，Memory 管内容检索。
 - 非功能：多租户、可观测、安全合规、成本核算、高可用、可恢复。
 
+### 17. 如何为 Agent OS 设计身份与授权体系？为什么多跳委托是难题？
+
+**参考答案要点**：
+
+- 两层模型：SPIFFE/SPIRE、WIMSE 等工作负载身份回答"Agent 是谁"（可密码学验证、短寿命）；OAuth 2.1 授权回答"能做什么、代表谁"（MCP 2026-07-28 已采纳）。
+- Agent 应注册为身份主体（如 Entra ID 中的 Agent 对象），而非复用人类账号或共享服务账号。
+- 凭证策略：优先 JIT 临时凭证（OWASP ASI:2026），禁止长期 Secret 进入 Agent 上下文。
+- 多跳委托难题：Agent A 代表用户调用 B、B 再调用工具 C 时，需要证明 B 的权限是 A 当时授权的子集（权限衰减）；Transaction Tokens、RFC 8693 Token Exchange、AIP 的 Biscuit 委托链都在尝试解决，但截至 2026-10 尚无定稿标准。
+- 工程保守策略：敏感链路每跳显式审批；用调用链上下文做端到端审计；令牌绑定 audience 防重放。
+
 ## 本章小结
 
 - 初级题聚焦概念：Agent OS 与 Runtime 的区别、进程抽象、Sandbox、Workspace、MCP Host。
-- 中级题聚焦设计：调度器、多租户隔离、Policy Engine、可观测体系。
-- 高级题聚焦架构与难点：AIOS/libOS/Quine 对比、死循环处理、一致性调度、Governed MCP/ProbeLogits、企业级模块划分。
+- 中级题聚焦设计：调度器、多租户隔离、Policy Engine、可观测体系、MCP 无状态化的架构影响。
+- 高级题聚焦架构与难点：AIOS/libOS/Quine 对比、死循环处理、一致性调度、Governed MCP/ProbeLogits、企业级模块划分、身份与多跳委托。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
@@ -163,6 +183,9 @@
 - [Quine: LLM agents as native POSIX processes](https://arxiv.org/abs/2603.18030)
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)

@@ -92,35 +92,70 @@ AIOS 的核心洞察是：LLM 的上下文窗口、调用延迟、工具访问�
 这些需求催生了工业界的 Agent OS/Agent Governance 实践：
 
 - **Rivet agentOS**、**Framers AgentOS**：面向 Agent 生命周期的管理平台。
-- **Microsoft Agent Governance Toolkit**：提供 Agent 注册、策略、审计、 consent 管理。
+- **Microsoft Agent Governance Toolkit**：提供 Agent 注册、策略、审计、consent 管理（2026-04 更新版把 OWASP Agentic 风险映射到能力沙箱与 MCP 安全网关）。
 - **agiresearch/AIOS**：开源 AIOS 实现。
+
+### 企业级 Agent 控制面之争（2025 下半年–2026）
+
+2025 下半年起，”Agent OS”从论文概念变成企业软件的营销关键词，各大厂商争夺的对象正是**Agent 运行时/编排/治理控制面**：
+
+- **Microsoft Agent 365**：2026-05-01 GA，把多 Agent 治理控制面嵌入 M365，Agent 以 Entra ID 作为身份主体。
+- **Salesforce Agentforce 360**（2025 年底 GA）：CRM 场景的 Agent 平台，预置 50+ 业务 Agent。
+- **ServiceNow**：把自己定位为”AI 企业操作系统”——Action Fabric 同时支持 A2A + MCP 协议接入第三方 Agent，AI Control Tower 负责治理；2026-03 收购 Traceloop 补齐 Agent 运行时可观测，MCP Server GA 向第三方 Agent 开放系统。
+- **阿里云 Agentic OS**：基于 Alibaba Cloud Linux 衍生，包含 cosh（自然语言 + bash 双模 Shell）、AgentSecCore 安全层与 AgentSight 可观测层。
+
+Gartner 预测到 2026 年底 40% 的企业应用将内嵌任务型 Agent（2025 年不足 5%）。当 Agent 数量到达这个量级，”谁来 spawn、调度、隔离、审计这些 Agent”就从可选优化变成必需品——这正是 Agent OS 的工业定位。
+
+来源：
+- [Knowledge 2026: The 7 ServiceNow Announcements Changing AI](https://teivasystems.com/blog/servicenow-knowledge-2026-announcements/)
+- [Agent 365 vs Agentforce 360 vs ServiceNow AI（2026-05）](https://andrew.ooo/answers/agent-365-vs-agentforce-360-vs-servicenow-may-2026/)
+- [Agentic OS 技术详解（腾讯云）](https://cloud.tencent.com/developer/article/2671167)
 
 ### MCP 推动的 Host 层治理
 
-MCP（Model Context Protocol）把工具/资源抽象为 Server，Host 负责管理 Client 与 Server 的生命周期、能力协商与权限边界。MCP Host 本质上就是 Agent OS 的“系统调用层”。
+MCP（Model Context Protocol）把工具/资源抽象为 Server，Host 负责管理 Client 与 Server 的生命周期、能力协商与权限边界。MCP Host 本质上就是 Agent OS 的”系统调用层”。
 
-Governed MCP（arXiv:2604.16870）进一步提出在 MCP Host 层增加策略引擎，对每一次工具调用进行审批、审计与约束。
+2026 年 MCP 规范发生重大修订：**2026-07-28 规范**把协议核心改为**无状态**（取消 initialize/initialized 握手与 `Mcp-Session-Id`，每个请求自带协议版本、Client 身份与能力声明），使 MCP Host 可以无状态水平扩展、直接部署在标准负载均衡与网关之后；同时授权层落地 **OAuth 2.1 精选子集**（强制 RFC 9728 Protected Resource Metadata、RFC 8707 resource 参数、RFC 9207 iss 校验），首次在规范层面给出统一的工具访问授权模型。
+
+Governed MCP（arXiv:2604.16870）进一步提出在 MCP Host 层增加策略引擎，对每一次工具调用进行审批、审计与约束。OWASP Agentic AI Top 10（ASI:2026，2025-12-09 发布）把”工具误用”列为二号风险，建议的”Intent Gate”前置策略执行点与 MCP Host 的治理位置完全重合。
 
 来源：
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+
+### 沙箱标准的收敛
+
+2026 年 Agent 沙箱出现明显的标准收敛：**Firecracker microVM 成为运行不可信 Agent 生成代码的事实标准**（独立内核、约 125ms 冷启动、接近容器的性能）。代表实践：
+
+- **AWS Bedrock AgentCore**：每个 Agent 会话运行在专用 Firecracker microVM（启动小于 125ms），支持 8 小时长会话与 per-sub-agent 隔离，2025 年底 GA。
+- **E2B**：Apache 2.0 开源的 Firecracker 分支，支持快照恢复（冷启动 ~5–30ms），并提供 OpenAI Agents SDK 官方沙箱 Provider。
+- **Vercel Sandbox**：2026-01 GA，每个沙箱一个 Firecracker microVM。
+- **Perplexity SPACE**：2026-07 公开，内部 Firecracker 运行时支撑全部 Computer Agent 流量，支持 pause/resume/fork 与长达一周的会话快照。
+
+OWASP ASI:2026 的 ASI05（Unexpected Code Execution）明确把沙箱列为强制要求，行业共识是：容器只能跑可信代码，不可信的 LLM 生成代码必须跑在 microVM 里。
+
+来源：
+- [Best microVM Sandboxes for AI Code Execution in 2026（Modal）](https://modal.com/resources/best-microvm-sandboxes-ai-code-execution)
+- [AWS Bedrock AgentCore 文档](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html)
 
 ## 为什么现在需要 Agent OS
 
 Agent OS 的兴起不是偶然，而是由以下趋势共同推动：
 
-1. **Agent 数量爆炸**：从“一个 Agent 做所有事”到“数百个专精 Agent 协作”。
-2. **任务长程化**：Agent 任务从单次问答扩展到小时级、天级的持续执行。
-3. **调用成本敏感**：LLM Token、工具调用、外部 API 都需要预算控制。
-4. **安全合规压力**：Agent 访问敏感数据与系统，必须可授权、可审计、可回滚。
-5. **Multi-Agent 与 MCP 标准化**：Agent 之间、Agent 与工具之间需要统一协议，Agent OS 是协议落地的基础设施。
+1. **Agent 数量爆炸**：从”一个 Agent 做所有事”到”数百个专精 Agent 协作”；Gartner 预测 2026 年底 40% 企业应用将内嵌任务型 Agent。
+2. **任务长程化**：Agent 任务从单次问答扩展到小时级、天级的持续执行，会话快照与状态持久化成为基础能力。
+3. **调用成本敏感**：LLM Token、工具调用、外部 API 都需要预算控制，调度粒度细化到单次 LLM 推理调用。
+4. **安全合规压力**：Agent 访问敏感数据与系统，必须可授权、可审计、可回滚；OWASP ASI:2026 给出了十大 Agentic 风险与对应控制措施。
+5. **Multi-Agent 与 MCP 标准化**：Agent 之间、Agent 与工具之间需要统一协议；2026 年 A2A 发布 v1.0（Linux Foundation 治理，150+ 组织支持），MCP 2026-07-28 规范把 Host 无状态化并落地 OAuth 2.1 授权，Agent OS 是协议落地的基础设施。
 
 ## 本章小结
 
 - 单 Agent 脚本无法解决多实例、多租户、长程任务、资源隔离、审计治理等问题。
 - 学术界提出 AIOS、LLM as OS、Agent libOS、Quine 等方向，把 OS 抽象引入 Agent 世界。
-- 工业界需要 Agent OS 来管理成百上千个 Agent 的生命周期、权限、成本与可观测性。
-- MCP Host 与 Governed MCP 代表了 Agent OS 在工具/能力治理方向的关键实践。
+- 工业界需要 Agent OS 来管理成百上千个 Agent 的生命周期、权限、成本与可观测性；Microsoft、Salesforce、ServiceNow、阿里云等正在把 Agent 控制面做成平台产品。
+- MCP Host（2026-07-28 无状态规范 + OAuth 2.1）与 Governed MCP 代表了 Agent OS 在工具/能力治理方向的关键实践；Firecracker microVM 成为 Agent 沙箱的事实标准。
+- OWASP ASI:2026 给出了 Agentic 系统的十大风险基线，Agent OS 的策略引擎与沙箱是对应控制措施的主要落地载体。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
@@ -130,4 +165,6 @@ Agent OS 的兴起不是偶然，而是由以下趋势共同推动：
 - [Agent libOS: A Library Operating System for LLM Agents](https://arxiv.org/abs/2606.03895)
 - [Quine: LLM agents as native POSIX processes](https://arxiv.org/abs/2603.18030)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)

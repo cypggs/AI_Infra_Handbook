@@ -65,9 +65,20 @@ HiveMind（arXiv:2604.17111）把 Token 作为核心资源进行调度与预算�
 - 检查当前系统负载、租户配额、依赖服务可用性。
 - 拒绝或排队无法满足 SLO 的请求。
 
+### KV Cache TTL：把 GPU 上下文变成可调度资源
+
+Continuum（arXiv:2511.02230，ICLR 2026）发现：多轮 Agent 在工具调用间隙，其 KV Cache 常被推理引擎立即驱逐，下一轮被迫重新 prefill 并重新排队。它提出 **KV Cache TTL** 调度：
+
+- Agent 发出工具调用后，调度器把该请求的 KV Cache 在 GPU 内存中"钉住"一段预测时长。
+- 工具按时返回 → 下一轮直接续算，免去 re-prefill 与排队；超时未返回 → 自动驱逐，保证健壮性。
+- 配合 program 级 FCFS 保持多轮顺序，在 SWE-Bench / BFCL 类负载上取得约 1.12×–3.66× 的延迟下降与 1.10×–3.22× 的吞吐提升。
+
+这带来一个重要认知：**Agent 调度资源不止 Token 与调用次数，还包括 GPU 上的上下文缓存**；"抢占"在 LLM 推理不可中断的前提下，粒度只能是"单次推理调用"（request-level preemption），而非线程级时间片。
+
 来源：
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
+- [Continuum: Efficient and Robust Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
 
 ## 3. Sandbox & Isolation：沙箱与隔离
 
@@ -96,9 +107,21 @@ DeltaBox（arXiv:2605.22781）提出对 Agent 执行状态进行 checkpoint，�
 - 失败时回滚，避免副作用累积。
 - 支持分支执行与对比不同路径。
 
+2026 年这一能力进一步工程化：**Firecracker 快照让 checkpoint/rollback 进入毫秒级**，pause/resume/fork 成为 Agent 沙箱的标准操作（Perplexity SPACE 支持 fork 出并行 Agent 并保留长达一周的会话快照；E2B 基于快照实现 5–30ms 冷启动）。配合 DeltaBox 的 fork 模板池，"保存 Agent 状态 → 复制出 N 个分支并行探索 → 回收最优分支"成为长程 Agent 的主流执行模式。
+
+### 沙箱标准：microVM 与 Wasm 两极
+
+2026 年业界对沙箱隔离强度形成共识：
+
+- **不可信的 LLM 生成代码必须跑在 microVM 里**（Firecracker/Kata，独立内核，约 125ms 冷启动，接近容器性能）；共享内核的 Docker 容器只适用于可信代码——OWASP ASI:2026 的 ASI05（Unexpected Code Execution）已把沙箱列为强制控制。
+- **轻量/边缘场景用 Wasm 沙箱**（Wasmtime 等）：启动微秒级、跨平台，但系统能力受限，适合纯计算型工具。
+- 中间地带是 gVisor：用户态内核拦截系统调用，无需 KVM，系统调用密集型负载有 5–15% 开销。
+
 来源：
 - [AgentSys: Building Efficient Multi-Agent Systems with Worker Agents](https://arxiv.org/abs/2602.07398)
 - [DeltaBox: Checkpoint and Rollback for LLM Agents](https://arxiv.org/abs/2605.22781)
+- [Best microVM Sandboxes for AI Code Execution in 2026（Modal）](https://modal.com/resources/best-microvm-sandboxes-ai-code-execution)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
 
 ## 4. Workspace / Storage：工作区与存储
 
@@ -152,8 +175,9 @@ Registry 与 MCP 的关系：
 Agent 之间需要通信协作。Agent OS 提供消息总线：
 
 - **Agent-to-Agent**：直接消息、发布/订阅、请求/响应。
-- **MCP as Syscall**：Agent 到工具的调用被抽象为“系统调用”。
-- **A2A as IPC Bus**：Google 的 A2A 协议可作为 Agent 之间的 IPC 总线，标准化 Agent 之间的能力发现与协作。
+- **MCP as Syscall**：Agent 到工具的调用被抽象为”系统调用”。
+- **A2A as IPC Bus**：Google 的 A2A 协议（2025-06 捐给 Linux Foundation，**2026 年发布 v1.0**，150+ 组织支持；IBM 的 ACP 于 2025-08 并入）可作为 Agent 之间的 IPC 总线，标准化 Agent 之间的能力发现与协作。
+- **AGNTCY as Discovery Plane**：Cisco 发起的 AGNTCY 项目定位互补层，提供 Agent 目录（OASF 模式 + 内容寻址发现）、身份与消息基础设施；其自有的 Agent Connect Protocol 已于 2026-04 归档，社区统一收敛到 A2A 作为 Agent 调用标准。
 
 ```mermaid
 graph TB
@@ -168,6 +192,10 @@ graph TB
     MCP_H -->|stdio/HTTP| S1[MCP Server 1]
     MCP_H -->|stdio/HTTP| S2[MCP Server 2]
 ```
+
+来源：
+- [A2A Protocol（Linux Foundation）](https://a2a-protocol.org/)
+- [MCP, A2A and AGNTCY: understanding the interoperability of AI agents in 2026](https://www.partitech.com/en/technical-blog-article/mcp-a2a-and-agntcy-understanding-the-interoperability-of-ai-agents-in-2026)
 
 ## 7. Security & Governance：安全与治理
 
@@ -190,6 +218,30 @@ MCP Host 位于 Agent 与工具之间，天然适合执行策略：
 来源：
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
+
+### OWASP ASI:2026 与 Intent Gate
+
+OWASP Agentic AI Top 10（ASI:2026，2025-12-09 发布）给出十大 Agentic 风险：目标劫持（ASI01）、工具误用（ASI02，实测占开源 Agent 项目安全发现的 64%）、身份与权限滥用（ASI03）、供应链投毒（ASI04）、意外代码执行（ASI05）、记忆与上下文投毒（ASI06）、Agent 间通信不安全（ASI07）、级联故障（ASI08）、人机信任剥削（ASI09）、流氓 Agent（ASI10）。它建议的核心控制与 Agent OS 模块一一对应：
+
+- **Intent Gate**（意图门）：在每次工具调用真正执行前的策略执行点（PEP），做参数校验、权限判定与风险分级——与 MCP Host 的治理位置天然重合。
+- **JIT 临时凭证**：Agent 不持有长期 Secret，由 OS 在调用前按需发放短时令牌。
+- **记忆内容校验与回滚**：对应 Workspace/Recovery 模块。
+- **Agent 间密码学认证（PKI/mTLS）**：对应 Message Bus 的身份层。
+
+### Agent 身份：两层模型与多跳委托难题
+
+2026 年 Agent 身份的标准化方向逐渐收敛为**两层模型**：
+
+- **"Agent 是谁"**：工作负载身份。SPIFFE/SPIRE 发放 SVID，IETF WIMSE 工作组（含 WIT/WPT 双身份凭证草案）把 Agent 视为短寿命、被委托的工作负载。
+- **"Agent 能做什么、代表谁"**：授权委托。MCP 2026-07-28 采用 OAuth 2.1；跨多跳调用链使用 OAuth Token Exchange（RFC 8693）与 Transaction Tokens（draft-ietf-oauth-transaction-tokens）传播上下文。
+
+2026 年的 IETF 草案（AIMS 组合 WIMSE+SPIFFE+OAuth；draft-ietf-oauth-spiffe-client-auth）与学术方案 AIP（arXiv:2603.24775，Invocation-Bound Capability Token + Biscuit 多跳委托链）都在攻坚同一个开放问题：**多跳委托链的细粒度授权与权限衰减**——Agent A 代表用户调用 Agent B 再调用工具 C 时，如何证明"B 只被允许做 A 当时被授权的子集"。NIST NCCoE（2026-02 概念论文）也明确把多跳委托列为未解问题。
+
+来源：
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [State of Agentic AI Security and Governance v2.01](https://letsdatascience.com/news/owasp-releases-agentic-ai-security-report-v201-b6926a1d)
+- [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
+- [MCP Authorization: OAuth 2.1, PKCE, and Agent Identity](https://aembit.io/blog/mcp-oauth-2-1-pkce-and-the-future-of-ai-authorization/)
 
 ### Consent 与审计
 
@@ -228,15 +280,18 @@ Agent OS 需要面对 Agent 失败后的恢复：
 ## 本章小结
 
 - Agent OS 的十大核心思想：Agent as Process、Scheduler、Sandbox、Capability Model、Workspace、Registry、Messaging/IPC、Security/Governance、HITL、Observability、Recovery。
-- 这些思想借鉴传统 OS，但针对 LLM Agent 的 Token 预算、工具调用、长程执行、安全治理等特点做了适配。
+- 这些思想借鉴传统 OS，但针对 LLM Agent 的 Token 预算、工具调用、长程执行、安全治理等特点做了适配；2026 年起调度资源进一步扩展到 KV Cache，沙箱收敛到 Firecracker microVM 标准，身份治理收敛到"SPIFFE/WIMSE + OAuth"两层模型。
 - 下一章将把这些思想组织成具体的分层架构。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [AgentRM: A Resource Management Framework for LLM Agents](https://arxiv.org/abs/2603.13110)
 - [HiveMind: Token-Centric Scheduling for LLM Agents](https://arxiv.org/abs/2604.17111)
+- [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)
 - [AgentSys: Building Efficient Multi-Agent Systems with Worker Agents](https://arxiv.org/abs/2602.07398)
 - [DeltaBox: Checkpoint and Rollback for LLM Agents](https://arxiv.org/abs/2605.22781)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)

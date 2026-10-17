@@ -109,10 +109,11 @@ graph TB
 
 基础设施层是 Agent OS 依赖的外部系统：
 
-- **MCP Host / Servers**：标准化工具与资源接入。
+- **MCP Host / Servers**：标准化工具与资源接入。2026-07-28 规范把 MCP 核心改为无状态，Host 可以水平扩展并置于标准网关之后。
 - **LLM Gateway**：统一的多供应商模型接入。
 - **Persistence**：数据库、对象存储、向量数据库。
 - **Message Queue**：Kafka、RabbitMQ、NATS 等消息中间件。
+- **Identity Plane**：SPIFFE/SPIRE、Entra ID 等工作负载身份与委托令牌（OAuth 2.1 / Transaction Tokens）基础设施，回答"Agent 是谁、代表谁"。
 
 ## 控制面与数据面
 
@@ -216,7 +217,7 @@ class Observer:
 ### 与 MCP 的边界
 
 - **Agent OS**：作为 MCP Host，管理 Server 生命周期、能力协商、权限审计、准入控制。
-- **MCP 主题**：定义 Host/Client/Server 协议、传输方式（stdio/Streamable HTTP）、能力发现。
+- **MCP 主题**：定义 Host/Client/Server 协议、传输方式（stdio/Streamable HTTP）、能力发现。注意 2026-07-28 规范已把核心协议无状态化（无 initialize 握手、无会话 ID），MCP 主题负责协议细节，本章只引用其结论。
 
 ### 与 Multi-Agent 的边界
 
@@ -250,5 +251,5 @@ Agent OS 可以表现为不同形态：
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [Agent libOS: A Library Operating System for LLM Agents](https://arxiv.org/abs/2606.03895)
 - [Quine: LLM agents as native POSIX processes](https://arxiv.org/abs/2603.18030)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)

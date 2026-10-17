@@ -35,10 +35,11 @@
 
 ### ✅ 推荐做法
 
-- 按任务风险选择隔离级别：低风险用进程级，高风险用容器/VM 级。
+- 按任务风险选择隔离级别：低风险用进程/Wasm 级，不可信代码用 microVM 级（Firecracker/Kata）。
 - 默认拒绝所有网络与文件访问，按需白名单放行。
-- Secret 通过 Vault 注入，不进入 Agent 上下文或日志。
+- Secret 通过 Vault 注入，不进入 Agent 上下文或日志；优先 JIT 临时凭证。
 - 工具调用次数、执行时间、Token 消耗必须设上限。
+- 沙箱支持快照（pause/resume/fork），让 OS 层兜底抢占恢复与分支探索。
 
 ### ❌ 反模式
 
@@ -95,10 +96,12 @@
 
 ### ✅ 推荐做法
 
-- MCP Host 作为策略执行点，所有工具调用必须经过校验。
+- MCP Host 作为策略执行点，所有工具调用必须经过校验（Intent Gate：执行前拦截，不是执行后审计）。
 - 敏感操作默认需要 HITL，支持按租户/工具/风险等级配置。
 - 所有策略决策、工具调用、HITL 事件写入审计日志。
 - 定期复盘审计日志，优化策略与 entitlement。
+- 以 OWASP ASI:2026 十大风险为基线做差距分析，控制措施映射到具体模块。
+- Agent 身份采用两层模型：SPIFFE/WIMSE 工作负载身份 + OAuth 2.1 授权；多跳委托链使用事务令牌并在敏感链路保守降级为显式审批。
 
 ### ❌ 反模式
 
@@ -156,12 +159,13 @@
 | 维度 | 检查项 |
 |---|---|
 | 进程 | 是否有唯一 Agent ID、状态机、生命周期事件？ |
-| 调度 | 是否有准入控制、优先级、预算、抢占机制？ |
-| 沙箱 | 是否按风险分级隔离、限制资源与网络？ |
+| 调度 | 是否有准入控制、优先级、预算、抢占机制？是否感知 KV Cache？ |
+| 沙箱 | 是否按风险分级隔离（不可信代码用 microVM）、支持快照恢复？ |
 | 能力 | 是否通过 Registry 管理工具、版本、授权？ |
 | 工作区 | 是否 per-agent 隔离、支持 checkpoint 与共享 blackboard？ |
-| 消息 | 是否使用标准化协议、支持持久化与追踪？ |
-| 安全 | MCP Host 是否作为策略执行点？敏感操作是否有 HITL？ |
+| 消息 | 是否使用标准化协议（A2A/MCP）、支持持久化与追踪？ |
+| 安全 | MCP Host 是否作为 Intent Gate？敏感操作是否有 HITL？是否对齐 OWASP ASI:2026？ |
+| 身份 | Agent 是否有工作负载身份（SPIFFE/WIMSE）？多跳委托是否可审计？ |
 | 可观测 | 是否有 trace、metrics、logs、reasoning path？ |
 | 恢复 | 是否有 checkpoint、分级恢复、熔断机制？ |
 | 成本 | 是否有 Token/调用/计算预算与实时告警？ |
@@ -175,4 +179,5 @@
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
-- [MCP Specification](https://modelcontextprotocol.io/specification/2025-03-26/architecture)
+- [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
