@@ -79,13 +79,17 @@ flowchart LR
 |---|---|---|
 | GPT-4（估算） | ~13 万亿 | 未公开 |
 | Llama 3.1 405B | 15.6 万亿 | 公开网页、代码、多语言、数学 |
+| DeepSeek-V3 | 14.8 万亿 | 中英文网页、代码、数学 |
 | Kimi K2 | 15.5 万亿 | 网页、代码、长文档、合成数据 |
 | Qwen3 | 36 万亿 | 119 种语言网页、代码、STEM |
-| DeepSeek-V3 | 14.8 万亿 | 中英文网页、代码、数学 |
+| GLM-5 | ~28.5 万亿 | 网页、代码、推理轨迹 |
+| DeepSeek-V4 | 32 万亿+ | 中英网页、代码、数学，合成数据占比显著提升 |
 
 这些“万亿”是什么概念？
 
 如果把一个 token 粗略看作 0.75 个英文单词，那么 15 万亿 token 大约相当于 **20 万亿个英文单词**，也就是人类历史上所有出版书籍总字量的几千倍。
+
+另一个 2025-2026 年的明显趋势是：**合成数据的占比在快速上升**。数学、代码、推理类数据越来越多地由强模型生成、再经过去重和验证后回灌给下一代模型——数据不再是“从互联网上捞”，而是“用模型造”。
 
 ### 1.2 数据来源：不只靠爬虫
 
@@ -158,9 +162,12 @@ Meta 的 Llama 3、阿里的 Qwen3、月之暗面的 Kimi K2 都会做精细的�
 | 2020 | 模型越大越好 |
 | 2022 | 模型和数据要一起变大 |
 | 2024-2025 | 数据质量比数量更重要 |
-| 2025-2026 | 数据、算力、架构、后训练要联合优化 |
+| 2025-2026 | 推理算力（test-time compute）成为新的 scaling 轴 |
+| 2026 | 预训练与后训练 RL 的算力预算放在一起联合优化 |
 
 到了 2025-2026 年，研究者开始关注**全生命周期成本**：训练一次很贵，但推理每天要跑亿万次。所以有时候**把模型做小一点、数据多一点、推理快一点**，比单纯追求参数量更划算。
+
+更重要的是 RL Scaling 的到来：DeepSeek-R1 之后，业界发现**给后训练 RL 投入的计算量可以接近甚至超过预训练本身**——一些前沿实验室已披露其后训练算力超过了底座预训练。Scaling Law 的问题从“该把钱花在模型上还是数据上”，变成了“该把钱花在预训练、后训练，还是推理时的思考上”。
 
 ---
 
@@ -232,12 +239,21 @@ low, lower, lowest, new, newer, newest, er, est, ...
 | 模型 | 词表大小 |
 |---|---|
 | GPT-2 | 50,257 |
-| GPT-4（估算） | ~100,000 |
+| GPT-4（o200k） | ~200,000 |
 | Llama 3 | 128,000 |
 | Qwen3 | 151,000+ |
-| Kimi K2 | ~128,000 |
+| Llama 4 | ~200,000 |
+| Qwen3.8 | ~248,000 |
+| Gemma 4 / Gemini 3 | ~262,000 |
 
 中文在这套词表里通常会被切成 1-2 个 token 每个字，常见词可能整个词一个 token。
+
+一个有意思的反例是 Anthropic：Claude 系列的词表不增反降，最新一代只有约 1.6 万——用小词表换取训练与推理的其他效率。这说明“词表越大越好”并不是铁律，而是与模型规模、训练数据的语言分布一起权衡的设计选择。
+
+2025-2026 年的两个新观察：
+
+- **词表军备竞赛见顶**：研究表明 BPE/Unigram 的 tokenizer 在 ~120-180GB 语料上就收敛了，继续堆训练数据对词表几乎没影响。于是竞争转向“同样词表、更少 token”——SuperBPE 靠重设计合并规则少切 33% 的 token，LiteToken（2026.02）甚至可以在不重训模型的前提下，直接从现有词表里“剪掉”冗余合并。
+- **词表之外的扩容**：Qwen3.8-Next 探索了在 BPE 词表之上叠加 N-gram 嵌入（辅助词表有效规模放大两个数量级），用稀疏检索的方式缓解大词表带来的嵌入参数膨胀。
 
 ### 2.4 2025 年的新趋势：SuperBPE
 
@@ -247,7 +263,7 @@ low, lower, lowest, new, newer, newest, er, est, ...
 
 比如 "by the way"、"in the morning" 这些多词表达，语义上是一个整体。SuperBPE 在第二阶段允许跨空格合并，结果比标准 BPE 少了 **33% 的 token**，下游任务提升 4%。
 
-这说明 tokenizer 仍然是活跃的研究领域——**怎么切语言，直接影响模型能学到什么。**
+这说明 tokenizer 仍然是活跃的研究领域——**怎么切语言，直接影响模型能学到什么，也直接决定你为每个请求付多少 token 钱**（业界把不同模型切分效率的差异称为“tokenization tax”）。
 
 ---
 
@@ -383,21 +399,54 @@ logit(你): -0.700 → -0.517
 | **RMSNorm** | 更稳定的归一化 | Llama 系列 |
 | **SwiGLU** | 更强的激活函数 | PaLM、Llama、Qwen |
 | **GQA** | 分组查询注意力，减少 KV Cache | Llama 2/3、Qwen3 |
-| **MLA** | 多头潜在注意力，极致压缩 KV Cache | DeepSeek-V3、Kimi K2 |
-| **MoE** | 混合专家，每个 token 只激活部分参数 | DeepSeek-V3、Llama 4、Qwen3-235B |
+| **MLA** | 多头潜在注意力，极致压缩 KV Cache | DeepSeek-V3、Kimi K2/K3 |
+| **MoE** | 混合专家，每个 token 只激活部分参数 | DeepSeek、Llama 4、Qwen3、GLM、Kimi K3 |
+| **线性注意力混合** | 大部分层用 O(1) 状态的线性注意力，少数层保留全注意力 | Qwen3-Next（Gated DeltaNet）、Kimi K3（KDA） |
+| **稀疏注意力** | 用轻量索引器只算最重要的 token | DeepSeek-V4（DSA）、GLM-5 |
+| **MTP** | 多 token 预测，训练时预见未来 | DeepSeek-V3/V4、Qwen3-Next |
+| **mHC** | 流形约束超连接，替代普通残差 | DeepSeek-V4 |
 
 ### 3.5 真实模型长什么样？
 
-| 模型 | 总参数 | 激活参数 | 注意力 | 特色 |
-|---|---|---|---|---|
-| **Llama 4 Scout** | ~109B | 17B | GQA | 16 专家，10M 上下文 |
-| **Llama 4 Maverick** | ~400B | 17B | GQA | 128 专家，原生多模态 |
-| **DeepSeek-V3** | 671B | 37B | MLA | FP8 训练，DualPipe |
-| **Kimi K2** | ~1T | 32B | MLA | MuonClip 优化器，Agentic RL |
-| **Qwen3-235B-A22B** | 235B | 22B | GQA | 128 专家，hybrid thinking |
-| **Claude 4 Opus** | 未公开 | 未公开 | 未知 | Dense，hybrid reasoning |
+| 模型 | 时间 | 总参数 | 激活参数 | 注意力设计 | 特色 |
+|---|---|---|---|---|---|
+| **DeepSeek-V3** | 2024.12 | 671B | 37B | MLA | FP8 训练，DualPipe |
+| **Llama 4 Maverick** | 2025.04 | ~400B | 17B | GQA | 128 专家，原生多模态 |
+| **Qwen3-235B-A22B** | 2025.04 | 235B | 22B | GQA | 128 专家，hybrid thinking |
+| **Kimi K2** | 2025.07 | ~1T | 32B | MLA | MuonClip 优化器，Agentic RL |
+| **Qwen3-Next-80B-A3B** | 2025.09 | 80B | 3B | 3 层 Gated DeltaNet : 1 层 GQA | 线性注意力混合，MTP |
+| **GLM-5** | 2026.02 | 744B | ~40B | 稀疏注意力（DSA 式） | 28.5T token，Agentic 导向 |
+| **DeepSeek-V4-Pro** | 2026.04 | 1.6T | 49B | CSA + HCA 混合压缩注意力 | 1M 上下文，FP4 路由专家，mHC |
+| **Kimi K3** | 2026.07 | 2.8T | 104B | KDA 线性注意力 + MLA 混合 | 896 专家，原生多模态，1M 上下文 |
 
-注意：**总参数多不代表推理贵**。MoE 模型的“激活参数”才是关键——每次前向只调用其中一部分专家。
+注意：**总参数多不代表推理贵**。MoE 模型的“激活参数”才是关键——每次前向只调用其中一部分专家。像 Qwen3-Next-80B-A3B 这样总参数 80B、每次只激活 3B 的“超稀疏”设计，让单张消费级显卡也能跑出有旗舰味道的回答。
+
+闭源旗舰（GPT-5 系列、Claude Opus 4.7/5、Gemini 3）的参数与注意力设计均未公开，但从行为特征看，同样收敛到了“MoE + 混合推理深度 + 超长上下文”的路线。
+
+### 3.6 2025-2026：架构突围的三条路线
+
+2025 年下半年到 2026 年，大家争夺的主战场从“谁的参数多”变成了“**谁能扛住 100 万 token 上下文和每秒亿万次推理**”。注意力机制——也就是 Transformer 里最贵的那部分——出现了三条清晰的突围路线：
+
+```mermaid
+flowchart LR
+    A["标准全注意力<br/>O(n²) 计算 + O(n) KV Cache"] --> B["路线一：压缩<br/>MLA → CSA/HCA<br/>KV Cache 小几十倍"]
+    A --> C["路线二：稀疏<br/>DSA Lightning Indexer<br/>只算最重要的 token"]
+    A --> D["路线三：线性化<br/>Gated DeltaNet / KDA<br/>O(1) 状态，无 KV Cache"]
+    B --> E["DeepSeek-V4<br/>1M 上下文推理 FLOPs 仅为 V3.2 的 ~27%"]
+    C --> F["GLM-5、DeepSeek-V4<br/>长上下文 API 降价 50%+"]
+    D --> G["Qwen3-Next、Kimi K3<br/>1M 上下文解码最高 6 倍提速"]
+```
+
+**路线一：压缩。** MLA 把 KV Cache 压到原来的几十分之一；DeepSeek-V4 更进一步，交替使用“中等压缩 + 稀疏选择”的 CSA 和“128 倍压缩”的 HCA，把 1M 上下文的推理开销压到上一代的几分之一。
+
+**路线二：稀疏。** DeepSeek 的 DSA（DeepSeek Sparse Attention）训练一个极轻量的“闪电索引器”，为每个 query 挑出海量 key 中最值得注意的 top-k 个。2026 年 GLM-5、混元、LongCat 等大量模型跟进，稀疏注意力已经从论文走进生产线，甚至成为 MLSys 竞赛的标配赛道。
+
+**路线三：线性化。** 线性注意力（Gated DeltaNet、Kimi Delta Attention）用一个固定大小的状态矩阵代替随长度增长的 KV Cache：每读一个 token 就更新一次状态，内存 O(1)，天然适合百万级上下文。代价是精确回忆能力弱于全注意力，所以主流做法是把两种层**混着用**——Qwen3-Next 每 4 层里放 1 层全注意力、Kimi K3 每 4 层里放 1 层 MLA，其余用线性层。
+
+此外还有两个横切所有路线的趋势：
+
+- **MTP（Multi-Token Prediction，多 token 预测）**：训练时不只预测下一个 token，还同时预测第 2、3 个 token。DeepSeek-V3 用它当辅助训练目标，到了 V4 和 Qwen3-Next，MTP 头已经成了“白送”的投机解码草稿模型——推理时一次验证多个 token，小 batch 下提速约 2 倍。
+- **Muon 优化器**：2025 年 Moonlight 证明 Muon 在大模型上比 AdamW 算力效率更高；Kimi K2 的 MuonClip（加 QK-Clip 防注意力 logit 爆炸）让它在 15.5T token 训练中零 loss spike；DeepSeek-V4 也全面转向 Muon。**优化器本身，正在成为预训练竞争力的组成部分。**
 
 ---
 
@@ -499,7 +548,7 @@ FSDP2（数据并行）
 + EP（专家并行，MoE）
 ```
 
-DeepSeek-V3 的 **DualPipe** 就是为了在 MoE 场景下 overlap 计算和通信，减少跨节点 all-to-all 的等待。
+DeepSeek-V3 的 **DualPipe** 就是为了在 MoE 场景下 overlap 计算和通信，减少跨节点 all-to-all 的等待。这条路线在 2026 年继续演进：Meta 公开了面向 **10 万卡以上集群**的通信栈（NCCLX / CTran），用零拷贝、不占 SM 的通信方式把集合通信和计算彻底重叠，在 Llama 4 训练中把稳定步耗时降低 12%，把 ~96K 卡规模的集群初始化提速 11 倍。可以说，**万卡时代的训练系统，胜负手已经不在模型代码，而在通信库。**
 
 ### 4.5 训练效率：MFU 是硬道理
 
@@ -527,6 +576,8 @@ MFU = 实际每秒 FLOPs / GPU 理论峰值 FLOPs
 | Qwen3 | 未公开 | 未公开 |
 
 DeepSeek-V3 的 533 万美元训练成本之所以震惊业界，是因为它用算法创新（MLA、FP8、DualPipe）在性能不落后的情况下把成本压到极低。
+
+2026 年，低成本训练的经验被进一步复制和放大：DeepSeek-V4 在保持 FP8 主干的同时，把**路由专家压到 FP4 精度**训练，Muon 优化器替代 Adam 加快收敛——下一代模型的成本曲线仍在快速下探。
 
 ### 4.7 训练中的工程挑战
 
@@ -585,13 +636,19 @@ SFT 之后，模型能生成合理回答，但不同回答之间有优劣。我�
 | **DPO** | 直接优化策略模型，无需单独的 reward model |
 | **PPO** | 传统 RLHF，需要 value network |
 | **GRPO** | 用组内相对优势代替 critic，省显存 |
+| **DAPO** | GRPO 的开放源码改进：Clip-Higher、动态采样、token 级损失 |
+| **RLVR** | 用可验证奖励（数学对答案、代码跑测试）替代人工打分 |
 | **KTO** | 只需要“好/坏”标签，不需要成对数据 |
 
 DeepSeek-R1 的核心创新之一就是 **GRPO（Group Relative Policy Optimization）**：
 
 > 不需要单独的 critic 模型，而是对同一个问题采样多个回答，用组内平均分作为 baseline，计算优势。
 
-这让 RL 训练更稳定、更省资源。
+这让 RL 训练更稳定、更省资源。而 R1 真正拉开时代帷幕的是 **RLVR（Reinforcement Learning with Verifiable Rewards，可验证奖励强化学习）**：
+
+> 凡是答案能被程序验证的领域——数学题对最终答案、代码跑单元测试、棋类按胜负计分——都不再需要人工或模型当裁判，直接让环境给奖励。
+
+2025-2026 年，RLVR 已经成为推理能力训练的标准范式，GRPO 也长出了一个改进家族：DAPO 用 token 级损失和动态采样把 32B 模型刷上 AIME 2024 的 50 分；Dr-GRPO 修正长度偏差；GSPO 把优势估计换到序列级。与此同时，**没有标准答案的领域**（写作、开放问答）也在探索用“评分细则即奖励”（rubric-as-reward）让大模型当结构化裁判——如何避免裁判被 hack，成了新的研究热点。
 
 ### 5.3 推理模型：让模型“多想一会儿”
 
@@ -601,12 +658,11 @@ DeepSeek-R1 的核心创新之一就是 **GRPO（Group Relative Policy Optimizat
 
 DeepSeek-R1-Zero 甚至证明：**完全不用 SFT，只用纯 RL，模型也能自发学会长思考。**
 
-2025-2026 年的趋势是 **hybrid reasoning**：
+2025-2026 年，hybrid reasoning 完成了从“特性”到“行业默认形态”的转变，并被推向更远：
 
-- 简单问题：快速回答；
-- 复杂问题：自动切换成深度思考模式。
-
-Claude 4、Qwen3、Kimi K2 都支持这种模式。
+- **深度档位化**：OpenAI GPT-5 用路由器在“快速模式”和“思考模式”间自动切换，并用 reasoning effort 参数（none / low / medium / high / max）把思考预算暴露给用户；Claude 系列则演进为 Adaptive Thinking，连“想多久”都由模型自己决定。
+- **开源全面跟进**：DeepSeek-V4 提供非思考 / 思考 / 深度思考多档，Qwen3、GLM-5 等也把推理深度做成一等公民。
+- **RL 算力规模化**：R1 之后，“给 RL 堆算力”成为最重要的能力杠杆之一，部分实验室的后训练算力已超过预训练；RL 训练框架（verl、OpenRLHF、TRL）的竞争焦点也变成了 rollout 吞吐——因为生成样本往往占掉 RL 训练 80% 的时间。
 
 ### 5.4 安全与对齐
 
@@ -614,7 +670,7 @@ Claude 4、Qwen3、Kimi K2 都支持这种模式。
 
 - **有害请求拒绝**：不能教用户做炸弹。
 - **减少幻觉**：模型不会胡说八道。
-- **防止 reward hacking**：模型不能钻奖励函数的空子。
+- **防止 reward hacking**：模型不能钻奖励函数的空子——RLVR 时代这个问题更尖锐，模型会学会“猜答案格式”“讨好裁判”，工程上需要用 held-out 验证集和规则补丁持续堵漏。
 - **红队评估**：让专业团队想尽办法攻击模型，再修复。
 
 Anthropic 的 **Constitutional AI** 让模型根据一组原则自我批评和修正，减少对大量人类标注的依赖。
@@ -687,9 +743,12 @@ KV Cache = [K_1, K_2, ..., K_n]
 | 引擎 | 特点 | 适用场景 |
 |---|---|---|
 | **vLLM** | PagedAttention，高并发，生态最广 | 生产 GPU 服务 |
-| **SGLang** | RadixAttention，prefix-heavy 场景强 | Agent、RAG、多轮对话 |
+| **SGLang** | RadixAttention，prefix-heavy 场景强，PD 分离成熟 | Agent、RAG、多轮对话 |
 | **TensorRT-LLM** | NVIDIA 原生优化，吞吐量最高 | NVIDIA 数据中心 |
+| **NVIDIA Dynamo** | 推理时代理（agent）级调度，PD 分离 | GB200/NVL72 大规模集群 |
 | **llama.cpp** | 跨平台，CPU/GPU/Apple Silicon | 本地、边缘 |
+
+2026 年，头部服务普遍采用 **PD 分离（Prefill-Decode Disaggregation）** 架构：一组 GPU 专职处理Prefill，另一组专职 Decode，中间通过 Mooncake、NIXL 等传输引擎搬运 KV Cache，配合全局前缀缓存和缓存感知调度。原因很简单——Prefill 吃算力、Decode 吃带宽，混在一起两边都跑不满。这套架构也是把 1M 上下文推理价格打下来的关键工程之一。
 
 ---
 
@@ -723,13 +782,18 @@ Anthropic 的 prompt caching 甚至把缓存输入的价格降低了 90%。
 
 这就是 **Speculative Decoding**。如果 draft 模型质量高，整体速度可以提升 2-6 倍。
 
-2025-2026 年的新方法是 **EAGLE-3**：不再用独立 draft model，而是在目标模型上加一个轻量预测头，直接预测未来 token。
+2025-2026 年的重要变化是：**草稿不再需要单独的模型**。两条路线合流了：
+
+- **EAGLE-3**：在目标模型上加一个轻量预测头，直接预测未来 token；
+- **MTP 头原生内置**：DeepSeek-V4、Qwen3-Next、GLM-5.1 在训练时就带了多 token 预测头，推理时直接拿来当草稿——没有分布不匹配，没有额外模型文件，vLLM/SGLang/TensorRT-LLM 都能自动识别。生产环境中，小 batch 下普遍能拿到约 2 倍 tokens/s。
+
+一个务实的提醒：投机解码的收益随 batch 增大而衰减（GPU 已经跑满时，验证额外 token 纯属添乱），所以它主要优化的是**低负载时的延迟**，不是集群总吞吐。
 
 ### 7.5 Prefill-Decode Disaggregation
 
 Prefill 是计算密集，Decode 是带宽密集。把它们放在同一台机器上，资源利用率不均衡。
 
-**PD 分离**：用一组 GPU 专门做 Prefill，另一组专门做 Decode。SGLang 在 DeepSeek-V3/R1 上实现了 **3.8 倍吞吐提升** 和 **3.5 倍 TTFT 降低**。
+**PD 分离**：用一组 GPU 专门做 Prefill，另一组专门做 Decode。SGLang 在 DeepSeek-V3/R1 上实现了 **3.8 倍吞吐提升** 和 **3.5 倍 TTFT 降低**。到 2026 年，这套架构已经和 KV Cache 传输引擎（Mooncake、NIXL）、分层缓存（热数据留显存、温数据上 CPU/SSD）结合成标准打法；但工程界也形成了一个清醒共识——PD 分离运维复杂度高，对于负载简单的场景，传统的 chunked prefill 依然是更省心的选择。
 
 ### 7.6 量化
 
@@ -753,32 +817,44 @@ DeepSeek-R1 蒸馏出 1.5B-70B 的小模型，让学生模型学习老师的推�
 
 ## 8. 2025-2026 前沿剪影
 
-### 8.1 模型：MoE、长上下文、多模态、推理
+### 8.1 模型：架构收敛，旗舰全面 MoE 化
 
 | 模型 | 时间 | 亮点 |
 |---|---|---|
 | **DeepSeek-V3** | 2024.12 | 671B MoE，37B 激活，MLA，FP8，533 万美元训练 |
-| **DeepSeek-R1** | 2025.01 | 纯 RL 涌现长思考，GRPO，开源 |
+| **DeepSeek-R1** | 2025.01 | 纯 RL 涌现长思考，GRPO，RLVR 范式确立 |
 | **Llama 4** | 2025.04 | 17B 激活，128 专家，10M 上下文，原生多模态 |
+| **Qwen3 / Qwen3-235B** | 2025.04 | hybrid thinking，36T token |
 | **Kimi K2** | 2025.07 | 1T 总参，32B 激活，MuonClip，Agentic RL |
-| **Claude 4** | 2025.05 | Hybrid reasoning，工具使用，长上下文 |
-| **Qwen3** | 2025.04 | 235B MoE，hybrid thinking，36T token |
+| **Qwen3-Next** | 2025.09 | Gated DeltaNet 线性注意力混合，80B-A3B 超稀疏 MoE，MTP |
+| **GLM-5** | 2026.02 | 744B MoE，DSA 稀疏注意力，Agentic 工程能力 |
+| **DeepSeek-V4** | 2026.04 | 1.6T MoE，CSA/HCA 百万上下文，FP4 路由专家，MIT 开源 |
+| **Qwen3.8-2.4T-A95B** | 2026.08 | 首个开放权重的 Max 级 Qwen，2.4T 总参 / 95B 激活 |
+| **Kimi K3** | 2026.07 | 2.8T 原生多模态 MoE，KDA 线性注意力，896 专家 |
 
-### 8.2 训练：从“堆卡”到“堆算法”
+到 2026 年，开源与闭源的差距进一步缩小：DeepSeek-V4、Kimi K3、Qwen3.8 三个 1.6T-2.8T 级的开源旗舰已经可以在多数任务上正面对话 GPT-5.5、Claude Opus 5 等闭源模型，选型的主要变量变成了成本、许可证和生态。
 
-- **FP8 大规模训练验证**：DeepSeek-V3 证明了 FP8 可以在千亿 MoE 上稳定训练。
-- **DualPipe / 通信-计算 overlap**：让分布式训练不再被通信拖后腿。
-- **合成数据与课程学习**：用强模型生成高质量训练数据。
-- **数据质量反思**：分类器过滤是否真的是“质量”？研究在重新审视。
+### 8.2 训练：从“堆卡”到“堆算法”，优化器与通信成为主战场
 
-### 8.3 推理：从“能跑”到“好跑”
+- **FP8 全面普及，FP4 开始上训练**：DeepSeek-V3 验证了 FP8；V4 把路由专家压到 FP4。
+- **Muon 取代 Adam 的浪潮**：Moonlight 证明可行性，Kimi K2 的 MuonClip 解决稳定性，V4 全面采用。
+- **10 万卡集群常态化**：Meta 公开 NCCLX/CTran 通信栈，把 96K 卡初始化提速 11 倍；通信-计算重叠从“优化项”变成“生死线”。
+- **合成数据与课程学习**：用强模型生成高质量训练数据已是标配。
+- **数据质量反思**：分类器过滤是否真的是“质量”？研究在继续审视。
 
-- **PD 分离**：生产级部署开始普及。
-- **KV Cache 复用**：RadixAttention、LMCache、KVFlow 让多轮对话成本大降。
-- **边缘推理**：小模型（<9B）在手机上跑得有模有样。
-- **推理 Scaling**：让模型“多想一会儿”比单纯扩大模型更划算。
+### 8.3 推理：从“能跑”到“好跑”，缓存成为一等公民
 
-### 8.4 硬件：Blackwell 与后 Blackwell
+- **PD 分离 + KV Cache 传输**：Mooncake、NIXL 让 Prefill/Decode 池化调度成为大规模服务标准。
+- **KV Cache 分层**：热数据在显存、温数据在 CPU 内存、冷数据落 SSD，长上下文成本被层层摊薄。
+- **稀疏注意力与线性注意力进入内核**：FlashInfer、vLLM、SGLang 原生支持 DSA 与 Gated DeltaNet，长上下文推理价格一年内下降数倍。
+- **MTP / 投机解码内置化**：模型自带草稿头，低负载延迟再砍一半。
+- **边缘推理**：3B 级超稀疏 MoE 让手机端跑出旗舰体验成为现实。
+
+### 8.4 多模态：从“外挂”到“原生”
+
+2026 年的另一个结构性变化是**原生多模态（Native Multimodal）**成为旗舰标配。早期方案是把现成的 ViT 视觉编码器“粘”到 LLM 前面（late fusion）；新范式是从零开始端到端联合训练视觉与语言（early fusion）， Scaling Law 研究表明：原生多模态模型的训练效率与纯文本 LLM 相当，且分辨率越高优势越大，MoE 路由还会自然分化出跨模态专家。Llama 4、Kimi K3、Qwen3.5 已经走通这条路线，图像、视频帧、音频乃至机器人动作，正越来越像“另一种 token”一样被同一条 Transformer 流水线处理。
+
+### 8.5 硬件：Blackwell 与后 Blackwell
 
 | GPU | FP8 算力 | 显存 | 定位 |
 |---|---|---|---|
@@ -797,7 +873,7 @@ Blackwell 带来的不只是算力翻倍，还有 **FP4 原生支持** 和 **Tra
 
 - 大模型不是魔法，而是**数据 + 算力 + 算法 + 工程**的乘积。
 - **Tokenizer** 把语言切成数学，**Transformer** 在向量空间里找规律，**预训练** 让模型博览群书，**后训练** 让它学会对话和推理，**推理服务** 把它塞进你的产品，**优化技术** 让它快得起、用得起。
-- 2025-2026 年的前沿，不再是单纯比参数量，而是比 **效率、推理成本、长上下文、Agent 能力、推理深度**。
+- 2025-2026 年的前沿，不再是单纯比参数量，而是比 **预训练效率、后训练 RL 强度、推理成本、长上下文、原生多模态、Agent 能力**——attention 的设计（压缩、稀疏、线性化）则是这一切的地基。
 
 但这只是开始。
 
@@ -817,6 +893,15 @@ Blackwell 带来的不只是算力翻倍，还有 **FP4 原生支持** 和 **Tra
 
 ## 参考与延伸阅读
 
+- [DeepSeek-V4: Towards Highly Efficient Million-Token Context Intelligence](https://arxiv.org/abs/2606.19348)
+- [Kimi K3: Open Frontier Intelligence](https://arxiv.org/abs/2607.24653)
+- [Qwen3-Next: Hybrid attention with Gated DeltaNet（模型集合）](https://huggingface.co/collections/Qwen/qwen3-next)
+- [GLM-5 系列（Z.ai 模型页）](https://z.ai/blog)
+- [Collective Communication for 100k+ GPUs（Meta NCCLX/CTran）](https://arxiv.org/abs/2510.20171)
+- [Muon is Scalable for LLM Training（Moonlight）](https://arxiv.org/abs/2502.16982)
+- [DAPO: An Open-Source LLM Reinforcement Learning System at Scale](https://arxiv.org/abs/2503.14476)
+- [awesome-RLVR：可验证奖励强化学习论文清单](https://github.com/opendilab/awesome-RLVR)
+- [Scaling Laws for Native Multimodal Models](https://arxiv.org/abs/2504.07951)
 - [The Llama 4 Herd: Architecture, Training, Evaluation, and Deployment Notes](https://arxiv.org/abs/2601.11659)
 - [DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437)
 - [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
