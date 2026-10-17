@@ -883,6 +883,9 @@ Blackwell 带来的不只是算力翻倍，还有 **FP4 原生支持** 和 **Tra
 - [vLLM](/04-llmops/vllm/)：推理引擎的内存管理与调度细节；
 - [SGLang](/04-llmops/sglang/)：RadixAttention 与结构化生成；
 - [TensorRT-LLM](/04-llmops/tensorrt-llm/)：NVIDIA 编译型推理优化；
+- [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)：torch.compile/Inductor 如何生成算子，深入矩阵运算的编译层；
+- [模型量化与压缩基础设施](/04-llmops/model-quantization/)：FP8/NVFP4/MXFP4 如何把第 8 章的压缩思想落地为推理成本；
+- [RL Post-Training 基础设施](/04-llmops/rl-post-training/)：第 5 章后训练的工程化——GRPO/PPO、Rollout/Train 分离；
 - [KServe](/03-ai-platform/kserve/)：把模型服务化、规模化；
 - [Ray](/03-ai-platform/ray/)：分布式训练与推理平台；
 - [AI SRE](/07-ai-sre/)：让大模型服务稳定可观测。
