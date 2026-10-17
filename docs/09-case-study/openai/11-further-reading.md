@@ -7,15 +7,26 @@
 - [OpenAI Blog](https://openai.com/blog/) — 模型发布、产品更新、工程实践。
 - [OpenAI Research](https://openai.com/research/) — 论文与技术报告。
 - [OpenAI API Documentation](https://platform.openai.com/docs/) — API 参考与最佳实践。
+- [OpenAI Model Release Notes](https://help.openai.com/en/articles/9624314-model-release-notes) — 模型发布与退役日历的权威记录。
 - [OpenAI Latency Optimization Guide](https://developers.openai.com/api/docs/guides/latency-optimization) — 官方推理延迟优化七原则。
-- [OpenAI Preparedness Framework (Beta)](https://cdn.openai.com/openai-preparedness-framework-beta.pdf) — 前沿风险治理框架。
+- [OpenAI Preparedness Framework (Beta)](https://cdn.openai.com/openai-preparedness-framework-beta.pdf) — 前沿风险治理框架（v2 于 2025-04 发布）。
+- [GPT-5 System Card](https://cdn.openai.com/pdf/8124a3ce-ab78-4f06-96eb-49ea29ffb52f/gpt5-system-card-aug7.pdf) — GPT-5 统一系统、路由器与安全评估。
 - [GPT-4o System Card](https://arxiv.org/pdf/2410.21276v1) — GPT-4o 安全评估与红队报告。
+
+## 2025–2026 里程碑
+
+- [New tools for building agents（Responses API / Agents SDK）](https://openai.com/index/new-tools-for-building-agents/) — 2025-03，API 的 Agent 原语化。
+- [Introducing gpt-oss](https://openai.com/index/introducing-gpt-oss/) — 2025-08，七年来首批开放权重模型（gpt-oss-120b/20b）。
+- [Five new Stargate sites](https://openai.com/index/five-new-stargate-sites/) — 2025-09，Stargate 新增五座站点、接近 7 GW。
+- [OpenAI × Broadcom Jalapeño inference chip](https://openai.com/index/openai-broadcom-jalapeno-inference-chip/) — 2026-06，首款自研 LLM 推理 ASIC。
+- [How we used Codex to ship Sora for Android in 28 days](https://openai.com/index/shipping-sora-for-android-with-codex/) — 模型参与自身工程交付的实例。
 
 ## Microsoft / Azure 合作
 
 - [Azure previews powerful and scalable VM series for generative AI](https://azure.microsoft.com/en-us/blog/azure-previews-powerful-and-scalable-virtual-machine-series-to-accelerate-generative-ai/) — ND H100 v5 与 OpenAI co-design。
 - [How Microsoft’s bet on Azure unlocked an AI revolution](https://news.microsoft.com/source/features/ai/how-microsofts-bet-on-azure-unlocked-an-ai-revolution/) — Microsoft-OpenAI 合作深度报道。
 - [NVIDIA Technical Blog: What Runs ChatGPT?](https://developer.nvidia.com/blog/new-video-what-runs-chatgpt/) — Mark Russinovich 讲解 Azure AI 超级计算机。
+- [Stargate tracker](https://stargate.how/) — 第三方维护的 Stargate 站点与容量追踪。
 
 ## 论文
 
@@ -24,6 +35,8 @@
 - **OpenAI 2023** — *GPT-4 Technical Report* — GPT-4 能力与安全概述。
 - **OpenAI 2024** — *GPT-4o System Card* — 多模态安全评估。
 - **Beutel et al. 2024** — *Diverse and Effective Red Teaming with Auto-Generated Rewards and Multi-Step RL* — OpenAI 自动化红队。
+- **OpenAI 2024** — *Deliberative Alignment: Reasoning Enables Safer Language Models* — 用思维链把安全规格训进 reasoning 模型。
+- **OpenAI 2025** — *Rule-Based Rewards for Language Model Safety* — 把安全规格拆成可判分命题作为 RL 奖励。
 
 ## 开源项目
 
@@ -31,6 +44,9 @@
 - [OpenAI GPT-2](https://github.com/openai/gpt-2) — 早期开源大模型实现。
 - [OpenAI CLIP](https://github.com/openai/CLIP) — 视觉-语言对比学习。
 - [OpenAI Whisper](https://github.com/openai/whisper) — 语音识别模型。
+- [openai/gpt-oss](https://github.com/openai/gpt-oss) — 开放权重 reasoning 模型（Apache 2.0）。
+- [openai-agents-python](https://github.com/openai/openai-agents-python) — Agents SDK。
+- [openai/codex](https://github.com/openai/codex) — 开源编程 Agent（CLI + 云任务）。
 
 ## 工程分析与演讲
 
@@ -52,11 +68,12 @@
 
 ## 学习路径建议
 
-1. 先读 OpenAI 官方 latency optimization guide 与 Preparedness Framework。
-2. 看 Microsoft/Azure 合作博客，理解训练基础设施规模。
-3. 跑通 Triton 官方 tutorial，理解 GPU kernel 编程。
-4. 结合本手册 LLMOps 与 LLM Gateway 主题，复现一个 mini API server。
-5. 阅读 System Cards，学习如何撰写模型安全评估报告。
+1. 先读 OpenAI 官方 latency optimization guide 与 Preparedness Framework v2。
+2. 看 Stargate 站点公告与 Jalapeño 芯片发布，理解 10 GW 时代的算力工程。
+3. 精读 GPT-5 System Card，理解统一系统 + 路由器的安全评估方式。
+4. 跑通 Triton 官方 tutorial，理解 GPU kernel 编程。
+5. 用 openai/gpt-oss 做一次单卡部署，体验 MoE + MXFP4 量化的工程细节。
+6. 结合本手册 LLMOps 与 LLM Gateway 主题，复现一个 mini API server。
 
 ## 小结
 

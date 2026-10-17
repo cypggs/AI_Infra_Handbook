@@ -34,18 +34,21 @@
 - **部署门槛**：Preparedness Framework 将 high/critical 风险模型置于更严格的发布流程。
 - **System Cards 作为交付物**：把安全评估结果与缓解措施公开，建立信任。
 
-## 5. 与云厂商深度 co-design
+## 5. 从“单一云共建”到“多伙伴算力联盟”
 
-- Microsoft 为 OpenAI 建造专用 Azure AI 超级计算机。
-- 从网络、存储、调度到故障恢复都针对大模型训练优化。
-- Azure OpenAI Service 让企业客户也能使用同一套基础设施。
+- Microsoft 为 OpenAI 建造专用 Azure AI 超级计算机，网络、存储、调度、故障恢复都针对大模型训练优化。
+- 2025-01 Stargate 宣布后，OpenAI 从纯 Azure 依赖转向“Azure 共建 + Stargate 自建”：Oracle 承接 4.5 GW 多年容量，SoftBank/MGX 出资，NVIDIA 以最高 1000 亿美元投资绑定 10 GW 系统部署。
+- 2025-09 Stargate 新增五个站点，规划容量接近 7 GW；Abilene 一期 2025-09 通电即承载训练/推理负载。
+- 2026-06 与 Broadcom 发布 Jalapeño 推理 ASIC，9 个月完成设计到流片，目标 2026 年底部署——当推理成为主要成本中心，定制硅进入主流选项。
+- 教训：算力供给也是产品能力的一部分；单一供应商依赖在 10 GW 量级下不可持续。
 
-## 6. 从 outages 中学到的教训
+## 6. 从 outages 与发布事故中学到的教训
 
-- **容量规划要留足余量**： viral 增长会瞬间打满推理集群。
+- **容量规划要留足余量**： viral 增长会瞬间打满推理集群；2025-08 GPT-5 发布当天 ChatGPT 即出现服务降级，旗舰发布会是最真实的压测。
 - **降级策略**：在高峰时段限制非付费用户、降低生成长度、引导到更小模型。
 - **全局状态一致性**：多区域部署下，配额、配置、模型版本需要强一致性。
 - **快速回滚**：新模型或配置异常时，能在分钟级回滚到稳定版本。
+- **退役也是有成本的操作**：o1/o3/o4-mini 等模型 2026 年集中退役，开发者迁移压力巨大——平台要提前给出迁移指南、推荐替代模型与足够长的 sunset 窗口。
 
 ## 7. 可观测与 SLO
 
@@ -56,18 +59,19 @@
 ## 8. 多模态与 Agent 的新挑战
 
 - **实时音频/视频**：端到端延迟要求从秒级降到百毫秒级。
-- **长程 Agent 会话**：状态持久化、工具调用审计、沙箱安全。
-- **测试时计算（Test-Time Compute）**：o1/o3 类 reasoning 模型需要更多推理时间，对调度与成本模型提出新需求。
+- **长程 Agent 会话**：状态持久化、工具调用审计、沙箱安全；Codex 云任务在隔离容器中运行，ChatGPT agent（2025-07）统一了 Operator 式计算机使用与 deep research。
+- **测试时计算（Test-Time Compute）**：o1/o3 类 reasoning 模型需要更多推理时间，对调度与成本模型提出新需求；GPT-5 用系统级路由器把这一复杂性藏在产品内部，并用 `reasoning_effort` 把成本选择权交回用户。
+- **Agent 安全的系统性工程**：computer use 类工具一旦规模化，提示注入、越权操作、数据外泄的风险被放大——Guardrails/Evals 成为 AgentKit 的一等平台组件，而不是外围插件。
 
 ## 常见反模式
 
 | 反模式 | 风险 | OpenAI 的修正思路 |
 |---|---|---|
-| 一次性发布大模型 | 风险不可控 | Staged release、research preview |
-| 忽视推理成本 | 运营亏损 | Continuous batching、KV cache、模型蒸馏 |
-| 安全作为事后补丁 | 滥用与合规风险 | RLHF、Red Teaming、System Cards |
-| 单区域部署 | 高延迟与单点故障 | 全球多区域推理集群 |
-| 模型版本不可控 | 行为漂移 | 显式版本命名与灰度 |
+| 一次性发布大模型 | 风险不可控 | Staged release、research preview、系统级路由器灰度 |
+| 忽视推理成本 | 运营亏损 | Continuous batching、KV cache、模型蒸馏、能力分层定价、定制硅 |
+| 安全作为事后补丁 | 滥用与合规风险 | RLHF、审慎对齐、Red Teaming、System Cards、Guardrails 平台化 |
+| 单区域部署 | 高延迟与单点故障 | 全球多区域推理集群 + Stargate 自建站点 |
+| 模型版本不可控 | 行为漂移与迁移混乱 | 显式版本命名、退役日历、灰度与快速回滚 |
 
 ## 小结
 

@@ -19,49 +19,63 @@ OpenAI 的基础设施由若干核心模块组成。这些模块既包括自研�
 
 ## 3. 训练集群基础设施
 
-- **GPU 计算**：NVIDIA A100/H100/H200 Tensor Core GPU。
-- **高速网络**：NVIDIA Quantum-2 InfiniBand，400 Gb/s per GPU。
-- **NVSwitch / NVLink**：节点内高速互联。
+- **GPU 计算**：NVIDIA A100/H100/H200/GB200 NVL72 Tensor Core 系统。
+- **高速网络**：NVIDIA Quantum-2 InfiniBand，400 Gb/s per GPU；机柜级 NVLink 域。
+- **NVSwitch / NVLink**：节点内/机柜内高速互联。
 - **存储系统**：高吞吐并行文件系统，支持 TB 级 checkpoint。
-- **电力与散热**：液冷、数据中心级供电与冷却设计。
+- **电力与散热**：液冷、GW 级园区供电；Stargate 以电力可得性选址（Abilene、New Mexico、Milam County 等）。
+- **算力供给组合**：Azure 共建 + Stargate 自建 + Oracle 4.5 GW 多年容量 + NVIDIA 投资绑定 + 自研 Jalapeño 推理 ASIC。
 
 ## 4. 模型仓库与发布
 
 - **版本管理**：每个模型版本有唯一标识与元数据。
 - **Artifact 存储**：权重文件、tokenizer、配置文件。
 - **签名与溯源**：确保模型来源可信。
-- **灰度发布**：按用户 tier、区域、流量比例逐步放量。
+- **灰度发布**：按用户 tier、区域、流量比例逐步放量；GPT-5 的系统级路由器让灰度可以在“快/慢路径”粒度进行。
+- **生命周期管理**：发布即公布退役日期（如 o4-mini 于 2026-10-23、o3 于 2026-12-11 关闭），配套迁移指南与推荐替代模型。
 
 ## 5. 推理服务引擎
 
-- **模型加载与并发**：多 GPU、多实例部署。
+- **模型加载与并发**：多 GPU、多实例、多芯（GPU + Jalapeño ASIC）部署。
 - **Continuous Batching**：动态组 batch，提高吞吐。
 - **KV Cache 管理**：PagedAttention、prefix caching、swap/eviction 策略。
 - **Speculative Decoding**：草稿小模型加速生成。
-- **量化与蒸馏**：降低推理成本。
+- **量化与蒸馏**：降低推理成本；gpt-oss 系列使用 MXFP4 让 117B 模型单卡 80GB 可跑。
+- **系统级路由与分层**：快模型/推理模型实时切换、`reasoning_effort` 分级、Sol/Terra/Luna 能力分层（GPT-5.6 起）。
 
 ## 6. API Gateway 与平台层
 
 - **认证与授权**：API Key、Organization、Project 三级隔离。
 - **限流与配额**：按 tier、模型、token 配额限流。
-- **计费**：输入/输出 token 分别计费，支持不同模型价格。
-- **模型路由**：根据模型名称、区域负载、容量调度。
+- **计费**：输入/输出 token 分别计费，reasoning 模型的思考 token 单独计量；支持不同模型与分层档位价格。
+- **模型路由**：根据模型名称、区域负载、容量调度，以及 GPT-5 式系统级路由。
 - **可观测**：延迟、错误率、token 用量、成本追踪。
 
-## 7. 安全与对齐模块
+## 7. Agent 平台
+
+2025 年起新增的完整模块层：
+
+- **Responses API**：把工具调用循环做成 API 内建能力，内置 web search、file search、computer use 等工具。
+- **Agents SDK**：开源编排框架（handoff、guardrail、tracing），源自 Swarm 实验项目。
+- **AgentKit**（DevDay 2025）：Agent Builder、ChatKit、Guardrails、Evals 的组合，把 Agent 从“SDK 能力”升级为“平台能力”。
+- **Codex 云任务**：隔离容器中运行的长程编程 Agent，支持 Slack 集成与管理后台。
+- **Assistants API 退役**：功能并入 Responses API 后按计划于 2026 年上半年下线。
+
+## 8. 安全与对齐模块
 
 - **RLHF Pipeline**：人类反馈收集、奖励模型训练、策略优化。
+- **RBR / 审慎对齐**：基于规则的奖励把安全规格拆成可判分的细粒度命题；o 系列在思维链中显式核对 Model Spec。
 - **Moderation 模型**：独立分类器检测有害内容。
 - **Red Teaming 平台**：自动化 + 人工红队测试。
-- **Preparedness Evaluations**：四类前沿风险评估。
+- **Preparedness Evaluations**：四类前沿风险评估（v2 框架为 High/Critical 两级 + Capabilities/Safeguards 双报告）。
 - **System Cards**：发布时的安全与能力报告。
 
-## 8. 多模态与产品基础设施
+## 9. 多模态与产品基础设施
 
-- **DALL-E / Sora**：图像/视频生成集群，需要大规模并行推理。
+- **Sora / Sora 2**：视频生成集群；Sora 2（2025-09）支持音视频同步生成，随后进入 API。
 - **Whisper**：语音转文本，支持流式与离线处理。
-- **Realtime API**：低延迟音频/视频流处理，对端到端延迟要求极高。
-- **Agent / Operator**：工具调用、沙箱、长程状态管理。
+- **Realtime API**：低延迟音频/视频流处理，对端到端延迟要求极高；DevDay 2025 追加 gpt-realtime-mini。
+- **Agent / Codex / ChatGPT agent**：工具调用、隔离沙箱、长程状态管理、浏览器计算机使用（computer use 内置于 Responses API，GPT-5.4 起原生支持）。
 
 ## 模块协作示例
 

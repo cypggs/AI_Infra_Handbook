@@ -18,7 +18,9 @@
 - [ ] 引入 PagedAttention 或类似技术管理 KV cache。
 - [ ] 对重复前缀使用 prefix caching。
 - [ ] 在“输出结构已知”的场景使用 predicted outputs 或 speculative decoding。
-- [ ] 简单任务路由到小模型/蒸馏模型，复杂任务再用大模型。
+- [ ] 简单任务路由到小模型/蒸馏模型，复杂任务再用大模型；更进一步，用系统级路由器自动完成这个选择。
+- [ ] 对 reasoning 模型暴露 `reasoning_effort` 或等价档位，让用户用质量换成本。
+- [ ] 评估定制推理芯片（ASIC）在稳定大流量场景下的 TCO，推理成本主导时这是 OpenAI 已验证的路径。
 - [ ] 默认开启 streaming，改善用户感知延迟。
 
 ## API 与平台工程
@@ -27,8 +29,10 @@
 - [ ] 实现多租户隔离（organization / project / key）。
 - [ ] 按 tier、模型、并发、token budget 设置分层限流。
 - [ ] 模型版本显式命名，支持灰度发布与快速回滚。
+- [ ] 为每个模型维护发布与退役日历，提前通知并给出迁移路径。
 - [ ] 记录每次请求用于计费、可观测与审计。
 - [ ] 多区域部署，按地理位置与容量路由。
+- [ ] 为 Agent 工作负载提供沙箱隔离、工具白名单、会话审计与 guardrails。
 
 ## 安全与对齐
 
@@ -36,7 +40,7 @@
 - [ ] 建立多维度安全评估：cybersecurity、CBRN、persuasion、autonomy。
 - [ ] 定期进行内部 + 外部红队测试，覆盖多语言、多模态。
 - [ ] 对 high/critical 风险模型设置更严格的发布门槛。
-- [ ] 发布 System Card / Model Card，记录能力、限制与缓解措施。
+- [ ] 发布 System Card / Model Card，记录能力、限制与缓解措施；GPT-5 起可拆分为 Capabilities Report 与 Safeguards Report。
 - [ ] 建立滥用检测与响应机制，包括 rate limit、内容过滤、人工审核。
 
 ## 可观测与 SLO
@@ -52,6 +56,7 @@
 - [ ] 采用迭代部署，先 API/小范围用户，再逐步放量。
 - [ ] 建立故障演练与回滚 playbook。
 - [ ] 与云厂商深度 co-design，针对工作负载优化网络、存储、调度。
+- [ ] 算力组合多元化：单一云/单一芯片供应商在超大规格下都是风险敞口。
 
 ## 小结
 

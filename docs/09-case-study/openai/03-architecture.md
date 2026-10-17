@@ -29,18 +29,20 @@ flowchart TB
         GW[API Gateway
             Auth / Rate Limit / Routing]
         LB[Load Balancer
-            Regional]
+            Regional + Stargate Sites]
         IS[Inference Servers
             vLLM-like / Custom]
         KV[(KV Cache / Prefix Cache)]
         SF[Safety Filters
             Moderation / Guardrails]
+        ASIC[Jalapeño ASIC
+            Custom Inference Silicon]
     end
 
     subgraph Serving["产品层"]
         CH[ChatGPT]
-        API[OpenAI API]
-        AG[Agent / Operator]
+        API[OpenAI API / Responses]
+        AG[Agent / Codex / ChatGPT agent]
     end
 
     DC --> DS
@@ -53,6 +55,7 @@ flowchart TB
     LB --> IS
     IS --> KV
     IS --> SF
+    IS --> ASIC
     SF --> CH
     SF --> API
     SF --> AG
@@ -62,9 +65,10 @@ flowchart TB
 
 ### 计算层
 
-- **GPU 集群**：从 V100 → A100 → H100/H200，单集群规模达到数万台。
-- **网络**：NVIDIA Quantum-2 InfiniBand，400 Gb/s per GPU，配合 NVSwitch/NVLink 实现高带宽 all-reduce。
+- **GPU 集群**：从 V100 → A100 → H100/H200 → GB200 NVL72 机柜级系统，单集群规模达到数万台；Stargate 规划 2029 年达到 10 GW 总容量。
+- **网络**：NVIDIA Quantum-2 InfiniBand，400 Gb/s per GPU，配合 NVSwitch/NVLink 实现高带宽 all-reduce；GB200 时代以 NVLink 域为基本调度单元。
 - **存储**：高吞吐并行文件系统或对象存储，支持大规模 checkpoint 读写。
+- **选址与供电**：Stargate 站点（Abilene、New Mexico、Milam County 等）以“拿得到电”为第一约束，单机柜功率密度向百千瓦级演进，液冷成为默认选项。
 
 ### 软件层
 
@@ -72,6 +76,7 @@ flowchart TB
 - **MoE 路由**：GPT-4 等模型采用 Mixture-of-Experts，需要专家并行与 all-to-all 通信优化。
 - **Checkpointing**：高频 checkpoint（如每 5–15 分钟）以应对 GPU/网络故障；Project Forge 提供透明 checkpointing 与弹性。
 - **调度**：Kubernetes 或自研调度器管理长周期训练任务与抢占策略。
+- **训练栈统一**：GPT-5.3-Codex（2026-02）首次把 Codex 训练栈并入 GPT-5 主训练栈，代码、推理、通用能力在同一管线训练——这也是“模型开发自用”的起点（OpenAI 用它调试训练任务、优化测试框架）。
 
 ### 可靠性
 
@@ -84,19 +89,21 @@ flowchart TB
 ### 接入层
 
 - **API Gateway**：认证、限流、多租户隔离、模型路由、版本管理。
-- **Global Load Balancing**：按用户地理位置与模型可用性路由到最近区域。
+- **Global Load Balancing**：按用户地理位置与模型可用性路由到最近区域；2025 年后可选容量池扩展到 Stargate 自建站点与多芯（NVIDIA / Jalapeño）后端。
 
 ### 推理引擎层
 
 - **Continuous Batching / In-flight Batching**：提高 GPU 利用率，降低平均延迟。
-- **KV Cache 管理**：PagedAttention 或类似技术减少内存碎片，支持更长上下文。
+- **KV Cache 管理**：PagedAttention 或类似技术减少内存碎片，支持更长上下文（GPT-5 API 提供 400K 上下文选项，GPT-5.4 起提供 1M 选项）。
 - **Prefix Caching**：对重复系统提示或前缀复用 KV cache。
 - **Speculative Decoding**：用小模型草稿 + 大模型验证加速生成。
+- **系统内模型路由（System-level Router）**：GPT-5 把“快模型 + 推理模型 + mini 溢出容量”组合成一个产品，实时路由器决定单次请求走哪条路径——这是 2025 年后 OpenAI 推理架构最重要的变化：模型选择从“用户/API 层”下沉到“模型系统内部”。
+- **异构算力调度**：Jalapeño ASIC（2026 年发布，目标 2026 年底部署）面向 LLM 推理优化每瓦性能，与 NVIDIA GPU 形成混合供给。
 
 ### 安全与过滤层
 
 - **Moderation API**：独立分类模型检测有害内容。
-- **System-level Guardrails**：对输入/输出做过滤、拒绝训练、滥用检测。
+- **System-level Guardrails**：对输入/输出做过滤、拒绝训练、滥用检测；AgentKit 把 Guardrails/Evals 做成可组合的平台组件。
 - **Audit & Observability**：记录每次调用用于计费、安全审查与模型改进。
 
 ## 数据与控制面
@@ -108,7 +115,7 @@ flowchart TB
 
 ## 与云厂商的关系
 
-OpenAI 的训练集群主要运行在 Microsoft Azure 的专用基础设施上；推理与 API 也大量依赖 Azure 的全球网络与数据中心。Azure OpenAI Service 则是 Microsoft 基于同一套模型能力构建的企业服务。
+OpenAI 的训练集群长期运行在 Microsoft Azure 的专用基础设施上，推理与 API 也大量依赖 Azure 的全球网络与数据中心，Azure OpenAI Service 是 Microsoft 基于同一套模型能力构建的企业服务。2025 年 Stargate 启动后，Oracle 成为第二大容量提供方（4.5 GW 多年合同），NVIDIA 以投资绑定算力供给，形成“Azure 共建 + Stargate 多伙伴自建”的双轨格局。
 
 ## 小结
 

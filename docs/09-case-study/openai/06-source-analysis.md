@@ -46,10 +46,27 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
   - 展示了如何把一个研究模型打包成易部署的库。
 - **源码入口**：`whisper/model.py`、`whisper/transcribe.py`。
 
-## 5. System Cards
+## 5. gpt-oss-120b / gpt-oss-20b
+
+- **定位**：2025-08-05 发布的开放权重 reasoning 模型，OpenAI 自 GPT-2 以来首次开放权重，Apache 2.0 协议。
+- **价值**：
+  - gpt-oss-120b：117B 总参数、每 token 激活约 5.1B 的 MoE 架构，MXFP4 量化后可单张 80GB GPU 运行；gpt-oss-20b 可在 16GB 内存的消费级设备运行。
+  - 原生思维链、函数调用、结构化输出，便于企业私有化部署与政府合规场景。
+  - 对齐上同样经过审慎对齐与拒绝训练，并通过 Preparedness Framework 评估为低风险。
+- **仓库入口**：`openai/gpt-oss`（Hugging Face 与 GitHub 同步发布）。
+
+## 6. Agents SDK / Codex CLI
+
+- **定位**：开源的 Agent 编排框架与命令行编程 Agent。
+- **价值**：
+  - Agents SDK 展示 handoff、guardrail、tracing 的最小完备抽象，是理解多 Agent 系统的最佳开源样本。
+  - Codex CLI 展示“本地沙箱 + 模型驱动”的编程 Agent 形态，直接影响了 2025 年后编程工具的形态。
+- **仓库入口**：[openai-agents-python](https://github.com/openai/openai-agents-python)、[codex](https://github.com/openai/codex)。
+
+## 7. System Cards
 
 - **定位**：OpenAI 发布的模型安全与能力评估报告。
-- **示例**：GPT-4 System Card、GPT-4o System Card、o1 System Card。
+- **示例**：GPT-4 System Card、GPT-4o System Card、o1 System Card、[GPT-5 System Card](https://cdn.openai.com/pdf/8124a3ce-ab78-4f06-96eb-49ea29ffb52f/gpt5-system-card-aug7.pdf)。
 - **内容**：
   - 模型能力概述。
   - 风险类别评估（cybersecurity、CBRN、persuasion、autonomy）。
@@ -57,31 +74,31 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
   - 缓解措施与剩余风险。
 - **工程意义**：把安全评估流程标准化、文档化，可作为企业内部模型发布的模板。
 
-## 6. Preparedness Framework
+## 8. Preparedness Framework 与 Model Spec
 
-- **定位**：OpenAI 的前沿风险治理框架。
-- **核心**：
-  - 四类风险：Cybersecurity、CBRN、Persuasion、Model Autonomy。
-  - 风险等级：low、medium、high、critical。
-  - 部署门槛：high/critical 风险需额外缓解与监督。
+- **Preparedness Framework**（2025-04 发布 v2）：四类风险（Cybersecurity、CBRN、Persuasion、Model Autonomy）；风险等级简化为 High/Critical 两级；High 风险要求部署前缓解、Critical 风险停止部署；每个模型发布 Capabilities Report 与 Safeguards Report。
+- **Model Spec**：公开的模型行为规格（约 2.8 万词），定义模型目标、硬性规则与默认行为，是对齐训练的目标文档；[Deliberative Alignment 论文](https://arxiv.org/abs/2412.14093)描述如何用合成思维链 + 基于规则的奖励把该规格训进 reasoning 模型。
 - **工程落地**：需要 eval pipeline、red team platform、model registry gating。
 
-## 7. 与开源生态的关系
+## 9. 与开源生态的关系
 
 | 领域 | OpenAI 贡献/采用 | 行业影响 |
 |---|---|---|
 | GPU Kernel | Triton | 成为 PyTorch/vLLM/SGLang 的 kernel 基础设施 |
+| 开放权重 | gpt-oss-120b/20b | 首个可单卡运行的 OpenAI reasoning 模型，Apache 2.0 |
+| Agent 框架 | Agents SDK、Codex CLI | 开源的 handoff/guardrail/tracing 抽象成为行业参考 |
 | 语音识别 | Whisper | 被大量应用集成，推动端到端 ASR 普及 |
 | 多模态 | CLIP | 奠定视觉-语言预训练基础 |
-| 推理优化 | 未开源，但采用 continuous batching、speculative decoding | 推动 vLLM、TensorRT-LLM 等开源项目 |
-| 安全评估 | System Cards、Preparedness Framework | 成为企业发布大模型的安全报告范式 |
+| 推理优化 | 未开源，但采用 continuous batching、speculative decoding、系统级路由 | 推动 vLLM、TensorRT-LLM 等开源项目 |
+| 安全评估 | System Cards、Preparedness Framework、Model Spec | 成为企业发布大模型的安全报告范式 |
 
-## 8. 从源码学到的工程模式
+## 10. 从源码学到的工程模式
 
 - **DSL + 编译器**：Triton 证明“用高级语言写高性能 kernel”是可行的。
 - **端到端模型库**：Whisper 展示如何把研究模型变成 `pip install` 即可用的产品。
+- **开放权重的工程细节**：gpt-oss 用 MoE + MXFP4 量化把“旗舰能力”压进单卡，是推理成本优化的公开教科书。
 - **标准化评估报告**：System Cards 把安全评估从内部文档变成可对外发布的 artifact。
-- **研究与工程协同**：开源项目往往是研究 idea 的工程化验证，再反哺产品。
+- **模型参与自身工程**：OpenAI 公开介绍用 Codex 在 28 天内交付 Sora Android 应用（[工程博客](https://openai.com/index/shipping-sora-for-android-with-codex/)），标志“模型开发自己使用的软件”成为现实工作流。
 
 ## 小结
 
