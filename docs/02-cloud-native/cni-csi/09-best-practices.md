@@ -64,12 +64,18 @@ cnitool add mynet /var/run/netns/test-ns
 - 升级时采用滚动升级，避免所有 CNI agent 同时重启导致网络中断。
 - 升级后检查 NetworkPolicy 是否仍生效。
 
+### 8. 南北向入口：从 Ingress 迁到 Gateway API
+
+- ingress-nginx 已于 2026-03 停止维护，Ingress API 冻结——新项目直接用 Gateway API。
+- Cilium 集群优先复用 CNI 数据面（`gatewayAPI.enabled=true`）；需要独立数据面再引入 Envoy Gateway。
+- 迁移存量 Ingress 用社区工具 `ingress2gateway`；迁移后重点回归 TLS 证书与 annotation 差异（Gateway API 用 `HTTPRoute.filters` 表达重写 / 重试 / CORS，不再是 annotation）。
+
 ## 9.2 CSI 检查清单
 
 ### 1. sidecar 兼容性
 
 - sidecar 版本与 K8s 版本、CSI spec 版本匹配。
-- 常见组合（示例，需按实际版本调整）：
+- 常见组合（示例，需按实际版本调整；**权威出处是 kubernetes-csi 官方文档的 sidecar 兼容矩阵，升级前务必核对**）：
 
 | K8s | external-provisioner | external-attacher | external-resizer | external-snapshotter |
 |---|---|---|---|---|
@@ -85,14 +91,16 @@ cnitool add mynet /var/run/netns/test-ns
 ### 3. RWO 约束
 
 - 一个 RWO 卷不能同时被两个 Pod 使用，即使它们在同一节点。
-- 需要 RWOP（ReadWriteOncePod）时使用 v1.27+ 的 access mode。
+- 需要"单 Pod 独占"时使用 RWOP（ReadWriteOncePod，**v1.29 GA**）。
 - 推理多副本共享模型权重，用 ROX 或 RWX，不要误用 RWO。
+- 临时 scratch / 缓存用 **generic ephemeral volumes**（v1.23 GA），卷随 Pod 销毁，不留孤儿 PV。
 
 ### 4. 快照策略
 
 - checkpoint 快照前，确保应用已 flush 数据或文件系统 quiesce。
 - 定义清晰的保留策略，避免快照无限累积。
 - 定期做快照恢复演练。
+- 一个工作负载挂多个卷时，用 **VolumeGroupSnapshot**（v1.36 GA，按 label selector 选 PVC 组）保证崩溃一致，不要逐卷拍。
 
 ### 5. 扩容流程
 
@@ -325,13 +333,37 @@ spec:
     persistentVolumeClaimName: checkpoint-pvc
 ```
 
+### VolumeGroupSnapshot（v1.36 GA，多卷崩溃一致）
+
+```yaml
+apiVersion: groupsnapshot.storage.k8s.io/v1
+kind: VolumeGroupSnapshotClass
+metadata:
+  name: csi-group-snapclass
+driver: rbd.csi.ceph.com          # 需驱动实现 Group Controller Service
+deletionPolicy: Retain
+---
+apiVersion: groupsnapshot.storage.k8s.io/v1
+kind: VolumeGroupSnapshot
+metadata:
+  name: train-job-snap
+spec:
+  volumeGroupSnapshotClassName: csi-group-snapclass
+  source:
+    selector:
+      matchLabels:
+        training-job: llm-7b      # 给同一 Job 的所有 checkpoint PVC 打这个标签
+```
+
+使用前确认 CSI 驱动实现了 `CREATE_DELETE_GET_VOLUME_GROUP_SNAPSHOT` 能力（Ceph RBD/CephFS、NetApp Trident 等已支持）。
+
 ## 9.5 本章小结
 
 | 清单 | 核心动作 |
 |---|---|
-| CNI | 版本一致、配置验证、IPAM 规划、双栈、default-deny、可观测、滚动升级 |
-| CSI | sidecar 兼容、topology、RWO/RWOP、快照策略、扩容验证、按序升级 |
+| CNI | 版本一致、配置验证、IPAM 规划、双栈、default-deny、可观测、滚动升级、Gateway API 取代 Ingress |
+| CSI | sidecar 兼容（对照官方矩阵）、topology、RWO/RWOP、组快照策略、扩容验证、按序升级 |
 | AI 负载 | 训练 local/并行文件系统 + 快照；推理只读 PVC；RDMA Multus + SR-IOV |
-| YAML 模板 | NetworkPolicy、StorageClass、VolumeSnapshot 直接可用 |
+| YAML 模板 | NetworkPolicy、StorageClass、VolumeSnapshot、VolumeGroupSnapshot 直接可用 |
 
 下一章我们用面试题检验这些知识是否真正掌握。

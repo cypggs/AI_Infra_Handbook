@@ -20,8 +20,8 @@ Kubernetes 主题讲透了"编排"，但 K8s 自己**不实现网络，也不实
 1. 解释 CNI 与 CSI 的设计动机：为什么 K8s 要把网络和存储从 in-tree 插件迁到 out-of-tree。
 2. 画出 CNI 的调用链：kubelet / CRI → CNI 可执行文件 → plugin chain → IPAM → netns，理解 ADD / DEL / CHECK / GC / STATUS 的语义。
 3. 画出 CSI 的调用链：PVC → external-provisioner → Controller CreateVolume → PV → external-attacher → NodeStageVolume → NodePublishVolume → mount，理解 Controller / Node / Identity 三面的 gRPC 接口。
-4. 对比主流 CNI：Flannel、Calico、Cilium、Weave、Multus、SR-IOV CNI，能在 AI 场景下做选型。
-5. 对比主流 CSI 驱动与存储后端：EBS / GCE PD / Ceph RBD / Lustre / WEKA / NFS / S3 CSI / local PV / TopoLVM，理解 RWO / RWX / ROX、文件系统 vs 块设备、拓扑与快照。
+4. 对比主流 CNI：Flannel、Calico、Cilium、Multus、SR-IOV CNI，能在 AI 场景下做选型（2026 年语境：Cilium 已是云厂商默认选项，Gateway API 取代 ingress-nginx）。
+5. 对比主流 CSI 驱动与存储后端：EBS / GCE PD / Ceph RBD / Lustre / WEKA / NFS / S3 CSI / local PV / TopoLVM，理解 RWO / RWX / ROX / RWOP、文件系统 vs 块设备、拓扑、快照与 Volume Group Snapshot（v1.36 GA）。
 6. 读懂 CNI 参考插件（bridge / host-local IPAM）与 CSI 侧车（external-provisioner / external-attacher / external-resizer / external-snapshotter / node-driver-registrar）的核心源码入口。
 7. 在生产中排查典型故障：IP 池耗尽、CNI 配置冲突、MTU / conntrack 问题、NetworkPolicy 误拦截、VolumeAttachment 残留、attach limit、resize 未触发 NodeExpand。
 8. 回答初 / 中 / 高级 CNI / CSI 面试题，能把接口语义、生命周期与生产排障讲清楚。
@@ -46,8 +46,8 @@ Kubernetes 主题讲透了"编排"，但 K8s 自己**不实现网络，也不实
 
 1. [背景](01-background) — 从 K8s in-tree 插件的痛楚到 CNI / CSI 的诞生，AI 视角看网络与存储需求。
 2. [核心思想](02-core-ideas) — CNI 与 CSI 的接口哲学、生命周期、幂等性、与 K8s 其他组件的边界。
-3. [架构设计](03-architecture) — CNI 部署模型与插件链；CSI Controller / Node 分离；K8s 触发路径；多网卡与 RDMA 拓扑。
-4. [Runtime 工作流程](04-runtime-workflow) — 一个 Pod 从调度到 Running 的 CNI ADD 全链路；一个 PVC 从声明到挂载的 CSI 全链路；排障入口。
+3. [架构设计](03-architecture) — CNI 部署模型与插件链；CSI Controller / Node 分离；K8s 触发路径；多网卡与 RDMA 拓扑；DRA 多网络与 DPU 卸载新动向。
+4. [Runtime 工作流程](04-runtime-workflow) — 一个 Pod 从调度到 Running 的 CNI ADD 全链路；一个 PVC 从声明到挂载的 CSI 全链路；Volume Group Snapshot 流程；排障入口。
 5. [核心模块](05-core-modules) — CNI 参考插件与主流实现对比；NetworkPolicy 数据面；CSI sidecars 与存储语义；AI 场景存储选型。
 6. [源码分析](06-source-analysis) — CNI bridge / host-local IPAM；CSI spec protobuf；external-provisioner 调用链；AWS EBS / hostpath Node 操作。
 7. [工程实践](07-mini-demo) — 纯 Python 可运行的 CNI / CSI 概念模拟器（后续补充）。
@@ -58,4 +58,4 @@ Kubernetes 主题讲透了"编排"，但 K8s 自己**不实现网络，也不实
 
 ## 一句话总结
 
-CNI 与 CSI 的精髓在于**"标准接口 + 插件生态 + 声明式生命周期"**：Kubernetes 只负责"在正确的时间调用正确的二进制 / gRPC"，把网络拓扑、IPAM、路由、存储协议、快照、扩容这些高度异构的实现细节交给社区与云厂商；对 AI 平台而言，选对 CNI 就是选对通信效率（eBPF / RDMA / 多网卡），选对 CSI 就是选对数据吞吐与可靠性（本地 SSD / 并行文件系统 / 对象存储）——二者都不是"配置一下就行"，而是需要理解接口语义才能在生产里排障和调优。
+CNI 与 CSI 的精髓在于**"标准接口 + 插件生态 + 声明式生命周期"**：Kubernetes 只负责"在正确的时间调用正确的二进制 / gRPC"，把网络拓扑、IPAM、路由、存储协议、快照、扩容这些高度异构的实现细节交给社区与云厂商；对 AI 平台而言，选对 CNI 就是选对通信效率（eBPF / RDMA / 多网卡，2026 年的默认答案是 Cilium + Gateway API），选对 CSI 就是选对数据吞吐与可靠性（本地 SSD / 并行文件系统 / 对象存储 + Volume Group Snapshot），而当基础设施税高到吃掉 CPU 时，DPU 卸载是下一杠杆——二者都不是"配置一下就行"，而是需要理解接口语义才能在生产里排障和调优。

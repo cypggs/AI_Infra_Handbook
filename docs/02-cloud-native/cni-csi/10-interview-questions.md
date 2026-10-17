@@ -184,12 +184,37 @@ AI 训练：Flannel 只适合测试；Calico BGP 适合大规模；Cilium eBPF �
 }
 ```
 
+### Q23. 2026 年了，入口层该用 Ingress 还是 Gateway API？为什么？
+
+**答**：选 Gateway API。原因：
+
+- Ingress API 已冻结、ingress-nginx 于 2026-03 停止维护，不再有新特性与安全修复的保障。
+- Gateway API（v1.0 GA）提供 HTTPRoute / GRPCRoute / TLSRoute，路由表达力远超 Ingress annotation。
+- 角色分离更适合多租户平台：GatewayClass（平台）/ Gateway（集群运维）/ HTTPRoute（业务）三级职责清晰。
+- 若 CNI 是 Cilium，直接 `gatewayAPI.enabled=true` 复用 eBPF 数据面，省掉一个独立 Ingress Controller。
+
+### Q24. 一个训练 Job 挂了 4 个 checkpoint 卷，如何做一致的快照保护？
+
+**答**：用 **Volume Group Snapshot**（K8s v1.36 GA）：
+
+- 给 4 个 PVC 打上相同 label，创建 `VolumeGroupSnapshot` 用 selector 选中整组。
+- external-snapshotter 聚合 PVC 组后，发一次 `CreateVolumeGroupSnapshot` RPC（CSI spec v1.11 新增的 Group Controller Service），后端存储**原子地**给整组卷打快照，得到崩溃一致（crash-consistent）状态。
+- 逐卷拍快照的问题：卷 A 与卷 B 的快照时间不同，恢复后可能出现跨卷逻辑不一致。前提：驱动支持 `CREATE_DELETE_GET_VOLUME_GROUP_SNAPSHOT` 能力（Ceph RBD/CephFS、NetApp Trident 等）。
+
+### Q25. DPU/IPU 卸载对 K8s 网络与存储意味着什么？
+
+**答**：DPU（如 NVIDIA BlueField-4，800Gb/s，2026 年随 Vera Rubin 平台出货）把 VXLAN 封装、conntrack、NetworkPolicy 执行、存储协议栈从主机 CPU 卸载到板载 Arm 核 + 硬件加速器。对 K8s 的意义：
+
+- 最成熟模式是 OVN-Kubernetes 的 host 控制面 + DPU 数据面：CNI 逻辑不变，数据面在 DPU 上跑 OVS fast path。
+- 存储侧出现"超融合"形态：WEKA NeuralMesh 直接把存储栈跑在 BlueField-4 上，不再需要独立存储服务器。
+- 价值：训练节点的每个 CPU 核都昂贵，把基础设施税挪到 DPU 是直接的 TCO 收益；代价是运维复杂度上升（固件、OPI/厂商 Operator）。
+
 ## 面试小结
 
 | 级别 | 考察重点 |
 |---|---|
 | 初级 | 接口定义、基本命令、PVC/PV/StorageClass 关系 |
 | 中级 | 生命周期、Stage/Publish 区别、RWO/RWX、NetworkPolicy 排障、VolumeAttachment |
-| 高级 | RDMA 方案设计、幂等性实现、local PV 风险、多租户隔离、扩容原理 |
+| 高级 | RDMA 方案设计、幂等性实现、local PV 风险、多租户隔离、扩容原理、Gateway API 迁移、组快照一致性、DPU 卸载 |
 
 下一章是延伸阅读与学习路径。

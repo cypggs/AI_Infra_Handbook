@@ -50,11 +50,21 @@ bridge + host-local 的最小工作配置：
 |---|---|---|---|---|---|
 | **Flannel** | VXLAN / host-gw / UDP | Overlay | ❌ | 中 | 小集群、测试 |
 | **Calico** | BGP / VXLAN / eBPF | 路由 / Overlay | ✅（iptables/eBPF） | 高 | 大规模、BGP 网络 |
-| **Cilium** | eBPF | 路由 / Overlay | ✅（eBPF） | 很高 | 高性能、可观测、RDMA aware |
-| **Weave** | VXLAN | Overlay | ✅ | 中 | 早期流行，现已少用 |
+| **Cilium** | eBPF（netkit、Big TCP） | 路由 / Overlay | ✅（eBPF） | 很高 | 高性能、可观测、Gateway API 一体化、RDMA aware |
+| **Weave** | VXLAN | Overlay | ✅ | 中 | Weaveworks 已停业，项目停更，勿用于新项目 |
 | **Multus** | meta-CNI | 依赖子插件 | 依赖子插件 | - | 多网卡分离（管理/存储/RDMA） |
 | **SR-IOV CNI** | SR-IOV VF 直通 | Underlay | - | 最高 | RDMA / GPU Direct |
 | **Antrea** | OVS | Overlay | ✅ | 高 | VMware 生态 |
+
+### 2025-2026：Cilium 为什么成了默认选项
+
+截至 2026-10，Cilium 已是大厂默认或推荐的 CNI：**GKE Dataplane V2**、**AKS "Azure CNI Powered by Cilium"**、EKS 均内置；CNCF《Cilium Annual Report 2025》显示近 80% 用户用于生产。近一年的版本（1.18 → 1.20，1.20.x 为 2026-08 当前稳定线）里与 AI 平台直接相关的特性：
+
+- **Gateway API 深度集成**：HTTPRoute / GRPCRoute、CORS 等复杂过滤器由 eBPF 数据面直接承接——在 ingress-nginx 于 2026-03 停止维护后，"Cilium 做 CNI + 南北向网关"成了天然组合（Helm `gatewayAPI.enabled=true`，生成 `cilium` GatewayClass）。
+- **原生 sidecarless mTLS**：在内核数据面直接做工作负载身份与双向 TLS，不注入 Envoy sidecar，对延迟敏感的推理服务友好。
+- **Big TCP 扩展到 UDP 隧道**（CiliumCon Europe 2026）：VXLAN/Geneve 大段发包，吞吐提升约 30~50%。
+- **Multihoming（多宿主节点）与 DRA 网络驱动**：一个节点多块网卡统一纳管；并展示了以 DRA driver 身份接管 SR-IOV 多网络的路线，目标是替代 Multus 中介层。
+- **Cluster Mesh / KubeVirt 组合**：VM 与容器跑在一张统一网络平面上，AI 平台混布传统虚拟化负载时不再需要两套网络。
 
 ### 选型建议（AI 场景）
 
@@ -168,7 +178,7 @@ containers:
 | ReadWriteOnce | RWO | 单节点读写 | EBS / GCE PD / Ceph RBD |
 | ReadOnlyMany | ROX | 多节点只读 | NFS / CephFS / 对象存储 |
 | ReadWriteMany | RWX | 多节点读写 | NFS / CephFS / Lustre / WEKA |
-| ReadWriteOncePod | RWOP | 单 Pod 读写（v1.27 beta） | 避免同节点多 Pod 竞争 |
+| ReadWriteOncePod | RWOP | 单 Pod 读写（**v1.29 GA**，原 v1.27 beta） | 把 RWO 的"单节点"约束收紧到"单 Pod"，防同节点误共享 |
 
 AI 场景：
 
@@ -222,6 +232,8 @@ spec:
 - 数据集版本化（ROX PVC 从 snapshot 恢复）
 - 快速克隆环境做推理微调
 
+多卷场景请改用 **Volume Group Snapshot**（v1.36 GA，见第 4 章流程）：按 label selector 一次原子快照整组 PVC。此外，临时 scratch / 缓存数据推荐 **generic ephemeral volumes**（v1.23 GA）——PVC 随 Pod 创建与销毁，不会留下孤儿卷。
+
 ## 5.6 AI 存储 CSI 选型
 
 | 后端 | 语义 | 吞吐 / IOPS | 共享 | 适合场景 |
@@ -231,9 +243,14 @@ spec:
 | **Ceph RBD** | 块 / 文件系统 | 中高 | 否（RWO） | 私有云统一块存储 |
 | **CephFS** | 文件系统 | 中 | 是（RWX） | 共享数据集、多 Pod 读 |
 | **Lustre** | 并行文件系统 | 极高 | 是（RWX） | 大规模训练 checkpoint + 数据集 |
-| **WEKA** | 并行文件系统 | 极高 | 是（RWX） | AI/ML 特化，低 latency |
+| **WEKA** | 并行文件系统 | 极高 | 是（RWX） | AI/ML 特化，低 latency，支持 GPUDirect Storage |
 | **NFS CSI** | 文件系统 | 中 | 是（RWX/ROX） | 简单共享、数据集 |
 | **S3 CSI** | 对象存储 | 高吞吐、高延迟 | 是（ROX） | 模型仓库、数据集、只读加载 |
+
+两个 2025-2026 年的选型补充：
+
+- **checkpoint 的"本地优先"模式**：Kubeflow Trainer v2（OpenShift AI 已内置）推荐 checkpoint 先写本地 `emptyDir`/local PV，后台异步上传 S3 兼容对象存储，GPU 不被慢速上传阻塞，并在 Pod 收到 SIGTERM（抢占/缩容）时触发 Just-In-Time checkpoint。注意 DeepSpeed ZeRO-3 的 checkpoint 合并可能产生 **42.5 倍于最终体积的临时峰值写入**（如 1.6GB 最终大小 → 68GB 临时写入），选型时按峰值而非最终大小规划吞吐。
+- **存储开始往 DPU 上跑**：WEKA 在 GTC DC 2025（2025-10）发布 NeuralMesh，直接把存储软件栈部署到 NVIDIA BlueField-4 DPU 上，省掉独立存储 CPU 服务器——"存储节点 = 装了 DPU 的计算节点"这种超融合形态值得关注。
 
 ### 训练 vs 推理的 CSI 选择
 
@@ -248,10 +265,10 @@ spec:
 
 | 领域 | 关键选择 |
 |---|---|
-| CNI 数据面 | Flannel 简单、Calico 大规模 BGP、Cilium 高性能 eBPF、Multus 多网卡、SR-IOV RDMA |
+| CNI 数据面 | Flannel 简单、Calico 大规模 BGP、**Cilium 已是云厂商默认选项**（eBPF + Gateway API）、Multus 多网卡、SR-IOV RDMA |
 | NetworkPolicy | iptables / eBPF / OVS；大规模 AI 推荐 eBPF |
 | CSI sidecars | provisioner / attacher / resizer / snapshotter / registrar |
-| 卷语义 | RWO/RWX/ROX、Filesystem/Block、topology、snapshot |
-| AI 存储 | 训练 local/并行文件系统、推理块存储/只读对象、数据集共享 RWX |
+| 卷语义 | RWO/RWX/ROX/RWOP（v1.29 GA）、Filesystem/Block、topology、snapshot、**Volume Group Snapshot（v1.36 GA）**、ephemeral volume |
+| AI 存储 | 训练 local/并行文件系统 + 本地优先异步上传、推理块存储/只读对象、数据集共享 RWX |
 
 下一章我们进入源码，看这些模块是怎么实现的。

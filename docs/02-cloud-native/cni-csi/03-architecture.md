@@ -287,6 +287,40 @@ SR-IOV CNI 把一个 VF 放进 Pod netns；配合 `rdma-cni` 或 `ib-sriov-cni`�
 | SR-IOV 直通 | SR-IOV CNI | 高性能 RDMA | 高 |
 | Macvlan/IPvlan | macvlan / ipvlan CNI | 需要 Pod IP 在物理网络可见 | 中 |
 
+### 2025-2026 新动向：从 Multus 注解到 DRA 资源声明
+
+原生多网络（KEP-3698）至今没有进入 K8s 核心，Multus + NetworkAttachmentDefinition 仍是生产事实标准。但资源分配的方式正在变化：
+
+- **DRA（Dynamic Resource Allocation，KEP-4381，K8s 1.34 GA）** 把"网卡 VF"这类稀缺硬件抽象成 `resource.k8s.io` 里的 DeviceClaim，由调度器统一分配——这与 SR-IOV 场景天然契合，避免了 annotation + admission webhook 的黑盒分配。
+- **Multus 4.x** 社区在探索基于 DRA 的多网络分配，把"哪张 VF 给哪个 Pod"交给调度器决策。
+- **Cilium 在 CiliumCon Europe 2026 展示了作为 DRA 网络驱动**（network attachment definition → CNI config）接管 SR-IOV 多网络的能力，即"默认网络 + RDMA 网络都由 Cilium 一体化管理"，不再必须 Multus 中介。
+- **多宿主节点（multihoming）** 进入 Cilium 主线：一个节点多块网卡时，eBPF 数据面可以直接利用多平面出口。
+
+```mermaid
+flowchart LR
+    subgraph old["Multus 模式（当前生产主流）"]
+      A1[Pod annotation] --> B1[Multus 调用] --> C1["SR-IOV CNI<br/>VF 透传"]
+    end
+    subgraph new["DRA 模式（演进方向）"]
+      A2[ResourceClaim] --> B2[K8s 调度器] --> C2["网络 DRA driver<br/>如 Cilium / NVIDIA"]
+    end
+    old -.-> new
+```
+
+### DPU/IPU 卸载架构（前沿）
+
+高吞吐 AI 集群里，封装/解封装、conntrack、存储协议栈开始**从主机 CPU 卸载到 DPU**（如 NVIDIA BlueField-4，800Gb/s，2025-10 发布，2026 年起随 Vera Rubin NVL72 出货）：
+
+```text
+主机 CPU                     DPU（Arm 核 + 硬件加速）
+├── K8s 控制面组件            ├── OVS / eBPF 数据面 fast path
+├── CNI 控制面（策略下发）     ├── VXLAN/Geneve 封装卸载
+└── 应用 / 训练进程           ├── conntrack / 安全策略执行
+                              └── NVMe-oF / 存储协议卸载（如 WEKA NeuralMesh）
+```
+
+成熟落地模式是 **OVN-Kubernetes 的 DPU offload**：主机跑 OVN 控制面，DPU 上跑 OVS 数据面，主机 CPU 完全不做包处理；OPI（Open Programmable Infrastructure）项目在 2025 年从 PoC 走向多厂商生态（Intel E2100 IPU、AMD Pensando 等）。对 AI 平台的意义：训练节点的每个 CPU 核都很贵，把网络/存储基础设施开销挪到 DPU 上是直接的 TCO 收益。
+
 ## 3.5 本章小结
 
 | 组件 | CNI | CSI |
@@ -294,6 +328,6 @@ SR-IOV CNI 把一个 VF 放进 Pod netns；配合 `rdma-cni` 或 `ib-sriov-cni`�
 | 节点文件 | `/opt/cni/bin` + `/etc/cni/net.d` | `/var/lib/kubelet/plugins/.../csi.sock` |
 | 主控制平面 | 无（由 kubelet/CRI 直接调用） | Controller Deployment + sidecars |
 | K8s 触发对象 | Pod | PVC / VolumeAttachment |
-| 扩展拓扑 | Multus、SR-IOV、RDMA | 任意后端存储驱动 |
+| 扩展拓扑 | Multus、SR-IOV、RDMA、（演进中）DRA 网络驱动 | 任意后端存储驱动；v1.36 起支持多卷组快照 |
 
 架构上，CNI 更像"运行时扩展"，CSI 更像"控制器扩展"。下一章我们把架构落地成完整的工作流程。

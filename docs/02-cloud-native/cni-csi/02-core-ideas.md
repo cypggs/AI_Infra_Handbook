@@ -149,9 +149,14 @@ StorageClass + CSI driver        <-- 动态创建 / 回收策略
 关键字段：
 
 - `volumeMode: Filesystem | Block` — 文件系统卷或裸块设备。
-- `accessModes: ReadWriteOnce | ReadOnlyMany | ReadWriteMany | ReadWriteOncePod` — 并发挂载语义。
+- `accessModes: ReadWriteOnce | ReadOnlyMany | ReadWriteMany | ReadWriteOncePod` — 并发挂载语义（RWOP 在 v1.29 GA，能把"单节点"收紧到"单 Pod"）。
 - `storageClassName` — 指定由哪个 StorageClass / CSI driver 处理。
 - `reclaimPolicy: Retain | Delete` — PV 释放后是保留还是删除。
+
+除了持久卷，CSI 语义还覆盖两类"非持久"场景：
+
+- **Ephemeral volume（generic ephemeral volumes，v1.23 GA）**：PVC 跟着 Pod 生命周期走，Pod 删则卷删——适合训练临时 scratch、缓存，避免孤儿 PV。
+- **Volume Group Snapshot（v1.36 GA，API `groupsnapshot.storage.k8s.io/v1`）**：按 label selector 选中一组 PVC，一次 CSI RPC 让后端**原子地**给多卷打快照，保证崩溃一致性——对应分布式训练多 checkpoint 卷同时快照的需求。
 
 ## 2.5 声明式 + 最终一致性
 
@@ -198,7 +203,8 @@ K8s 生态
 关键边界：
 
 - **CNI ≠ Service**：CNI 解决"Pod 有没有 IP、能不能通"；Service 解决"Pod IP 会变，如何提供稳定 VIP + DNS"。
-- **CNI ≠ NetworkPolicy**：NetworkPolicy 是 K8s API，CNI 是执行者；没有实现 NetworkPolicy 的 CNI（如早期 Flannel）无法生效。
+- **CNI ≠ NetworkPolicy**：NetworkPolicy 是 K8s API，CNI 是执行者；没有实现 NetworkPolicy 的 CNI（如 Flannel）无法生效。
+- **Ingress / Gateway API 的关系（2025-2026 重要变化）**：Ingress API 已冻结、ingress-nginx 于 2026-03 停止维护，**Gateway API（v1.0 GA，2023-10）是官方继任标准**，提供 HTTPRoute / GRPCRoute / TLSRoute 等更强路由表达与角色分离（infra provider / cluster operator / app developer）；Cilium、Envoy Gateway、Istio、Traefik、Kong 等是主要实现，Cilium 集群可直接用 `enable-gateway-api=true` 复用 eBPF 数据面，不必再单独部署 Ingress Controller。
 - **CSI ≠ 存储后端**：CSI 是接口，后端是 EBS / Ceph / Lustre / S3；选型时二者要一起考虑。
 - **CSI ≠ PV/PVC**：PV/PVC 是 K8s 的对象抽象，CSI 是把这些抽象翻译成后端存储操作的协议。
 

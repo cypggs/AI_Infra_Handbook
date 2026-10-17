@@ -247,6 +247,43 @@
    → PVC 删除 → DeleteVolume（如果 reclaimPolicy=Delete）
    ```
 
+### 补充：Volume Group Snapshot 流程（v1.36 GA）
+
+单卷快照（VolumeSnapshot）保护不了"一个训练 Job 挂了多个卷"的场景——卷 A 快照于 t1、卷 B 快照于 t2，恢复出来可能不是同一时刻的崩溃一致状态。**Volume Group Snapshot**（KEP-3476）解决了这个问题：
+
+```yaml
+apiVersion: groupsnapshot.storage.k8s.io/v1
+kind: VolumeGroupSnapshot
+metadata:
+  name: train-job-snap
+spec:
+  volumeGroupSnapshotClassName: csi-group-snapclass
+  source:
+    selector:                    # 按 label 选中一组 PVC
+      matchLabels:
+        training-job: llm-7b
+```
+
+流程与单卷快照类似，但语义不同：
+
+```text
+VolumeGroupSnapshot + label selector
+   │
+   ▼
+external-snapshotter 聚合出 PVC 组
+   │
+   ▼
+一次 CSI RPC：CreateVolumeGroupSnapshot（CSI spec v1.11 新增）
+   │
+   ▼
+后端存储原子地给整组卷打快照（崩溃一致，crash-consistent）
+   │
+   ▼
+VolumeGroupSnapshotContent 记录组快照与成员快照的映射
+```
+
+驱动需要在 Controller 侧实现新增的 **Group Controller Service**（`CreateVolumeGroupSnapshot` / `DeleteVolumeGroupSnapshot` / `GetVolumeGroupSnapshot`，能力位 `CREATE_DELETE_GET_VOLUME_GROUP_SNAPSHOT`）。2025-2026 年已支持的主流驱动包括 Ceph RBD/CephFS、NetApp Trident（需 K8s 1.32+），Velero 1.17+ 也接入了组快照备份流程。典型用途：分布式训练多 checkpoint 卷的一致性保护、有状态应用的多卷备份。
+
 ## 4.3 故障排查：Pod stuck ContainerCreating
 
 ### 先定位是 CNI 还是 CSI
@@ -346,6 +383,7 @@ grpcurl -unix -proto csi.proto /var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
 
 - CNI 流程：**sandbox 创建 → CNI ADD → 插件链 → IPAM → 返回 IP → Pod Running**。
 - CSI 流程：**PVC 创建 → CreateVolume → PV 绑定 → Pod 调度 → ControllerPublish → NodeStage → NodePublish → 容器启动**。
+- 多卷一致快照：**VolumeGroupSnapshot（selector 选 PVC 组）→ 一次 CreateVolumeGroupSnapshot RPC → 后端原子打快照**（v1.36 GA）。
 - 排障核心：`kubectl describe pod` 看事件；CNI 问题查 `/etc/cni/net.d` 和 `/opt/cni/bin`；CSI 问题查 PVC/PV/VolumeAttachment 和 driver 日志。
 
 下一章我们将拆解 CNI / CSI 的核心模块与主流实现。

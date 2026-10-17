@@ -9,10 +9,36 @@
 | 维度 | 训练集群 | 推理集群 | 通用平台 |
 |---|---|---|---|
 | 首要诉求 | 高带宽、低延迟、RDMA | 安全隔离、低延迟入口 | 稳定、易运维 |
-| 推荐 CNI | Cilium + Multus + SR-IOV CNI | Cilium / Calico eBPF | Calico / Cilium |
+| 推荐 CNI | Cilium + Multus + SR-IOV CNI | Cilium / Calico eBPF | Cilium（云默认）/ Calico |
 | 数据面 | eBPF / SR-IOV VF | eBPF | eBPF / BGP |
 | NetworkPolicy | 必须，隔离训练租户 | 必须，按模型 / 团队隔离 | 按 namespace 隔离 |
 | MTU | 注意 RDMA / RoCEv2 要求 | 常规 | 常规 |
+
+### 一个现实变化：推理集群的南北向入口
+
+2025-2026 年最大的入口层变化是 **ingress-nginx 于 2026-03 停止维护**、Ingress API 冻结。新的默认组合是：
+
+- CNI 用 Cilium 时，直接开 `gatewayAPI.enabled=true`，由 eBPF 数据面承接 HTTPRoute / GRPCRoute，不再单独部署 Ingress Controller。
+- 需要独立网关数据面时用 Envoy Gateway；社区提供 ingress2gateway 迁移工具。
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: inference-gateway
+spec:
+  gatewayClassName: cilium        # 或 envoy-gateway / nginx-gateway-fabric
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector: { team: inference }
+```
+
+角色分离（GatewayClass 由平台组管、Gateway 由集群运维管、HTTPRoute 由业务组管）比 Ingress annotation 大杂烩更适合多租户推理平台。
 
 ### 为什么训练推荐 Cilium + Multus + SR-IOV
 
@@ -26,6 +52,8 @@
  ├── net1 ── SR-IOV VF（NCCL RDMA 训练网络）
  └── net2 ── macvlan（Lustre / WEKA 存储网络）   [可选]
 ```
+
+手动编排这套组合（SR-IOV NetworkNodePolicy、VF 池、RDMA device plugin、Multus NAD）非常繁琐，**NVIDIA Network Operator 已成为事实标准**：一个 Operator 串起 sriov-network-operator（PF/VF 划分与配置）、Multus、whereabouts IPAM、RDMA shared device plugin、DOCA 固件管理，声明式地给训练节点交付 RDMA 网络。RoCE 方案落地时的经验值：裸金属 K8s 上 RoCEv2 可达到 InfiniBand 约 95% 的性能、成本约 30%（BaaZ 裸金属案例，ConnectX-6 Dx + PFC/ECN 无损网络），但代价是要自己调 PFC/ECN，IB 则是开箱即用。别忘了训练镜像里把 NCCL 指到 RDMA 网卡：`NCCL_SOCKET_IFNAME=eth0 NCCL_IB_HCA=mlx5`。
 
 ### Calico BGP 大规模场景
 
@@ -70,6 +98,26 @@ AI 平台数据分层
 - **节点绑定**：Pod 被驱逐后只能调度到原节点，否则卷不可用。
 - **数据可靠性**：节点磁盘故障会丢数据；重要 checkpoint 需要异步复制到对象存储或并行文件系统。
 - **调度约束**：需要使用 `nodeAffinity` 或 TopoLVM 的拓扑感知。
+
+### checkpoint 写入：2025 年后的推荐模式
+
+单纯"local PV 直写"或"并行文件系统直写"都不是最优解，当前主流是**分层 + 异步上传**：
+
+```text
+GPU 训练进程
+   │ ① 秒级写入
+   ▼
+本地 NVMe（emptyDir / local PV）        ← 保证 GPU 永不等待
+   │ ② 后台异步上传（不与训练争吞吐）
+   ▼
+S3 兼容对象存储 / Lustre / WEKA          ← 保证可靠性与可迁移性
+```
+
+配套机制：
+
+- **Just-In-Time checkpoint**：Kubeflow Trainer v2 监听 SIGTERM（Spot 抢占 / 缩容 / 节点维护），在 Pod 被杀前抢写最后一个 checkpoint——弹性训练几乎必备。
+- **按峰值规划容量**：DeepSpeed ZeRO-3 合并 checkpoint 可能产生最终体积 42.5 倍的临时写入峰值（研究实测 1.6GB → 68GB），给存储留足余量，否则 checkpoint 窗口会拖垮迭代时间（业界目标是 checkpoint 与计算重叠 <10%）。
+- **多卷一致性保护**：一个训练 Job 挂多个 checkpoint 卷时，用 Volume Group Snapshot（v1.36 GA）做崩溃一致快照，而不是逐卷拍（恢复出来可能跨卷不一致）。
 
 ## 8.3 典型故障与排查
 
@@ -177,14 +225,28 @@ ingress-nginx / Gateway API
 - 用 Multus 让不同租户的 RDMA 网络使用不同 VLAN / VF 池。
 - NCCL 配置 `NCCL_IB_GID_INDEX`、`NCCL_IB_TC` 匹配网络策略。
 
-## 8.6 本章小结
+## 8.6 硬件卸载：DPU / IPU 前沿实践
+
+AI 集群里"基础设施税"越来越不可忽视：VXLAN 封装、conntrack、NetworkPolicy 执行、存储协议栈都在吃训练节点的 CPU。2025-2026 年，DPU/IPU 卸载从实验室走向生产：
+
+| 方案 | 进展 | 对 K8s 的接入方式 |
+|---|---|---|
+| **NVIDIA BlueField-4** | 2025-10 发布，800Gb/s + 64 核 Arm，2026 年起随 Vera Rubin NVL72 机柜出货 | DOCA / OPI Operator；OVN-Kubernetes 卸载模式 |
+| **Microsoft Azure Boost DPU** | 2024-11 发布、2025 年上线，官方口径 4 倍性能 / 3 倍能效 | 云托管，对用户透明 |
+| **Intel E2100 IPU** | OPI 生态主推，已示范路由 / 解密 / 访问控制卸载 | OpenShift + OPI Operator |
+| **AMD Pensando（Salina/Pollara）** | 400G 线，Cisco Smart Switch 同源 | OPI / 厂商 Operator |
+
+最成熟的 K8s 模式是 **OVN-Kubernetes DPU offload**：主机只跑 OVN 控制面（CNI 逻辑、策略下发），DPU 上跑 OVS 数据面 fast path，主机 CPU 不碰数据包。存储侧的标志性事件是 WEKA NeuralMesh（GTC DC 2025）：存储软件栈直接部署在 BlueField-4 上，不再需要独立的存储 CPU 服务器——"每个计算节点自带存储服务"的超融合形态，对 GPU 集群的 TCO 是结构性改变。选型建议：万卡以下先不用纠结 DPU；但当单节点 CPU 有 20%+ 被网络/存储基础设施消耗、且网卡升级到 400G/800G 时，DPU 卸载应进入评估清单。
+
+## 8.7 本章小结
 
 | 主题 | 生产要点 |
 |---|---|
-| CNI 选型 | 训练：Cilium + Multus + SR-IOV；推理：Cilium/Calico eBPF |
-| CSI 选型 | checkpoint 用 local/并行文件系统；数据集用 RWX；模型用 ROX |
+| CNI 选型 | 训练：Cilium + Multus + SR-IOV（用 NVIDIA Network Operator 编排）；推理：Cilium + Gateway API（ingress-nginx 已退休） |
+| CSI 选型 | checkpoint 本地优先 + 异步上传；多卷用 Volume Group Snapshot；数据集用 RWX；模型用 ROX |
 | 典型故障 | CNI：IP 池 / MTU / conntrack / NetworkPolicy；CSI：VA 残留 / attach limit / resize |
 | 性能调优 | MTU、eBPF、RDMA、attach 并行度、topology、快照一致性 |
 | 多租户 | NetworkPolicy default-deny、独立 StorageClass、RDMA QoS |
+| 硬件卸载 | DPU（BlueField-4 等）卸载网络/存储基础设施开销，规模化集群的 TCO 杠杆 |
 
 下一章我们把生产经验固化成可落地的最佳实践与 YAML 模板。

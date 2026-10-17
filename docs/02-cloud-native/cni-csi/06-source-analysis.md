@@ -179,6 +179,16 @@ service Node {
   rpc NodeGetCapabilities(...);
   rpc NodeGetVolumeStats(...);
 }
+
+// CSI spec v1.11 新增：多卷组快照（对应 K8s v1.36 GA 的 Volume Group Snapshot）
+service GroupController {
+  rpc CreateVolumeGroupSnapshot(CreateVolumeGroupRequest)
+      returns (CreateVolumeGroupSnapshotResponse);
+  rpc DeleteVolumeGroupSnapshot(DeleteVolumeGroupRequest)
+      returns (DeleteVolumeGroupSnapshotResponse);
+  rpc GetVolumeGroupSnapshot(GetVolumeGroupSnapshotRequest)
+      returns (GetVolumeGroupSnapshotResponse);
+}
 ```
 
 ### CreateVolume 幂等性
@@ -333,7 +343,8 @@ func (hp *hostPath) createHostPathVolume(volID, name string, capRange *csi.Capac
 | bridge 插件 | containernetworking/plugins | plugins/main/bridge/bridge.go | veth / bridge / route 创建 |
 | host-local IPAM | containernetworking/plugins | plugins/ipam/host-local/main.go | IP 分配、本地文件存储 |
 | Cilium eBPF | cilium/cilium | bpf/ + pkg/datapath/ | eBPF 程序、策略 map、负载均衡 |
-| CSI 规范 | container-storage-interface/spec | spec.md / csi.proto | Identity/Controller/Node 接口 |
+| CSI 规范 | container-storage-interface/spec | spec.md / csi.proto | Identity/Controller/Node 接口、幂等性要求 |
+| KEP-3476 组快照 | kubernetes/enhancements | keps/sig-storage/3476-volume-group-snapshot | GroupController RPC、label selector 聚合 PVC |
 | external-provisioner | kubernetes-csi/external-provisioner | pkg/controller/controller.go | PVC → CreateVolume → PV |
 | external-attacher | kubernetes-csi/external-attacher | pkg/controller/ | VolumeAttachment → ControllerPublish |
 | AWS EBS CSI | kubernetes-sigs/aws-ebs-csi-driver | pkg/driver/node.go | NodeStage / NodePublish |
@@ -351,7 +362,7 @@ func (hp *hostPath) createHostPathVolume(volID, name string, capRange *csi.Capac
 | 接口 | 源码重点 |
 |---|---|
 | CNI | JSON 输入输出、netlink 创建 veth/bridge/route、host-local IPAM 文件 |
-| CSI spec | Identity / Controller / Node protobuf、幂等性要求 |
+| CSI spec | Identity / Controller / Node protobuf、幂等性要求、spec v1.11 新增 GroupController |
 | external-provisioner | PVC watch → CreateVolume → PV 构造 |
 | AWS EBS / hostpath | NodeStage 格式化全局挂载、NodePublish bind-mount |
 
