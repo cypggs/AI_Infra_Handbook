@@ -1,6 +1,8 @@
 # 7. Mini Demo：本地实验、注册与加载预测
 
 > 一句话理解：这个 Demo 用 **SQLite 作为 Backend Store、本地目录作为 Artifact Store**，在不启动 Tracking Server 的情况下，完整跑通：训练 sklearn 模型 → 记录参数/指标/模型 → 注册模型 → 切换别名 → 加载预测。
+>
+> Demo 代码只用到经典 Tracking / Registry API（`start_run`、`log_model`、`create_model_version`、alias），在 MLflow 2.x 与 3.x 下均可运行；3.x 中 `log_model` 还会额外创建 LoggedModel 一等实体。
 
 ## 7.1 目标与约束
 

@@ -8,9 +8,12 @@
 |---|---|
 | [MLflow 官方文档](https://mlflow.org/docs/latest/index.html) | 最权威、最及时的参考 |
 | [MLflow GitHub](https://github.com/mlflow/mlflow) | 源码、issue、release note |
+| [MLflow 3 Release Notes](https://mlflow.org/releases/3/) | 3.x 各版本特性，了解演进脉络的最佳入口 |
+| [MLflow GenAI 文档](https://mlflow.org/docs/latest/genai/) | Tracing / Evaluation / Prompt Registry / AI Gateway |
 | [MLflow Quickstart](https://mlflow.org/docs/latest/getting-started/intro-quickstart/index.html) | 30 分钟上手 |
 | [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html) | 模型治理核心 |
 | [MLflow Tracking Server](https://mlflow.org/docs/latest/tracking/server.html) | 生产部署必读 |
+| [MLflow Kubernetes Helm 部署](https://mlflow.org/docs/latest/self-hosting/kubernetes-helm/) | 3.13+ 官方 Chart |
 
 ## 11.2 相邻主题交叉引用
 
@@ -31,25 +34,28 @@
 | 类型 | 资源 | 看点 |
 |---|---|---|
 | 实践 | [MLflow at Databricks](https://www.databricks.com/product/machine-learning/mlflow) | 托管版与企业治理 |
+| 实践 | [Databricks — Model Registry improvements with MLflow 3](https://docs.databricks.com/gcp/en/mlflow/model-registry-3) | Unity Catalog 集成与 LoggedModel |
 | 实践 | [MLOps Community — MLflow Best Practices](https://mlops.community/) | 社区经验 |
 | 对比 | [Weights & Biases vs MLflow](https://docs.wandb.ai/guides/integrations/mlflow) | 商业与开源差异 |
 | 对比 | [Neptune vs MLflow](https://neptune.ai/blog/mlflow-vs-neptune) | 实验追踪对比 |
+| 对比 | [Langfuse 文档](https://langfuse.com/docs) | 专注 LLM 观测的替代方案 |
 | 工具链 | [DVC + MLflow](https://dvc.org/doc/use-cases/versioning-data-and-models) | 数据版本与模型版本结合 |
 
 ## 11.4 推荐学习路径
 
 1. **第 1 周**：精读本主题 01-05 章，运行 Mini Demo。
-2. **第 2 周**：读 06 源码分析 + 07-09 生产与最佳实践；尝试用 PostgreSQL + S3 部署本地 Tracking Server。
-3. **第 3 周**：与 Kubeflow Pipeline 或 KServe 联调一个端到端案例。
-4. **第 4 周**：读官方 release note，关注 2.x 新特性（如 tracing、prompt engineering UI、gateway）。
+2. **第 2 周**：读 06 源码分析 + 07-09 生产与最佳实践；尝试用官方 Helm Chart 或 PostgreSQL + S3 部署本地 Tracking Server，并配置 Trace 归档。
+3. **第 3 周**：与 Kubeflow Pipeline 或 KServe 联调一个端到端案例；再用 LangChain autolog + `mlflow.genai.evaluate()` 跑通一个 GenAI 观测与评估闭环。
+4. **第 4 周**：按 [3.x Release Notes](https://mlflow.org/releases/3/) 通读 3.9-3.17 的新特性（Assistant、Review Queues、MCP Registry、RBAC、Trace Archival），跟进社区动态。
 
 ## 11.5 一句话总结
 
-MLflow 是 MLOps 的“实验记录本 + 模型仓库”：
+MLflow 是 MLOps 的“实验记录本 + 模型仓库 + GenAI 观测台”：
 
 - **Tracking** 让每次训练有迹可循；
 - **Models** 让模型可被标准化打包与部署；
-- **Model Registry** 让模型版本、阶段、别名成为可被工程化管理的资源。
+- **Model Registry** 让模型版本、阶段、别名成为可被工程化管理的资源；
+- **Tracing / Prompt Registry / GenAI Evaluation（3.x）** 把同样的资产化思路延伸到 LLM 与 Agent 应用。
 
 它与 Kubeflow、KServe、vLLM 等工具组合，构成从实验到生产的完整 AI 基础设施链路。
 

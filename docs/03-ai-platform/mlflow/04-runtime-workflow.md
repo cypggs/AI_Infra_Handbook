@@ -182,15 +182,49 @@ MLflow 使用三种 URI 引用模型：
 - **部署失败**：模型环境依赖缺失时，`load_model` 或 `predict` 会报错；需要检查 `conda.yaml` / `python_env.yaml`。
 - **版本回滚**：把 alias 指回上一个版本即可快速回滚。
 
+## 4.5 GenAI/Agent 场景的运行时旅程（3.x）
+
+当应用从“训练一个模型”变成“编排一个 Agent”，MLflow 的旅程变成以 **Trace** 为中心：
+
+```mermaid
+sequenceDiagram
+    participant Dev as 开发者
+    participant App as Agent 应用 LangChain/LlamaIndex
+    participant GW as AI Gateway
+    participant ML as MLflow Server
+    participant Rev as 评审/业务专家
+
+    Dev->>App: 1. mlflow.langchain.autolog() 一行开启
+    App->>GW: 2. LLM 请求（经 Gateway 路由/预算/Guardrails）
+    GW-->>App: 响应
+    App->>ML: 3. trace/spans 批量上报（prompt、工具调用、token、成本）
+    Note over ML: Trace 热数据在 SQL，到期自动归档 S3
+    Dev->>ML: 4. mlflow.genai.evaluate(评估集, scorers=[relevance, groundedness])
+    ML-->>Dev: 5. 评估结果 + 失败 trace 列表
+    Rev->>ML: 6. Review Queue 人工标注反馈（3.14+）
+    Dev->>ML: 7. register_prompt / log_model 新版本
+    Dev->>ML: 8. 别名切换 production → 新版本生效
+```
+
+关键差异：
+
+- **没有显式的“训练”步骤**：迭代单元从 Run 变成了 trace（线上真实请求）+ prompt 版本。
+- **评估发生在两个阶段**：离线（评估数据集 + scorer）与在线（对流入 trace 持续打分，3.9+ 内置 no-code 监控）。
+- **回滚粒度更细**：可以只回滚 prompt 别名（`prompts:/support-bot@production`），也可以回滚模型别名（`models:/support-bot@champion`），二者解耦。
+- **编码 Agent 也可接入**：3.13 起 AI Gateway 一键为 Claude Code、Codex、Gemini CLI 等提供带观测与预算的端点；3.14 的 `mlflow agent setup` 则是一条命令完成埋点接入。
+
 ## 本章小结
 
 - 完整链路：**实验 → 记录 → 注册 → Staging 验证 → Production → 服务加载 → 监控迭代**。
-- 推荐用 **alias**（如 `champion`）解耦部署与版本号。
-- MLflow 提供 `runs:/`、`models:/version`、`models:/alias` 三种模型 URI。
+- GenAI 链路：**autolog 追踪 → 评估（scorer）→ 人工评审 → prompt/模型发版 → 别名灰度与回滚**。
+- 推荐用 **alias**（如 `champion`）解耦部署与版本号；prompt 与模型各自独立发版、独立回滚。
+- MLflow 提供 `runs:/`、`models:/version`、`models:/alias` 三种模型 URI（3.x 还支持按 LoggedModel 的 `models:/<model_id>` 直接引用）。
 - 失败可在 Run/Version/Deployment 三层分别排查。
 
 **参考来源**
 
 - [MLflow Tracking — Quickstart](https://mlflow.org/docs/latest/getting-started/intro-quickstart/index.html)
 - [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html)
+- [MLflow GenAI — Tracing Quickstart](https://mlflow.org/docs/latest/genai/tracing/quickstart/)
+- [MLflow 3.14.0 — Review Queues / mlflow agent setup](https://mlflow.org/releases/3.14.0/)
 - 本手册 [Kubeflow Runtime](../kubeflow/04-runtime-workflow)、[KServe Runtime](../kserve/04-runtime-workflow)

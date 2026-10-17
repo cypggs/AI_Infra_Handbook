@@ -118,17 +118,51 @@ model = mlflow.pyfunc.load_model("models:/my-model@champion")
 **答**：
 
 - 方案 A：每个团队独立 Tracking Server + DB + Bucket，隔离最强。
-- 方案 B：共享 Tracking Server，通过 auth 插件和 experiment/model 命名前缀隔离。
-- 根据合规要求选择；关键业务建议方案 A。
+- 方案 B：共享 Tracking Server，3.13+ 用内置 RBAC 按角色授权，或 3.10+ 用 `--enable-workspaces` 做多工作区；experiment/model 命名带团队前缀。
+- 关键业务建议方案 A，并配合 OIDC 代理统一登录；Databricks 环境直接用 Unity Catalog 做模型级治理。
+
+### Q16. MLflow 3.0 相比 2.x 最大的变化是什么？
+
+**答**：
+
+1. **GenAI 能力成为一等公民**：Tracing（基于 OpenTelemetry，autolog 集成 LangChain/LlamaIndex/OpenAI 等 20+ 框架）、Prompt Registry、GenAI Evaluation（LLM-as-a-Judge）、AI Gateway。
+2. **LoggedModel 一等实体**：模型拥有独立 `model_id` 和血缘，不再是 Run 下的普通 artifact；Registry 可直接引用 LoggedModel。
+3. **治理增强**：3.13 内置 RBAC + Admin UI + Trace 归档 + 官方 Helm Chart；3.15 MCP Registry；3.17 资源级细粒度权限。
+4. 破坏性变化：artifact 路径重组、移除 mleap/fastai flavor 与 MLflow Recipes。
+
+### Q17. MLflow Tracing 是如何实现的？对应用性能有什么影响？
+
+**答**：
+
+- 基于 OpenTelemetry：autolog/`@mlflow.trace` 产生 span，经批量缓冲后异步上报到 Tracking Server 的 trace API，写入 SQL（热数据）并可选归档到对象存储。
+- 影响：批量异步上报对主路径延迟影响很小；风险在服务端——高 QPS 下 Backend Store 写入压力大，需要配置 Trace Archival 保留策略，多模态附件走 Artifact Store。
+
+### Q18. 如何用 MLflow 管理提示词（Prompt）的版本与上线？
+
+**答**：
+
+- 用 Prompt Registry：`register_prompt()` 提交新版本（带 commit message 和 diff），用 `staging`/`production` 别名管理流量。
+- 应用代码 `load_prompt("name@alias")` 只引用别名，实现灰度与秒级回滚。
+- prompt 与模型在 Registry 中独立发版；上线前用 `mlflow.genai.evaluate()` + scorer 回归，并用 `@mlflow.test`（3.14+）固化进 CI。
+
+### Q19. MLflow 与 Langfuse 都在做 LLM 观测，怎么选？
+
+**答**：
+
+- Langfuse/LangSmith 更专注 LLM 可观测性，接入轻量、trace 分析体验好。
+- MLflow 的优势是**一体化**：Tracing 与实验追踪、模型/Prompt Registry、评估共享同一后端与 UI，且 3.13+ 自带 RBAC、Trace 归档等治理能力。
+- 已经重度使用 MLflow 做模型治理、或需要“观测 + 评估 + 权限”一体的团队选 MLflow；只做轻量 LLM 排障的团队可选 Langfuse。
 
 ## 本章小结
 
 - 初级题聚焦概念和 API。
 - 中级题聚焦架构、部署和可复现性。
 - 高级题聚焦源码调用链、多副本、多租户、企业治理。
+- 2025-2026 年的新热点：MLflow 3.x 的 GenAI 能力（Tracing / Prompt Registry / Evaluation / AI Gateway）、LoggedModel 一等实体、RBAC 与 Trace 归档。
 
 **参考来源**
 
 - [MLflow 官方文档](https://mlflow.org/docs/latest/index.html)
+- [MLflow 3 Release Notes](https://mlflow.org/releases/3/)
 - 本手册 MLflow 各章内容
 - 常见 ML 平台面试题整理

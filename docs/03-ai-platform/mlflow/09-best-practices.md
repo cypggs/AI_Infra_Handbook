@@ -183,7 +183,55 @@ python register_model.py --name fraud-detector --uri "$MODEL_URI" --alias challe
 - 训练节点与 Artifact Store 同区域。
 - 避免跨云/跨区域拉取大模型文件。
 
-## 9.7 安全与合规
+## 9.7 GenAI / Agent 应用最佳实践（3.x）
+
+### 观测：一行 autolog + 手动补关键 span
+
+```python
+import mlflow
+
+mlflow.langchain.autolog()          # 自动追踪 LLM 调用 / 检索 / 工具
+mlflow.openai.autolog()
+
+@mlflow.trace                       # 对关键业务函数手动补 span
+def risk_check(transaction):
+    ...
+```
+
+- 用 autolog 覆盖框架内部，用 `@mlflow.trace` 标注业务语义，二者出现在同一条 trace 里。
+- 不要把 prompt 里的密钥、用户个人信息打进 span 属性（会被审计和导出）。
+
+### 评估：评估集 + scorer 进版本控制
+
+```python
+result = mlflow.genai.evaluate(
+    data=eval_dataset,                      # 来自线上 trace 采样的评估集
+    predict_fn=my_agent,
+    scorers=["relevance", "groundedness"],  # RAG 场景必查幻觉
+)
+```
+
+- 评估数据集像代码一样管理：命名、版本化、记录来源（哪些线上 trace 采样而来）。
+- scorer 的选择要业务化：客服机器人优先 relevance / safety，RAG 优先 groundedness。
+- 用 `@mlflow.test`（3.14+）把关键评估用例固化为 pytest 回归测试，防止 prompt 改动悄悄劣化质量。
+
+### Prompt 与模型独立发版
+
+- Prompt 改动走 Prompt Registry：注册新版本 → 设 `staging` 别名灰度 → 评估通过 → 切 `production`。
+- 模型升级走 Model Registry：两者互不阻塞，出问题各自独立回滚。
+- 应用代码只引用别名（`prompts:/support-bot@production`），禁止硬编码版本号。
+
+### 反馈闭环
+
+- 用 Review Queue（3.14+）让业务专家在 UI 里直接标注失败 trace，标注结果回流为评估数据。
+- 定期用 Judge Builder（3.9+）调整 LLM-as-a-Judge 的评审标准，与人工标注对齐。
+
+### 成本治理
+
+- 用 AI Gateway 按团队/用户设 token 预算与告警（3.11+），避免某条 Agent 死循环打爆账单。
+- trace 保留策略按环境区分：生产 30 天，开发 7 天。
+
+## 9.8 安全与合规
 
 ### 敏感信息
 
@@ -196,7 +244,7 @@ python register_model.py --name fraud-detector --uri "$MODEL_URI" --alias challe
 - 按团队隔离 experiment 和 registered model。
 - 定期审计 Model Registry 的 Production 变更。
 
-## 9.8 常见反模式
+## 9.9 常见反模式
 
 | 反模式 | 后果 | 建议 |
 |---|---|---|
@@ -206,12 +254,17 @@ python register_model.py --name fraud-detector --uri "$MODEL_URI" --alias challe
 | 模型文件和代码分开管理 | 版本不一致 | `code_paths` 打包 |
 | 不设置 signature | 服务失败 | 始终 infer 或手写 signature |
 | 长期不清理 artifact | 成本暴涨 | 生命周期 + 归档 |
+| 改 prompt 直接上生产 | 质量劣化无感知 | Prompt Registry + 别名灰度 + `@mlflow.test` 回归 |
+| trace 无保留策略 | Backend Store 膨胀 | 配置 Trace Archival（3.13+） |
+| LLM 调用绕过 Gateway | 成本失控、无 Guardrails | 统一走 AI Gateway 并设预算 |
+| prompt 模板硬编码在代码里 | 无法版本化对比 | 迁入 Prompt Registry |
 
 ## 本章小结
 
 - 实验/Run/Tag/Param/Metric 要有统一命名和治理规范。
 - 模型打包必须带 signature、依赖和代码路径。
 - Model Registry 用 stage + alias 做生命周期和流量管理。
+- GenAI 应用：autolog 观测 + 评估集回归 + Prompt/模型独立发版 + 反馈闭环 + Gateway 成本治理。
 - 安全、成本、合规是生产落地不可忽视的三要素。
 
 **参考来源**
@@ -219,4 +272,6 @@ python register_model.py --name fraud-detector --uri "$MODEL_URI" --alias challe
 - [MLflow — Best Practices for MLflow Tracking](https://mlflow.org/docs/latest/tracking/tracking-api.html#logging-functions)
 - [MLflow — Model Signatures](https://mlflow.org/docs/latest/models.html#model-signature)
 - [MLflow — Model Registry](https://mlflow.org/docs/latest/model-registry.html)
+- [MLflow GenAI 文档](https://mlflow.org/docs/latest/genai/)
+- [MLflow 3.14.0 — Review Queues / @mlflow.test](https://mlflow.org/releases/3.14.0/)
 - 本手册 [MLflow 企业生产实践](08-production-practice.md)

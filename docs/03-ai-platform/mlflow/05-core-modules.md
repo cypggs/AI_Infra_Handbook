@@ -1,20 +1,22 @@
-# 5. 核心模块：Tracking API、Model Registry、Artifact 与 Flavor
+# 5. 核心模块：Tracking API、Model Registry、Artifact、Flavor 与 GenAI 组件
 
-> 一句话理解：MLflow 的核心实现可以分成三层——**面向用户的 Fluent/Client API、负责元数据的 Tracking/Registry Service、负责文件存储的 Artifact Repository**，再加上 **Model Flavor** 把各种框架模型统一封装。
+> 一句话理解：MLflow 的核心实现可以分成三层——**面向用户的 Fluent/Client API、负责元数据的 Tracking/Registry Service、负责文件存储的 Artifact Repository**，再加上 **Model Flavor** 把各种框架模型统一封装；MLflow 3.x 又新增了 **mlflow.tracing / mlflow.genai / mlflow.gateway** 三个面向 GenAI 的模块。
 
 ## 5.1 模块分层
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                    用户层：Fluent API / MlflowClient                  │
-│         mlflow.log_param() / mlflow.log_metric() / start_run()       │
+│              用户层：Fluent API / MlflowClient / @mlflow.trace        │
+│         mlflow.log_param() / start_run() / autolog()                 │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                   服务层：Tracking / Model Registry                   │
-│       mlflow.tracking._tracking_service / _model_registry            │
-│       mlflow.store.tracking / mlflow.store.model_registry            │
+│         服务层：Tracking / Model Registry / Tracing / Gateway         │
+│   mlflow.tracking._tracking_service / _model_registry                │
+│   mlflow.store.tracking / mlflow.store.model_registry                │
+│   mlflow.tracing（OTel 摄取、span 处理）                              │
+│   mlflow.gateway（LLM 路由、预算、Guardrails）                        │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │
             ┌───────────────────┴───────────────────┐
@@ -24,6 +26,7 @@
 │   Backend Store (SQL)     │           │   Artifact Repository     │
 │  SQLite / PostgreSQL /    │           │  Local / S3 / GCS / Azure │
 │  MySQL / SQL Server       │           │                           │
+│  + traces/prompts/scorers │           │  + trace 多模态附件        │
 └───────────────────────────┘           └───────────────────────────┘
 ```
 
@@ -154,8 +157,9 @@ flavors:
     pickled_model: model.pkl
     serialization_format: cloudpickle
     sklearn_version: 1.5.0
-mlflow_version: 2.22.0
+mlflow_version: 3.2.1
 model_size_bytes: 1234
+model_id: m-9f2c1a7b3d804e56
 signature:
   inputs: '[{"type": "tensor", "tensor-spec": {"dtype": "float64", "shape": [-1, 4]}}]'
   outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
@@ -183,11 +187,33 @@ predictions = model.predict(input_df)
 - `/api/2.0/mlflow/experiments/*`：Experiment CRUD。
 - `/api/2.0/mlflow/model-versions/*`：Model Version。
 - `/api/2.0/mlflow/registered-models/*`：Registered Model。
-- `/api/2.0/mlflow/artifacts/*`：Artifact 获取/列出。
+- `/api/2.0/mlflow/artifacts/*`：Artifact 获取/列出（3.15+ 支持 presigned URL 直传）。
+- `/api/2.0/mlflow/traces/*`：Trace 写入与查询（3.x）。
+- `/api/2.0/mlflow/genai/*`：Prompt Registry、Evaluation、Gateway 相关接口（3.x）。
+- `/api/2.0/mlflow/permissions/*`：RBAC 权限管理（3.13+）。
 
 UI 是 server/js/ 下的前端，调用这些 REST API。
 
-## 5.10 模块交互示例
+## 5.10 GenAI 模块（3.x）
+
+### mlflow.tracing
+
+- 基于 OpenTelemetry 实现：Span 处理器把 span 批量写入 MLflow 后端，同时可导出到任意 OTel collector。
+- 提供 `@mlflow.trace` 装饰器、`mlflow.start_span` 上下文管理器，以及各框架的 `autolog()` 开关（`mlflow.langchain.autolog()`、`mlflow.llama_index.autolog()`、`mlflow.openai.autolog()` 等）。
+- 独立的 `mlflow-tracing` 包只含追踪能力，供不想引入整个 MLflow 的应用使用。
+
+### mlflow.genai
+
+- **Prompt Registry**：`register_prompt()` / `load_prompt()`，模板带版本与别名。
+- **Evaluation**：`mlflow.genai.evaluate()` 批量运行评估集并调用 scorer（LLM-as-a-Judge 或启发式）打分；评估结果与 trace 双向关联。
+- **Scorer 管理**：内置 relevance / groundedness / correctness / safety 等，支持自定义与多模态 judge（3.15+）。
+
+### mlflow.gateway
+
+- AI Gateway：把多家 LLM provider 抽象成统一端点，提供路由、按用户/团队预算与告警（3.11+）、输入输出 Guardrails（3.12+）。
+- MCP Registry（3.15+）：集中注册 MCP Server 配置（版本、别名、标签），供 Agent 工具发现。
+
+## 5.11 模块交互示例
 
 一次 `mlflow.sklearn.log_model()` 的调用链：
 
@@ -217,18 +243,20 @@ ArtifactRepository.log_artifacts() → S3
 
 - **Fluent API**：用户最常用的 `mlflow.*` 函数。
 - **MlflowClient**：更完整的底层控制。
-- **Tracking Service**：处理 Run、params、metrics、tags。
+- **Tracking Service**：处理 Run、params、metrics、tags 与 LoggedModel（3.x）。
 - **Model Registry Service**：管理模型版本、阶段、别名。
 - **Artifact Repository**：负责文件上传/下载的抽象。
 - **Model Flavor**：把不同框架模型统一封装成 MLflow Model。
 - **PyFunc**：统一预测接口，支撑服务部署。
-- **MLflow Server**：FastAPI + REST API + UI。
+- **MLflow Server**：FastAPI + REST API + UI（3.x 新增 traces/genai/permissions 路由组）。
+- **GenAI 模块**：`mlflow.tracing`（OTel 追踪）、`mlflow.genai`（Prompt Registry + 评估）、`mlflow.gateway`（LLM 网关 + MCP Registry）。
 
 **参考来源**
 
 - [MLflow Python API Reference](https://mlflow.org/docs/latest/python_api/index.html)
 - [MLflow Tracking API](https://mlflow.org/docs/latest/tracking/tracking-api.html)
 - [MLflow Model Registry API](https://mlflow.org/docs/latest/model-registry.html)
+- [MLflow GenAI API](https://mlflow.org/docs/latest/genai/)
 - [MLflow GitHub — mlflow/tracking](https://github.com/mlflow/mlflow/tree/master/mlflow/tracking)
 - [MLflow GitHub — mlflow/models](https://github.com/mlflow/mlflow/tree/master/mlflow/models)
 - [MLflow GitHub — mlflow/store](https://github.com/mlflow/mlflow/tree/master/mlflow/store)

@@ -1,6 +1,8 @@
 # MLflow：机器学习生命周期管理平台
 
 > 一句话理解：**MLflow 是 ML 世界的“版本控制系统”——它不负责训练或推理的执行，而是把实验、参数、指标、模型 artifact、版本和部署链路统一记录起来，让模型从实验室到生产线可追踪、可复现、可回滚**。
+>
+> 2025 年 6 月发布的 **MLflow 3.0** 把这一记录层扩展到了 GenAI/Agent 时代：Tracing（基于 OpenTelemetry 的 LLM 全链路追踪）、GenAI Evaluation（LLM-as-a-Judge 评估）、Prompt Registry（提示词版本管理）与 AI Gateway 成为与 Tracking/Registry 并列的一等公民；截至 2026-10，社区最新版本为 3.17.x，并内置了 RBAC、Trace 归档、MCP Registry、Helm Chart 等企业级能力。
 
 ## 学习目标
 
@@ -12,9 +14,10 @@
 4. 理解 Model Registry 的核心概念：Registered Model、Model Version、Stage、Alias、Tag。
 5. 理解 MLflow Model 的 flavor、signature、input example、conda/env 依赖封装。
 6. 理解 Tracking Server / Backend Store / Artifact Store 三层架构。
-7. 了解 MLflow 源码主结构和关键调用链。
-8. 动手跑一个本地 MLflow Mini Demo：训练 sklearn 模型、记录实验、注册模型、加载预测、切换版本。
-9. 知道生产落地要点：部署形态、数据库选择、artifact 存储、认证、与 Kubeflow/KServe 集成。
+7. 了解 MLflow 3.x 的 GenAI 能力：Tracing、Prompt Registry、GenAI Evaluation、AI Gateway 与 LoggedModel 一等实体。
+8. 了解 MLflow 源码主结构和关键调用链。
+9. 动手跑一个本地 MLflow Mini Demo：训练 sklearn 模型、记录实验、注册模型、加载预测、切换版本。
+10. 知道生产落地要点：部署形态、数据库选择、artifact 存储、RBAC 认证、与 Kubeflow/KServe 集成。
 
 ## 与相邻主题的关系
 
@@ -32,24 +35,25 @@
 | 章节 | 标题 | 内容 |
 |---|---|---|
 | 1 | [背景](01-background) | ML 生命周期管理痛点、MLflow 诞生、与 Kubeflow/W&B/Neptune 的对比 |
-| 2 | [核心思想](02-core-ideas) | Tracking、Projects、Models、Model Registry 四大组件与核心概念 |
-| 3 | [架构设计](03-architecture) | Tracking Server、Backend Store、Artifact Store、REST API、UI |
+| 2 | [核心思想](02-core-ideas) | Tracking、Projects、Models、Model Registry 四大组件，以及 3.x 新增的 Tracing、Prompt Registry、GenAI Evaluation |
+| 3 | [架构设计](03-architecture) | Tracking Server、Backend Store、Artifact Store、Trace 摄取与归档、REST API、UI |
 | 4 | [Runtime 工作流程](04-runtime-workflow) | 一次完整实验 → 注册 → 部署的链路 |
 | 5 | [核心模块](05-core-modules) | Fluent API、MlflowClient、Tracking Service、Model Registry Service、Artifact Repository、Model Flavors、PyFunc |
 | 6 | [源码分析](06-source-analysis) | mlflow/tracking、mlflow/models、mlflow/store、mlflow/server 关键源码与调用链 |
 | 7 | [Mini Demo](07-mini-demo) | 本地 SQLite + 文件 artifact，训练、记录、注册、加载、预测 |
-| 8 | [企业生产实践](08-production-practice) | 部署形态、数据库、artifact 存储、认证、高可用、备份 |
-| 9 | [最佳实践](09-best-practices) | 实验命名、参数/指标规范、模型签名、版本管理、与 CI/CD 集成 |
+| 8 | [企业生产实践](08-production-practice) | 部署形态、数据库、artifact 存储、RBAC 认证、Trace 归档、高可用、备份 |
+| 9 | [最佳实践](09-best-practices) | 实验命名、参数/指标规范、模型签名、版本管理、GenAI 观测与评估实践、与 CI/CD 集成 |
 | 10 | [面试题](10-interview-questions) | 初/中/高级 MLflow 高频题 |
 | 11 | [延伸阅读](11-further-reading) | 官方文档、论文/博客、生态工具、学习路径 |
 
 ## 一句话总结
 
-**MLflow = 机器学习生命周期的事实记录层**：Tracking 记录每次实验，Models 封装模型与依赖，Model Registry 管理版本与阶段，Projects 保证代码可复现——它们共同让模型从“黑盒脚本”变成可追溯、可部署的资产。
+**MLflow = AI 应用的事实记录层**：Tracking 记录每次实验，Models 封装模型与依赖，Model Registry 管理版本与阶段，Projects 保证代码可复现——MLflow 3.x 又加上了 Tracing（LLM/Agent 全链路观测）、Prompt Registry（提示词版本化）与 GenAI Evaluation（LLM-as-a-Judge 评估），让它们共同覆盖从传统 ML 到 GenAI 应用的完整生命周期。
 
 ## 参考来源
 
 - [MLflow 官方文档](https://mlflow.org/docs/latest/index.html)
 - [MLflow GitHub](https://github.com/mlflow/mlflow)
 - [MLflow — What is MLflow?](https://mlflow.org/docs/latest/what-is-mlflow.html)
+- [MLflow 3 版本发布说明](https://mlflow.org/releases/3/)
 - 本手册 [Kubeflow](../kubeflow/)、[KServe](../kserve/)

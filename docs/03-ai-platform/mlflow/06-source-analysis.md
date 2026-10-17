@@ -28,17 +28,29 @@ mlflow/
 │   ├── server/                # FastAPI Tracking Server
 │   │   ├── fastapi_app.py     # 主应用
 │   │   ├── handlers.py        # REST handlers
+│   │   ├── auth/              # basic auth / RBAC（3.13+）
 │   │   └── js/                # UI 前端
+│   ├── tracing/               # GenAI 追踪（3.x，基于 OpenTelemetry）
+│   │   ├── trace.py           # @mlflow.trace / start_span
+│   │   ├── provider.py        # 各框架 autolog 接入
+│   │   └── processor/         # span 批量写入 MLflow 后端
+│   ├── genai/                 # GenAI API（3.x）
+│   │   ├── prompts/           # Prompt Registry 实现
+│   │   ├── scorers/           # 内置 / 自定义 scorer
+│   │   └── evaluation/        # mlflow.genai.evaluate
+│   ├── gateway/               # AI Gateway：路由 / 预算 / Guardrails（3.x）
 │   ├── sklearn/               # sklearn flavor
 │   ├── xgboost/               # xgboost flavor
 │   ├── pytorch/               # pytorch flavor
+│   ├── langchain/             # LangChain autolog flavor（3.x）
+│   ├── llama_index/           # LlamaIndex autolog flavor（3.x）
 │   ├── pyfunc/                # 通用 pyfunc flavor
 │   ├── projects/              # MLflow Projects
 │   ├── deployments/           # 部署目标插件
-│   ├── evaluation/            # 模型评估
-│   ├── tracing/               # 分布式追踪（GenAI）
-│   ├── entities/              # 数据模型：Run, Experiment, ModelVersion
+│   ├── evaluation/            # 传统 ML 模型评估
+│   ├── entities/              # 数据模型：Run, Experiment, ModelVersion, LoggedModel
 │   └── protos/                # Protobuf 定义
+├── charts/                    # 官方 Helm Chart（3.13+）
 ├── tests/                     # 测试
 └── requirements/              # 依赖
 ```
@@ -89,7 +101,25 @@ mlflow/store/artifact/s3_artifact_repo.py（或 local）
 上传 model/ 目录到 artifact store
         │
         ▼
-记录 artifact URI 到 backend store
+记录 artifact URI 到 backend store（3.x 同时创建 LoggedModel 实体）
+```
+
+### `@mlflow.trace` / autolog 链路（3.x）
+
+```
+LangChain 调用 / 被 @mlflow.trace 装饰的函数
+        │
+        ▼
+mlflow/tracing/ 创建 OTel Span（记录 prompt、token、成本等属性）
+        │
+        ▼
+SpanProcessor 批量缓冲
+        │
+        ▼
+MLflow REST API：/api/2.0/mlflow/traces
+        │
+        ▼
+Backend Store 写入 traces / spans 表（附件走 Artifact Store）
 ```
 
 ## 6.3 关键文件解析
@@ -184,10 +214,11 @@ class MyArtifactRepository(ArtifactRepository):
 - MLflow 源码分五层：Fluent API → Client → Service → Store → Artifact Repository。
 - `fluent.py` 维护 active run，提供高阶 API。
 - `client.py` 是用户层完整客户端。
-- `store/tracking/sqlalchemy_store.py` 是生产 backend store 核心。
+- `store/tracking/sqlalchemy_store.py` 是生产 backend store 核心（3.x 还承载 traces 表）。
 - `store/model_registry/sqlalchemy_store.py` 管理模型版本。
 - `models/model.py` 是 MLflow Model 打包的核心协调者。
 - `pyfunc` 提供统一预测接口。
+- 3.x 新增 `mlflow/tracing`（OTel 追踪）、`mlflow/genai`（Prompt/评估）、`mlflow/gateway`（LLM 网关）与 `server/auth`（RBAC）。
 - MLflow 支持自定义 Tracking Store、Artifact Repository 和 Flavor。
 
 **参考来源**
@@ -195,4 +226,5 @@ class MyArtifactRepository(ArtifactRepository):
 - [MLflow GitHub](https://github.com/mlflow/mlflow)
 - [MLflow Python API Reference](https://mlflow.org/docs/latest/python_api/index.html)
 - [MLflow Tracking Server](https://mlflow.org/docs/latest/tracking/server.html)
+- [MLflow GenAI 文档](https://mlflow.org/docs/latest/genai/)
 - 本手册 [Operator 模式源码分析](../../02-cloud-native/operator/06-source-analysis)
