@@ -89,10 +89,12 @@
 | 维度 | Volcano | Kueue |
 |---|---|---|
 | 定位 | 面向批处理/AI 的独立调度器 | 原生 K8s 上的工作负载队列系统 |
-| Gang 调度 | 原生 PodGroup | 依赖 scheduler-plugins |
+| Gang 调度 | 原生 PodGroup | 依赖 scheduler-plugins / 1.37 原生 PodGroup |
 | 抽象 | Queue / PodGroup / Job | ClusterQueue / LocalQueue / Workload |
 | 与原生 scheduler | 替换默认 scheduler | 共存 |
 | 适用 | 训练集群、已用 Volcano 生态 | 多租户 AI 平台 |
+
+补充：如果需要 GPU fraction（显存配额硬隔离）+ Gang + TAS 一体化，2026 年的第三个选项是 **KAI Scheduler**（CNCF Sandbox，NVIDIA 开源）。
 
 ### Q13. GPU Operator 包含哪些核心组件？
 
@@ -184,12 +186,38 @@
 
 排查：查看 `gpu-operator` namespace 下 validator Pod 日志，按失败项逐一修复。
 
+### Q23. DRA 和 Device Plugin 有什么区别？生产上怎么选？
+
+**答**：
+
+| 维度 | Device Plugin（1.14 GA） | DRA（1.34 GA） |
+|---|---|---|
+| 资源模型 | 只有整数数量（`nvidia.com/gpu: N`） | DeviceClass + ResourceClaim，按属性（型号/显存/NUMA/污点）选择 |
+| 设备选择时机 | kubelet 在容器启动时 Allocate | scheduler 在绑定前选定并写回 Claim |
+| 拓扑/组合语义 | 表达不了（多机 NVLink、动态 MIG 分区） | ComputeDomain、分区设备（KEP-4815） |
+| 注入方式 | env + mounts + cgroup device | CDI spec |
+| 存量兼容 | 现状即兼容 | 1.37 扩展资源映射 GA 后可无感接管 `nvidia.com/gpu` |
+
+生产选择（2026-10）：细粒度分配继续 Device Plugin（NVIDIA DRA driver 的 GPU kubelet plugin 仍 alpha）；整卡属性选择、单卡污点隔离（1.37 GA）、GB200 NVL72 整柜（ComputeDomain）走 DRA；新集群用 GPU Operator ≥ 26.7 同时备好两条路径。
+
+### Q24. Kubernetes 1.37 的原生 Gang 调度解决了什么？还需要 Volcano/Kueue 吗？
+
+**答**：1.37（KEP-4671，Beta）让默认调度器原生支持 Workload API + PodGroup：只有集群容量覆盖整个 PodGroup 才提交，配套 workload-aware 抢占（不为无法推进的抢占者驱逐作业）与 PodGroup 排队（防大 Job 间 livelock）。它统一了 Gang 的底层语义，但队列、配额、公平共享、借用/抢占策略仍要 Volcano/Kueue/KAI 提供——原生 API 短期是这些调度器的补充而非替代。
+
+### Q25. 什么是 PD 分离推理调度？对调度器提出什么新要求？
+
+**答**：PD 分离（Prefill/Decode Disaggregation）把 LLM 推理的计算密集阶段（prefill）与显存密集阶段（decode）拆到不同 Pod，独立伸缩以降低 TTFT、提高吞吐。对调度器的新要求：
+
+1. 两类 Pod 各自需要 Gang 语义（prefill 组、decode 组分别 all-or-nothing），层级 PodGroup（KAI Scheduler）可表达这种复合结构。
+2. decode Pod 关心 KV Cache 位置，请求路由层（llm-d）做缓存亲和路由，调度层要保证缓存侧车与 decode Pod 同拓扑域。
+3. 多节点张量并行需要调度器理解整柜 NVLink 域（DRA ComputeDomain）。
+
 ## 面试小结
 
 | 级别 | 考察重点 |
 |---|---|
 | 初级 | Device Plugin 基本流程、GPU 资源声明、MIG/MPS/time-slicing 区别、Pending 排查 |
-| 中级 | ListAndWatch/Allocate、拓扑感知、Gang 调度、Volcano vs Kueue、NCCL 排障 |
-| 高级 | 千卡集群设计、GetPreferredAllocation、Xid 硬件隔离、Kueue 公平调度、多租户资源保护 |
+| 中级 | ListAndWatch/Allocate、拓扑感知、Gang 调度、Volcano vs Kueue vs KAI、NCCL 排障 |
+| 高级 | 千卡集群设计、DRA vs Device Plugin、1.37 原生 Gang、PD 分离推理调度、Xid 硬件隔离、Kueue 公平调度 |
 
 下一章是延伸阅读与学习路径。

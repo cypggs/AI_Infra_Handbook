@@ -19,10 +19,17 @@
 | 优先级 | 文档 | 读什么 |
 |---|---|---|
 | **P0** | [Kubernetes Scheduler Framework](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/) | Filter/Score/Reserve/Permit/PreBind 扩展点 |
+| **P0** | [Dynamic Resource Allocation 官方文档](https://kubernetes.io/docs/concepts/resource-management/dynamic-resource-allocation/) | ResourceClaim / DeviceClass / ResourceSlice 语义 |
 | **P1** | [scheduler-plugins](https://github.com/kubernetes-sigs/scheduler-plugins) | NodeResourceTopology、Coscheduling / Gang |
 | **P1** | [Volcano 文档](https://volcano.sh/en/docs/) | PodGroup、Queue、Job 调度 |
-| **P1** | [Kueue 文档](https://kueue.sigs.k8s.io/docs/) | ClusterQueue、LocalQueue、Workload、AdmissionCheck |
+| **P1** | [Kueue 文档](https://kueue.sigs.k8s.io/docs/) | ClusterQueue、LocalQueue、Workload、AdmissionCheck、TAS |
+| **P1** | [KAI Scheduler](https://github.com/NVIDIA/KAI-Scheduler)、[CNCF 项目页](https://www.cncf.io/projects/kai-scheduler/) | GPU 一体化调度：Gang / fraction / TAS / DRA |
+| **P1** | [llm-d](https://github.com/llm-d/llm-d) | PD 分离推理、KV Cache 感知路由、Gateway API 集成 |
 | **P2** | [KEP 624: Scheduling Framework](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/624-scheduling-framework) | 调度框架设计演进 |
+| **P2** | [KEP 4671: Gang Scheduling](https://github.com/kubernetes/enhancements/tree/master/keps/sig-scheduling/4671-gang-scheduling) | 原生 Gang 调度语义（1.37 Beta） |
+| **P2** | [KEP 4815: DRA Partitionable Devices](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/4815-dra-partitionable-devices/README.md) | MIG 动态分区的资源模型 |
+| **P2** | [KEP 5004: DRA Extended Resource](https://www.kubernetes.dev/resources/keps/5004) | 扩展资源映射（1.37 GA，Device Plugin 迁移之桥） |
+| **P2** | [KEP 5055: Device Taints and Tolerations](https://www.kubernetes.dev/resources/keps/5055/) | 单卡级故障隔离（1.37 GA） |
 
 ## 11.2 规范与源码仓库
 
@@ -42,9 +49,13 @@
 | 仓库 | 读什么 |
 |---|---|
 | [kubernetes-sigs/scheduler-plugins](https://github.com/kubernetes-sigs/scheduler-plugins) | NodeResourceTopology、Coscheduling 插件 |
-| [volcano-sh/volcano](https://github.com/volcano-sh/volcano) | Gang 调度、Queue、Preemption |
-| [kubernetes-sigs/kueue](https://github.com/kubernetes-sigs/kueue) | 工作负载队列与资源管理 |
-| [kubernetes/kubernetes/pkg/scheduler](https://github.com/kubernetes/kubernetes/tree/master/pkg/scheduler) | 默认调度器框架与算法 |
+| [volcano-sh/volcano](https://github.com/volcano-sh/volcano) | Gang 调度、Queue、Preemption、HyperNode |
+| [kubernetes-sigs/kueue](https://github.com/kubernetes-sigs/kueue) | 工作负载队列、TAS、DRA 准入 |
+| [NVIDIA/KAI-Scheduler](https://github.com/NVIDIA/KAI-Scheduler) | GPU 一体化调度器（kube-batch 系） |
+| [project-hami/HAMi](https://github.com/Project-HAMi/HAMi) | Fractional GPU / 显存配额（HAMi-core 拦截层） |
+| [kubernetes-sigs/dra-driver-nvidia-gpu](https://github.com/kubernetes-sigs/dra-driver-nvidia-gpu) | NVIDIA DRA driver（ComputeDomain / GPU plugin） |
+| [kubernetes/kubernetes/pkg/scheduler](https://github.com/kubernetes/kubernetes/tree/master/pkg/scheduler) | 默认调度器框架、dynamicresources 插件 |
+| [kubernetes/kubernetes/pkg/kubelet/cm/dra](https://github.com/kubernetes/kubernetes/tree/master/pkg/kubelet/cm/dra) | kubelet 端 DRA 管理 |
 
 ## 11.3 经典演讲与论文
 

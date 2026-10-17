@@ -275,16 +275,42 @@ kubectl create -f https://raw.githubusercontent.com/NVIDIA/gpu-operator/main/too
 7. 逐步接收训练/推理负载
 ```
 
-## 9.8 本章小结
+## 9.8 面向 2026 的新范式清单（DRA / KAI / llm-d）
+
+### DRA 落地 checklist
+
+- [ ] 集群版本 ≥ 1.34（DRA GA）；要扩展资源映射则 ≥ 1.37。
+- [ ] 已理解双轨策略：细粒度分配继续走 Device Plugin，DRA 先承接整卡属性选择与 ComputeDomain（整柜 NVLink）。
+- [ ] NVIDIA DRA driver 的 GPU kubelet plugin 仍是 alpha，生产启用前先在测试集群验证。
+- [ ] GPU Operator ≥ 26.7 时，用 `GPUCluster` CR 管理 DRA driver，不要手工维护其 DaemonSet。
+- [ ] 存量 `nvidia.com/gpu` 工作负载迁移优先用 1.37 扩展资源映射（Pod spec 零改动），再逐步引入显式 ResourceClaim 表达拓扑约束。
+- [ ] 单卡故障隔离从“drain 节点”升级为“DRA 设备污点（1.37 GA）+ DeviceTaintRule”，运行中的 Claim 需声明 toleration 才不会被驱逐。
+
+### Kueue / Volcano / KAI 版本红线
+
+- [ ] Kueue 升级跨过 v0.20：先跑 v1beta1 → v1beta2 迁移脚本，再升级 controller。
+- [ ] Volcano 在 1.15.0/1.15.1 的集群立即升级到 ≥ 1.15.2（DRA 容量记账漏洞）。
+- [ ] 需要长期公平共享：Volcano 启用 v1.16 fairshare 插件，或 Kueue 配置 fairSharing 权重。
+- [ ] 需要租户自助队列：Volcano v1.16 命名空间级 Queue + 管理员审批资源池。
+
+### PD 分离推理 checklist
+
+- [ ] prefill 与 decode 各自独立伸缩指标（TTFT vs TPOT），分别建 PodGroup。
+- [ ] 调度器支持层级 PodGroup（KAI）或等价语义，保证 prefill 组 Gang 就位后才接流量。
+- [ ] llm-d router 与 Gateway API 对接，路由策略开启 KV Cache 亲和。
+- [ ] 多节点张量并行（NVL72 整柜）用 DRA ComputeDomain 预留整柜，避免被普通 Job 拆散。
+
+## 9.9 本章小结
 
 | 清单 | 核心动作 |
 |---|---|
 | MIG | 按显存需求选 profile，避免同一节点混用，训练优先整卡 |
-| MPS/time-slicing | 仅用于开发/批处理，在线推理优先 MIG |
-| 拓扑感知 | 用 NFD/GFD 标签 + scheduler-plugins 实现同 NUMA/同机架调度 |
-| Gang 调度 | Volcano 适合训练生态，Kueue 适合原生 K8s 多租户 |
+| MPS/time-slicing | 仅用于开发/批处理，在线推理优先 MIG/Fraction |
+| 拓扑感知 | 用 NFD/GFD 标签 + scheduler-plugins/Kueue TAS 实现同 NUMA/同机架调度 |
+| Gang 调度 | Volcano/KAI 适合 AI 集群，Kueue 适合原生 K8s 多租户，1.37 原生 PodGroup 统一底层语义 |
 | 配额组合 | ResourceQuota + LimitRange + PriorityClass + Queue 四层防护 |
 | 可观测 | DCGM + queue metrics + 训练业务指标三位一体 |
 | 升级回滚 | 测试→备份→滚动→验证→保留回滚版本 |
+| 2026 新范式 | DRA 双轨过渡、设备污点隔离、Kueue v1beta2、Volcano fairshare、llm-d PD 分离 |
 
 下一章我们用面试题检验这些知识是否真正掌握。

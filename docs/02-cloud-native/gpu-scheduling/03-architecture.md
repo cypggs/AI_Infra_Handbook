@@ -8,11 +8,14 @@
 flowchart TB
     subgraph cp[控制平面]
         apiserver[apiserver / etcd]
-        defaultsched[kube-scheduler]
+        defaultsched[kube-scheduler
+                   内置 DRA 调度插件]
         splugins[scheduler-plugins
                  Coscheduling / NRT / CapacityScheduling]
         volcano[Volcano controller + scheduler]
         kueue[Kueue controller]
+        kai[KAI Scheduler
+            可选，独立调度器]
         gpuop[GPU Operator controller]
         nfd[Node Feature Discovery]
     end
@@ -21,6 +24,8 @@ flowchart TB
         kubelet[kubelet]
         dpm[device-plugin-manager]
         dp[NVIDIA Device Plugin]
+        dradrv[NVIDIA DRA Driver
+               kubelet 插件，可选]
         toolkit[NVIDIA Container Toolkit]
         driver[NVIDIA Driver]
         gfd[GPU Feature Discovery]
@@ -37,20 +42,27 @@ flowchart TB
 
     kueue -->|admit / suspend| apiserver
     volcano -->|create PodGroup / schedule| apiserver
-    gpuop -->|管理 DaemonSet / CR| apiserver
+    gpuop -->|管理 DaemonSet / CR / DRA driver| apiserver
     nfd -->|打标签| apiserver
 
     apiserver -->|watch Pod| defaultsched
+    apiserver -->|watch Pod / ResourceClaim| kai
     defaultsched -->|调用扩展点| splugins
     splugins -->|Filter / Score / Permit| defaultsched
-    defaultsched -->|bind Pod to Node| apiserver
+    defaultsched -->|bind Pod to Node
+                    DRA: 同时为 ResourceClaim 选定设备| apiserver
 
     apiserver -->|watch bound Pod| kubelet
     kubelet -->|Allocate| dpm
     dpm -->|gRPC| dp
     dp -->|配置容器可见设备| toolkit
+    kubelet -->|NodePrepareResources
+               可选，DRA 路径| dradrv
+    dradrv -->|CDI 注入| toolkit
     toolkit -->|注入 /dev/nvidia* 等| driver
     driver --> GPU
+
+    dradrv -->|ResourceSlice 上报设备属性| apiserver
 
     gfd -->|上报 GPU 型号 / 显存 / MIG 标签| apiserver
     dcgm -->|暴露 metrics| prometheus
@@ -62,10 +74,10 @@ flowchart TB
 
 | 层级 | 职责 | 代表组件 |
 |---|---|---|
-| 设备发现层 | 发现 GPU 硬件、健康、拓扑、MIG 状态 | Device Plugin、GFD、NFD、DCGM-Exporter |
-| 调度决策层 | 按 Gang/拓扑/公平规则选节点 | kube-scheduler、scheduler-plugins、Volcano、Kueue |
-| 节点执行层 | 把 GPU 绑定到容器 | kubelet device-manager、Device Plugin、Container Toolkit |
-| 集群治理层 | 自动化节点组件、监控、多租户 | GPU Operator、Prometheus、队列策略 |
+| 设备发现层 | 发现 GPU 硬件、健康、拓扑、MIG 状态；DRA 路径下还包括设备属性（型号/显存/NUMA）上报 | Device Plugin、DRA Driver、GFD、NFD、DCGM-Exporter |
+| 调度决策层 | 按 Gang/拓扑/公平规则选节点；DRA 路径下调度器直接为 ResourceClaim 选设备 | kube-scheduler（内置 DRA 插件）、scheduler-plugins、Volcano、Kueue、KAI Scheduler |
+| 节点执行层 | 把 GPU 绑定到容器（Allocate 或 NodePrepareResources + CDI） | kubelet device-manager、Device Plugin / DRA Driver、Container Toolkit |
+| 集群治理层 | 自动化节点组件、监控、多租户 | GPU Operator（26.7 起含 DRA 编排）、Prometheus、队列策略 |
 
 ## 3.2 kubelet device-manager 与 Device Plugin
 
@@ -125,6 +137,8 @@ CRI 根据返回构造 OCI runtime spec
    ▼
 容器启动后看到 NVIDIA_VISIBLE_DEVICES 与 /dev/nvidia*
 ```
+
+> **DRA 路径的差异**：1.34 GA 后，kubelet 新增了 DRA 专用 gRPC 接口（`NodePrepareResources` / `NodeUnprepareResources`）。走 DRA 时，scheduler 在调度阶段就已经为 ResourceClaim 选定了具体设备（不再是 kubelet 事后分配），kubelet 只负责在容器启动前调用 DRA driver 的 `NodePrepareResources` 做 CDI 注入。GPU Operator 26.7 起由 `GPUCluster` CR 编排这条路径。
 
 ## 3.3 Scheduler Framework 扩展点
 
@@ -238,13 +252,21 @@ Monitoring Installing → Ready
 
 节点只有到达 `Ready` 后，scheduler 才会把 GPU Pod 调度上去。这也是为什么新加入的 GPU 节点常常需要几分钟才能接受 Pod。
 
-## 3.5 Volcano、Kueue、scheduler-plugins 的位置
+## 3.5 Volcano、Kueue、scheduler-plugins、KAI 的位置
 
 | 方案 | 所处位置 | 调度器 | 核心对象 | 最适合场景 |
 |---|---|---|---|---|
 | **scheduler-plugins** | 默认调度器的插件 | kube-scheduler | PodGroup、ElasticQuota、NRT | 在现有 K8s 集群上补充 Gang/拓扑/弹性配额 |
 | **Volcano** | 独立调度器 + CRD | volcano-scheduler | Job、PodGroup、Queue | 纯 AI/HPC 批处理集群，需要作业级语义 |
 | **Kueue** | 独立 controller + 准入 | kube-scheduler | ClusterQueue、LocalQueue、Workload | 多租户 AI 平台，需要队列/公平共享/抢占 |
+| **KAI Scheduler** | 独立调度器（CNCF Sandbox） | kai-scheduler | Queue（层级）、PodGroup、GPU fraction | GPU 一体集群：Gang + fraction + TAS 都要 |
+
+### 2025-2026 版本要点
+
+- **Kueue v0.20（2026-09/10，当前 v0.20.2）**：**停止服务 `kueue.x-k8s.io/v1beta1` API**（需迁移到 v1beta2）；TAS（Topology Aware Scheduling）持续增强，Topology levels 与 ResourceFlavor 的 nodeLabels/tolerations 可变；新增 DRA alpha 门（`KueueDRADeviceFeasibility`，准入前按节点检查设备可用性）与 `DeviceTaintRule` 支持；内置 KueueViz 可视化。
+- **Volcano v1.16（2026-10-14）**：支持**命名空间级 Queue**（租户在自己 namespace 内建队列层级）；新增 **fairshare 插件**（借鉴 Slurm 的使用量衰减，实现长期公平）；HyperNode 拓扑控制器可独立部署供其他调度器复用；支持 DRA 打分与 K8s 1.36。
+- **KAI Scheduler**：持续集成 KubeRay、llm-d/Grove 生态；fractional GPU 基于 HAMi-core 拦截层实现显存硬配额；DRA 路径已覆盖 GB200/GB300。
+- **K8s 原生（1.37 Beta）**：Workload API + PodGroup 的 Gang 调度（KEP-4671）为所有调度器提供了统一底层语义，但队列/公平共享仍需上述项目。
 
 ### 何时用 scheduler-plugins
 
@@ -325,9 +347,9 @@ DCGM-Exporter 把 NVIDIA DCGM 的指标转成 Prometheus 格式，常见指标�
 
 | 层级 | 关键问题 | 关键组件 |
 |---|---|---|
-| 设备发现层 | 节点有哪些 GPU、健康吗、能切分吗 | Device Plugin、GFD、NFD、MIG Manager |
-| 调度决策层 | Pod 应该落在哪个节点、满足 Gang/拓扑/公平吗 | kube-scheduler、scheduler-plugins、Volcano、Kueue |
-| 节点执行层 | 怎么把 GPU 注入容器 | kubelet device-manager、Container Toolkit、Device Plugin Allocate |
-| 集群治理层 | 节点组件自动化、监控、多租户 | GPU Operator、DCGM-Exporter、队列策略 |
+| 设备发现层 | 节点有哪些 GPU、健康吗、能切分吗、属性是什么 | Device Plugin、DRA Driver、GFD、NFD、MIG Manager |
+| 调度决策层 | Pod 应该落在哪个节点、满足 Gang/拓扑/公平吗、选哪台设备 | kube-scheduler（内置 DRA 插件）、scheduler-plugins、Volcano、Kueue、KAI |
+| 节点执行层 | 怎么把 GPU 注入容器 | kubelet device-manager、Allocate 或 NodePrepareResources、Container Toolkit |
+| 集群治理层 | 节点组件自动化、监控、多租户 | GPU Operator（26.7 起含 DRA）、DCGM-Exporter、队列策略 |
 
 架构上，GPU 调度不是单一组件的胜利，而是**“发现 → 决策 → 执行 → 治理”全链路**的协同。下一章我们将把架构落地成完整的调度工作流程。

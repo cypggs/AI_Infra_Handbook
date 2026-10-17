@@ -46,17 +46,17 @@
 ## 本章结构
 
 1. [背景](01-background) — 从 AI 训练/推理的 all-or-nothing、显存墙、拓扑敏感、多租户公平性出发，解释原生 K8s 调度为何不够。
-2. [核心思想](02-core-ideas) — extended resource、`nvidia.com/gpu` 资源模型、MIG/MPS/time-slicing/vGPU 语义对比、Device Plugin 抽象、拓扑感知、Gang、队列公平调度。
-3. [架构设计](03-architecture) — 从 Pod 创建到 GPU 分配的全景架构：kubelet device-manager ↔ Device Plugin gRPC、scheduler framework 扩展点、GPU Operator 组件编排、Volcano/Kueue/scheduler-plugins 在控制平面中的位置。
+2. [核心思想](02-core-ideas) — extended resource、`nvidia.com/gpu` 资源模型、MIG/MPS/time-slicing/Fractional GPU 语义对比、Device Plugin 抽象、DRA 声明式设备分配（1.34 GA）、拓扑感知、Gang、队列公平调度。
+3. [架构设计](03-architecture) — 从 Pod 创建到 GPU 分配的全景架构：kubelet device-manager ↔ Device Plugin gRPC、kube-scheduler 内置 DRA 插件、GPU Operator 组件编排（26.7 起含 DRA）、Volcano/Kueue/KAI/scheduler-plugins 在控制平面中的位置。
 4. [调度工作流程](04-scheduling-workflow) — 以时序/状态机追踪 GPU Pod 完整旅程：ListAndWatch → Filter/Score/Reserve/Permit/Bind → Allocate/PreStartContainer → 容器启动 → 健康检查 → 释放回收。
 5. [核心模块](05-core-modules) — 深入 NVIDIA Device Plugin、GPU Operator、scheduler-plugins、Volcano、Kueue。
 6. [源码分析](06-source-analysis) — NVIDIA k8s-device-plugin、GPU Operator、scheduler-plugins coscheduling/noderesourcetopology、Volcano scheduler 主干源码调用链。
-7. [工程实践](07-mini-demo) — 纯 Python 可运行的 GPU 调度概念模拟器（后续补充）。
-8. [企业生产实践](08-production-practice) — AI 集群 GPU 调度选型、典型故障、性能调优、多租户隔离。
+7. [工程实践](07-mini-demo) — 纯 Python 可运行的 GPU 调度概念模拟器（Device Plugin 注册、Filter/Score/Bind、MIG、Gang、拓扑打分、共享约束）。
+8. [企业生产实践](08-production-practice) — AI 集群 GPU 调度选型、队列设计（Volcano/Kueue/KAI）、PD 分离推理落地、典型故障、性能调优、多租户隔离。
 9. [最佳实践](09-best-practices) — GPU 调度检查清单、AI 负载特化、YAML 模板。
 10. [面试题](10-interview-questions) — 初 / 中 / 高级 GPU 调度面试题。
 11. [延伸阅读](11-further-reading) — 官方文档、KEP、源码、论文与学习路径。
 
 ## 一句话总结
 
-GPU 调度的精髓在于**“把物理 GPU 的异构能力翻译成 K8s 可调度、可切分、可治理的资源语义”**：Device Plugin 负责“看见卡”，GPU Operator 负责“管好节点组件”，scheduler-plugins / Volcano / Kueue 负责“按 AI 负载规则排队和选址”；对 AI 平台而言，选对切分模型决定利用率，选对调度器决定公平性与扩展性，理解源码与调用链决定排障效率——三者共同决定一张昂贵的 GPU 卡能不能在集群里物尽其用。
+GPU 调度的精髓在于**“把物理 GPU 的异构能力翻译成 K8s 可调度、可切分、可治理的资源语义”**：Device Plugin 负责“看见卡”，DRA（1.34 GA）让调度器按属性“选对卡”，GPU Operator 负责“管好节点组件”，scheduler-plugins / Volcano / Kueue / KAI 负责“按 AI 负载规则排队和选址”，llm-d 让推理请求“找到对的 Pod”；对 AI 平台而言，选对切分模型决定利用率，选对调度器决定公平性与扩展性，理解源码与调用链决定排障效率——三者共同决定一张昂贵的 GPU 卡能不能在集群里物尽其用。

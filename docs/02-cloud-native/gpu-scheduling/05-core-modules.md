@@ -1,6 +1,6 @@
 # 5. 核心模块
 
-> 一句话理解：**GPU 调度不是“一个调度器”的事，而是 Device Plugin、GPU Operator、scheduler-plugins/Volcano/Kueue、拓扑发现、可观测五大模块的协奏曲**——每个模块解决一个特定子问题，拼在一起才构成生产级 GPU 集群。
+> 一句话理解：**GPU 调度不是“一个调度器”的事，而是 Device Plugin / DRA、GPU Operator、scheduler-plugins / Volcano / Kueue / KAI、拓扑发现、可观测、推理流量层（llm-d）七大模块的协奏曲**——每个模块解决一个特定子问题，拼在一起才构成生产级 GPU 集群。
 
 ## 5.1 NVIDIA Device Plugin
 
@@ -62,6 +62,8 @@ data:
 ```
 
 开启后，一张物理卡会被重命名为 `nvidia.com/gpu` 的 4 个“副本”，多个 Pod 可以请求这些副本并分时复用同一张卡。
+
+> **定位变化（2026）**：DRA 1.34 GA、扩展资源映射 1.37 GA 之后，Device Plugin 仍是生产最稳的设备分配路径，但长期看 NVIDIA 会把细粒度分配能力逐步迁移到 DRA driver（GPU kubelet plugin 目前 alpha，默认关闭）。规划新集群时建议：短期继续 Device Plugin，同时让 GPU Operator ≥ 26.7 就绪以便平滑切换。
 
 ## 5.2 NVIDIA GPU Operator
 
@@ -237,6 +239,12 @@ Predicate（过滤） → NodeOrder（打分） → Gang 检查
 | MPI/TF/PyTorch | 需自己封装 | 内置集成 |
 | 适用场景 | 混合负载 | 纯训练/批处理 |
 
+### 1.15-1.16 新特性（2026）
+
+- **命名空间级 Queue（v1.16）**：租户可在自己 namespace 内建队列层级并使用管理员审批的资源池，配合 **fairshare 插件**（借鉴 Slurm 的使用量衰减算法）实现跨租户长期公平。
+- **HyperNode**：把机柜/轨道级拓扑抽象为 HyperNode 树，支持 PodGroup 拓扑反亲和（把作业实例打散到不同拓扑域）；v1.16 起 HyperNode 控制器可独立部署，供其他调度器复用拓扑发现。
+- **DRA 打分（v1.16）**：调度循环可感知 DRA 设备容量；v1.15.2 曾修复 DRA 容量记账安全漏洞（GHSA-j38h-7pfq-cxmw），1.15.0/1.15.1 用户应尽快升级。
+
 ## 5.5 Kueue
 
 Kueue 是 Kubernetes SIG-scheduling 子项目，专注于“队列、配额、公平共享”。
@@ -291,6 +299,13 @@ spec:
   clusterQueue: cq-train
 ```
 
+### v0.19-v0.20 新特性（2026）
+
+- **API 大版本切换（v0.20.0，2026-09）**：Kueue 停止服务 `kueue.x-k8s.io/v1beta1`，只保留 **v1beta2**——升级前必须用官方迁移脚本转换存量对象（当前稳定线 v0.20.2，2026-10-15）。
+- **TAS（Topology Aware Scheduling）增强**：Topology 的 `levels`、ResourceFlavor 的 `nodeLabels/tolerations` 变为可变；TAS 把“Pod 应落在哪个拓扑域（机架/NUMA）”纳入准入决策，与 scheduler-plugins NRT 互补。
+- **DRA 集成（alpha）**：`KueueDRADeviceFeasibility` 门允许在准入前按节点检查 DRA 设备可用性；支持 `DeviceTaintRule`；`adminAccess` 请求不计配额。
+- **生态**：内置 KueueViz（带 RBAC 的队列可视化）、Trainer（Kubeflow Training Operator v2）集成、`LWSImmutableGroupSize`（Beta，默认开，封死 LeaderWorkerSet 配额绕过）。
+
 ## 5.6 拓扑发现与可观测模块
 
 ### GPU Feature Discovery（GFD）
@@ -331,7 +346,74 @@ feature.node.kubernetes.io/cpu-cpuid.AVX512F=true
 
 这些指标不仅可以监控，也可以被自定义调度器或 autoscaler 消费。
 
-## 5.7 多租户治理拼图
+## 5.7 DRA 驱动与 GPU Operator 26.x 的 DRA 编排
+
+### NVIDIA DRA Driver（kubernetes-sigs/dra-driver-nvidia-gpu）
+
+NVIDIA 在 KubeCon EU 2026 把 DRA driver 捐入 kubernetes-sigs（Apache-2.0），当前 v0.5.x（2026-08）。它由两部分组成：
+
+| 组件 | 状态 | 作用 |
+|---|---|---|
+| ComputeDomain driver | **官方支持** | 把多机 NVLink 域（GB200 NVL72 整柜）声明为可分配资源，DRA 可按“整柜 72 GPU”做组合分配 |
+| GPU kubelet plugin | **alpha，默认关闭** | 整卡 / MIG 细粒度分配与共享，Helm 需 `gpuResourcesEnabledOverride=true` 显式开启 |
+
+生产建议：在 GPU kubelet plugin 达到 GA 质量之前，细粒度 GPU 分配继续使用 Device Plugin（或 KAI/HAMi 方案），DRA 先用于 ComputeDomain 与带属性的整卡选择（配合 1.37 扩展资源映射可无感接管 `nvidia.com/gpu`）。
+
+### GPU Operator 26.x：GPUCluster CR
+
+GPU Operator 从 26.7 起把 DRA 纳入 ClusterPolicy 之外的独立编排对象 `GPUCluster`：
+
+```yaml
+apiVersion: nvidia.com/v1
+kind: GPUCluster
+metadata:
+  name: gpu-cluster
+spec: {}   # 管理 DRA driver、ComputeDomain、DCGM、验证任务的生命周期
+```
+
+版本要点：
+
+- **25.10.x（2025 末）**：全面支持 Blackwell——HGX B300、HGX GB300 NVL72、GB200 NVL72（含 OpenShift）、RTX Pro 6000；新增 B300（`1g.34gb`～`7g.269gb`）与 GB300 NVL72（`1g.35gb`～`7g.278gb`）MIG profile 及 `all-balanced`  profile；CDI 默认启用；支持 MIG-backed vGPU（KubeVirt/OpenShift）。
+- **26.3.0**：动态 MIG 配置生成、Node Resource Interface（NRI）插件、GB200 NVL4 / RTX Pro 4500 支持。
+- **26.7.0**：DRA 支持（GPUCluster）、ComputeDomain 多机 NVLink、KubeVirt GPU passthrough via DRA、驱动原地重启（in-place restart）；要求 K8s ≥ 1.34.2、驱动 ≥ 580、CDI 兼容运行时。
+
+## 5.8 KAI Scheduler 与 llm-d：推理调度新模块
+
+### KAI Scheduler
+
+NVIDIA 2025-04 开源（源自 Run:ai 调度引擎，基于 kube-batch），2025-12 进入 CNCF Sandbox。它把 Gang、队列、fraction、TAS 整合进一个独立调度器：
+
+| 能力 | 实现 |
+|---|---|
+| Gang / 层级 PodGroup | 原生支持；层级 PodGroup 可表达 PD 分离（prefill/decode 各为一组）等复合负载 |
+| Fractional GPU | 基于 HAMi-core 拦截层的显存/算力配额，进程超额申请显存会被拒绝（硬隔离级） |
+| 层级队列 | 配额、权重、优先级、公平策略（DRF + time-based fairshare + reclamation） |
+| TAS | 拓扑感知与层级 TAS，覆盖 NVLink 域/机架维度 |
+| 弹性与抢占 | elastic workloads、独立可配的可抢占性、min-guaranteed-runtime |
+| DRA | 支持 NVIDIA DRA 路径，覆盖 GB200/GB300 |
+| 可解释性 | 调度决策通过 Kubernetes Events 暴露，方便排查“为什么这个 Pod 没调上” |
+
+与 Kueue 的组合定位：Kueue 强在“准入 + 公平共享”的控制平面语义与原生生态集成；KAI 强在“GPU 专属调度一步到位 + fraction 硬隔离”。已有 Run:ai 商业版或 NVIDIA AI Enterprise 的团队，KAI 是自然的开源落点。
+
+### llm-d：推理感知的调度与路由
+
+llm-d（CNCF，KubeCon EU 2026 由 IBM Research / Red Hat / Google Cloud 捐赠，NVIDIA / CoreWeave / AMD / Intel 等参与）不是调度器，而是跑在调度结果之上的**推理流量层**：
+
+```text
+请求 → Gateway（Gateway API）→ llm-d Router（KV Cache 亲和路由）
+                                        │
+              ┌─────────────────────────┼─────────────────────────┐
+              ▼                         ▼                         ▼
+        prefill PodGroup            decode PodGroup          模型缓存侧车
+        （计算密集，优先整柜 NVLink）  （显存/KV Cache 密集，    （前缀缓存同步）
+                                     可按 fraction 超卖）
+```
+
+- **PD 分离**：prefill 与 decode 拆成独立 PodGroup，各自伸缩；调度器（KAI/Kueue/Volcano）保证每组 Gang 就位。
+- **KV Cache 感知路由**：把请求路由到持有对应前缀缓存的 decode Pod，显著降低 TTFT。
+- **生态集成**：与 vLLM、NVIDIA Dynamo/Grove（多节点推理编排）协同，是 2026 年推理调度的新范式参考实现。
+
+## 5.9 多租户治理拼图
 
 生产 GPU 集群通常把以下 K8s 原生对象与调度器组合使用：
 
@@ -345,7 +427,7 @@ feature.node.kubernetes.io/cpu-cpuid.AVX512F=true
 | `NetworkPolicy` | 多租户网络隔离 |
 | `PodSecurity` | 容器安全基线 |
 
-## 5.8 模块选型参考
+## 5.10 模块选型参考
 
 | 需求 | 推荐组合 |
 |---|---|
@@ -353,18 +435,24 @@ feature.node.kubernetes.io/cpu-cpuid.AVX512F=true
 | 需要 Gang 调度，不想换调度器 | GPU Operator + scheduler-plugins Coscheduling |
 | 需要 Gang + 拓扑 + 弹性配额 | GPU Operator + scheduler-plugins Coscheduling + NRT + CapacityScheduling |
 | 纯训练/批处理集群 | GPU Operator + Volcano |
-| 多租户 AI 平台 | GPU Operator + Kueue + scheduler-plugins NRT |
-| 需要显存感知调度 | 自定义调度器 / 第三方方案（如 Run:AI、焱融、阿里 GPU 共享调度器） |
+| 多租户 AI 平台（原生生态） | GPU Operator + Kueue（v1beta2 API）+ TAS / NRT |
+| GPU 一体集群（Gang + fraction + TAS） | GPU Operator + KAI Scheduler |
+| 多机 NVLink（GB200 NVL72）整柜分配 | GPU Operator ≥ 26.7 + DRA（GPUCluster + ComputeDomain） |
+| PD 分离推理平台 | 上述任一调度器 + llm-d（KV Cache 感知路由） |
+| 需要显存感知调度 | KAI fraction（HAMi-core）/ HAMi / 自定义调度器 |
 
-## 5.9 本章小结
+## 5.11 本章小结
 
 | 模块 | 核心职责 | 源码入口（下一章展开） |
 |---|---|---|
 | NVIDIA Device Plugin | 把 GPU 暴露为 `nvidia.com/gpu` | `NVIDIA/k8s-device-plugin` |
-| NVIDIA GPU Operator | 自动化节点 GPU 组件生命周期 | `NVIDIA/gpu-operator` |
+| NVIDIA DRA Driver | 声明式设备分配（属性/污点/ComputeDomain） | `kubernetes-sigs/dra-driver-nvidia-gpu` |
+| NVIDIA GPU Operator | 自动化节点 GPU 组件生命周期（含 26.7 起 DRA 编排） | `NVIDIA/gpu-operator` |
 | scheduler-plugins | 在原生调度器内扩展 Gang/拓扑/弹性配额 | `kubernetes-sigs/scheduler-plugins` |
-| Volcano | 独立批处理调度器 | `volcano-sh/volcano` |
-| Kueue | 队列与公平共享准入 | `kubernetes-sigs/kueue` |
+| Volcano | 独立批处理调度器（v1.16：命名空间队列、fairshare） | `volcano-sh/volcano` |
+| Kueue | 队列与公平共享准入（v0.20：v1beta2 API、TAS、DRA alpha） | `kubernetes-sigs/kueue` |
+| KAI Scheduler | GPU 一体化调度（Gang/fraction/TAS/DRA） | `NVIDIA/KAI-Scheduler` |
+| llm-d | 推理 PD 分离 + KV Cache 感知路由 | `llm-d/llm-d` |
 | GFD / NFD / DCGM | 拓扑发现、标签、可观测 | 对应 DaemonSet 与 exporter |
 
 下一章我们进入源码，看这些模块的调用链是如何串起来的。

@@ -381,8 +381,36 @@ Kueue 在内存中维护一个 `Cache`，记录每个 `ClusterQueue` 的 nominal
 | Kueue | `cmd/kueue/main.go` | 控制器启动 |
 | Kueue | `pkg/controller/core/workload_controller.go` | Workload 准入 |
 | Kueue | `pkg/cache/cluster_queue.go` | 配额缓存 |
+| Kueue TAS | `pkg/cache/tas*.go`、`pkg/scheduler/flavorassigner/tas/*.go` | 拓扑域打分与资源风味匹配 |
+| K8s DRA 调度插件 | `pkg/scheduler/framework/plugins/dynamicresources/*.go` | DRA 如何在 Filter/Score/Reserve 为 ResourceClaim 选设备 |
+| K8s DRA kubelet 端 | `pkg/kubelet/cm/dra/*.go` | NodePrepareResources 调用链 |
+| NVIDIA DRA driver | `cmd/`、`pkg/driver/`、`pkg/gpu/` | ComputeDomain 与 GPU kubelet plugin（alpha） |
+| KAI Scheduler | `pkg/scheduler/`、`pkg/binder/`、`pkg/podgrouper/` | Gang、绑定、PodGroup 转化 |
 
-## 6.8 本章小结
+## 6.8 DRA 调度插件源码导读（kube-scheduler 内置）
+
+DRA 是 1.34 起内置在 kube-scheduler 里的 in-tree 插件（不是外部扩展），位于 `pkg/scheduler/framework/plugins/dynamicresources/`：
+
+```go
+// 简化后的调度流程
+func (pl *DynamicResources) Filter(ctx, state, pod, nodeInfo) {
+    // 1. 读取 Pod 引用的 ResourceClaim
+    // 2. 在该节点的 ResourceSlice 中按 DeviceClass CEL 规则匹配设备
+    // 3. 检查设备是否被其他 Claim 占用、是否有不可容忍污点
+}
+
+func (pl *DynamicResources) Score(...) {
+    // 按 DeviceClass 的 priority list 对候选设备打分（如优先同 NUMA）
+}
+
+func (pl *DynamicResources) Reserve(...) {
+    // 把选定的设备写回 Claim 的分配结果（allocatedDevices）
+}
+```
+
+与 Coscheduling 的对照阅读：Coscheduling 解决“一组 Pod 一起调”，dynamicresources 解决“一个 Pod 的具体设备在调度时定死”——1.37 的 KEP-5729 把两者接起来（Workload 级共享 Claim），是理解下一代 GPU 调度源码的最好入口。
+
+## 6.9 本章小结
 
 | 模块 | 最值得读的调用链 |
 |---|---|
@@ -392,5 +420,6 @@ Kueue 在内存中维护一个 `Cache`，记录每个 `ClusterQueue` 的 nominal
 | NodeResourceTopology | `Filter(zone) → Score(topology compactness)` |
 | Volcano | `Session.Open → predicate → nodeorder → gang → allocate → Session.Close` |
 | Kueue | `Workload Reconcile → cache.FindClusterQueue → admit → unsuspend Job` |
+| DRA 调度插件 | `Filter(ResourceSlice 匹配) → Score(priority list) → Reserve(写回设备)` |
 
 掌握这些调用链后，遇到“Pod 调度不到节点”、“MIG 配置不生效”、“Gang 调度死锁”、“队列配额不更新”等问题时，你就能快速判断该打断点或加日志的位置。下一章我们将把这些概念和源码变成可以本地运行的 Mini Demo。

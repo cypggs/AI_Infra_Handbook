@@ -187,7 +187,9 @@ Device Plugin 持续 ListAndWatch 设备健康状态。如果某张卡出现 Xid
 | **原生 kube-scheduler** | 单个 Pod 逐个调度，无 Gang 语义 |
 | **scheduler-plugins Coscheduling** | 通过 Reserve/Permit 实现 PodGroup all-or-nothing |
 | **Volcano** | 在独立调度器里维护 Job/PodGroup/Queue，调度循环内原生支持 Gang |
+| **KAI Scheduler** | 独立调度器原生 Gang + 层级 PodGroup，支持 fraction 与 TAS，决策一步到位 |
 | **Kueue** | 在控制平面先做 Workload 准入（admit），再放行 Pod 进入调度器 |
+| **v1.37 原生 PodGroup（Beta）** | 默认调度器内置：容量覆盖整组才提交，配 workload-aware 抢占与 PodGroup 排队 |
 
 ### Volcano 的 Gang 流程
 
@@ -227,7 +229,42 @@ sequenceDiagram
     S->>API: bind
 ```
 
-## 4.6 状态机视角
+## 4.6 DRA 路径：ResourceClaim 驱动的设备分配
+
+1.34 GA 的 DRA 把“选设备”从节点平面提前到控制平面，流程与 Device Plugin 路径有明显差异：
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant API as kube-apiserver
+    participant S as kube-scheduler（内置 DRA 插件）
+    participant K as kubelet
+    participant DR as NVIDIA DRA Driver
+    participant CRI as container runtime
+
+    U->>API: 创建 ResourceClaimTemplate + Pod
+    API-->>S: watch: Pod 引用未分配 Claim
+    S->>S: Filter：按 DeviceClass CEL 规则过滤节点
+    S->>S: 选定节点 + 具体设备（写回 Claim 分配结果）
+    S->>API: bind Pod → Node，Claim 标记 allocated
+    API-->>K: watch bound Pod
+    K->>DR: NodePrepareResources(claim)
+    DR-->>K: CDI 设备注入数据
+    K->>CRI: CreateContainer（CDI spec）
+    CRI-->>K: 容器 Running（GPU 按 DRA 分配结果可见）
+```
+
+与 Device Plugin 路径的三个本质区别：
+
+| 维度 | Device Plugin | DRA |
+|---|---|---|
+| 设备选择时机 | kubelet 在容器启动时 Allocate | scheduler 在绑定前选定并写回 Claim |
+| 选择依据 | 只有数量与 kubelet 本地信息 | DeviceClass CEL + 设备属性（型号/显存/NUMA/污点） |
+| 注入方式 | env + mounts + device cgroup | CDI（Container Device Interface）spec |
+
+对 Gang 调度的加成：KEP-5729（1.37 Beta）允许整个 Workload/PodGroup 共享同一个 ResourceClaim，调度器可以把“8 张卡来自同一 NVLink 域”这类约束写成一条 Claim，而不是 8 个 Pod 各自碰运气。
+
+## 4.7 状态机视角
 
 一个 GPU Pod 在调度与执行阶段的状态转换：
 
@@ -255,7 +292,7 @@ Running
 Succeeded / Failed / Deleted
 ```
 
-## 4.7 与 Mini Demo 的对应
+## 4.8 与 Mini Demo 的对应
 
 `gpu_scheduling_mini` 把上述流程压缩成几个可直接运行的函数：
 
@@ -269,15 +306,16 @@ Succeeded / Failed / Deleted
 | Gang all-or-nothing | `gang.schedule_group()` | `gang.py` |
 | 拓扑感知 | `TopologyScorer.best_indices()` | `topology.py` |
 
-## 4.8 本章小结
+## 4.9 本章小结
 
 | 阶段 | 谁负责 | 关键输出 |
 |---|---|---|
 | 调度决策 | kube-scheduler + 插件 | `pod.spec.nodeName` |
-| Gang 协调 | Volcano / Coscheduling | PodGroup 全部 Pod 同时 bind |
+| 设备选择（DRA 路径） | kube-scheduler 内置 DRA 插件 | ResourceClaim 中的设备分配结果 |
+| Gang 协调 | Volcano / Coscheduling / KAI / v1.37 原生 PodGroup | PodGroup 全部 Pod 同时 bind |
 | 队列准入 | Kueue | Workload admit / suspend |
-| 设备分配 | kubelet + Device Plugin | `NVIDIA_VISIBLE_DEVICES`、/dev/nvidia* |
+| 设备分配 | kubelet + Device Plugin（或 DRA driver） | `NVIDIA_VISIBLE_DEVICES`、/dev/nvidia*、CDI spec |
 | 容器创建 | container runtime | 带 GPU 设备的容器进程 |
-| 回收 | kubelet + Device Plugin | 设备索引回到可用池 |
+| 回收 | kubelet + Device Plugin / DRA driver | 设备索引回到可用池 |
 
 理解这个流程是排查 GPU Pod Pending、UnexpectedAdmissionError、NCCL 性能差等问题的前提。下一章我们把流程中的每个关键组件拆开，看它们内部是怎么工作的。

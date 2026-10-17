@@ -8,9 +8,9 @@
 
 | 维度 | 训练集群 | 推理集群 | 通用平台 |
 |---|---|---|---|
-| 首要诉求 | 高显存、高 NVLink 带宽、稳定 NCCL | 高吞吐、低延迟、成本敏感 | 弹性、可运维、多租户 |
-| 推荐 GPU | A100 / H100 / GB200（整卡或 MIG） | H100 / L40S / A10 / T4 | 按团队预算混合部署 |
-| 切分方式 | 整卡、MIG（A100/H100）、NVLink 域内分组 | MIG、MPS、time-slicing | 按负载动态选择 |
+| 首要诉求 | 高显存、高 NVLink 带宽、稳定 NCCL | 高吞吐、低 P99 延迟、成本敏感 | 弹性、可运维、多租户 |
+| 推荐 GPU | H100 / GB200 NVL72 / B300（整卡或 MIG） | H100 / L40S / A10 / T4 / RTX Pro 6000 | 按团队预算混合部署 |
+| 切分方式 | 整卡、MIG、ComputeDomain 整柜（GB200 NVL72） | MIG、Fractional GPU（KAI/HAMi）、MPS | 按负载动态选择 |
 | 网络 | RoCEv2 / InfiniBand + GPUDirect RDMA | 常规 25/100Gbps，可选 RDMA | 与训练/推理共享 |
 | 存储 | 本地 NVMe + 并行文件系统 | 只读模型仓库 + 本地缓存 | 分层存储 |
 
@@ -97,10 +97,16 @@ curl -s localhost:9400/metrics | grep DCGM_FI_DEV_GPU_UTIL
 
 | 组件 | 升级方式 | 风险点 |
 |---|---|---|
-| GPU Operator | Helm upgrade，建议小版本逐步升 | 驱动版本不兼容会触发节点滚动重启 |
+| GPU Operator | Helm upgrade，建议小版本逐步升；26.7 起关注 GPUCluster/DRA 新 CR | 驱动版本不兼容会触发节点滚动重启 |
 | NVIDIA Driver | 大版本升级需 drain 节点 | 内核版本变化时驱动编译失败 |
 | Device Plugin | 滚动升级，注意资源上报中断 | Pod 可能短暂无法调度 |
+| DRA Driver（可选） | GPU Operator GPUCluster 或独立 Helm；GPU kubelet plugin 仍 alpha | 与 Device Plugin 双轨并存时避免重复上报资源 |
 | DCGM Exporter | 独立升级，通常影响小 | metrics 中断影响告警 |
+
+版本基线建议（2026-10）：
+
+- **新集群直接上 GPU Operator 26.x**：Blackwell（B300/GB300/GB200）支持完整（25.10 起），动态 MIG 配置（26.3），需要 DRA/整柜 NVLink 时升 26.7+（要求 K8s ≥ 1.34.2、驱动 ≥ 580、CDI 运行时）。
+- **存量 24.x/25.x 集群**：先升到 25.10.x 拿 Blackwell 支持，再评估 26.x；26.7 的驱动原地重启能力可降低升级窗口。
 
 建议：
 
@@ -146,22 +152,29 @@ globalDefault: false
 preemptionPolicy: PreemptLowerPriority
 ```
 
-### 队列设计：Volcano vs Kueue
+### 队列设计：Volcano vs Kueue vs KAI
 
-| 维度 | Volcano | Kueue |
-|---|---|---|
-| 核心抽象 | Job、Queue、PodGroup | ClusterQueue、LocalQueue、Workload |
-| Gang 调度 | 原生支持 | 依赖 scheduler-plugins / gang-scheduling |
-| 抢占 | 支持 | 支持（配合 PriorityClass） |
-| 公平共享 | Queue 内 FIFO + 权重 | ClusterQueue 权重、Cohort 借用 |
-| 依赖 | 替换默认 scheduler | 与原生 scheduler 共存 |
-| 适用场景 | 大批量训练 Job | 多租户 AI 平台、训练+推理混合 |
+| 维度 | Volcano | Kueue | KAI Scheduler |
+|---|---|---|---|
+| 核心抽象 | Job、Queue、PodGroup | ClusterQueue、LocalQueue、Workload | Queue（层级）、PodGroup、GPU fraction |
+| Gang 调度 | 原生支持 | 依赖 scheduler-plugins / 原生 PodGroup | 原生支持（含层级 PodGroup） |
+| 抢占 | 支持 | 支持（配合 PriorityClass） | 支持（可抢占性独立配置） |
+| 公平共享 | Queue 内 FIFO + 权重；v1.16 新增 fairshare 插件（使用量衰减） | ClusterQueue 权重、Cohort 借用 | DRF + time-based fairshare + reclamation |
+| GPU fraction | 需配合 HAMi 等 | 生态方案（如 DRA Consumable Capacity，尚早期） | 原生（HAMi-core 硬隔离） |
+| 依赖 | 替换默认 scheduler | 与原生 scheduler 共存 | 独立调度器，可与其它调度器并存 |
+| 适用场景 | 大批量训练 Job、HPC | 多租户 AI 平台、训练+推理混合 | GPU 一体集群、推理密度优先 |
+
+注意版本事项：
+
+- **Kueue ≥ v0.20 只保留 v1beta2 API**，升级前必须跑官方迁移脚本转换存量 ClusterQueue/Workload。
+- **Volcano 1.15.0/1.15.1 有 DRA 容量记账安全漏洞**，须升到 ≥ 1.15.2。
+- K8s 1.37+ 的原生 PodGroup（KEP-4671，Beta）可统一 Gang 语义，但队列与公平共享仍由上述项目提供。
 
 建议：
 
-- 纯训练集群、已用 Volcano 生态 → 继续用 Volcano。
+- 纯训练集群、已用 Volcano 生态 → 继续用 Volcano（v1.16 的命名空间级 Queue 适合平台化）。
 - 新建平台、希望与原生 K8s 深度集成 → 选 Kueue。
-- 详细对比可参考本主题第 6 章（如已上线）。
+- GPU 集群要“Gang + fraction + TAS 一步到位” → 评估 KAI Scheduler。
 
 ### 命名空间与队列映射
 
@@ -210,8 +223,13 @@ spec:
 |---|---|---|
 | 单卡多副本 | Deployment `replicas` + HPA | 水平扩展，适合无状态推理 |
 | MIG 切片 | 一个节点同时服务多个模型 | 提高显存利用率 |
+| Fractional GPU | KAI Scheduler / HAMi 按显存配额切分 | 比 MPS/time-slicing 更安全的中模型混部 |
+| PD 分离 | prefill / decode 拆成独立 PodGroup（llm-d + KAI/Kueue Gang） | 两类资源独立伸缩，显著降 TTFT |
+| KV Cache 感知路由 | llm-d router（Gateway API） | 请求命中前缀缓存的 decode Pod |
 | 节点亲和 + 反亲和 | 同一模型副本分散到不同节点 | 避免单节点故障影响全部 |
 | 本地缓存 | initContainer 拉取模型到本地 NVMe | 加速 vLLM / Triton 冷启动 |
+
+2026 年的推理落地范式：**调度器（KAI/Kueue/Volcano）负责把 prefill/decode PodGroup 以 Gang 方式放进拓扑合适的位置，llm-d 负责请求在 Pod 之间的智能路由**。多节点大模型推理（跨机 NVLink 张量并行，如 GB200 NVL72 整柜）则由 DRA ComputeDomain 声明整柜资源。
 
 详细推理部署可参考 [/04-llmops/vllm/](/04-llmops/vllm/) 与 [/04-llmops/tensorrt-llm/](/04-llmops/tensorrt-llm/)。
 
@@ -284,10 +302,10 @@ kubectl get node <node> -o json | jq '.status.allocatable | with_entries(select(
 
 | 主题 | 生产要点 |
 |---|---|
-| 选型 | 训练重 NCCL 与显存，推理重成本与延迟；MIG 适合多租户共享 |
-| GPU Operator | 一次安装驱动/工具链/插件/可观测，升级注意驱动兼容性 |
-| 多租户 | ResourceQuota + LimitRange + PriorityClass + Queue 分层 |
-| Placement | 训练用 Gang+拓扑感知，推理用 MIG/单卡+HPA |
-| 故障 | 分调度、启动、运行、硬件四层排查，重点关注 Xid 与 NCCL 日志 |
+| 选型 | 训练重 NCCL 与显存（H100/GB200/B300），推理重成本与延迟；MIG/Fraction 适合多租户共享 |
+| GPU Operator | 新集群直接 26.x；25.10 拿 Blackwell，26.7 拿 DRA/整柜 NVLink |
+| 多租户 | ResourceQuota + LimitRange + PriorityClass + Queue 分层；Kueue ≥ 0.20 注意 v1beta2 迁移 |
+| Placement | 训练用 Gang+拓扑感知，推理用 MIG/Fraction+HPA，PD 分离用 llm-d+PodGroup |
+| 故障 | 分调度、启动、运行、硬件四层排查，重点关注 Xid 与 NCCL 日志；DRA 1.37 起可对单卡打污点隔离 |
 
 下一章把这些经验固化成可落地的最佳实践与 YAML 模板。

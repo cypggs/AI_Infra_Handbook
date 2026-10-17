@@ -2,6 +2,8 @@
 
 > 一句话理解：**K8s 原生调度器是为 CPU/内存设计的“可分配即可调度”，而 GPU 是 all-or-nothing、拓扑敏感、显存硬墙、多租户争抢的稀缺资源**——不理解 AI 负载的这四条特征，就无法解释为什么 Device Plugin、GPU Operator、Gang 调度、队列调度会相继出现。
 
+> **版本现状（2026-10）**：DRA（Dynamic Resource Allocation）已于 **Kubernetes 1.34（2025-09）GA**，1.35 起特性门锁定常开，1.37（2026-08）又把“扩展资源映射”推向 GA——Device Plugin 时代开始过渡到声明式设备分配时代；**Kubernetes 1.37 原生 Gang 调度（Workload/PodGroup API，KEP-4671）进入 Beta**；GPU Operator 26.7 起内置 DRA 支持（`GPUCluster` CR）；NVIDIA 把 **KAI Scheduler**（2025-04 开源，源自 Run:ai 调度引擎）与 **DRA GPU driver** 捐入 CNCF，**llm-d**（推理解耦框架）也于 KubeCon EU 2026 进入 CNCF——GPU 调度格局正在从“Device Plugin + 第三方调度器”演进到“DRA + 多调度器共存”。
+
 ## 1.1 AI 训练与推理的四个本质特征
 
 ### all-or-nothing：要么全员就位，要么全部白跑
@@ -88,14 +90,20 @@ Kubernetes 的默认调度器非常擅长 CPU/内存调度：它看 `requests/li
 2021  scheduler-plugins NodeResourceTopology
 2022  Kueue 0.1        面向 Job 的队列与公平调度
 2023  Kueue 进入 Kubernetes SIG-scheduling 子项目
-2024+ DRA（Dynamic Resource Allocation）逐步成熟，可能替代部分 Device Plugin 语义
+2025-04  NVIDIA 开源 KAI Scheduler（源自 Run:ai 调度引擎，基于 kube-batch）
+2025-09  Kubernetes 1.34  DRA GA（resource.k8s.io/v1：ResourceClaim / DeviceClass / ResourceSlice）
+2025-12  Kubernetes 1.35  DRA 特性门锁定常开；KAI Scheduler 进入 CNCF Sandbox
+2026-03  KubeCon EU 2026：NVIDIA DRA GPU driver 捐入 kubernetes-sigs；llm-d 进入 CNCF
+2026-04  Kubernetes 1.36  DRA 分区设备 / 设备污点（beta）；GPU Operator 26.3 动态 MIG 配置
+2026-08  Kubernetes 1.37  DRA 扩展资源映射 GA；原生 Gang 调度（KEP-4671）Beta
+2026-08  GPU Operator 26.7 内置 DRA 支持（GPUCluster CR、ComputeDomain 多机 NVLink）
 ```
 
 这条演进线可以分成三层：
 
-1. **设备发现与分配层**：Device Plugin 让 kubelet 能“看见”GPU 并分配给容器。
-2. **节点组件自动化层**：GPU Operator 把驱动、container-toolkit、Device Plugin、监控、MIG 配置等组件打包成节点就绪流水线。
-3. **调度策略增强层**：scheduler-plugins、Volcano、Kueue 分别在默认调度器之上或之外提供 Gang、拓扑、队列能力。
+1. **设备发现与分配层**：Device Plugin 让 kubelet 能“看见”GPU 并分配给容器；DRA（1.34 GA）则把这层升级为声明式的 ResourceClaim + DeviceClass 模型，支持按属性（型号、显存、NUMA）选择设备，而非只数个数。
+2. **节点组件自动化层**：GPU Operator 把驱动、container-toolkit、Device Plugin、监控、MIG 配置等组件打包成节点就绪流水线；26.x 起又接管 DRA driver 与多机 NVLink ComputeDomain 的生命周期。
+3. **调度策略增强层**：scheduler-plugins、Volcano、Kueue、KAI Scheduler 分别在默认调度器之上或之外提供 Gang、拓扑、队列能力；1.37 起 K8s 原生也开始内建 Workload/PodGroup 的 Gang 语义。
 
 ## 1.4 AI Infra 视角：为什么 GPU 调度格外重要
 
@@ -127,6 +135,15 @@ Kubernetes 的默认调度器非常擅长 CPU/内存调度：它看 `requests/li
 | 节点运维 | 驱动/toolkit/plugin 手动安装困难 | NVIDIA GPU Operator 自动化节点组件 |
 | 调度语义 | 只数卡、无 Gang、无拓扑 | scheduler-plugins / Volcano / Kueue |
 | 多租户 | 抢资源、无配额公平 | Kueue Queue + Volcano Queue + 抢占机制 |
-| 未来 | 更细粒度、更动态的资源模型 | DRA、显存感知 Device Plugin、AI-aware scheduler |
+| 设备模型升级 | Device Plugin 只有“数量”，没有属性 | DRA（1.34 GA）：ResourceClaim + DeviceClass，按型号/显存/NUMA 选设备 |
+| 未来 | 更细粒度、更动态的资源模型 | DRA 扩展资源映射（1.37 GA）、原生 Gang 调度（1.37 Beta）、显存/算力分数化、KAI Scheduler / llm-d 推理调度新范式 |
 
 GPU 在 K8s 上的落地，本质上是在**“K8s 通用资源抽象”与“GPU 异构硬件现实”之间搭一座桥**。下一章我们将进入这座桥的核心概念：extended resource、Device Plugin、GPU 切分模型与调度语义。
+
+**参考来源**
+
+- [Kubernetes v1.34：DRA 正式 GA](https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/)（resource.k8s.io/v1 API 稳定）
+- [Kubernetes v1.37：DRA Updates](https://kubernetes.io/blog/2026/09/03/kubernetes-v1-37-dra-updates/)（扩展资源映射 GA、设备污点 GA、KEP-5729 等）
+- [Kubernetes v1.37 Release（Garhwal）](https://kubernetes.io/blog/2026/08/26/kubernetes-v1-37-release/)（原生 Workload/PodGroup Gang 调度 Beta，KEP-4671）
+- [NVIDIA GPU Operator Release Notes](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/release-notes.html)（26.7 DRA、25.10 Blackwell）
+- [KAI Scheduler（CNCF Sandbox）](https://www.cncf.io/projects/kai-scheduler/)、[llm-d](https://github.com/llm-d/llm-d)（KubeCon EU 2026 进入 CNCF）

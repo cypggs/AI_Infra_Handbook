@@ -44,7 +44,10 @@ AI 平台要回答一个核心问题：**一张卡给几个 Pod 用？怎么隔�
 | **MIG** | 1 张物理卡 → 最多 7 个实例 | 硬隔离 | 硬隔离（compute instance） | 多租户、显存可预测 | `nvidia.com/mig-3g.40gb` 等 |
 | **MPS** | 多进程共享一张卡 | 不隔离（共享显存池） | 软隔离（上下文共享） | 小模型高密度推理 | 同一 `nvidia.com/gpu` 多个 Pod |
 | **Time-slicing** | 多个容器轮流使用一张卡 | 不隔离 | 不隔离（时间片） | 极低负载共享、开发测试 | Device Plugin ConfigMap |
+| **Fractional GPU（显存/算力配额）** | 按显存 MB 与算力百分比切分 | 软隔离（由拦截层强制） | 软隔离（时间片 + 配额） | 中小模型混部、超卖场景 | HAMi `vgpu` 资源 / KAI Scheduler GPU fraction |
 | **vGPU** | 由 hypervisor/软件虚拟化 | 可配置 | 可配置 | 私有云/桌面虚拟化 | 通常配合 KubeVirt 等 |
+
+> **2025-2026 新动态**：KAI Scheduler 的 fractional GPU 共享底层采用了 HAMi-core 设备拦截层，把“显存超限即失败”的软共享升级为**硬隔离级**的显存配额（进程申请显存超额会被直接拒绝）；DRA 侧则通过 Consumable Capacity（KEP-5075，1.37 Beta）把“显存/算力分数化申请”做进原生资源模型。
 
 ### 整卡独占
 
@@ -78,6 +81,7 @@ NVIDIA Device Plugin 提供的一种“超卖”机制。多个 Pod 共享一张
 |---|---|---|
 | 大模型训练 | 整卡独占 | 可预测、NCCL 性能最好 |
 | 多租户推理 | MIG | 硬隔离，显存可配额 |
+| 中小模型高密度混部 | Fractional GPU（HAMi / KAI） | 显存配额硬限制，比 MPS/time-slicing 更安全 |
 | 小模型高密度推理 | MPS | 低上下文开销，但需要控制显存 |
 | 开发/测试/低负载 | time-slicing | 最大化卡利用率，接受性能波动 |
 
@@ -255,7 +259,10 @@ Pod 通过 `scheduling.volcano.sh/podgroup-name: llm-training` 关联到 PodGrou
 | scheduler-plugins Coscheduling | 默认 scheduler 插件 | PodGroup CRD | 兼容默认调度器 |
 | Volcano | 独立调度器 | Job/PodGroup | 队列、抢占、作业管理 |
 | Kueue | 独立 controller + 准入 | Workload/PodSet | 队列、公平共享、抢占 |
-| v1.36 PodGroup（原生） | 默认 scheduler 原生 | PodGroup API | 未来可能统一 |
+| KAI Scheduler | 独立调度器（CNCF Sandbox，基于 kube-batch） | PodGroup / 层级 PodGroup | 队列层级、fractional GPU、TAS、抢占 |
+| v1.37 原生 PodGroup（KEP-4671，Beta） | 默认 scheduler 原生 | Workload API + PodGroup，opt-in | 配套 workload-aware 抢占与 PodGroup 排队，防 livelock |
+
+> **1.37 原生 Gang 调度要点**：Kubernetes 1.37（2026-08）把 KEP-4671 推进到 Beta——调度器只有在**集群容量能覆盖整个 PodGroup 时**才提交该组，而不是先占一部分卡再等；配套的两块是 **workload-aware preemption**（不会为了一个无法推进的抢占者去驱逐正在运行的 Job）和 **PodGroup queueing**（防止多个大 Job 相互 livelock）。默认不启用，需要显式创建 Workload/PodGroup 对象。短期内外部调度器（Volcano/Kueue/KAI）仍提供队列、公平共享等更完整的多租户语义，原生 API 的价值在于统一各调度器的底层语义。
 
 ## 2.6 队列公平调度
 
@@ -306,7 +313,103 @@ spec:
 
 当多个 ClusterQueue 竞争时，系统按权重比例分配可用资源，而不是谁先到谁先得。
 
-## 2.7 与 K8s 其他组件的边界
+### KAI Scheduler：把队列与 fraction 统一进一个调度器
+
+KAI Scheduler（NVIDIA 2025-04 开源，源自 Run:ai 调度引擎，2025-12 进入 CNCF Sandbox）把上面几件事合进一个独立调度器：
+
+```text
+Queue（层级队列：配额 / 权重 / 借用限制）
+   └── PodGroup（Gang + 层级 PodGroup，支持 PD 分离等复合负载）
+         └── GPU 分配策略：整卡 / MIG / fraction（显存+算力配额）
+```
+
+它与 Kueue 的关键差异：Kueue 是“控制平面准入 + 原生调度器执行”的两段式，KAI 是“独立调度器一步到位”，并且**原生支持 fractional GPU**（配合 HAMi-core 拦截层做显存硬配额）与层级 TAS（Topology Aware Scheduling）。
+
+### 推理调度新范式：从“占卡”到“PD 分离 + 感知路由”
+
+2026 年推理场景的调度粒度从“Pod 占几张卡”细化到“请求该去哪个 Pod”：
+
+- **PD 分离（Prefill/Decode Disaggregation）**：把计算密集的 prefill 与显存密集的 decode 拆到不同 Pod，分别扩缩容；要求调度器能把两类 Pod 各自 Gang 起来并感知 KV Cache 位置——llm-d（CNCF，KubeCon EU 2026 由 IBM Research / Red Hat / Google Cloud 捐赠）把这一模式做成 K8s 原生框架。
+- **请求级路由**：llm-d 的 routing 组件按 KV Cache 亲和性把请求路由到持有对应前缀缓存的 decode Pod，显著降低 TTFT。
+- **多节点推理**：GB200 NVL72 这类机柜级 NVLink 域让跨节点张量并行成为常态，调度需要理解 ComputeDomain / 整柜拓扑（见 2.7 DRA）。
+
+## 2.7 DRA：从 Device Plugin 到声明式设备分配
+
+### Device Plugin 的三条天花板
+
+Device Plugin 模型（1.14 GA 至今）有三大结构性限制，DRA（Dynamic Resource Allocation，1.26 alpha、**1.34 GA**）就是为突破它们而设计：
+
+1. **只有数量，没有属性**：scheduler 只能问“还有没有 `nvidia.com/gpu`”，不能问“有没有显存 ≥ 80GB 且与同 NUMA NIC 亲和的 GPU”。
+2. **分配决策在节点**：scheduler 选节点，设备实际分配发生在 kubelet 调 `Allocate` 时——选卡和用卡分离，拓扑优化只能靠 `GetPreferredAllocation` 事后补救。
+3. **无法表达复杂拓扑**：多机 NVLink（GB200 NVL72）、MIG 动态分区这类“设备组合”语义，Device Plugin 表达不了。
+
+### DRA 的核心对象
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass          # 管理员定义“一类设备”长什么样
+metadata:
+  name: gpu-h100-nvlink
+spec:
+  selectors:
+    - cel:
+        expression: |
+          device.attributes["nvidia.com"].product == "H100"
+          && device.attributes["resource.kubernetes.io/numaNode"] == 0
+---
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaim        # 工作负载声明“我要一个这样的设备”
+metadata:
+  name: llm-train-gpu
+spec:
+  devices:
+    requests:
+      - name: gpu
+        deviceClassName: gpu-h100-nvlink
+        count: 8
+```
+
+| 对象 | 作用 | 谁创建 |
+|---|---|---|
+| `DeviceClass` | 定义设备选择规则（CEL 表达式按属性过滤） | 集群管理员 |
+| `ResourceSlice` | DRA driver 上报设备清单与属性（型号、显存、NUMA、健康） | DRA driver |
+| `ResourceClaim` / `ResourceClaimTemplate` | 工作负载的设备需求声明 | 用户 / 工作负载模板 |
+| `ResourceClaim` status | driver 回填分配结果（设备 ID、网络接口信息） | DRA driver |
+
+### 版本演进（截至 2026-10，K8s 1.37）
+
+| 版本 | DRA 里程碑 |
+|---|---|
+| 1.34（2025-09） | 核心 API（resource.k8s.io/v1）**GA**；Consumable Capacity（显存/算力分数化）发布；Pod 状态可上报 DRA 设备健康 |
+| 1.35（2025-12） | 特性门锁定常开；扩展资源映射（KEP-5004）alpha |
+| 1.36（2026-04） | 分区设备（KEP-4815）与设备污点（KEP-5055）beta；优先级列表稳定 |
+| 1.37（2026-08） | **扩展资源映射 GA**：DeviceClass 直接声明 `extendedResourceName: nvidia.com/gpu`，Pod 侧无需任何 ResourceClaim 改造；设备污点/容忍 GA（单卡故障打污点即可，不必 drain 整节点）；ResourceClaim 设备状态 GA；Workload 直接引用 ResourceClaim（KEP-5729 beta，一个 Claim 供整个 PodGroup 共享） |
+
+### 扩展资源映射：迁移的桥
+
+1.37 GA 的扩展资源映射是 Device Plugin 平滑迁移到 DRA 的关键：DeviceClass 上声明 `extendedResourceName` 后，**原有只写 `limits: nvidia.com/gpu: 1` 的 Pod 不需要任何改动**，就由 DRA driver 来接管分配：
+
+```yaml
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: nvidia-gpu
+spec:
+  extendedResourceName: nvidia.com/gpu   # 1.37 GA：Pod spec 保持原样
+```
+
+这意味着平台可以把调度基础设施切到 DRA（获得属性选择、设备污点、拓扑感知），而用户侧 YAML 完全无感。
+
+### NVIDIA DRA Driver 与 GPU Operator 26.x
+
+NVIDIA 的 `dra-driver-nvidia-gpu` 于 KubeCon EU 2026 捐入 kubernetes-sigs（Apache-2.0），当前 v0.5.x（2026-08）。需要注意成熟度分层：
+
+- **ComputeDomain（多机 NVLink，GB200 NVL72）**：官方支持，用于整柜级 GPU 组合分配。
+- **GPU kubelet plugin（整卡/MIG 细粒度分配）**：alpha，Helm 默认关闭（`gpuResourcesEnabledOverride=true` 才启用），生产上 Device Plugin 仍是更稳的选择。
+
+GPU Operator 从 **26.7** 起把 DRA 纳入编排：新增 `GPUCluster` CR 统一管理 DRA driver、ComputeDomain、DCGM 与校验任务，要求 K8s ≥ 1.34.2、驱动 ≥ 580、CDI 兼容的容器运行时。
+
+## 2.8 与 K8s 其他组件的边界
 
 ```text
 K8s 生态
@@ -322,6 +425,10 @@ K8s 生态
 │      └── 独立批处理调度器：Job / PodGroup / Queue / 抢占
 ├── Kueue
 │      └── 控制平面队列：ClusterQueue / LocalQueue / Workload
+├── DRA（1.34 GA）
+│      └── 声明式设备分配：DeviceClass / ResourceClaim / ResourceSlice
+├── KAI Scheduler（CNCF Sandbox）
+│      └── GPU 一体化调度：Gang / 层级队列 / fraction / TAS
 ├── kubelet TopologyManager
 │      └── 节点级 NUMA/PCIe 对齐
 └── 可观测（DCGM-Exporter / GFD / Prometheus）
@@ -331,11 +438,12 @@ K8s 生态
 关键边界：
 
 - **Device Plugin ≠ scheduler**：Device Plugin 发现设备并分配给容器，不参与“选哪个节点”。
-- **scheduler-plugins ≠ Volcano**：前者运行在默认调度器内，后者替换整个调度器；前者适合补充能力，后者适合批处理/AI 专属集群。
+- **DRA ≠ Device Plugin 的简单替代**：DRA 把“选哪台设备”的决策从 kubelet 提前到 scheduler（调度器直接为 ResourceClaim 选设备），并引入属性/污点/拓扑语义；1.37 起两者可通过扩展资源映射共存过渡。
+- **scheduler-plugins ≠ Volcano/KAI**：前者运行在默认调度器内，后两者替换整个调度器；前者适合补充能力，后者适合 AI 专属集群。
 - **Kueue ≠ scheduler**：Kueue 决定“这个 Job 现在能不能进调度器”，scheduler 决定“这个 Pod 落在哪个节点”。
-- **GPU Operator ≠ Device Plugin**：GPU Operator 管理 Device Plugin 的生命周期，还包括驱动、container-toolkit、MIG 等。
+- **GPU Operator ≠ Device Plugin**：GPU Operator 管理 Device Plugin 的生命周期，还包括驱动、container-toolkit、MIG、以及 26.7 起的 DRA driver。
 
-## 2.8 本章小结
+## 2.9 本章小结
 
 | 概念 | 一句话 |
 |---|---|
@@ -344,9 +452,11 @@ K8s 生态
 | MIG | 硬件级切分，显存与计算硬隔离 |
 | MPS | 多进程共享一张卡，显存不隔离 |
 | Time-slicing | 时间片共享，适合低负载/开发 |
+| Fractional GPU | 显存/算力配额化共享（HAMi-core / KAI），介于 MIG 与 MPS 之间 |
 | Device Plugin | kubelet 与 GPU 之间的标准 gRPC 接口 |
+| DRA | 声明式设备分配（1.34 GA），按属性选设备、设备污点、扩展资源映射 |
 | 拓扑感知 | 把 NUMA/PCIe/NVLink 纳入调度决策 |
-| Gang 调度 | 一组 Pod 同时满足才调度 |
+| Gang 调度 | 一组 Pod 同时满足才调度（1.37 起 K8s 原生 Beta） |
 | 队列调度 | 资源不足时排队、配额、公平共享 |
 
 理解了这些概念，下一章我们把它们放到 K8s 集群里，看 GPU 调度架构的全景与组件协作。
