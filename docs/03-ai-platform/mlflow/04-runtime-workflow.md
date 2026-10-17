@@ -211,7 +211,7 @@ sequenceDiagram
 - **没有显式的“训练”步骤**：迭代单元从 Run 变成了 trace（线上真实请求）+ prompt 版本。
 - **评估发生在两个阶段**：离线（评估数据集 + scorer）与在线（对流入 trace 持续打分，3.9+ 内置 no-code 监控）。
 - **回滚粒度更细**：可以只回滚 prompt 别名（`prompts:/support-bot@production`），也可以回滚模型别名（`models:/support-bot@champion`），二者解耦。
-- **编码 Agent 也可接入**：3.13 起 AI Gateway 一键为 Claude Code、Codex、Gemini CLI 等提供带观测与预算的端点；3.14 的 `mlflow agent setup` 则是一条命令完成埋点接入。
+- **编码 Agent 也可接入**：3.13 起 AI Gateway 一键为 Claude Code、Codex、Gemini CLI 等提供带观测与预算的端点；3.14 的 `mlflow agent setup`（`uvx mlflow@latest agent setup`）一条命令即可完成埋点接入，并把 Claude Code 团队级 tracing 做得更可靠——trace 先写本地磁盘的 write-ahead log，再由后台守护进程重试上传，网络抖动或会话崩溃也不丢数据。
 
 ## 本章小结
 

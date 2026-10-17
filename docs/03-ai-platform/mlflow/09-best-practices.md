@@ -228,7 +228,7 @@ result = mlflow.genai.evaluate(
 
 ### 成本治理
 
-- 用 AI Gateway 按团队/用户设 token 预算与告警（3.11+），避免某条 Agent 死循环打爆账单。
+- 用 AI Gateway 按日/周/月时间窗口设 token 预算、告警与超支自动阻断（3.11.1+），避免某条 Agent 死循环打爆账单。
 - trace 保留策略按环境区分：生产 30 天，开发 7 天。
 
 ## 9.8 安全与合规

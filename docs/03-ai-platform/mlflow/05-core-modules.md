@@ -210,7 +210,7 @@ UI 是 server/js/ 下的前端，调用这些 REST API。
 
 ### mlflow.gateway
 
-- AI Gateway：把多家 LLM provider 抽象成统一端点，提供路由、按用户/团队预算与告警（3.11+）、输入输出 Guardrails（3.12+）。
+- AI Gateway：把多家 LLM provider 抽象成统一端点，提供路由、按时间窗口（日/周/月）的预算、告警与超支阻断（3.11.1+）、输入输出 Guardrails（3.12+）。
 - MCP Registry（3.15+）：集中注册 MCP Server 配置（版本、别名、标签），供 Agent 工具发现。
 
 ## 5.11 模块交互示例

@@ -114,7 +114,7 @@ prompts (3.x Prompt Registry)
 scorers / assessment 结果 (3.x)
 ```
 
-MLflow 使用 Alembic 做数据库迁移。3.x 起 trace 表成为增长最快的表——3.13 引入了 **Trace 自动归档**（按保留期把老 trace 从 SQL 搬到对象存储，UI/API 仍可读），3.17 又提供按日聚合（daily rollups）加速 trace 分析，生产部署时务必规划 trace 的保留与归档策略。
+MLflow 使用 Alembic 做数据库迁移。3.x 起 trace 表成为增长最快的表——3.13 引入了 **Trace 自动归档**（按保留期把老 trace 的 span 负载从 SQL 搬到归档存储，UI/API 仍可读），3.17 又提供按日 SQL 聚合（daily rollups，环境变量 `MLFLOW_SQL_TRACE_ROLLUPS_ENABLED=true`）加速 trace 分析，生产部署时务必规划 trace 的保留与归档策略。
 
 ## 3.4 Artifact Store
 

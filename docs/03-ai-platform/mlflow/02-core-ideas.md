@@ -244,7 +244,7 @@ prompt = mlflow.genai.load_prompt("support-bot@production")
 
 ### AI Gateway 与 MCP Registry
 
-- **AI Gateway**：统一代理多家 LLM API，提供路由、按用户/团队的 token 预算与告警（3.11）、输入输出 Guardrails（3.12），并与 Tracing 天然打通。
+- **AI Gateway**：统一代理多家 LLM API，提供路由、按日/周/月时间窗口的 token 预算、超支告警与自动阻断（3.11.1）、输入输出 Guardrails（3.12），并与 Tracing 天然打通。
 - **MCP Registry**（3.15）：集中管理 MCP Server 配置（版本、别名、标签），配合 Agent 的工具发现与治理。
 
 ### Databricks 上的 Unity Catalog 集成

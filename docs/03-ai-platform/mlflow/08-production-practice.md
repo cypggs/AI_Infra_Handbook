@@ -140,21 +140,26 @@ mlflow server \
 
 ## 8.5 Trace 保留与归档（3.13+）
 
-GenAI 观测数据是增长最快的资产（量级通常远超 metrics）。3.13 引入 **Trace 自动归档**：后台进程把超过保留期的 trace 从 SQL 搬到对象存储（S3），UI/API 依然可读；3.17 提供按日聚合加速分析。通过 YAML 配置：
+GenAI 观测数据是增长最快的资产（量级通常远超 metrics）。3.13 引入 **Trace 自动归档**：后台调度进程把超过保留期的 trace span 负载从 SQL 搬到归档存储（S3），UI/API 依然可读；3.17 提供按日 SQL 聚合（daily rollups，`MLFLOW_SQL_TRACE_ROLLUPS_ENABLED=true`）加速分析。服务端通过 `MLFLOW_TRACE_ARCHIVAL_CONFIG` 指向的 YAML（或 `--trace-archival-config` 参数）配置：
 
 ```yaml
-# mlflow-server.yaml
+# trace-archival.yaml
 trace_archival:
   enabled: true
-  retention_period: 30d        # 热数据保留 30 天
-  archive_uri: s3://my-bucket/mlflow/traces
-  schedule: "0 2 * * *"        # 每天凌晨归档
+  location: s3://my-bucket/mlflow/traces   # 归档位置（span 负载）
+  retention: 30d                           # 默认热数据保留 30 天
+  interval_seconds: 300                    # 调度间隔：每 5 分钟检查一次
+  max_traces_per_pass: 1000                # 单次归档上限，防打爆存储
+  # long_retention_allowlist:              # 允许更长保留的 experiment ID 白名单
+  #   - 12345
 ```
 
 要点：
 
-- 热窗口内的 trace 查询快，窗口外从对象存储懒加载，延迟略高。
+- **保留期按 Server → Workspace → Experiment 三级解析**（3.10 起，需 `--enable-workspaces`）：实验可设更短的保留覆盖全局；更长的保留需命中服务端 `long_retention_allowlist`，否则回落到全局策略；归档位置只由 Server/Workspace 决定。UI 的 trace 列表会显示每个实验的 `Archive after` 保留徽标。
+- 热窗口内的 trace 查询快，窗口外的 span 负载从归档存储懒加载，依赖 span 内容的搜索（如 `trace.text`）对归档 trace 失效。
 - 多模态附件（PDF/图片）本来就存 Artifact Store，SQL 只存引用。
+- 归档不可回滚（不能把 span 负载搬回 SQL）；配置修改约 5 秒内自动生效，无需重启。
 - 没有归档策略时，traces 表会在几个月内膨胀到拖垮 Backend Store。
 
 ## 8.6 高可用与扩展
@@ -197,7 +202,7 @@ trace_archival:
 | Trace 写入量 / 归档失败 | Server metrics + 归档日志 | trace 堆积、归档报错 |
 | DB 连接数 / 慢查询 / traces 表大小 | PostgreSQL exporter | 连接数接近上限、表膨胀超预算 |
 | S3 存储/请求 | CloudWatch / S3 metrics | 存储增长异常 |
-| AI Gateway token 消耗 / 预算 | Gateway Usage 面板 + 预算告警（3.11+） | 团队/用户超预算 |
+| AI Gateway token 消耗 / 预算 | Gateway Usage 面板 + 预算告警（3.11.1+） | 窗口内花费逼近上限、触发超支阻断 |
 | 模型注册/阶段变更 | MLflow UI / audit log | 非预期 Production 变更 |
 | 模型加载失败 | 服务自身监控 | 加载失败率升高 |
 

@@ -14,6 +14,7 @@
 | [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html) | 模型治理核心 |
 | [MLflow Tracking Server](https://mlflow.org/docs/latest/tracking/server.html) | 生产部署必读 |
 | [MLflow Kubernetes Helm 部署](https://mlflow.org/docs/latest/self-hosting/kubernetes-helm/) | 3.13+ 官方 Chart |
+| [MLflow — Archive Traces](https://mlflow.org/docs/latest/genai/tracing/observe-with-traces/archive-traces/) | 3.13+ Trace 归档的保留期三级解析与配置 |
 
 ## 11.2 相邻主题交叉引用
 
