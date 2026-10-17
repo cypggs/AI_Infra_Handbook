@@ -49,7 +49,7 @@ flowchart TB
 
 - 敏感数据（本地文件、内网数据库）优先用 stdio，限定运行用户与目录。
 - 共享服务（搜索、知识库、公共 API）优先用 Streamable HTTP，便于版本管理与限流。
-- 旧 HTTP+SSE 端点已弃用（约 2027-07 移除），存量应规划迁移到单端点 Streamable HTTP。
+- 旧 HTTP+SSE 双端点已弃用（2025-03-26 起标记，最早移除时间为 SEP-2596 达到 Final 后三个月，早于 Roots/Sampling 的 2027-07-28 窗口），存量应优先规划迁移到单端点 Streamable HTTP。
 - 同一个 Host 可以同时连接 stdio 和远程 Server，根据数据敏感度选择 Transport。
 
 ## 3. MCP Gateway 设计
@@ -77,9 +77,11 @@ flowchart LR
 
 > **无状态化的部署红利**：2026-07-28 之后网关不再需要 sticky session 与集中会话存储，可以水平扩展任意实例；GitHub 官方 MCP Server 在迁移后甚至直接下线了 Redis 会话层。
 
+开源参照实现：Stacklok 的 **ToolHive**（Apache-2.0，2026-10 已迭代至 v0.54）把“网关 + Registry Server + 运行时”做成一体化平台——每个 Server 跑在隔离容器中、按请求执行身份与访问策略、自带 Kubernetes Operator 与 OTel 观测，并支持语义化工具搜索以降低 token 开销；企业可以把它作为自建 MCP 网关的起点，而不是从零造轮子。
+
 ## 4. 认证授权
 
-MCP 早期规范把授权列为可选，实践中大量远程 Server 裸奔：2025 年 7 月的互联网扫描发现 **1,862 个无需认证即可调用的公开 MCP 实例**，只有 **8.5% 的公共 Server 启用 OAuth**。2026 年安全事件密集爆发后，2026-07-28 规范把授权升级为**有明确要求的配置**。
+MCP 早期规范把授权列为可选，实践中大量远程 Server 裸奔：2025 年 7 月的互联网扫描发现 **1,862 个无需认证即可调用的公开 MCP 实例**，只有 **8.5% 的公共 Server 启用 OAuth**。2026 年安全事件密集爆发后，2026-07-28 规范把授权从附录升级为**独立成篇的规范章节**：授权整体仍为 OPTIONAL，但只要你做了远程 HTTP Server，规范就说你 **SHOULD 遵循**这套授权流程——“可选”不再是裸奔的借口。
 
 | 层级 | 方案 | 适用场景 |
 |---|---|---|
@@ -87,12 +89,13 @@ MCP 早期规范把授权列为可选，实践中大量远程 Server 裸奔：20
 | Streamable HTTP | OAuth 2.1（PKCE 强制）、API Key、JWT、mTLS | 远程共享 Server |
 | Gateway | 统一认证 + 细粒度 RBAC | 企业集中治理 |
 
-远程 Server 的 OAuth 2.1 基线（2026）：
+远程 Server 的 OAuth 2.1 基线（2026-10 口径）：
 
-- **PKCE 强制开启**，state 必须与用户会话绑定——2025 年 Obsidian Security 披露的一键账号接管漏洞，根因正是远程 Server 兼任授权服务器 + 单一静态 `client_id` + 未绑定 state。
+- 规范锚定 **OAuth 2.1 IETF 草案 draft-ietf-oauth-v2-1-13** 与一组配套 RFC（6750/8414/8707/9207/9728）；**PKCE 强制开启**，state 必须与用户会话绑定——2025 年 Obsidian Security 披露的一键账号接管漏洞，根因正是远程 Server 兼任授权服务器 + 单一静态 `client_id` + 未绑定 state。
 - **RFC 9207**：授权响应携带 `iss`，Client 必须校验 issuer，防授权服务器冒充。
-- **RFC 8707**：令牌绑定 `resource`（Server canonical URI），实现 audience 隔离，防 confused deputy（拿 A Server 的令牌调 B Server）。
-- **客户端注册优先级**：预注册客户端 > Client ID Metadata Documents（CIMD）> DCR（动态注册）；DCR 将于 2027 年夏之后移除，企业内网不应在网关后暴露 DCR 端点。
+- **RFC 8707 / RFC 9728**：令牌绑定 `resource`（Server canonical URI，配合 Protected Resource Metadata 发现），实现 audience 隔离，防 confused deputy（拿 A Server 的令牌调 B Server）。
+- **客户端注册优先级**：预注册客户端 > Client ID Metadata Documents（CIMD，draft-ietf-oauth-client-id-metadata-document-00）> DCR（动态注册，RFC 7591）；DCR 最早于 2027-07-28 之后移除，企业内网不应在网关后暴露 DCR 端点。
+- **机器对机器场景**走官方 **OAuth Client Credentials 扩展**（`io.modelcontextprotocol/oauth-client-credentials`），无需交互式登录；企业集中授权场景走 **Enterprise-Managed Authorization 扩展**，经企业 IdP 统一签发策略。
 - **审计**：谁（用户/Agent 身份）、何时、对哪个 Server 的哪个 Tool、带了什么参数、结果如何——五要素缺一不可。
 
 Tool/Resource 级别的授权建议：
@@ -143,7 +146,7 @@ sequenceDiagram
 - **灰度发布**：Gateway 按 Host/用户维度灰度路由到新版本 Server。
 - **弃用通知**：Server 通过 `logging/message` 或 capability 变更通知 Client。
 
-> **2026-07-28 变化**：规范引入正式的**生命周期管理**——特性分为 Active / Deprecated / Removed，Deprecated 至少保留 12 个月。Roots、Sampling、Logging、旧 HTTP+SSE 已进入弃用期（约 2027-07 移除），DCR 在 2027 年夏之后移除。新能力一律通过**扩展框架**发布（反向 DNS 命名、独立版本、在 `ServerCapabilities.extensions` 中广告），首批扩展为 MCP Apps、Tasks、企业托管授权。企业 Registry 应记录每个 Server 支持的规范版本与扩展清单。
+> **2026-07-28 变化**：规范引入正式的**生命周期管理**——特性分为 Active / Deprecated / Removed，Deprecated 最早在弃用满 12 个月后、由 Core Maintainer 在发版时决定移除。Roots、Sampling、Logging、DCR 于 2026-07-28 进入弃用期（最早移除：2027-07-28 或之后发布的第一个修订版）；HTTP+SSE 更早（2025-03-26）已弃用，窗口更短。新能力一律通过**扩展框架**发布（反向 DNS 命名、独立版本、capabilities `extensions` 字段双向声明），截至 2026-10 官方扩展已包括 MCP Apps、Tasks、OAuth Client Credentials、企业托管授权与 Skills over MCP。企业 Registry 应记录每个 Server 支持的规范版本与扩展清单。
 
 ## 7. 限流与配额
 

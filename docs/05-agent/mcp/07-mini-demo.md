@@ -2,7 +2,7 @@
 
 > 一句话理解：一个纯 Python 可运行的 MCP Client-Server Demo，展示 initialize、tools/list、tools/call、resources/read、prompts/get 与 Mock LLM 决策。
 
-> 版本说明：本 Demo 实现的是 **2025 时代协议**（initialize 握手 + 有状态会话）——它是理解协议消息流转最直观的路径，且该版本在 2026-07-28 规范的弃用窗口（约至 2027-07）内仍被大量存量 Host 使用。2026-07-28 无状态协议的变化见 [协议工作流程](04-protocol-workflow) 第 8 节。
+> 版本说明：本 Demo 实现的是 **2025 时代协议**（initialize 握手 + 有状态会话）——它是理解协议消息流转最直观的路径，且该版本在 2026-07-28 规范的弃用窗口（Roots/Sampling/Logging 等最早 2027-07-28 之后移除）内仍被大量存量 Host 使用。2026-07-28 无状态协议的变化见 [协议工作流程](04-protocol-workflow) 第 8 节；官方 Python SDK 2.x 能从同一端点同时服务两代客户端，因此学会本 Demo 的握手模型依然是对接生产 Server 的必备知识。
 
 ## Demo 设计
 

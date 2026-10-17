@@ -68,9 +68,10 @@ MCP 没有替代 Function Calling，而是把 Function Calling 的发现与调�
 | **Cursor** | Host | IDE 内置 MCP，可直接调用文件、数据库、搜索等 Server |
 | **Cline** | Host | VS Code 插件，支持 MCP Server 扩展 |
 | **OpenAI Agents SDK** | Client/Host | 通过 `MCPServerStdio` / `MCPServerStreamableHttp` 接入 MCP Server（`MCPServerSse` 仅限旧版 Server） |
-| **registry.modelcontextprotocol.io** | Registry | 官方 Server Registry，2025-09 预览上线，2026 年成为 Server 发现的权威来源 |
+| **registry.modelcontextprotocol.io** | Registry | 官方 Server Registry，2025-09 预览上线，2026 年成为 Server 发现的权威来源，API 保持 v0.1 口径持续收录 |
 | **modelcontextprotocol/servers** | Server 集合 | 官方参考 Server：filesystem、fetch、git、memory 等（完整目录已迁至官方 Registry） |
-| **python-sdk / typescript-sdk** | SDK | 官方提供的 Server/Client 开发包；2026-07-28 起进入 v2 时代（Python `mcp` 2.x、TS SDK 重构到 Web Standards） |
+| **python-sdk / typescript-sdk** | SDK | 官方提供的 Server/Client 开发包；2026-07-28 起进入 v2 时代（Python `mcp` 2.x，2026-10 最新 2.3.0；TS SDK 1.30+ 重构到 Web Standards，最新 1.32.1） |
+| **ToolHive（Stacklok）** | 运行平台/网关 | 开源（Apache-2.0）一体化 MCP 平台：容器隔离运行任意 Server，内置 Gateway、可自托管 Registry Server 与 K8s Operator，2026-10 已迭代至 v0.54 |
 
 ```mermaid
 flowchart LR
@@ -94,8 +95,9 @@ flowchart LR
 ## 生态规模（截至 2026 年 10 月）
 
 - 捐入 AAIF 时，MCP SDK 月下载量已超 **9700 万**，活跃 Server 约 **1 万**；独立普查在各类 Registry 中索引到的 Server 总数超 **1.7 万**。
-- **官方 MCP Registry**（`registry.modelcontextprotocol.io`）于 2025 年 9 月预览上线，由 Anthropic、GitHub、Microsoft、PulseMCP 联合建设，2026 年已成为 Server 发现的权威来源；Smithery、mcp.so、Glama 等第三方目录作为补充发现层。
+- **官方 MCP Registry**（`registry.modelcontextprotocol.io`）于 2025 年 9 月预览上线，由 Anthropic、GitHub、Microsoft、PulseMCP 联合建设，2026 年已成为 Server 发现的权威来源；Registry API（v0.1）持续收录，2026-10 抽样分页统计条目已达 **数千个量级**，Smithery、mcp.so、Glama 等第三方目录作为补充发现层。
 - 官方 `modelcontextprotocol/servers` 仓库转型为“少量参考实现”的教育仓库，完整 Server 目录已迁移到官方 Registry。
+- 在“运行与治理”侧，Stacklok 开源的 **ToolHive**（Apache-2.0，2026-10 最新 v0.54.0）把容器隔离运行时、网关与可自托管私有 Registry 打包成一体化平台，成为企业自建 MCP 基础设施的主流开源起点。
 
 ## 2026-07-28 规范：一次代际升级
 
@@ -107,9 +109,10 @@ flowchart LR
 | 能力发现 | 握手时一次性协商 | 可选的 `server/discover` + 可缓存的 list（`ttlMs`/`cacheScope`） |
 | 服务端反问 | Sampling / Roots / elicitation 走长连接 | **MRTR**（多轮往返请求）：返回 `input_required` + `requestState`，客户端补齐后重试 |
 | 路由 | 网关必须解析 JSON body 才能路由 | 强制 `Mcp-Method` / `Mcp-Name` / `MCP-Protocol-Version` 头 |
-| 传输 | stdio / SSE / Streamable HTTP | SSE 废弃（约 2027-07 移除），Streamable HTTP 成为远程标准 |
-| 废弃项 | — | Roots、Sampling、Logging、DCR 进入 12 个月弃用期 |
-| 扩展 | 新能力直接进核心协议 | 正式扩展框架（反向 DNS 命名、独立版本），MCP Apps / Tasks / 企业托管授权成为首批扩展 |
+| 传输 | stdio / SSE / Streamable HTTP | SSE 早已弃用（2025-03-26 起标记），Streamable HTTP 成为远程标准 |
+| 废弃项 | — | Roots、Sampling、Logging、DCR 进入 12 个月弃用期（最早 2027-07-28 之后移除）；`ping`、`logging/setLevel` 直接移除 |
+| 事件推送 | `resources/subscribe` + HTTP GET 事件端点 | `subscriptions/listen` 单条长连接 POST 流，Client 按需订阅变更类型 |
+| 扩展 | 新能力直接进核心协议 | 正式扩展框架（反向 DNS 命名、独立版本），官方扩展已包括 MCP Apps、Tasks、OAuth Client Credentials、企业托管授权与 Skills over MCP |
 
 > 本节后续章节会同时讲清“2025 时代协议”（理解存量实现与 Mini Demo 的基础）与“2026-07-28 无状态协议”（面向未来的部署基线）两条线。
 
@@ -120,6 +123,9 @@ MCP 的产生是 Agent 生态演进的必然结果：当外部能力（文件、
 **参考来源**
 
 - [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
+- [MCP 2026-07-28 Changelog（官方变更清单）](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [MCP Deprecated Features（官方弃用登记表）](https://modelcontextprotocol.io/specification/2026-07-28/deprecated)
+- [MCP Extensions Overview（官方扩展清单）](https://modelcontextprotocol.io/extensions/overview)
 - [Introduction to MCP](https://modelcontextprotocol.io/introduction)
 - [Anthropic: Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)

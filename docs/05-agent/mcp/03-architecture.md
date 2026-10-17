@@ -156,7 +156,7 @@ flowchart LR
 - **网络开销**：相比 stdio，远程调用有延迟与序列化成本。
 - **安全边界**：Server 与 Host 不在同一机器，需要 TLS、OAuth/API Key 等机制。
 
-> **2026-07-28 变化**：远程部署的标准形态是**单个 `/mcp` 端点的 Streamable HTTP**，旧 HTTP+SSE 双端点模式已弃用；由于协议无状态，Server 不再依赖 Redis 等会话存储，任何实例都能处理任何请求，网关也无需 sticky session，路由与粗粒度授权直接基于 `Mcp-Method` / `Mcp-Name` 头完成。2025 时代基于 SSE 的架构在弃用期（约至 2027-07）内仍需兼容支持。
+> **2026-07-28 变化**：远程部署的标准形态是**单个 `/mcp` 端点的 Streamable HTTP**，旧 HTTP+SSE 双端点模式已弃用；由于协议无状态，Server 不再依赖 Redis 等会话存储，任何实例都能处理任何请求，网关也无需 sticky session，路由与粗粒度授权直接基于 `Mcp-Method` / `Mcp-Name` 头完成。2025 时代基于 SSE 的架构在弃用期（2025-03-26 起标记，最早移除时间为 SEP-2596 达到 Final 后三个月）内仍需兼容支持。
 
 ## 5. 与 Agent Runtime 集成的参考架构
 
@@ -244,7 +244,7 @@ flowchart TB
 
 1. **Session Manager 消失**：没有握手、没有会话 ID，Client 连接层退化为“请求构造 + 缓存 + MRTR 状态跟踪”。请求的所有上下文（协议版本、身份、能力）都放在 `_meta` 里随请求走。
 2. **网关角色变重**：`Mcp-Method` / `Mcp-Name` 头让网关在不解析 body 的情况下完成路由、限流、粗粒度授权；缓存提示（`ttlMs`/`cacheScope`）让网关可以缓存能力目录，显著降低 `tools/list` 风暴。
-3. **扩展成为一等公民**：新能力不再塞进核心协议，而是通过正式扩展框架发布——反向 DNS 命名（如 `io.modelcontextprotocol/tasks`）、独立版本号、在 `ServerCapabilities.extensions` 中广告。首批扩展包括 **MCP Apps**（UI 能力）、**Tasks**（异步任务，从实验性核心协议迁出）、**企业托管授权**（Enterprise-Managed Authorization）。
+3. **扩展成为一等公民**：新能力不再塞进核心协议，而是通过正式扩展框架发布——反向 DNS 命名（如 `io.modelcontextprotocol/tasks`）、独立版本号、在 capabilities 的 `extensions` 字段中双向声明（双方都声明才启用）。截至 2026-10，官方扩展清单包括 **MCP Apps**（`io.modelcontextprotocol/ui`，在对话内渲染交互式 UI，Claude Desktop、VS Code Copilot、Cursor 等已支持）、**Tasks**（异步任务，从实验性核心协议迁出，改为 `tasks/get` 轮询 + `tasks/update` 补充输入）、**OAuth Client Credentials**（机器对机器认证）、**企业托管授权**（Enterprise-Managed Authorization，经企业 IdP 集中授权），以及 2026 年下半年新加入的 **Skills over MCP**（`io.modelcontextprotocol/skills`，经 MCP 发现与读取 Agent Skills，ChatGPT 已部分支持）；另有一批 `experimental-ext-*` 实验扩展在孵化。
 
 迁移形态上，官方 SDK 支持“一个 Server 同时服务两代客户端”：同一个 `/mcp` 端点既接待 2025 时代（握手 + 会话）客户端，也接待 2026-07-28 无状态客户端，由 SDK 自动区分处理。
 

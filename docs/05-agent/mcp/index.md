@@ -38,7 +38,7 @@
 3. [架构设计](03-architecture) — 五层架构、控制面/数据面、本地与远程部署形态、2026-07-28 无状态架构与扩展框架。
 4. [协议工作流程](04-protocol-workflow) — 两代生命周期：2025 握手模型（initialize、发现、调用、通知、关闭）与 2026-07-28 无状态流程（`_meta`、`server/discover`、MRTR、可缓存目录）。
 5. [核心模块](05-core-modules) — Server Registry、Capability Manager、Transport Adapter、Session Manager、Message Router、Handlers、Auth/Gateway、Observer。
-6. [源码分析](06-source-analysis) — 官方 Python/TypeScript SDK（含 v2：`MCPServer` 与统一 `Client`）、参考 Servers 与 Registry、Claude Code / Claude Desktop、OpenAI Agents SDK MCP 支持。
+6. [源码分析](06-source-analysis) — 官方 Python/TypeScript SDK（含 v2：`MCPServer` 与统一 `Client`）、参考 Servers 与 Registry、Claude Code / Claude Desktop、OpenAI Agents SDK MCP 支持、ToolHive 一体化平台。
 7. [工程实践](07-mini-demo) — 纯 Python 可运行的 MCP Client-Server Demo（实现 2025 时代协议）。
 8. [企业生产实践](08-production-practice) — Server 注册中心、Transport 选型、OAuth 2.1 认证授权、网关、限流、多租户、版本兼容、审计与可观测、供应链安全。
 9. [最佳实践](09-best-practices) — Tool/Resource/Prompt 设计、Capability 声明、错误处理、Tracing、供应链治理、面向 2026-07-28 的新实践。

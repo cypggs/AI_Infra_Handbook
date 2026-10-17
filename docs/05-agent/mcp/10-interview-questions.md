@@ -26,7 +26,7 @@
 
 - **stdio**：本地子进程，stdin/stdout 传输 JSON-RPC。
 - **Streamable HTTP**：单一 `/mcp` 端点，POST 请求 + 可选 SSE 流式响应，是远程部署的标准。
-- **SSE（旧）**：HTTP GET 建立 SSE 通道 + POST 发送请求的双端点模式，2026-07-28 规范已弃用，约 2027-07 移除。
+- **SSE（旧）**：HTTP GET 建立 SSE 通道 + POST 发送请求的双端点模式，2025-03-26 起已弃用，最早移除时间为 SEP-2596 达到 Final 后三个月，优先安排迁移。
 
 ### Q4：MCP 的五大原语是什么？
 
@@ -139,7 +139,7 @@ Tools（可调用能力）、Resources（URI 标识的数据）、Prompts（提�
 
 **参考答案**：
 
-MRTR（Multi Round-Trip Requests，多轮往返请求）是 2026-07-28 规范替代 Sampling/Roots/elicitation 的机制：Server 在处理请求时发现需要更多输入，返回 `resultType: "input_required"` 和一个 `requestState` 令牌后关闭连接；Client（Host）收集输入后重发同一请求并带上令牌，Server 继续执行返回 `resultType: "complete"`。它让 Server 彻底无状态，且反问流量只是普通 HTTP 重试，天然穿过网关与防火墙。
+MRTR（Multi Round-Trip Requests，多轮往返请求）是 2026-07-28 规范替代 Sampling/Roots/elicitation 的机制：Server 在处理请求时发现需要更多输入，返回 `resultType: "input_required"` 的 `InputRequiredResult`，其中 `inputRequests` 以 Server 分配的字符串 key 列出所需请求（elicitation、sampling、roots 等）；Client（Host）收集输入后重发同一请求并按 key 回填 `inputResponses`（带外交互还会回显 `requestState`），Server 继续执行返回 `resultType: "complete"`。它让 Server 彻底无状态（重试请求自包含全部信息），且反问流量只是普通 HTTP 重试，天然穿过网关与防火墙。
 
 ### Q17：什么是 MCP 工具投毒与 rug pull？如何防御？
 
@@ -154,6 +154,12 @@ MRTR（Multi Round-Trip Requests，多轮往返请求）是 2026-07-28 规范替
 **参考答案**：
 
 没有合并，而是治理上归拢、分工更清：2025 年 12 月 MCP 捐入 Linux Foundation 的 Agentic AI Foundation（AAIF）；2026 年 3 月 A2A 发布 v1.0（合并了 IBM 的 ACP）；2026 年 8 月 A2A 也加入 AAIF。现在两者是同一治理框架下的互补层：MCP 负责 Agent 与工具/数据/提示的垂直连接，A2A 负责 Agent 与 Agent 的水平协作。
+
+### Q19：MCP 扩展框架是什么？官方现在有哪些扩展？
+
+**参考答案**：
+
+核心协议只保留稳定通用的能力，新能力通过扩展框架发布：反向 DNS 命名（官方用 `io.modelcontextprotocol` 前缀）、独立版本、由 capabilities 的 `extensions` 字段在 Client 与 Server 之间双向协商（双方都声明才启用）。截至 2026-10，官方扩展包括：MCP Apps（`io.modelcontextprotocol/ui`，对话内交互式 UI，Claude Desktop、VS Code Copilot、Cursor 等已支持）、Tasks（异步任务，`tasks/get` 轮询 + `tasks/update` 中途输入）、OAuth Client Credentials（机器对机器）、Enterprise-Managed Authorization（企业 IdP 集中授权）、Skills over MCP（发现与读取 Agent Skills，ChatGPT 部分支持）；另有 `experimental-ext-*` 实验扩展在孵化。
 
 ## 本章小结
 

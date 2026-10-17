@@ -263,6 +263,8 @@ MCP 还定义了协议级错误码，例如：
 - 不要把业务错误直接映射成 JSON-RPC error，而是放在 `tools/call` 的 `isError=true` 结果里返回，让模型自己决定下一步。
 - JSON-RPC error 保留给协议级错误（连接、解析、方法不存在等）。
 
+> **2026-07-28 变化**：资源不存在（Resource not found）的错误码从 `-32002` 改为 `-32602`（Invalid params），排障时遇到旧资料要注意口径。
+
 ## 7. 关闭与清理
 
 MCP 连接关闭时应发送 `notifications/closed`，让 Server 有机会释放资源：
@@ -302,9 +304,9 @@ sequenceDiagram
 
     Note over C,S: 服务端反问（MRTR）
     C->>S: tools/call {高风险参数}
-    S-->>C: resultType: "input_required"<br/>+ requestState
+    S-->>C: resultType: "input_required"<br/>+ inputRequests
     H->>C: 用户确认 / 补充输入
-    C->>S: 原请求 + requestState + 补充输入
+    C->>S: 重试原请求 + inputResponses
     S-->>C: resultType: "complete"
 ```
 
@@ -345,18 +347,20 @@ Mcp-Name: read_file
 
 ### 8.3 MRTR：多轮往返请求
 
-2025 时代里 Server 反向请求 Client（Sampling、Roots、`elicitation/create`）需要保持长连接。2026-07-28 用 MRTR 取代了这一模式：
+2025 时代里 Server 反向请求 Client（Sampling、Roots、`elicitation/create`）需要保持长连接。2026-07-28 用 MRTR 取代了这一模式，规范类型为 `InputRequiredResult`：
 
-1. Server 处理 `tools/call` 时发现信息不足或需要用户批准，返回 `resultType: "input_required"`、一份说明和一个 `requestState` 令牌。
+1. Server 处理 `tools/call` 时发现信息不足或需要用户批准，返回 `resultType: "input_required"`，其 `inputRequests` 字段是一个 map——key 是 Server 分配的字符串标识，value 是需要 Client 代为完成的请求对象（`elicitation/create`、`sampling/createMessage`、`roots/list` 等）。
 2. 双方都可以关闭连接。
-3. Client（Host）收集输入后，重新发起**同一个请求**，带上 `requestState` 与补充参数。
-4. Server 校验令牌后继续执行，返回 `resultType: "complete"`。
+3. Client（Host）收集输入后，重新发起**同一个请求**，在 `inputResponses` 中按 key 回填各请求的结果（带外完成的交互还会回显 `requestState`，Server 据此判断交互是否完成）。
+4. Server 确认输入充分后继续执行，返回 `resultType: "complete"`；仍不足则可再次返回 `input_required`。
 
-这带来两个工程红利：Server 彻底无状态（反问状态编码进令牌而不是保存在内存），且反问天然穿过网关与防火墙（只是普通重试请求）。
+这带来两个工程红利：Server 彻底无状态（重试请求自身携带全部所需信息，处理重试的实例不需要任何额外状态），且反问天然穿过网关与防火墙（只是普通重试请求）。
+
+> 规范同时规定：**所有结果必须携带 `resultType` 字段**（`"complete"` 或 `"input_required"`），Client 必须把旧协议 Server 省略该字段的结果视为 `"complete"`——这把“请求是否需要后续输入”变成协议一等公民，也是 MRTR 的基础。
 
 ### 8.4 可缓存的能力目录
 
-`tools/list`、`prompts/list`、`resources/list`、`resources/read` 的结果可以携带缓存提示，且列表按确定性顺序返回：
+`tools/list`、`prompts/list`、`resources/list`、`resources/read` 等结果**必须**通过 `CacheableResult` 接口携带缓存提示，且列表按确定性顺序返回：
 
 ```json
 {
@@ -374,8 +378,11 @@ Client 与中间网关可以据此安全缓存能力目录，显著降低高频 
 
 ### 8.5 两代协议的兼容窗口
 
-- Roots、Sampling、Logging、旧 HTTP+SSE 传输进入弃用期，规范保证 **至少 12 个月**（约至 2027-07）可用。
-- 动态客户端注册（DCR）计划于 2027 年夏之后移除。
+- Roots、Sampling、Logging、动态客户端注册（DCR）在 2026-07-28 进入弃用期，最早移除时间为 **2027-07-28 或之后发布的第一个修订版**。
+- HTTP+SSE 传输更早（2025-03-26 起）已标记弃用，最早移除时间为 SEP-2596 达到 Final 之后三个月——**早于上述窗口**，存量 SSE 端点应优先安排迁移。
+- `ping`、`logging/setLevel`、`notifications/roots/list_changed` 已从协议移除；日志级别改为逐请求通过 `_meta` 中的 `io.modelcontextprotocol/logLevel` 设置。
+- 2025 时代的 `resources/subscribe`/`unsubscribe` 与 HTTP GET 事件端点被 **`subscriptions/listen`** 取代：一条长连接 POST 响应流承载 Server 主动推送，Client 按需订阅 `toolsListChanged`、`resourcesListChanged` 等类型；`notifications/progress` 等请求级通知仍走原请求自己的响应流。
+- 规范还约定 `_meta` 中的 OpenTelemetry 传播约定（`traceparent`、`tracestate`、`baggage`），让网关与 Server 能把 MCP 调用挂到 Host 的分布式 trace 上（SEP-414）。
 - 官方 SDK（v2）支持同一端点同时服务两代客户端：2025 时代客户端走握手 + 会话路径，2026 时代客户端走无状态路径。
 
 ## 本章小结

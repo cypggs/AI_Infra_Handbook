@@ -13,11 +13,13 @@
 - [官方 MCP Registry](https://registry.modelcontextprotocol.io)
   - Server 发现的权威来源，以 `server.json` manifest 发布。
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-  - 官方 Python SDK；v2 迁移见 [migration.md](https://github.com/modelcontextprotocol/python-sdk/blob/main/docs/migration.md)。
+  - 官方 Python SDK；v2 迁移见 [migration.md](https://github.com/modelcontextprotocol/python-sdk/blob/main/docs/migration.md)，v2 新特性导览见 [What's new in v2](https://py.sdk.modelcontextprotocol.io/whats-new/)。
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
-  - 官方 TypeScript SDK，已重构到 Web Standards，可运行于 Node.js / Bun / Deno / Workers。
+  - 官方 TypeScript SDK，1.30+ 重构到 Web Standards，可运行于 Node.js / Bun / Deno / Workers。
 - [MCP Reference Servers](https://github.com/modelcontextprotocol/servers)
   - 官方参考 Server（filesystem、fetch、git、memory 等），教育性质示例。
+- [ToolHive](https://github.com/stacklok/toolhive)
+  - Stacklok 开源的一体化 MCP 平台（容器运行时 + 网关 + 私有 Registry + K8s Operator），生产化落地样本。
 
 ## Anthropic / Claude 生态
 
@@ -35,11 +37,19 @@
 
 ## 规范解读与迁移指南
 
+- [MCP 2026-07-28 Changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+  - 官方变更清单：无状态化、`server/discover`、MRTR、`subscriptions/listen`、缓存接口等逐条对应 SEP。
+- [MCP Deprecated Features](https://modelcontextprotocol.io/specification/2026-07-28/deprecated)
+  - 官方弃用登记表：每个特性的弃用时间与最早移除窗口（Roots/Sampling/Logging/DCR 为 2027-07-28 后首个修订版）。
+- [MCP Extensions Overview](https://modelcontextprotocol.io/extensions/overview)
+  - 官方扩展清单与协商机制；各客户端支持情况见 [Extension Support Matrix](https://modelcontextprotocol.io/extensions/client-matrix)。
 - [Cloudflare: The next generation of MCP](https://blog.cloudflare.com/mcp-v2)
   - 2026-07-28 规范最系统的第三方解读：无状态核心、MRTR、授权强化、TS SDK Web Standards 化。
 - [Appwrite: What's new in the MCP 2026-07-28 specification](https://appwrite.io/blog/post/mcp-goes-stateless-in-the-2026-07-28-specification)
 - [Python SDK v2 迁移指南](https://github.com/modelcontextprotocol/python-sdk/blob/main/docs/migration.md)
   - FastMCP → MCPServer 更名、统一 Client、`mcp-types` 拆包等破坏性变化。
+- [ToolHive 文档](https://docs.stacklok.com/toolhive/)
+  - 容器化运行 MCP Server、K8s Operator 与企业自托管实践。
 
 ## 治理与安全
 
@@ -83,15 +93,18 @@
 
 ## 本章小结
 
-MCP 是一个快速发展的开放协议：2026-07-28 无状态规范是当前部署基线，2025 时代规范在弃用窗口内仍广泛运行。官方 Spec、SDK 与 Registry 是最权威的学习资料；Cloudflare、Appwrite 等的规范解读与 CSA、OWASP 的安全材料则是工程落地的必读补充。结合本主题其他章节与 AI Infra Handbook 的 Agent Runtime、Memory、Multi-Agent、Reflection 等主题，可以形成完整的 Agent 基础设施知识体系。
+MCP 是一个快速发展的开放协议：2026-07-28 无状态规范是当前部署基线（draft 通道暂无已确认的下一版变更），2025 时代规范在弃用窗口内仍广泛运行。官方 Spec、SDK 与 Registry 是最权威的学习资料；Cloudflare、Appwrite 等的规范解读与 CSA、OWASP 的安全材料则是工程落地的必读补充。结合本主题其他章节与 AI Infra Handbook 的 Agent Runtime、Memory、Multi-Agent、Reflection 等主题，可以形成完整的 Agent 基础设施知识体系。
 
 **参考来源**
 
 - [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
+- [MCP 2026-07-28 Changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [MCP Extensions Overview](https://modelcontextprotocol.io/extensions/overview)
 - [Introduction to MCP](https://modelcontextprotocol.io/introduction)
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 - [MCP Reference Servers](https://github.com/modelcontextprotocol/servers)
+- [ToolHive](https://github.com/stacklok/toolhive)
 - [Anthropic: Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
 - [Anthropic: Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)

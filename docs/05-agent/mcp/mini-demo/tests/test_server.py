@@ -72,6 +72,25 @@ def test_unknown_method():
     assert "foo/bar" in response.message
 
 
+def test_tools_call_missing_tool_name_returns_invalid_params():
+    """协议级参数错误应映射为 JSON-RPC -32602，而不是业务 isError。"""
+    from mcp_mini.protocol import INVALID_PARAMS
+
+    server = MockMCPServer()
+    response = server.handle(_req("tools/call", {"arguments": {}}))
+    assert response.code == INVALID_PARAMS
+
+
+def test_tools_call_unknown_tool_returns_method_not_found():
+    """工具不存在属于协议级错误（-32601），区别于工具内部失败走的 isError=true。"""
+    server = MockMCPServer()
+    response = server.handle(
+        _req("tools/call", {"name": "does_not_exist", "arguments": {}})
+    )
+    assert response.code == METHOD_NOT_FOUND
+    assert "does_not_exist" in response.message
+
+
 def test_notification_returns_none_sentinel():
     server = MockMCPServer()
     response = server.handle(JSONRPCRequest(id=None, method="notifications/initialized"))

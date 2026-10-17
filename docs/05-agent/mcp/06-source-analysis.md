@@ -78,7 +78,7 @@ async with stdio_client(params) as (read, write):
 
 ### v2 时代的变化（mcp 2.0，2026-07-28 发布）
 
-2026-07-28 规范发布同日，`mcp` Python SDK 从 1.29 直接跳到 **2.0.0**；v1 进入仅修安全问题的维护模式。关键变化：
+2026-07-28 规范发布同日，`mcp` Python SDK 的 **2.0.0 stable** 上线（`pip install mcp` 默认安装 2.x）；官方承诺 v2 支持 2026-07-28 修订版并**从同一个 Server 服务所有更早修订版**。v1 维护线以 **1.30.0（2026-09-07）** 收官，之后仅接收安全修复。关键变化：
 
 - **`FastMCP` 更名为 `MCPServer`**，模块从 `mcp.server.fastmcp` 移到 `mcp.server.mcpserver`——旧导入路径直接报 `ModuleNotFoundError` 并提示迁移指南（不是软弃用）。注意第三方 `fastmcp` 包（jlowin 维护）不受影响，仍导出 `FastMCP`。
 - **一等公民 `Client`** 取代 v1 的“transport + `ClientSession` + `initialize()`”分层，直接连接 URL、stdio 子进程，或内存中的 Server 对象（`Client(mcp)`，测试极方便）：
@@ -102,6 +102,12 @@ async with Client(mcp) as client:
 - **协议类型独立成 `mcp-types` 包**（`import mcp_types`），Python 侧字段统一 snake_case（`input_schema`、`is_error`），线上 JSON 仍是 camelCase。
 - **一个 Server 同时服务两代客户端**：`MCPServer` 自动区分 2025 时代握手客户端与 2026 无状态客户端，迁移期不需要拆端点。
 - **MRTR 与 `Resolve` 依赖注入**：Server 不能再反向调用 Client，需要用户输入时在 Tool 参数里声明 `Resolve(fn)`，由 SDK 填充；`ctx.elicit()` 不再可用。
+
+v2 的迭代节奏（截至 2026-10-02 的 **2.3.0**）也体现了“默认安全”的方向：
+
+- **2.1.0（2026-08-24）**：`Client` 直接接受 `StdioServerParameters`，`Client(StdioServerParameters(command="uv", args=[...]))` 一步连接 stdio Server。
+- **2.2.0（2026-09-07）**：HTTP 客户端**只在同源（同 scheme/host/port）内跟随重定向**，跨源重定向直接失败——堵 open-redirect 一类漏洞；4 MiB 请求体上限扩展到 SSE 传输与 OAuth 端点。
+- **2.3.0（2026-10-02）**：带非法 `x-mcp-header` 注解的工具在**注册时**直接抛 `InvalidSignature`，而不是启动后才报错；依赖 `httpx2>=2.10.0`。
 
 ## 2. 官方 TypeScript SDK
 
@@ -154,7 +160,7 @@ await server.connect(transport);
 - 提供了 `McpServer` 高阶封装，可以用 `.tool()` / `.resource()` / `.prompt()` 方法简化注册。
 - Transport 抽象清晰，`server.connect(transport)` 即可切换 stdio/SSE/HTTP。
 
-**2026 年的变化**：TypeScript SDK 已从 Node.js API 重构到 **Web Standards**（Fetch、Web Streams），同一套代码可运行于 Node.js、Bun、Deno 与 Cloudflare Workers 等边缘运行时——这正是无状态 MCP Server 可以跑在任意边缘平台上的前提。新版提供 `createMcpHandler`，一个函数即产出符合 2026-07-28 规范的 HTTP 处理器。
+**2026 年的变化**：TypeScript SDK 已从 Node.js API 重构到 **Web Standards**（Fetch、Web Streams），同一套代码可运行于 Node.js、Bun、Deno 与 Cloudflare Workers 等边缘运行时——这正是无状态 MCP Server 可以跑在任意边缘平台上的前提。新版提供 `createMcpHandler`，一个函数即产出符合 2026-07-28 规范的 HTTP 处理器。版本上，**1.30.0（2026-07-27，规范发布前夕）** 开启新线，截至 2026-10 最新为 **1.32.1（2026-10-05）**——注意 TS SDK 没有跟随 Python 跳大版本号，1.30+ 即“v2 架构”。
 
 ## 3. 官方参考 Servers 与 Registry
 
@@ -181,6 +187,16 @@ await server.connect(transport);
 - 提供 `read_file`、`write_file`、`list_directory` 等 Tool。
 - 同时把文件暴露为 Resource，URI 形如 `file:///allowed-dir/foo.md`。
 - 写操作默认需要 Host 审批，体现了 MCP 的安全模型。
+
+### 生态工程实现：ToolHive
+
+如果说官方 SDK 解决“怎么实现一个 Server”，[ToolHive](https://github.com/stacklok/toolhive)（Stacklok 开源，Apache-2.0，2026-10 最新 v0.54.0）解决的是“怎么把一堆 Server 安全地跑进生产”。它的架构是三个组件：
+
+- **Runtime**：每个 MCP Server 跑在隔离容器中，带最小权限声明（不需要本地凭证），本地 Server 也能获得容器级隔离——直接回应了 2026 年多起 STDIO 命令注入 CVE 的防御需求。
+- **Gateway**：对外暴露受控端点，集中做认证（OIDC/OAuth 对接 IdP）、授权、审计，支持把多个工具编排成“虚拟 MCP”，并可用语义化工具搜索按需下发工具定义、压缩上下文 token。
+- **Registry Server**：可自托管的私有 Registry，企业内部白名单分发 Server，终结“开发者私自接公共 Server”的影子 MCP 问题。
+
+此外还有 Kubernetes Operator（把 Server 声明成 CRD 管理）、OTel 观测、桌面与 CLI 双入口。对平台团队而言，ToolHive 是理解“MCP 生产化需要哪些组件”的最佳开源样本。
 
 ## 4. Claude Code / Claude Desktop 集成
 
@@ -278,12 +294,12 @@ async with MCPServerSse(
 | 抽象层次 | 中 | 中（偏协议原语） | 高 |
 | 注册方式 | 装饰器 | 装饰器或手动 handler | 通过 `MCPServer` 对象 |
 | Transport | stdio / Streamable HTTP | stdio / Streamable HTTP | stdio / Streamable HTTP（SSE 仅限遗留） |
-| 2026 状态 | v2：`MCPServer` + 统一 `Client`，双协议时代兼容 | 重构到 Web Standards，可跑边缘运行时 | `MCPServerStreamableHttp` 为远程推荐方式 |
+| 2026 状态 | v2：2.3.0（2026-10-02），`MCPServer` + 统一 `Client`，双协议时代兼容；v1 止于 1.30.0 | 1.30+ 重构到 Web Standards（最新 1.32.1，2026-10-05），可跑边缘运行时 | `MCPServerStreamableHttp` 为远程推荐方式 |
 | 适用场景 | 自研 Server/Client | Node.js / 边缘生态 | 快速接入 OpenAI Agents |
 
 ## 本章小结
 
-官方 Python/TypeScript SDK 是理解 MCP 协议落地最直接的途径：它们把 JSON-RPC 生命周期、Transport 适配、Tool/Resource/Prompt 注册封装成开发者友好的接口。参考 Servers 与官方 Registry 则展示了生态治理的演进——从“一个仓库装所有 Server”到“Registry 作为权威目录”。Claude Code/Desktop 与 OpenAI Agents SDK 的集成体现了 MCP 作为“开放 USB-C”的价值：同一个 Server 可以被不同 Host 复用。2026-07-28 之后，SDK 的主线叙事变成了无状态化：`MCPServer` 一个类同时服务两代客户端，迁移成本被压到一次依赖升级。
+官方 Python/TypeScript SDK 是理解 MCP 协议落地最直接的途径：它们把 JSON-RPC 生命周期、Transport 适配、Tool/Resource/Prompt 注册封装成开发者友好的接口。参考 Servers 与官方 Registry 则展示了生态治理的演进——从“一个仓库装所有 Server”到“Registry 作为权威目录”。Claude Code/Desktop 与 OpenAI Agents SDK 的集成体现了 MCP 作为“开放 USB-C”的价值：同一个 Server 可以被不同 Host 复用。2026-07-28 之后，SDK 的主线叙事变成了无状态化：`MCPServer` 一个类同时服务两代客户端，迁移成本被压到一次依赖升级；Python SDK 2.x（2.3.0）与 TS SDK 1.30+（1.32.1）的后续小版本几乎都在收紧默认安全（同源重定向限制、请求体上限、注册期 header 校验）。而在 SDK 之外，ToolHive 这类一体化平台补上了“容器隔离运行、私有 Registry、网关治理”的生产拼图。
 
 **参考来源**
 
@@ -292,6 +308,7 @@ async with MCPServerSse(
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 - [MCP Reference Servers](https://github.com/modelcontextprotocol/servers)
 - [官方 MCP Registry](https://registry.modelcontextprotocol.io)
+- [ToolHive（开源 MCP 运行平台）](https://github.com/stacklok/toolhive)
 - [Claude Code MCP Docs](https://docs.anthropic.com/en/docs/claude-code/mcp)
 - [OpenAI Agents SDK MCP](https://openai.github.io/openai-agents-python/mcp/)
 - [Anthropic: Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)

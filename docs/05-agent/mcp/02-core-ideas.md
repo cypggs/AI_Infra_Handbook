@@ -55,7 +55,7 @@ flowchart LR
 - **Sampling** 是“反向调用”：Server 不直接调 LLM，而是请 Host 帮忙调。
 - **Roots** 是“作用域”：告诉 Server 当前会话允许访问哪些根目录或空间。
 
-> **2026-07-28 变化**：**Sampling 与 Roots 进入 12 个月弃用期**（约 2027-07 移除）。Server 向 Client 发起请求（采样、反问、读取根目录）统一改用 **MRTR（Multi Round-Trip Requests，多轮往返请求）**：Server 返回 `resultType: "input_required"` 与一个 `requestState` 令牌后关闭连接，Client 收集好输入后带上令牌重试原请求。Server 不再依赖“Server 可以反向调用 Client”这一有状态假设。
+> **2026-07-28 变化**：**Sampling 与 Roots 进入 12 个月弃用期**（最早 2027-07-28 之后发布的修订版移除）。Server 向 Client 发起请求（采样、反问、读取根目录）统一改用 **MRTR（Multi Round-Trip Requests，多轮往返请求）**：Server 返回 `resultType: "input_required"` 的 `InputRequiredResult`，其中 `inputRequests` 以 Server 分配的字符串 key 列出所需请求；Client 收集好输入后重试原请求并回填 `inputResponses`（带外交互还会回显 `requestState`）。Server 不再依赖“Server 可以反向调用 Client”这一有状态假设。
 
 ## 3. Capability Negotiation：能力协商
 
@@ -114,7 +114,7 @@ MCP 协议层不依赖特定传输方式。2025 时代规范定义了三种 Tran
 | Transport | 适用场景 | 特点 |
 |---|---|---|
 | **stdio** | 本地进程 | Server 作为子进程启动，stdin/stdout 传输 JSON-RPC；最简单、最常见 |
-| **SSE** | 远程 Server（旧） | 基于 HTTP Server-Sent Events；**2026-07-28 起进入弃用期，约 2027-07 移除** |
+| **SSE** | 远程 Server（旧） | 基于 HTTP Server-Sent Events；**2025-03-26 起已弃用，最早移除时间为 SEP-2596 达到 Final 后三个月** |
 | **Streamable HTTP** | 远程 Server | 单一 HTTP 端点支持请求与流式响应，成为远程部署标准 |
 
 > **2026-07-28 变化**：远程场景统一为 **Streamable HTTP**（一个 `/mcp` 端点 + 可选 SSE 流）；旧 HTTP+SSE 双端点模式废弃。所有 Streamable HTTP 请求强制携带 `Mcp-Method`、`Mcp-Name`、`MCP-Protocol-Version` 头，网关、WAF、限流器无需解析 JSON body 即可完成路由与粗粒度授权。
@@ -178,7 +178,7 @@ MCP 基于 JSON-RPC 2.0，支持两种消息：
 
 这种设计让 MCP 既能做同步调用，也能做事件驱动的更新。
 
-**2026-07-28 变化**：所有结果必须带 `resultType` 字段（`"complete"` 或 `"input_required"`），把“请求是否需要后续输入”变成协议一等公民——这是 MRTR 的基础。同时 `tools/list`、`resources/list` 等结果支持 `ttlMs`/`cacheScope` 缓存提示，且列表按确定性顺序返回，让 Client 和中间网关可以安全缓存能力目录。
+**2026-07-28 变化**：所有结果必须带 `resultType` 字段（`"complete"` 或 `"input_required"`），把“请求是否需要后续输入”变成协议一等公民——这是 MRTR 的基础。`tools/list`、`resources/list` 等结果通过 `CacheableResult` 接口**强制携带** `ttlMs`/`cacheScope` 缓存提示，且列表按确定性顺序返回，让 Client 和中间网关可以安全缓存能力目录。Server 主动推送的事件统一收敛到 `subscriptions/listen` 长连接流（Client 按需订阅 listChanged 类型），取代旧的 `resources/subscribe` 与 HTTP GET 事件端点。
 
 ## 7. Host 的最终决策权
 

@@ -110,7 +110,7 @@ Server 应只声明真正支持的能力：
 - 每个 Tool 调用生成一个 span，包含 tool name、arguments hash、duration、status。
 - 记录 capability 协商结果，便于排查版本不兼容问题。
 - 记录 Notification 事件，尤其是 `list_changed` 和 `updated`。
-- 把 MCP trace 与 Host/Runtime 的 trace 关联起来，使用同一个 trace_id。
+- 把 MCP trace 与 Host/Runtime 的 trace 关联起来，使用同一个 trace_id；2026-07-28 规范已约定 `_meta` 中的 `traceparent`/`tracestate`/`baggage` 传播方式，网关与 Server 应直接支持。
 
 ## 7. 测试策略
 
@@ -142,17 +142,21 @@ MCP 的价值在于“模型视角的能力发现”，而不是替代 gRPC/REST
 
 - **版本锁定**：`--save-exact`、lockfile、升级时做 SBOM diff；不追“latest”。
 - **安装前扫描**：用 mcp-scan / Snyk Agent Scan 检查工具投毒、影子化、有毒数据流；扫描在隔离沙箱中执行。
+- **容器隔离 STDIO Server**：本地 Server 跑在最小权限容器里（ToolHive 之类平台开箱即得），不依赖“自觉”。
 - **私有 Registry 白名单**：企业内部只允许从私有 Registry 安装 Server，公共目录（官方 Registry、Smithery、mcp.so）只作发现层。
 - **每台 Server 有 owner**：登记维护人、权限标签、最近扫描时间与审批状态。
 - **遵循 OWASP MCP Top 10**：把工具投毒（MCP03）、敏感数据泄露、权限过大等条目纳入发布检查单。
 
 ## 11. 面向 2026-07-28 的新实践
 
-- **无状态优先**：新 Server 直接按 2026-07-28 实现，不引入会话存储；需要用户输入时用 MRTR（`resultType: "input_required"` + `requestState`），不要再依赖 Server 反向调用 Client。
-- **声明缓存提示**：`tools/list` 等结果给出合理的 `ttlMs`/`cacheScope`，帮 Client 与网关缓存目录、降低发现开销。
-- **能力目录确定性排序**：保证列表按稳定顺序返回，让指纹比对与缓存生效。
-- **迁移期双模**：用官方 SDK v2 让同一端点服务两代客户端；把 `Mcp-Method`/`Mcp-Name` 头的存在性作为路由与观测标签。
-- **弃用项不新建**：不要再在新 Server 中实现 Roots、Sampling、Logging 与 HTTP+SSE（有 12 个月兼容义务的是存量，不是新代码）。
+- **无状态优先**：新 Server 直接按 2026-07-28 实现，不引入会话存储；需要用户输入时用 MRTR（`resultType: "input_required"` + `inputRequests`，客户端重试时回填 `inputResponses`），不要再依赖 Server 反向调用 Client。
+- **所有结果带 `resultType`**：`"complete"` / `"input_required"` 是必填字段；调试旧客户端时记住“缺省视为 complete”的兼容规则。
+- **声明缓存提示**：`tools/list` 等结果**必须**给出 `ttlMs`/`cacheScope`，并保证列表按确定性顺序返回，帮 Client 与网关缓存目录、降低发现开销，也让工具指纹比对可复现。
+- **事件推送走 `subscriptions/listen`**：需要主动推送的 Server 用单条长连接 POST 流并按类型订阅，不要再实现 `resources/subscribe` 或 HTTP GET 事件端点。
+- **接入分布式追踪**：在 `_meta` 中传播 `traceparent`/`tracestate`/`baggage`（规范 SEP-414 约定），让网关与 Server 的 span 自动挂到 Host 的 trace 树上。
+- **迁移期双模**：用官方 SDK v2 让同一端点服务两代客户端；把 `Mcp-Method`/`Mcp-Name` 头的存在性作为路由与观测标签；带 `x-mcp-header` 注解的工具注意注册期校验（Python SDK 2.3 起直接拒绝非法注解）。
+- **评估官方扩展**：UI 需求看 MCP Apps（`io.modelcontextprotocol/ui`），长任务看 Tasks，M2M 认证看 OAuth Client Credentials 扩展，企业集中授权看 Enterprise-Managed Authorization，技能分发看 Skills over MCP——都比“自己造私有协议”划算。
+- **弃用项不新建**：不要再在新 Server 中实现 Roots、Sampling、Logging、HTTP+SSE 与 DCR（有 12 个月兼容义务的是存量，不是新代码）。
 
 ## 12. 文档与示例
 
@@ -168,6 +172,8 @@ MCP 的价值在于“模型视角的能力发现”，而不是替代 gRPC/REST
 **参考来源**
 
 - [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28)
+- [MCP 2026-07-28 Changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+- [MCP Extensions Overview](https://modelcontextprotocol.io/extensions/overview)
 - [CSA: Agentic MCP Security Best Practices](https://labs.cloudsecurityalliance.org/agentic/agentic-mcp-security-best-practices-v1/)
 - [MCP Tool Poisoning: Enterprise Defense Playbook 2026](https://beyondscale.tech/blog/mcp-tool-poisoning-enterprise-defense)
 - [MCP Tool Poisoning Attacks and Defenses 2026](https://safeguard.sh/resources/blog/mcp-tool-poisoning-attacks-2026)
