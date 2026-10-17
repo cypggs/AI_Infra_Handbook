@@ -82,6 +82,8 @@
 | **Meta 案例** | 对照"开放权重 + OCP 硬件 + PyTorch" vs "开放软件栈 + 自研 TPU + JAX" | [/09-case-study/meta/](/09-case-study/meta/) |
 | **OpenAI 案例** | 对照"闭源规模 + 通用 GPU" vs "垂直整合自研硅 + 软件全开" | [/09-case-study/openai/](/09-case-study/openai/) |
 | **Anthropic 案例** | 对照"闭源对齐" vs "开放生态 + 安全框架" | [/09-case-study/anthropic/](/09-case-study/anthropic/) |
+| **DeepSeek 案例** | 对照"自研硅垂直整合" vs "受限 GPU + 算法-系统协同设计" | [/09-case-study/deepseek/](/09-case-study/deepseek/) |
+| **xAI 案例** | 对照"十年 TPU 演进" vs "122 天 Colossus 单园区速度战" | [/09-case-study/xai/](/09-case-study/xai/) |
 
 ---
 

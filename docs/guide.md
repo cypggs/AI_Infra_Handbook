@@ -58,6 +58,8 @@
 - 想了解 Anthropic 基础设施案例：[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）
 - 想了解 Meta 基础设施案例：[Meta 案例研究](/09-case-study/meta/)（已上线）
 - 想了解 Google 基础设施案例：[Google 案例研究](/09-case-study/google/)（已上线）
+- 想了解 DeepSeek 基础设施案例（DualPipe/FP8/MLA/3FS）：[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）
+- 想了解 xAI 基础设施案例（Memphis Colossus）：[xAI 案例研究](/09-case-study/xai/)（已上线）
 
 ### 3. 每个主题的结构
 

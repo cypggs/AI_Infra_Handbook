@@ -138,6 +138,12 @@ hero:
     - theme: alt
       text: Google 案例
       link: /09-case-study/google/
+    - theme: alt
+      text: DeepSeek 案例
+      link: /09-case-study/deepseek/
+    - theme: alt
+      text: xAI 案例
+      link: /09-case-study/xai/
 
 features:
   - icon: 📚
@@ -198,6 +204,8 @@ features:
 - [x] Personal AI Agent 主题（个人智能体：Muse / Dots / Grok Bot / Google PI / Siri AI / Claude Cowork，含纯 Python Mini Demo）
 - [x] AI 编译器与 Kernel 生成主题（torch.compile/Inductor、Triton 语言、cuTile/CUTLASS、TileLang、Mirage，含纯 Python Mini Demo）
 - [x] 向量数据库与 Embedding 基础设施主题（HNSW/IVF/DiskANN、Milvus/Qdrant/pgvector、Embedding 服务，含纯 Python Mini Demo）
+- [x] DeepSeek 案例研究主题（DualPipe/细粒度 EP/FP8/MLA/3FS，含纯 Python Mini Demo）
+- [x] xAI 案例研究主题（Memphis Colossus 集群工程、供电/液冷/网络 fabric，含纯 Python Mini Demo）
 - [x] RAG 主题（检索增强生成）
 - [x] AI SRE 主题（可观测性、可靠性、AIOps）
 - [x] Benchmark + Evaluation 主题（Agent / LLM / RAG 可复现评测框架：trace-based eval、benchmark 数据集、CI 评估门、生产回归检测）
@@ -212,7 +220,7 @@ features:
 
 1. 如果你是新手，建议从 [学习路线](/10-roadmap/learning-path) 开始。
 2. 如果你想快速了解一个主题，先看 [阅读指南](/guide)。
-3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[CNI / CSI 深度详解](/02-cloud-native/cni-csi/)、[GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[Personal AI Agent 详解](/05-agent/personal-agent/)、[AI 编译器与 Kernel 生成详解](/04-llmops/ai-compiler/)、[向量数据库与 Embedding 基础设施详解](/06-rag/vector-db/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/)、[Linux 系统与性能调优](/01-foundation/linux-systems/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)。
+3. 如果你关注当前最热门的 LLM 推理引擎，直接阅读 [Kubernetes 详解](/02-cloud-native/kubernetes/)、[Helm 详解](/02-cloud-native/helm/)、[Operator 模式详解](/02-cloud-native/operator/)、[容器运行时详解](/02-cloud-native/container-runtime/)、[CNI / CSI 深度详解](/02-cloud-native/cni-csi/)、[GPU 在 Kubernetes 上的调度详解](/02-cloud-native/gpu-scheduling/)、[vLLM 详解](/04-llmops/vllm/)、[SGLang 详解](/04-llmops/sglang/)、[TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)、[Triton 详解](/04-llmops/triton/)、[LLM Gateway 详解](/04-llmops/llm-gateway/)、[Ray 详解](/03-ai-platform/ray/)、[KServe 详解](/03-ai-platform/kserve/)、[Kubeflow 详解](/03-ai-platform/kubeflow/)、[MLflow 详解](/03-ai-platform/mlflow/)、[KubeRay 详解](/03-ai-platform/kuberay/)、[Airflow 详解](/03-ai-platform/airflow/)、[Agent Runtime 详解](/05-agent/agent-runtime/)、[Memory 详解](/05-agent/memory/)、[Multi-Agent 详解](/05-agent/multi-agent/)、[Reflection 详解](/05-agent/reflection/)、[MCP 详解](/05-agent/mcp/)、[Planning 详解](/05-agent/planning/)、[Tool Use 详解](/05-agent/tool-use/)、[Agent OS 详解](/05-agent/agent-os/)、[Personal AI Agent 详解](/05-agent/personal-agent/)、[AI 编译器与 Kernel 生成详解](/04-llmops/ai-compiler/)、[向量数据库与 Embedding 基础设施详解](/06-rag/vector-db/)、[RAG 详解](/06-rag/)、[AI SRE 详解](/07-ai-sre/)、[安全详解](/08-security/)、[Linux 系统与性能调优](/01-foundation/linux-systems/) 或 [OpenAI 案例研究](/09-case-study/openai/)、[Anthropic 案例研究](/09-case-study/anthropic/)、[Meta 案例研究](/09-case-study/meta/)、[Google 案例研究](/09-case-study/google/)、[DeepSeek 案例研究](/09-case-study/deepseek/)、[xAI 案例研究](/09-case-study/xai/)。
 
 ## 贡献
 

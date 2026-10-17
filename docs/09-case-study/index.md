@@ -8,6 +8,8 @@
 - [Anthropic](/09-case-study/anthropic/) — 宪法对齐、机制可解释性、Trainium/Colossus 异构算力与 prompt caching 推理工程
 - [Meta](/09-case-study/meta/) — 开放权重、OCP 硬件协同设计、RoCE/InfiniBand 双网络织物、SDC 治理与 >95% 有效训练时间、MTIA 自研硅
 - [Google](/09-case-study/google/) — TPU 自研硅（MXU/SparseCore/3D-torus/OCS）、NSDI'24 双路径恢复（99.98% 可用率）、GSPMD/Pathways 自动并行、开放软件栈 + 闭源硬件
+- [DeepSeek](/09-case-study/deepseek/) — 算法-系统协同设计：DualPipe、细粒度 EP、FP8 混合精度、MLA、3FS/DeepEP 开源栈，278.8 万 H800 GPU 小时训练 V3 的方法论
+- [xAI](/09-case-study/xai/) — Memphis Colossus：122 天 10 万卡单训练域、供电/液冷/网络 fabric 工程、"速度即战略"的集群建设组织学
 
 ## 计划中主题
 

@@ -77,6 +77,8 @@
 - **[Anthropic 案例研究](/09-case-study/anthropic/)（已上线）** — 宪法对齐/RLAIF、机制可解释性、Trainium/Colossus 异构算力、prompt caching 与 RSP/ASL 治理
 - **[Meta 案例研究](/09-case-study/meta/)（已上线）** — 开放权重、OCP 硬件协同设计（Grand Teton/Catalina/MTIA）、RoCE/InfiniBand 双网络织物、SDC 治理与 >95% 有效训练时间、Llama Stack
 - **[Google 案例研究](/09-case-study/google/)（已上线）** — TPU 自研硅（MXU/SparseCore/3D-torus/OCS）、NSDI'24 双路径恢复（99.98% 可用率）、GSPMD/Pathways 自动并行、Falcon 硬件传输、开放软件栈（JAX/XLA/MaxText）+ 闭源硬件
+- **[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）** — 算法-系统协同设计：DualPipe 流水线、细粒度专家并行、FP8 混合精度、MLA/DSA 注意力、3FS/DeepEP 开源栈，278.8 万 GPU 小时训练 V3
+- **[xAI 案例研究](/09-case-study/xai/)（已上线）** — Memphis Colossus：122 天 10 万卡单训练域、供电/液冷/网络 fabric、"速度即战略"的集群建设组织学
 - Cursor、Perplexity 等持续建设中
 
 ## 推荐学习顺序
@@ -116,6 +118,8 @@
 31. [Google 案例研究](/09-case-study/google/) — 通过 Google 理解 TPU 自研硅、OCS 可重配拓扑、NSDI'24 双路径恢复、GSPMD/Pathways 编译器自动并行与开放软件栈
 32. [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/) — 理解 torch.compile/Inductor、Triton 语言、cuTile/CUTLASS 与 kernel 自动生成
 33. [向量数据库与 Embedding 基础设施](/06-rag/vector-db/) — 理解 HNSW/DiskANN、向量数据库系统、GPU 索引与 Embedding 服务
+34. [DeepSeek 案例研究](/09-case-study/deepseek/) — 通过 DeepSeek 理解算法-系统协同设计：DualPipe、FP8、MLA 与开源 Infra 栈
+35. [xAI 案例研究](/09-case-study/xai/) — 通过 xAI 理解超集群建设：供电、液冷、单训练域网络与速度组织学
 
 ## 面试准备
 

@@ -255,6 +255,8 @@ export default withMermaid(
             { text: 'Google 7. Mini Demo', link: '/09-case-study/google/07-mini-demo' },
             { text: 'Google 8. 企业生产实践', link: '/09-case-study/google/08-production-practice' },
             { text: 'Google 9. 最佳实践', link: '/09-case-study/google/09-best-practices' },
+            { text: 'DeepSeek 总览', link: '/09-case-study/deepseek/' },
+            { text: 'xAI 总览', link: '/09-case-study/xai/' },
           ],
         },
       ],
