@@ -287,6 +287,12 @@ spec:
 - 移除 `numProcPerNode`（Torch API）与 `ElasticPolicy` API。
 - 修复 TrainJob API 不可变性问题（创建后关键字段不可修改）。
 
+### v2.3 新动向（2026-08，上游最新）
+
+- **`OptimizationJob` CRD**（KEP-3562）：把训练后的模型优化任务（压缩、蒸馏、量化等）纳入与 TrainJob 同一套 API 范式。
+- **TrainingRuntime 快照机制**（KEP-2599）：更新运行时时通过快照保持在跑任务不受影响，解耦运行时生命周期与 TrainJob。
+- **破坏性升级路径**：v2.0/2.1/2.2 必须**先升级到 v2.3**，再升级之后的版本（CRD 移入 Helm chart 模板目录、移除运行时 finalizer）。
+
 ### Replica 角色（V1）
 
 | CRD | 角色 |
@@ -326,11 +332,11 @@ Hub 是 2026 年由 Model Registry 更名扩围而来的**资产中心**，26.03
 | KServe 集成 | Custom Storage Initializer + reconciliation controller（记录线上 InferenceService 实际运行的模型版本） |
 | 存储后端 | MySQL / PostgreSQL；模型本体以 OCI 制品存储 |
 
-其他变化：API 趋于稳定（准备 v1）；Python 客户端支持打包上传与异步上传 Job；移除对 legacy Google MLMD 的依赖。
+其他变化：API 趋于稳定（准备 v1）；Python 客户端支持打包上传与异步上传 Job；移除对 legacy Google MLMD 的依赖。上游最新 v0.3.17（2026-09），组件仍为 alpha 状态。
 
 ## 5.8 Spark Operator
 
-2025 年起成为 Kubeflow 核心组件（2.5.0，基于 controller-runtime 重构）：
+2025 年起成为 Kubeflow 核心组件（26.03 矩阵为 2.5.0，上游最新 v2.5.2，2026-07，基于 controller-runtime 重构）：
 
 - 支持 Spark 4 / Spark Connect、suspend/resume、Kueue 队列。
 - YuniKorn gang scheduling、动态分配与 shuffle tracking。
@@ -341,7 +347,7 @@ Hub 是 2026 年由 Model Registry 更名扩围而来的**资产中心**，26.03
 
 KServe 是 Kubeflow 的模型服务组件。在 Kubeflow 部署中：
 
-- KServe Controller 监听 `InferenceService` CRD；0.18 起新增 `LLMInferenceService`。
+- KServe Controller 监听 `InferenceService` CRD；0.18 起新增 `LLMInferenceService`（上游 0.19–0.21 持续迭代其 v1alpha2 API、金丝雀发布与 LocalModelCache）。
 - Central Dashboard 展示 InferenceService 列表与端点。
 - 可通过 Pipeline 部署 `InferenceService` 作为最后一步。
 - Hub 的 reconciliation controller 会把线上服务与注册版本对账。
@@ -372,8 +378,8 @@ Central Dashboard / Kubeflow SDK
 - **Profile / KFAM**：namespace 级多租户与权限管理。
 - **KFP**：API Server + Persistence Agent + MLMD + artifact store + Driver/Launcher/Executor；2.16 默认 SeaweedFS、原生 OIDC、Local Runner。
 - **Katib**：Controller + DB Manager + Suggestion + Early Stopping；OptimizerClient 让 Trial 直接跑 TrainJob。
-- **Kubeflow Trainer**：V1 框架 CRD 维护模式；V2 `TrainJob` + `TrainingRuntime` 统一范式，内置 LLM 微调运行时。
-- **Hub**：模型目录 + MCP Catalog + OCI 制品，默认安装。
+- **Kubeflow Trainer**：V1 框架 CRD 维护模式；V2 `TrainJob` + `TrainingRuntime` 统一范式，内置 LLM 微调运行时；v2.3 新增 OptimizationJob 与运行时快照。
+- **Hub**：模型目录 + MCP Catalog + OCI 制品，默认安装（上游 v0.3.17，alpha）。
 - **Spark Operator**：数据工程核心组件，SDK 原生支持。
 - 各组件独立迭代，通过 K8s API Server 协同。
 
@@ -385,5 +391,7 @@ Central Dashboard / Kubeflow SDK
 - [KFP v2 Architecture](https://www.kubeflow.org/docs/components/pipelines/)
 - [Katib Overview](https://www.kubeflow.org/docs/components/katib/overview/)
 - [Kubeflow Trainer v2.2 Release](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
+- [Kubeflow Trainer v2.3.0 Release Notes](https://github.com/kubeflow/trainer/releases/tag/v2.3.0)
+- [Kubeflow Hub GitHub](https://github.com/kubeflow/hub)
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)

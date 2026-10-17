@@ -82,10 +82,12 @@ class FakeClock:
 | Profile | 创建 Namespace、ResourceQuota |
 | Notebook | 创建 StatefulSet、Service；到 `ready_at` 后 Ready |
 | Pipeline | 校验 DAG 依赖 |
-| Run | 按 DAG 顺序创建 Job → Experiment → PyTorchJob → InferenceService |
+| Run | 按 DAG 顺序创建 Job → Experiment → PyTorchJob / TrainJob → InferenceService |
 | Experiment | 创建指定数量 Trial；汇总最佳参数 |
 | Trial | 模拟训练并产出 metric |
 | PyTorchJob | 创建 Master/Worker Pod；全部成功后 Succeeded |
+| TrainingRuntime / ClusterTrainingRuntime | 校验 podSets 后 Active（平台面运行时） |
+| TrainJob | 解析 `runtimeRef` 指向的运行时，按其 podSets 创建 Pod；全部成功后 Succeeded |
 | Pod | 到 `ready_at` 后 Succeeded |
 | InferenceService | 到 `ready_at` 后 Ready |
 
@@ -135,6 +137,17 @@ for role, count in replicas.items():
         self.store.create(pod)
 ```
 
+### TrainJob（V2：runtimeRef 解析）
+
+```python
+runtime = self.store.get("TrainingRuntime", ns, job["spec"]["runtimeRef"])
+if runtime is None:
+    return  # 等待平台管理员创建运行时，与真实控制器一致
+replicas = runtime["spec"]["podSets"]   # 任务本身不再声明副本结构
+```
+
+V1 的 `PyTorchJob` 把 `replicas` 写在任务 spec 里；V2 的 `TrainJob` 只写 `runtimeRef`，副本结构来自 `TrainingRuntime`——这正是"用户面与平台面解耦"的模拟。
+
 ## 7.6 测试覆盖
 
 | 测试 | 验证点 |
@@ -145,7 +158,8 @@ for role, count in replicas.items():
 | `test_notebook_becomes_ready_after_one_tick` | FakeClock 推进状态 |
 | `test_pipeline_validation_fails_on_missing_dependency` | DAG 校验 |
 | `test_experiment_creates_trials_and_picks_best_lr` | Katib 调参 |
-| `test_pytorchjob_creates_pods` | 分布式训练 Pod 创建 |
+| `test_pytorchjob_creates_pods` | 分布式训练 Pod 创建（V1） |
+| `test_trainjob_resolves_runtime_and_creates_pods` | Trainer V2：runtimeRef 解析 + Pod 创建 |
 | `test_demo_end_to_end` | 完整链路 |
 
 ## 7.7 与真实 Kubeflow 的差异
@@ -165,8 +179,8 @@ for role, count in replicas.items():
 ## 本章小结
 
 - Mini Demo 用纯 Python 模拟了 Kubeflow 的核心控制面：Store、Informer、WorkQueue、Reconciler。
-- 场景覆盖 **Profile → Notebook → Pipeline Run → Katib → PyTorchJob → KServe**。
-- `pytest` 8 个用例全部通过，`python -m kubeflow_mini.demo` 13 步完成端到端流程。
+- 场景覆盖 **Profile → Notebook → Pipeline Run → Katib → PyTorchJob / TrainJob（V2 runtimeRef）→ KServe**。
+- `pytest` 9 个用例全部通过，`python -m kubeflow_mini.demo` 13 步完成端到端流程。
 - 与真实 Kubeflow 的主要差异在调度、网络、容器、存储、认证。
 
 **参考来源**

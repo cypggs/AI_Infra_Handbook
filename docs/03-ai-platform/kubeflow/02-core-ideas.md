@@ -213,7 +213,7 @@ spec:
       - llama3_2/1B_lora_single_device
 ```
 
-Trainer v2.2（2026-03）还带来了 JAX、XGBoost、Flux（HPC/MPI）运行时，TrainJob 进度与指标可观测性（Hugging Face `KubeflowTrainerCallback`）；注意其**破坏性变更**：`PodTemplateOverrides` 被 `RuntimePatches` API 取代，`numProcPerNode` 与 `ElasticPolicy` 被移除。
+Trainer v2.2（2026-03）还带来了 JAX、XGBoost、Flux（HPC/MPI）运行时，TrainJob 进度与指标可观测性（Hugging Face `KubeflowTrainerCallback`）；注意其**破坏性变更**：`PodTemplateOverrides` 被 `RuntimePatches` API 取代，`numProcPerNode` 与 `ElasticPolicy` 被移除。v2.3（2026-08）进一步引入 **`OptimizationJob` CRD**（KEP-3562，把训练后的模型优化/压缩任务也纳入统一 API）与 TrainingRuntime 快照机制（KEP-2599，解耦运行时更新与在跑任务）；其**破坏性变更**要求 v2.0/2.1/2.2 必须**先升级到 v2.3** 再往后升级（CRD 移入 Helm chart 模板目录、移除运行时 finalizer）。
 
 ### LLM 微调蓝图
 
@@ -227,7 +227,7 @@ Trainer 内置基于 **torchtune** 的运行时（Llama 3.2、Qwen 2.5 等配方
 
 ## 2.6 KServe：模型服务
 
-KServe 是 Kubeflow 的模型服务组件，已在 [KServe 主题](../kserve/) 详细讲解。在 Kubeflow 语境下，它与 Central Dashboard 集成，用户可在 Dashboard 里查看 InferenceService 端点。面向 GenAI 场景，KServe 0.18 新增 **`LLMInferenceService` CRD**：把大模型服务化（含跨节点分布式推理、OpenAI 兼容 API、KV Cache 复用）提升为一等平台原语。
+KServe 是 Kubeflow 的模型服务组件，已在 [KServe 主题](../kserve/) 详细讲解。在 Kubeflow 语境下，它与 Central Dashboard 集成，用户可在 Dashboard 里查看 InferenceService 端点。面向 GenAI 场景，KServe 0.18 新增 **`LLMInferenceService` CRD**：把大模型服务化（含跨节点分布式推理、OpenAI 兼容 API、KV Cache 复用）提升为一等平台原语；上游 0.19–0.21（2026 年 8–9 月）持续迭代其 `v1alpha2` API、金丝雀发布生命周期、LocalModelCache 集成与 Agentic 工具调用支持。
 
 ## 2.7 Hub：模型与 Agent 资产中心
 
@@ -237,6 +237,7 @@ Hub（原 Model Registry）在 2026 年完成更名与扩围，定位从"模型�
 - **MCP Catalog**：搜索、浏览并部署 MCP 服务器——Kubeflow 因此成为少数把 Agent 工具链也纳入资产治理的 ML 平台。
 - **OCI 标准**：模型存储以 OCI 制品（与容器镜像同一套分发机制）为标准，支持 ModelCar 方式挂载加载。
 - **KServe 集成**：Hub 可记录线上 `InferenceService` 实际运行的模型版本（reconciliation controller），打通"注册—部署—审计"链路。
+- **版本状态**：上游已迭代至 v0.3.17（2026-09，仍为 alpha），26.03.1 起随发行版默认安装。
 
 ## 2.8 Kubeflow SDK：Python 优先的新范式
 
@@ -250,7 +251,7 @@ Hub（原 Model Registry）在 2026 年完成更名与扩围，定位从"模型�
 | `OptimizerClient`（Katib） | 调参实验，Trial 直接以 TrainJob 运行 |
 | `ModelRegistryClient` | 模型注册与目录查询 |
 
-SDK 支持**本地开发后端**（Docker/Podman/本地进程），同一段代码先在本地跑通、再无缝提交到 K8s 集群——"本地开发 → 集群规模化"的闭环是 Kubeflow 在 GenAI 时代的重要竞争力。
+SDK 支持**本地开发后端**（Docker/Podman/本地进程），同一段代码先在本地跑通、再无缝提交到 K8s 集群——"本地开发 → 集群规模化"的闭环是 Kubeflow 在 GenAI 时代的重要竞争力。SDK 0.5（2026-08）补齐了 `PipelinesClient`（对接 KFP 2.17）与 `SparkClient` 批作业提交，至此训练、调参、Spark、Pipeline、注册五类客户端齐备。
 
 ```python
 from kubeflow.trainer import TrainerClient, CustomTrainer, TrainJobTemplate
@@ -353,8 +354,8 @@ KServe 部署为 InferenceService / LLMInferenceService
 - **Notebooks**：Jupyter 环境声明式化，由 Notebook Controller 管理；v2 正重构为 CRD 驱动的 Workspaces。
 - **Pipelines**：Python DSL → IR YAML → Run，支持 artifact、缓存、实验管理；2.16 起本地可运行（Local Runner）。
 - **Katib**：Experiment/Trial/Suggestion 实现超参搜索、early stopping、NAS；Trial 可直接以 TrainJob 运行。
-- **Trainer**：V1 框架级 CRD 进入维护模式；V2 以 `TrainJob` + `TrainingRuntime` 统一范式，内置 LLM 微调运行时。
-- **KServe**：模型服务层，新增 `LLMInferenceService` 支撑大模型服务化。
+- **Trainer**：V1 框架级 CRD 进入维护模式；V2 以 `TrainJob` + `TrainingRuntime` 统一范式，内置 LLM 微调运行时；v2.3 新增 OptimizationJob 与运行时快照。
+- **KServe**：模型服务层，新增 `LLMInferenceService` 支撑大模型服务化（上游已迭代至 0.21）。
 - **Hub**：模型/OCI 制品/MCP 服务器统一资产目录。
 - **SDK**：`pip install kubeflow`，一套 Python API 管训练、Spark、Pipeline、调参、注册，支持本地后端。
 - **Central Dashboard / Profile**：统一入口 + 多租户 namespace 隔离。
@@ -369,3 +370,6 @@ KServe 部署为 InferenceService / LLMInferenceService
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow 1.11 Release Announcement](https://blog.kubeflow.org/kubeflow-1.11-release/)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Trainer v2.3.0 Release Notes](https://github.com/kubeflow/trainer/releases/tag/v2.3.0)
+- [Kubeflow SDK 0.5.0 Release Notes](https://github.com/kubeflow/sdk/releases/tag/0.5.0)
+- [KServe v0.21.0 Release Notes](https://github.com/kserve/kserve/releases/tag/v0.21.0)

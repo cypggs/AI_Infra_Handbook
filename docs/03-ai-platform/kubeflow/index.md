@@ -14,7 +14,7 @@
 6. 理解多租户模型：Profile、Namespace、KFAM、Istio 认证，以及 1.11 的 PSS/NetworkPolicy 默认基线。
 7. 了解 Hub（原 Model Registry）：Model Catalog、MCP Catalog、OCI 模型制品。
 8. 会用 Kubeflow SDK（`pip install kubeflow`）：本地后端验证、TrainJob 上集群、模型注册。
-9. 知道生产落地要点：安装方式选择（1.11 / 26.03 日历版本）、SeaweedFS、多租户、存储、artifact、升级、成本。
+9. 知道生产落地要点：安装方式选择（Community Distribution 26.03.1 日历版本 / 1.11）、SeaweedFS、多租户、存储、artifact、升级、成本。
 
 ## 与相邻主题的关系
 
@@ -59,4 +59,7 @@
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow 1.11 Release](https://blog.kubeflow.org/kubeflow-1.11-release/)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Manifests Releases（当前稳定版 26.03.1）](https://github.com/kubeflow/manifests/releases)
+- [CNCF 宣布 Kubeflow 毕业（2026-08-17）](https://www.cncf.io/announcements/2026/08/17/cncf-announces-kubeflows-graduation-solidifying-the-standard-for-cloud-native-ai-operations/)
+- [Kubeflow Graduation 博客](https://blog.kubeflow.org/graduation/)
 - 本手册 [Operator 模式](../../02-cloud-native/operator/)、[KServe](../kserve/)、[Ray](../ray/)、[Kubernetes](../../02-cloud-native/kubernetes/)

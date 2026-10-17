@@ -84,8 +84,9 @@ with open("/katib/metrics/metrics.json", "w") as f:
 
 - **新部署直接用 V2 `TrainJob`**：V1 框架 CRD（PyTorchJob 等）进入维护模式；通过 `runtimeRef` 引用 `TrainingRuntime`，任务与环境解耦。
 - **LLM 微调优先用内置 torchtune 运行时**：LoRA/QLoRA/DoRA 配方 + `HuggingFaceModelInitializer`，避免自己拼装分布式启动脚本。
-- **用 RuntimePatches 而非 PodTemplateOverrides**：v2.2 已做破坏性替换，旧模板迁移时注意。
+- **用 RuntimePatches 而非 PodTemplateOverrides**：v2.2 已做破坏性替换，旧模板迁移时注意；升级 v2.3 时记住"先 2.0/2.1/2.2 → 2.3 → 更新版本"的两段式路径。
 - **合理设置 numNodes**：先小规模验证，再扩大节点数；注意 v2.2 已移除 `numProcPerNode` 与 `ElasticPolicy`。
+- **训练后优化走 OptimizationJob**：v2.3 起模型压缩/蒸馏等优化任务有了一等 CRD，不必再手写批处理 Job。
 - **接入 gang scheduling**：与 Kueue/Volcano 集成，避免分布式训练一半 Pod 起不来占住资源。
 - **用 SDK 本地后端先跑通**：`ContainerBackendConfig`（Docker/Podman）或本地进程，再提交集群。
 - **checkpoint 定期保存**：防止训练中断后从头开始。
@@ -148,7 +149,7 @@ hard:
 - Pipeline：component 化、版本化、用缓存、加重试；2.16+ 用 Local Runner 先本地验证。
 - Artifact：固定随机种子、版本化数据、记录环境。
 - Katib：先粗后细、限制 Trial、用 Early Stopping。
-- Trainer：新部署用 V2 `TrainJob`；LLM 微调用 torchtune 运行时；RuntimePatches 取代 PodTemplateOverrides。
+- Trainer：新部署用 V2 `TrainJob`；LLM 微调用 torchtune 运行时；RuntimePatches 取代 PodTemplateOverrides；v2.3 起用 OptimizationJob 做训练后优化。
 - Notebook：标准化镜像、自动休眠、禁止跑生产训练。
 - 多租户：Profile + ResourceQuota + NetworkPolicy。
 - 安全：最小权限、镜像扫描、Secrets 集中管理。

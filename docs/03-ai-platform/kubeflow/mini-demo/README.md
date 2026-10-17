@@ -6,7 +6,8 @@
 - Notebook → StatefulSet / Service / VirtualService
 - Pipeline Run → 顺序执行 preprocess → Katib 调参 → PyTorchJob 训练 → KServe 部署
 - Katib Experiment → Trial 并行搜索超参，返回最佳参数
-- Training Operator → PyTorchJob Master + Worker
+- Training Operator → PyTorchJob Master + Worker（V1 CRD）
+- Kubeflow Trainer V2 → TrainJob 通过 runtimeRef 解析 TrainingRuntime / ClusterTrainingRuntime，再创建 Master + Worker Pod
 - KServe → InferenceService
 
 ## 运行

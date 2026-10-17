@@ -241,7 +241,7 @@ dag:
 
 ## 4.4 失败与重试
 
-- **Pipeline step 失败**：KFP 支持 `retry_policy`，按策略重试；2.16 起 Local Runner 支持条件求值与并行控制流，可在提交集群前先本地验证逻辑。
+- **Pipeline step 失败**：KFP 支持 `retry_policy`，按策略重试；2.16 起 Local Runner 支持条件求值与并行控制流，可在提交集群前先本地验证逻辑；2.17（2026-07~09）起社区已提出 KFP 原生集成 MLflow tracking 的 KEP，实验追踪与编排的耦合将进一步简化。
 - **Katib Trial 失败**：超过 `maxFailedTrialCount` 后 Experiment 失败。
 - **TrainJob 失败**：Trainer 按运行时定义的重启策略处理；V2 提供 TrainJob 生命周期与进度/指标可观测性（集成 Hugging Face `KubeflowTrainerCallback`）。
 - **全部状态通过 K8s status conditions 暴露**，Dashboard 可观测。
@@ -275,7 +275,7 @@ sequenceDiagram
 - **同一份训练代码**先在本地后端（Docker/Podman/子进程）跑通，再切到 K8s 后端规模化——本地与集群之间没有"翻译成本"。
 - **LLM 微调**：`BuiltinTrainer` + torchtune 运行时内置 LoRA/QLoRA/DoRA 配方，`HuggingFaceModelInitializer` 负责拉模型，无需手写分布式启动脚本。
 - **模型分发**：微调产物以 OCI 制品推入 Hub；KServe 通过 Custom Storage Initializer 直接从 Hub/OCI 加载，冷启动可用 namespace 级 ModelCache 加速。
-- **服务形态**：`LLMInferenceService` 暴露 OpenAI 兼容 API（含 `/v1/responses` 路由），多节点大模型由 LWS（LeaderWorkerSet）集成支撑分布式推理，KEDA/HPA 按真实推理需求扩缩。
+- **服务形态**：`LLMInferenceService` 暴露 OpenAI 兼容 API（含 `/v1/responses` 路由），多节点大模型由 LWS（LeaderWorkerSet）集成支撑分布式推理，KEDA/HPA 按真实推理需求扩缩；上游 KServe 0.19–0.21 继续补齐了金丝雀发布生命周期与 LocalModelCache 冷启动加速。
 
 ## 本章小结
 
@@ -290,5 +290,6 @@ sequenceDiagram
 - [Kubeflow Pipelines — Getting Started](https://www.kubeflow.org/docs/components/pipelines/)
 - [KFP v2 DSL Documentation](https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/)
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
+- [KFP 2.17.2 Release Notes](https://github.com/kubeflow/pipelines/releases/tag/2.17.2)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
 - 本手册 [KServe](../kserve/04-runtime-workflow)、[Operator 模式](../../02-cloud-native/operator/04-reconcile-loop)

@@ -75,7 +75,7 @@ KFP v2 通过计算 step 输入/输出/镜像的指纹，命中缓存时直接�
 
 ### 12. Kubeflow Trainer V1 与 V2 的演进方向是什么？
 
-V1 是各框架独立 CRD（TFJob、PyTorchJob、MPIJob 等），现处维护模式。V2 于 2025-07 GA，引入统一的 `TrainJob` + `TrainingRuntime` 模型，把用户面与平台面解耦；Kubeflow 1.11 起成为默认。v2.2 的破坏性变更：`PodTemplateOverrides` → `RuntimePatches`，移除 `numProcPerNode` 与 `ElasticPolicy`。
+V1 是各框架独立 CRD（TFJob、PyTorchJob、MPIJob 等），现处维护模式。V2 于 2025-07 GA，引入统一的 `TrainJob` + `TrainingRuntime` 模型，把用户面与平台面解耦；Kubeflow 1.11 起成为默认。v2.2 的破坏性变更：`PodTemplateOverrides` → `RuntimePatches`，移除 `numProcPerNode` 与 `ElasticPolicy`；v2.3（2026-08）新增 `OptimizationJob` CRD 与运行时快照机制，并要求 v2.0/2.1/2.2 必须先升到 v2.3 再往后升级。
 
 ### 13. 如何设计一个高可用的 Kubeflow 生产平台？
 
@@ -110,6 +110,10 @@ Hub 是 Model Registry 在 2026 年的更名扩围：除模型版本治理外，
 4. 微调产物以 OCI 制品注册到 Hub。
 5. KServe 创建 `LLMInferenceService`，经 Custom Storage Initializer 拉取模型，暴露 OpenAI 兼容端点。
 
+### 18. Kubeflow 的 CNCF 毕业（2026-08）意味着什么？
+
+Kubeflow 于 2023-07 进入 CNCF 孵化，2026-07-24 经 TOC 批准、2026-08-17 正式宣布毕业。毕业代表其在治理（指导委员会）、安全（第三方审计、CII 最佳实践徽章）、社区规模（260M+ PyPI 下载、33k+ star、6600+ 贡献者）上达到 CNCF 最高成熟度级别，成为云原生 AI 运维的标准平台，生产用户包括 Bloomberg、NVIDIA、Red Hat、LinkedIn、Spotify 等。
+
 ## 参考答案速查
 
 | 题号 | 关键词 |
@@ -125,12 +129,13 @@ Hub 是 Model Registry 在 2026 年的更名扩围：除模型版本治理外，
 | 9 | /katib/metrics/metrics.json 或 push-based |
 | 10 | 输入/输出/镜像指纹 |
 | 11 | Argo vs Driver/Launcher、IR YAML |
-| 12 | TrainJob + TrainingRuntime、2025 GA、RuntimePatches |
+| 12 | TrainJob + TrainingRuntime、2025 GA、RuntimePatches、v2.3 OptimizationJob |
 | 13 | 安装、多租户、存储、可观测、升级、成本 |
 | 14 | UI 日志、Pod 事件、artifact、quota、Driver 日志 |
 | 15 | KServe canary / InferenceGraph |
 | 16 | Model Catalog + MCP Catalog + OCI |
 | 17 | BuiltinTrainer → TrainJob → Hub OCI → LLMInferenceService |
+| 18 | 2026-08-17 毕业、治理/安全/社区规模、生产采用 |
 
 **参考来源**
 
@@ -140,4 +145,5 @@ Hub 是 Model Registry 在 2026 年的更名扩围：除模型版本治理外，
 - [Kubeflow Trainer Documentation](https://trainer.kubeflow.org/)
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [CNCF 宣布 Kubeflow 毕业（2026-08-17）](https://www.cncf.io/announcements/2026/08/17/cncf-announces-kubeflows-graduation-solidifying-the-standard-for-cloud-native-ai-operations/)
 - 本手册 [KServe 面试题](../kserve/10-interview-questions)

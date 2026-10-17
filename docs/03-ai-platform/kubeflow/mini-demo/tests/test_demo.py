@@ -101,6 +101,29 @@ def test_pytorchjob_creates_pods():
     assert len(pods) == 3
 
 
+def test_trainjob_resolves_runtime_and_creates_pods():
+    store, controllers = _setup()
+    job = make_obj("TrainJob", "alice", "tune-llama", {"runtimeRef": "torchtune-llama"})
+    store.create(job)
+    controllers.reconcile(job)
+    assert store.list("Pod", "alice") == []  # waits for the referenced runtime
+
+    runtime = make_obj("TrainingRuntime", "alice", "torchtune-llama", {
+        "podSets": {"Master": 1, "Worker": 1}
+    })
+    store.create(runtime)
+    controllers.reconcile(runtime)
+    controllers.reconcile(job)
+    pods = store.list("Pod", "alice")
+    assert len(pods) == 2
+
+    controllers.step()
+    controllers.step()
+    controllers.reconcile(job)
+    assert job["status"]["phase"] == "Succeeded"
+    assert job["status"]["modelUri"] == "s3://alice/models/tune-llama"
+
+
 def test_demo_end_to_end():
     from kubeflow_mini.demo import run_demo
     result = run_demo()

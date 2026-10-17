@@ -206,6 +206,8 @@ TrainJob Controller (pkg/controller/trainjob_controller.go)
 更新 TrainJob Status（生命周期、进度、指标）
 ```
 
+v2.3（2026-08）起仓库还包含 `OptimizationJob` 控制器（KEP-3562），源码结构与 TrainJob 控制器平行，可对照阅读。
+
 ### 关键文件
 
 - `pkg/controller.v1/pytorch/pytorchjob_controller.go`：V1 PyTorchJob reconcile。
@@ -349,6 +351,7 @@ KFAM API 管理 contributors
 - [Kubeflow Pipelines AGENTS.md — Architecture](https://github.com/kubeflow/pipelines/blob/master/AGENTS.md)
 - [Kubeflow Katib GitHub](https://github.com/kubeflow/katib)
 - [Kubeflow Trainer GitHub](https://github.com/kubeflow/trainer)
+- [Kubeflow Hub GitHub](https://github.com/kubeflow/hub)
 - [Kubeflow SDK GitHub](https://github.com/kubeflow/sdk)
 - [Kubeflow Kubeflow GitHub](https://github.com/kubeflow/kubeflow)
 - 本手册 [Operator 模式源码分析](../../02-cloud-native/operator/06-source-analysis)

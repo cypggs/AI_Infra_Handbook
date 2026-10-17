@@ -199,7 +199,7 @@ Pipeline Run
 kustomize build example | kubectl apply -f -
 ```
 
-自 2026 年起社区发行版改用**日历版本号**（如 `26.03`，表示 2026 年 3 月基线，每年约两个基线版本、约 6 个月社区支持），并验证 Kubernetes 1.34+（26.03 在 1.35/1.36 上跑 CI）。Helm Chart 支持处于实验阶段。
+自 2026 年起社区发行版改用**日历版本号**（如 `26.03`，表示 2026 年 3 月基线，每年约两个基线版本、约 6 个月社区支持）；当前稳定版为 **26.03.1**（2026-06），CI 覆盖 Kubernetes 1.36，且要求升级时先阅读 Dashboard v2 的破坏性变更说明。Helm Chart 支持处于实验阶段。
 
 ### 独立组件
 
@@ -207,7 +207,7 @@ kustomize build example | kubectl apply -f -
 
 ```bash
 # 只装 Kubeflow Trainer（V2 默认启用 TrainJob，支持单条 Helm 命令安装）
-# 见 github.com/kubeflow/trainer 的 standalone / Helm 安装说明，当前版本 v2.2.0
+# 见 github.com/kubeflow/trainer 的 standalone / Helm 安装说明，当前版本 v2.3.0
 
 # 只装 Katib
 kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-standalone?ref=v0.19.0
@@ -227,7 +227,7 @@ kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-stan
 - **Profile = namespace**，Profile Controller 创建 namespace + RBAC + network policy。
 - 各组件 CRD：Notebook、Run/Experiment、Experiment/Trial、TrainJob/TrainingRuntime、InferenceService/LLMInferenceService、Profile。
 - 存储分层：PVC、对象存储 artifact（SeaweedFS 默认）、MLMD、Katib DB、Hub OCI Registry。
-- 可完整安装（日历版本发行版），也可按需独立部署某个组件。
+- 可完整安装（日历版本发行版，当前稳定版 26.03.1），也可按需独立部署某个组件。
 
 **参考来源**
 
@@ -236,4 +236,5 @@ kubectl apply -k github.com/kubeflow/katib/manifests/v1beta1/installs/katib-stan
 - [Kubeflow — Authentication](https://www.kubeflow.org/docs/external-add-ons/oidc/)
 - [Kubeflow 1.11 Release Announcement](https://blog.kubeflow.org/kubeflow-1.11-release/)
 - [Kubeflow Community Distribution 26.03 Release](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Manifests Releases（当前稳定版 26.03.1）](https://github.com/kubeflow/manifests/releases)
 - [Kubeflow Manifests](https://github.com/kubeflow/manifests)

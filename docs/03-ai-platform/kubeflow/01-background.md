@@ -54,9 +54,12 @@ Kubeflow 在 2025–2026 年经历了明显的定位升级，从"传统 MLOps �
 - **2025-12 Kubeflow 1.11**：默认启用 Pod Security Standards（系统 namespace restricted / 用户 namespace baseline）；默认网络策略；"零 Pod 开销"优化面向 1000+ 命名空间规模；对象存储默认切换为 SeaweedFS（MinIO 逐步弃用）。
 - **2026-04 Community Distribution 26.03**：社区发行版改用**日历版本号**（Year.Month.Patch，每年两个基线版本），组件矩阵为 KFP 2.16、Trainer 2.2、KServe 0.18、Hub 0.3.9、Spark Operator 2.5，验证 Kubernetes 1.34+；Dashboard v2 与 Notebooks 2.0（alpha）首次发布。
 - **2026 Python-first SDK**：`pip install kubeflow` 提供统一的 `TrainerClient` / `SparkClient` / `PipelinesClient` / `ModelRegistryClient`，支持本地（Docker/Podman/进程）开发、集群上规模化运行。
-- **2026-07/08 临近 CNCF 毕业**：Kubeflow 进入 CNCF 毕业最后评审阶段（据 InfoQ 2026-08 报道），社区活跃度处于历史高点。
+- **2026-06 Community Distribution 26.03.1**：当前稳定基线，CI 覆盖 Kubernetes 1.36；Hub（Model Registry/Catalog/UI）默认启用；Dashboard v2 正式纳入（升级有破坏性变更步骤需注意）；Notebooks v2 Workspaces 进入 beta。
+- **2026-07 Kubeflow Trainer v2.3**：新增 `OptimizationJob` CRD（KEP-3562，训练后模型优化任务）与 TrainingRuntime 快照机制（KEP-2599）；破坏性变更——从 v2.0/2.1/2.2 升级必须先经过 v2.3。
+- **2026-08 Kubeflow SDK 0.5**：新增 `PipelinesClient`（对接 KFP 2.17）与 `SparkClient` 批作业提交 API；据 CNCF 博客统计 SDK 下载量已破百万。
+- **2026-08-17 正式 CNCF 毕业**：TOC 于 2026-07-24 批准（2023-07-25 进入孵化），成为云原生 AI 运维的事实标准；PyPI 累计下载近 2.6 亿次，GitHub 33k+ star，6600+ 贡献者，Bloomberg、NVIDIA、Red Hat、LinkedIn、Spotify 等在生产使用。
 
-> 本主题内容基于 2026-10 的最新版本状态撰写：Kubeflow 1.11（2025-12）与 Community Distribution 26.03（2026-04）为当前稳定基线，Trainer 2.2 / KServe 0.18 / KFP 2.16 为核心组件版本。
+> 本主题内容基于 2026-10 的最新版本状态撰写：Community Distribution 26.03.1（2026-06）为当前稳定基线，1.11（2025-12）是最后一个 semver 基线版本；组件上游最新为 Trainer 2.3（2026-08）、KServe 0.21（2026-09）、KFP 2.17（2026-09）、Katib 0.19、Hub 0.3.17、SDK 0.5（2026-08），Kubeflow 已于 2026-08 从 CNCF 毕业。
 
 ## 1.3 Kubeflow 与相邻工具的对比
 
@@ -130,7 +133,7 @@ Kubeflow 是这一层里**把 ML 各阶段标准化到 K8s** 的关键：
 
 - **痛点**：裸跑 ML 各阶段工具割裂，重复工程、不可复现、难协作。
 - **定位**：Kubeflow 是 K8s 原生 ML 平台，把 Notebook、Pipeline、Katib、Trainer、KServe、Hub 统一起来。
-- **演进**：2025–2026 年从"每框架一个 CRD"转向统一的 `TrainJob` 模型，Python-first SDK（`pip install kubeflow`），对象存储默认切到 SeaweedFS，并发力 CNCF 毕业。
+- **演进**：2025–2026 年从"每框架一个 CRD"转向统一的 `TrainJob` 模型，Python-first SDK（`pip install kubeflow`），对象存储默认切到 SeaweedFS，并于 2026-08 正式从 CNCF 毕业。
 - **对比**：比 Airflow 更 ML 专用；比 MLflow 更偏工作负载编排；不替代 KServe/Ray，而是集成它们。
 - **价值**：把 ML 生命周期从脚本集合变成声明式、可复现、可协作的平台。
 
@@ -141,6 +144,10 @@ Kubeflow 是这一层里**把 ML 各阶段标准化到 K8s** 的关键：
 - [Kubeflow 1.10 Release Announcement](https://blog.kubeflow.org/kubeflow-1.10-release/)
 - [Kubeflow 1.11 Release Announcement](https://blog.kubeflow.org/kubeflow-1.11-release/)
 - [Kubeflow Community Distribution 26.03 Release Announcement](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Manifests Releases（当前稳定版 26.03.1）](https://github.com/kubeflow/manifests/releases)
 - [Kubeflow Trainer v2.2 Release](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
-- [InfoQ — Kubeflow Expands AI Capabilities as CNCF Graduation Nears](https://www.infoq.com/news/2026/08/kubeflow/)
+- [Kubeflow Trainer v2.3.0 Release Notes](https://github.com/kubeflow/trainer/releases/tag/v2.3.0)
+- [CNCF 宣布 Kubeflow 毕业（2026-08-17）](https://www.cncf.io/announcements/2026/08/17/cncf-announces-kubeflows-graduation-solidifying-the-standard-for-cloud-native-ai-operations/)
+- [Kubeflow Graduation 博客](https://blog.kubeflow.org/graduation/)
+- [CNCF 博客 — Kubeflow SDK Evolution: One Million Downloads and Counting（2026-08）](https://www.cncf.io/blog/2026/08/03/kubeflow-sdk-evolution-one-million-downloads-and-counting/)
 - 本手册 [KServe](../kserve/)、[Ray](../ray/)、[Operator 模式](../../02-cloud-native/operator/)

@@ -34,6 +34,9 @@ TOP_LEVEL_KINDS = {
     "Trial",
     "Job",
     "PyTorchJob",
+    "TrainingRuntime",
+    "ClusterTrainingRuntime",
+    "TrainJob",
     "Pod",
     "InferenceService",
 }
@@ -174,6 +177,16 @@ class Controllers:
                     )
                     self.store.create(job)
                     self.emit("add", job)
+                elif task["kind"] == "TrainJob":
+                    lr = run["spec"].get("parameters", {}).get("lr", 0.001)
+                    job = make_obj(
+                        "TrainJob",
+                        ns,
+                        f"{name}-{task_name}",
+                        {"runtimeRef": "torch-distributed", "lr": lr},
+                    )
+                    self.store.create(job)
+                    self.emit("add", job)
                 elif task["kind"] == "InferenceService":
                     isvc = make_obj(
                         "InferenceService",
@@ -263,6 +276,55 @@ class Controllers:
         ns = job["metadata"]["namespace"]
         name = job["metadata"]["name"]
         replicas = job["spec"].get("replicas", {})
+        total = sum(replicas.values())
+        pods = self.store.list("Pod", ns)
+        my_pods = [p for p in pods if p["spec"].get("job") == name]
+
+        if len(my_pods) < total:
+            for role, count in replicas.items():
+                existing = [p for p in my_pods if p["spec"].get("role") == role]
+                for i in range(len(existing), count):
+                    pod = make_obj("Pod", ns, f"{name}-{role.lower()}-{i}", {"job": name, "role": role})
+                    self.store.create(pod)
+                    self.emit("add", pod)
+
+        if all(p["status"].get("phase") == "Succeeded" for p in my_pods) and my_pods:
+            job["status"]["phase"] = "Succeeded"
+            job["status"]["modelUri"] = job["spec"].get("modelUri", f"s3://{ns}/models/{name}")
+        else:
+            job["status"]["phase"] = "Running"
+        self.store.update(job)
+        self.emit("update", job)
+
+    # ---------- Kubeflow Trainer V2: TrainJob + TrainingRuntime ----------
+    def reconcile_trainingruntime(self, runtime: dict) -> None:
+        # Platform-side resource: validates podSets and becomes Active.
+        if not runtime["spec"].get("podSets"):
+            runtime["status"]["phase"] = "Failed"
+            runtime["status"]["reason"] = "missing podSets"
+        else:
+            runtime["status"]["phase"] = "Active"
+        self.store.update(runtime)
+        self.emit("update", runtime)
+
+    def reconcile_clustertrainingruntime(self, runtime: dict) -> None:
+        self.reconcile_trainingruntime(runtime)
+
+    def reconcile_trainjob(self, job: dict) -> None:
+        ns = job["metadata"]["namespace"]
+        name = job["metadata"]["name"]
+        runtime_ref = job["spec"].get("runtimeRef")
+        runtime = None
+        if runtime_ref:
+            runtime = self.store.get("TrainingRuntime", ns, runtime_ref)
+            if runtime is None:
+                runtime = self.store.get("ClusterTrainingRuntime", "", runtime_ref)
+        if runtime is None:
+            return  # wait for the referenced TrainingRuntime, like a real controller
+        if runtime["status"].get("phase") != "Active":
+            return
+
+        replicas = runtime["spec"]["podSets"]
         total = sum(replicas.values())
         pods = self.store.list("Pod", ns)
         my_pods = [p for p in pods if p["spec"].get("job") == name]

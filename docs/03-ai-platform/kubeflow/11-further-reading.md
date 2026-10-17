@@ -17,9 +17,14 @@
 - [Kubeflow 1.10 Release Announcement（2025-03）](https://blog.kubeflow.org/kubeflow-1.10-release/)
 - [Kubeflow 1.11 Release Announcement（2025-12）](https://blog.kubeflow.org/kubeflow-1.11-release/)
 - [Kubeflow Community Distribution 26.03 Release（2026-04）](https://blog.kubeflow.org/kubeflow-26.03-release/)
+- [Kubeflow Manifests Releases（当前稳定版 26.03.1，2026-06）](https://github.com/kubeflow/manifests/releases)
+- [Kubeflow Graduation 博客（2026-08）](https://blog.kubeflow.org/graduation/)
+- [CNCF 宣布 Kubeflow 毕业（2026-08-17）](https://www.cncf.io/announcements/2026/08/17/cncf-announces-kubeflows-graduation-solidifying-the-standard-for-cloud-native-ai-operations/)
 - [Kubeflow Trainer v2.2 Release（2026-03）](https://blog.kubeflow.org/kubeflow-trainer-v2.2-release/)
-- [Kubeflow SDK v0.4 Release](https://blog.kubeflow.org/kubeflow-sdk-0.4.0-release/)
-- [InfoQ — Kubeflow Expands AI Capabilities as CNCF Graduation Nears（2026-08）](https://www.infoq.com/news/2026/08/kubeflow/)
+- [Kubeflow Trainer v2.3.0 Release Notes（2026-08）](https://github.com/kubeflow/trainer/releases/tag/v2.3.0)
+- [Kubeflow SDK 0.5.0 Release Notes（2026-08）](https://github.com/kubeflow/sdk/releases/tag/0.5.0)
+- [CNCF 博客 — Kubeflow SDK Evolution: One Million Downloads and Counting（2026-08）](https://www.cncf.io/blog/2026/08/03/kubeflow-sdk-evolution-one-million-downloads-and-counting/)
+- [KServe v0.21.0 Release Notes（2026-09）](https://github.com/kserve/kserve/releases/tag/v0.21.0)
 
 ## 关键工程文章
 
@@ -56,10 +61,11 @@
 - [Kubeflow Slack](https://www.kubeflow.org/docs/about/community/#kubeflow-slack)
 - [Kubeflow 社区会议](https://www.kubeflow.org/docs/about/community/)
 - [Kubeflow Community Showcase 2026（CNCF 虚拟活动）](https://community2.cncf.io/events/details/cncf-virtual-project-events-hosted-by-cncf-presents-kubeflow-community-showcase-2026-genai-and-mlops-in-action/)
-- [CNCF Kubeflow 项目页（毕业进度）](https://www.cncf.io/projects/kubeflow/)
+- [CNCF Kubeflow 项目页（已毕业）](https://www.cncf.io/projects/kubeflow/)
+- [KubeCon NA 2026 — A Decade of AI on Kubernetes: Kubeflow's Journey to CNCF Graduation（2026-11，Salt Lake City）](https://events.linuxfoundation.org/kubecon-cloudnativecon-north-america/)
 
 **本章小结**
 
-- 官方文档和 GitHub 是持续学习的核心来源；版本发布博客（1.10/1.11/26.03/Trainer v2.2）是跟进演进的最好材料。
+- 官方文档和 GitHub 是持续学习的核心来源；版本发布博客（1.10/1.11/26.03/Trainer v2.2/v2.3）与 2026-08 的 CNCF 毕业公告是跟进演进的最好材料。
 - Kubeflow 与 Kubernetes、Operator、KServe、Ray、MLflow、KubeRay、AI SRE 等主题紧密相连。
 - 学习路径遵循：本地体验 → 自定义 Pipeline → LLM 微调 → 生产部署 → 源码阅读。
