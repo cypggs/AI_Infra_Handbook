@@ -14,8 +14,9 @@ AI 系统上线后，"能跑"不等于"对"、"快"不等于"稳"。Benchmark + 
 - 设计覆盖正确性、事实性、工具使用、延迟、成本、安全、鲁棒性的评估维度。
 - 区分离线评估、在线评估、LLM-as-judge、人工复核的适用场景与局限。
 - 搭建从 Agent / App → 埋点 → 评估引擎 → Benchmark Registry → 评分 → 告警 / 人工复核 → CI/CD 的端到端框架。
-- 选择并对比 OpenAI Evals、LM Evaluation Harness、LangSmith、Phoenix、Ragas、DeepEval、Promptfoo、MLflow Evaluate 等主流工具。
+- 选择并对比 OpenAI Evals、LM Evaluation Harness、OpenCompass、Inspect AI、LangSmith、Phoenix、Ragas、DeepEval、Promptfoo、MLflow Evaluate 等主流工具。
 - 在生产环境中落地 CI 评估门、影子评估、A/B 评估、成本预算与失败模式归因。
+- 看懂公开榜单：理解基准饱和循环、评测污染与 LMArena 类众包榜的结构性偏差，掌握引用公开分数的纪律。
 
 ## 与相邻主题的关系
 
