@@ -38,6 +38,7 @@
 - **LLM Gateway（已上线）**
 - **[RL Post-Training 基础设施（已上线）](/04-llmops/rl-post-training/)** — GRPO/PPO 算法工程化、Rollout/Train 分离架构、veRL/OpenRLHF 源码、Agentic RL、生产实践
 - **[AI 编译器与 Kernel 生成（已上线）](/04-llmops/ai-compiler/)** — torch.compile/Inductor 编译链路、Triton 语言与编译器、cuTile/CUTLASS、TileLang、Mirage megakernel，理解推理引擎之下的算子生成层
+- **[特征平台与训练数据基础设施（已上线）](/03-ai-platform/feature-store/)** — 特征偏斜治理、point-in-time 正确性、离线/在线双存储、Feast/Hopsworks/Tecton 生态
 
 ## 阶段四：Agent 与 RAG（4~6 周）
 
@@ -79,7 +80,8 @@
 - **[Google 案例研究](/09-case-study/google/)（已上线）** — TPU 自研硅（MXU/SparseCore/3D-torus/OCS）、NSDI'24 双路径恢复（99.98% 可用率）、GSPMD/Pathways 自动并行、Falcon 硬件传输、开放软件栈（JAX/XLA/MaxText）+ 闭源硬件
 - **[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）** — 算法-系统协同设计：DualPipe 流水线、细粒度专家并行、FP8 混合精度、MLA/DSA 注意力、3FS/DeepEP 开源栈，278.8 万 GPU 小时训练 V3
 - **[xAI 案例研究](/09-case-study/xai/)（已上线）** — Memphis Colossus：122 天 10 万卡单训练域、供电/液冷/网络 fabric、"速度即战略"的集群建设组织学
-- Cursor、Perplexity 等持续建设中
+- **[Perplexity 案例研究](/09-case-study/perplexity/)（已上线）** — 答案引擎推理经济学：模型路由、缓存、流式延迟与 Sonar 开源策略
+- Cursor 等持续建设中
 
 ## 推荐学习顺序
 
@@ -120,6 +122,8 @@
 33. [向量数据库与 Embedding 基础设施](/06-rag/vector-db/) — 理解 HNSW/DiskANN、向量数据库系统、GPU 索引与 Embedding 服务
 34. [DeepSeek 案例研究](/09-case-study/deepseek/) — 通过 DeepSeek 理解算法-系统协同设计：DualPipe、FP8、MLA 与开源 Infra 栈
 35. [xAI 案例研究](/09-case-study/xai/) — 通过 xAI 理解超集群建设：供电、液冷、单训练域网络与速度组织学
+36. [特征平台与训练数据基础设施](/03-ai-platform/feature-store/) — 理解特征生命周期：point-in-time 正确性、偏斜治理与离线/在线双存储
+37. [Perplexity 案例研究](/09-case-study/perplexity/) — 通过 Perplexity 理解推理经济学：模型路由、缓存与流式延迟
 
 ## 面试准备
 

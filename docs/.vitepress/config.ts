@@ -148,6 +148,7 @@ export default withMermaid(
             { text: 'Airflow 9. 最佳实践', link: '/03-ai-platform/airflow/09-best-practices' },
             { text: 'Airflow 10. 面试题', link: '/03-ai-platform/airflow/10-interview-questions' },
             { text: 'Airflow 11. 延伸阅读', link: '/03-ai-platform/airflow/11-further-reading' },
+            { text: '特征平台与训练数据基础设施', link: '/03-ai-platform/feature-store/' },
           ],
         },
         {
@@ -257,6 +258,7 @@ export default withMermaid(
             { text: 'Google 9. 最佳实践', link: '/09-case-study/google/09-best-practices' },
             { text: 'DeepSeek 总览', link: '/09-case-study/deepseek/' },
             { text: 'xAI 总览', link: '/09-case-study/xai/' },
+            { text: 'Perplexity 总览', link: '/09-case-study/perplexity/' },
           ],
         },
       ],

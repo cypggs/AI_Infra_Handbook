@@ -10,6 +10,7 @@
 - **[MLflow](/03-ai-platform/mlflow/)** — 开源 ML 生命周期平台：Tracking + Models + Model Registry，实验追踪、模型打包、版本治理与生产部署。
 - **[KubeRay](/03-ai-platform/kuberay/)** — Ray 官方 Kubernetes Operator：RayCluster + RayJob + RayService CRD，自动扩缩容、GCS 容错与声明式升级。
 - **[Airflow](/03-ai-platform/airflow/)** — 工作流编排平台：DAG / Operator / Scheduler / Executor / Metadata DB / Triggerer，支撑数据与 ML 流水线调度。
+- **[特征平台与训练数据基础设施](/03-ai-platform/feature-store/)** — 特征生命周期管理：训练/服务偏斜治理、point-in-time 正确性、离线/在线双存储、Feast/Hopsworks/Tecton 生态。
 
 ## 计划中主题
 

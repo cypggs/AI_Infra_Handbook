@@ -51,6 +51,7 @@
 - 想了解 Personal AI Agent：[Personal AI Agent](/05-agent/personal-agent/)（已上线）
 - 想了解 RAG：[RAG](/06-rag/)（已上线）
 - 想了解向量数据库与 Embedding 基础设施（HNSW/DiskANN、Milvus/Qdrant/pgvector、Embedding 服务）：[向量数据库与 Embedding 基础设施](/06-rag/vector-db/)（已上线）
+- 想了解特征平台与训练数据基础设施（特征偏斜、point-in-time 正确性、Feast/Tecton）：[特征平台与训练数据基础设施](/03-ai-platform/feature-store/)（已上线）
 - 想了解 AI SRE：[AI SRE](/07-ai-sre/)（已上线）
 - 想了解 Benchmark + Evaluation（Agent / LLM / RAG 可复现评测框架）：[Benchmark + Evaluation](/07-ai-sre/benchmark-evaluation/)（已上线）
 - 想了解安全：[安全](/08-security/)（已上线）
@@ -60,6 +61,7 @@
 - 想了解 Google 基础设施案例：[Google 案例研究](/09-case-study/google/)（已上线）
 - 想了解 DeepSeek 基础设施案例（DualPipe/FP8/MLA/3FS）：[DeepSeek 案例研究](/09-case-study/deepseek/)（已上线）
 - 想了解 xAI 基础设施案例（Memphis Colossus）：[xAI 案例研究](/09-case-study/xai/)（已上线）
+- 想了解 Perplexity 推理经济学案例（答案引擎、Sonar、模型路由）：[Perplexity 案例研究](/09-case-study/perplexity/)（已上线）
 
 ### 3. 每个主题的结构
 
