@@ -10,6 +10,7 @@
 - [Triton Inference Server](/04-llmops/triton/)：NVIDIA 开源多框架推理服务软件，统一承载多种推理后端
 - [AI 编译器与 Kernel 生成](/04-llmops/ai-compiler/)：从 torch.compile/Inductor 到 Triton 语言、cuTile/CUTLASS、TileLang 与 Mirage——算子编译与 GPU Kernel 生成层
 - [LLM 推理缓存与 KV Cache 管理](/04-llmops/kv-cache/)：KV Cache 作为新兴存储对象的分层、迁移与复用——PD 分离、Mooncake/LMCache/NIXL、prefix 路由与卸载
+- [模型量化与压缩基础设施](/04-llmops/model-quantization/)：从校准到部署的量化工具链——GPTQ/AWQ/SmoothQuant、FP8/NVFP4/MXFP4 格式与 kernel 后端
 - [LLM Gateway](/04-llmops/llm-gateway/)：位于客户端与推理后端之间的访问控制与抽象层
 - [RL Post-Training 基础设施](/04-llmops/rl-post-training/)：把强化学习闭环跑在千卡集群上的工程系统，覆盖 GRPO/PPO、Rollout/Train 分离、veRL/OpenRLHF 源码与生产实践
 

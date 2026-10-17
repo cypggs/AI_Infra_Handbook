@@ -70,6 +70,7 @@ export default withMermaid(
             { text: 'Triton Inference Server', link: '/04-llmops/triton/' },
             { text: 'AI 编译器与 Kernel 生成', link: '/04-llmops/ai-compiler/' },
             { text: 'LLM 推理缓存与 KV Cache 管理', link: '/04-llmops/kv-cache/' },
+            { text: '模型量化与压缩基础设施', link: '/04-llmops/model-quantization/' },
             { text: 'LLM Gateway', link: '/04-llmops/llm-gateway/' },
             { text: 'RL Post-Training 基础设施', link: '/04-llmops/rl-post-training/' },
           ],
@@ -181,6 +182,7 @@ export default withMermaid(
             { text: '8. 企业生产实践', link: '/06-rag/08-production-practice' },
             { text: '9. 最佳实践', link: '/06-rag/09-best-practices' },
             { text: '向量数据库与 Embedding 基础设施', link: '/06-rag/vector-db/' },
+            { text: 'GraphRAG 与知识图谱检索', link: '/06-rag/graphrag/' },
           ],
         },
         {

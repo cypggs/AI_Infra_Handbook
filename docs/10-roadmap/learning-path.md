@@ -40,6 +40,7 @@
 - **[AI 编译器与 Kernel 生成（已上线）](/04-llmops/ai-compiler/)** — torch.compile/Inductor 编译链路、Triton 语言与编译器、cuTile/CUTLASS、TileLang、Mirage megakernel，理解推理引擎之下的算子生成层
 - **[特征平台与训练数据基础设施（已上线）](/03-ai-platform/feature-store/)** — 特征偏斜治理、point-in-time 正确性、离线/在线双存储、Feast/Hopsworks/Tecton 生态
 - **[LLM 推理缓存与 KV Cache 管理（已上线）](/04-llmops/kv-cache/)** — KV 分层/迁移/复用，PD 分离与 Mooncake/LMCache/NIXL 生态
+- **[模型量化与压缩基础设施（已上线）](/04-llmops/model-quantization/)** — PTQ/QAT 算法体系、NVFP4/MXFP4 格式、llm-compressor/Quark 工具链
 - **[AI 集群网络（已上线）](/02-cloud-native/ai-networking/)** — scale-up/scale-out fabric、NVLink/UALink、IB/RoCE/UEC、集合通信流量工程
 
 ## 阶段四：Agent 与 RAG（4~6 周）
@@ -57,6 +58,7 @@
 - **[Personal AI Agent](/05-agent/personal-agent/)（已上线）**
 - **[RAG](/06-rag/)（已上线）**
 - **[向量数据库与 Embedding 基础设施](/06-rag/vector-db/)（已上线）** — HNSW/IVF/DiskANN 索引、Milvus/Qdrant/pgvector 系统、GPU 索引与 Embedding 服务
+- **[GraphRAG 与知识图谱检索](/06-rag/graphrag/)（已上线）** — 图检索范式：实体-关系抽取、社区摘要、local/global/多跳查询
 - GraphRAG 与评估体系
 
 ## 阶段五：AI SRE 与安全（持续）
@@ -128,6 +130,8 @@
 37. [Perplexity 案例研究](/09-case-study/perplexity/) — 通过 Perplexity 理解推理经济学：模型路由、缓存与流式延迟
 38. [LLM 推理缓存与 KV Cache 管理](/04-llmops/kv-cache/) — 理解 KV 分层、PD 分离传输与 prefix 复用
 39. [AI 集群网络](/02-cloud-native/ai-networking/) — 理解 scale-up/scale-out fabric 与 AI 流量工程
+40. [GraphRAG 与知识图谱检索](/06-rag/graphrag/) — 理解图索引、社区摘要与多跳推理检索
+41. [模型量化与压缩基础设施](/04-llmops/model-quantization/) — 理解 PTQ/QAT、GPTQ/AWQ 与 NVFP4 工具链
 
 ## 面试准备
 

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "model-quantization-mini"
+version = "0.1.0"
+description = "CPU-runnable mini demo of LLM quantization toolchain: symmetric/asymmetric & group-wise quantization, GPTQ-style error compensation, SmoothQuant difficulty migration, KV cache quantization and FP4/FP8 format simulation"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["model_quantization_mini*"]
+
+[project.scripts]
+model-quantization-demo = "model_quantization_mini.demo:run_demo"

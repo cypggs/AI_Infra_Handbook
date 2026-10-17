@@ -36,6 +36,7 @@ RAG 不是孤立的“向量搜索”，它需要与 LLM 服务、Agent 运行�
 ## 子主题
 
 - [向量数据库与 Embedding 基础设施](./vector-db/) — RAG 的检索底座：HNSW/IVF/DiskANN 索引、Milvus/Qdrant/pgvector 系统、GPU 索引与 Embedding 服务。
+- [GraphRAG 与知识图谱检索](./graphrag/) — 图检索增强：实体-关系抽取、社区检测与摘要、local/global/多跳查询，GraphRAG/LightRAG/HippoRAG 生态。
 
 ## 章节导航
 
