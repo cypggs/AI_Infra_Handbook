@@ -111,6 +111,31 @@ Gartner 预测到 2026 年底 40% 的企业应用将内嵌任务型 Agent（2025
 - [Agent 365 vs Agentforce 360 vs ServiceNow AI（2026-05）](https://andrew.ooo/answers/agent-365-vs-agentforce-360-vs-servicenow-may-2026/)
 - [Agentic OS 技术详解（腾讯云）](https://cloud.tencent.com/developer/article/2671167)
 
+### CLI Agent Runtime 的格局收敛（2025–2026）
+
+与"企业级控制面"平行的另一条演进主线是 **CLI/桌面 Agent Runtime 的格局收敛**。2025 年起，Coding Agent 从 IDE 插件走向终端原生，几大厂商的 CLI 在 18 个月内完成了多轮迭代，功能面高度趋同：
+
+- **Claude Code**：终端 + IDE + 桌面 + Web + 移动全 surface；扩展面四层——`CLAUDE.md`（per-project 配置）、**Skills**（可复用工作流包）、**Plugins**（技能+命令+MCP Server 的分发单元）、**Hooks**（在文件编辑/提交等事件前后执行 shell 命令，本质是系统调用拦截器）；**sub-agents**（Task 工具）支持 lead agent 派生并行子 Agent、各自携带隔离上下文；**Agent SDK** 把同一引擎开放给自定义编排；`claude -p` headless 模式可直接嵌入 CI。2026-04-09 与 Claude Cowork GA 同期开放 **Managed Agents** 公测，把云端托管 Agent 变成平台能力。
+- **OpenAI Codex**：云端（chatgpt.com/codex，长时程任务跑在云端沙箱）+ 本地 **Codex CLI**（2025-04 以 Apache-2.0 开源）双形态，统一 ChatGPT 账号体系，是"本地+云同构"路线的代表。
+- **Gemini CLI**：2025-06 以 Apache-2.0 开源，内置 Google 登录与 Code Assist 订阅通道；2026-06-18 起 Google 把免费层迁移到 Antigravity CLI，Gemini CLI 转向企业（Vertex AI / Code Assist）定位。
+- **Qwen Code**：2025 年自 Gemini CLI v0.8.2 fork，v0.1 起停止同步上游独立发展，多协议（OpenAI/Anthropic/Gemini/Qwen API + Ollama/vLLM 本地模型）、多平台（终端/编辑器/桌面/Web/SDK），是开放模型阵营 CLI 的代表。
+
+这些 CLI 已经内置了"准 OS"机制：权限确认（capability）、工作目录约束（workspace）、上下文压缩（context management）、sub-agent 派生（进程 spawn）。但它们是**单用户、单宿主**的——当企业需要同时治理成百上千个这样的会话（谁的 Agent 在跑、跑了多久、花了多少 Token、能不能审计）时，仍然需要独立的 Agent OS 层。CLI Runtime 本身的执行循环属于 [Agent Runtime](/05-agent/agent-runtime/) 主题，本章只讨论它们对 OS 层的需求。
+
+### Cowork 类产品形态：Agent OS 的消费者化
+
+2026 年另一个标志性事件是 **Claude Cowork** 的产品化轨迹：2026-01 以研究预览形式发布（macOS、Max 订阅，面向非开发者的"Claude Code for the rest of your work"，在指定文件夹内自主读写文件、跑定时任务）；2026-02 Windows beta + 企业版；**2026-04-09 GA**（同期开放 Managed Agents 公测与一批企业连接器）；2026-07-07 扩展到移动与 Web（云端 session 默认）；**2026-09-16 Anthropic 宣布 Cowork 并入统一的 Claude 体验**——从 Chat/Cowork/Code 三模式收敛为 Chat + Code 双模式。
+
+Cowork 的意义不在于功能本身，而在于它验证了"**Agent OS 的消费者形态**"：指定工作目录（workspace）、定时任务（scheduler）、云端 session 续跑（checkpoint/resume）、连接器（capability）这套原语，与开发者向 Agent OS 提出的需求完全同构。企业控制面（Agent 365、Agentforce、ServiceNow）与个人宿主（Cowork、Codex、CLI）正在上下合围同一套抽象。
+
+来源：
+- [Claude Code 官方文档（Overview）](https://code.claude.com/docs/en/overview)
+- [OpenAI Codex CLI（GitHub）](https://github.com/openai/codex)
+- [Gemini CLI（GitHub）](https://github.com/google-gemini/gemini-cli)
+- [Qwen Code（GitHub）](https://github.com/QwenLM/qwen-code)
+- [The Verge：Claude Cowork 登陆移动与 Web](https://www.theverge.com/ai-artificial-intelligence/961978/anthropic-claude-cowork-mobile-web)
+- [9to5Mac：Anthropic 合并 Claude Cowork 与 Chat](https://9to5mac.com/2026/09/16/anthropic-merging-claude-cowork-with-chat/)
+
 ### MCP 推动的 Host 层治理
 
 MCP（Model Context Protocol）把工具/资源抽象为 Server，Host 负责管理 Client 与 Server 的生命周期、能力协商与权限边界。MCP Host 本质上就是 Agent OS 的”系统调用层”。
@@ -148,6 +173,7 @@ Agent OS 的兴起不是偶然，而是由以下趋势共同推动：
 3. **调用成本敏感**：LLM Token、工具调用、外部 API 都需要预算控制，调度粒度细化到单次 LLM 推理调用。
 4. **安全合规压力**：Agent 访问敏感数据与系统，必须可授权、可审计、可回滚；OWASP ASI:2026 给出了十大 Agentic 风险与对应控制措施。
 5. **Multi-Agent 与 MCP 标准化**：Agent 之间、Agent 与工具之间需要统一协议；2026 年 A2A 发布 v1.0（Linux Foundation 治理，150+ 组织支持），MCP 2026-07-28 规范把 Host 无状态化并落地 OAuth 2.1 授权，Agent OS 是协议落地的基础设施。
+6. **宿主层机制收敛**：Claude Code、Codex CLI、Gemini CLI、Qwen Code 等 CLI Runtime 在 2025–2026 年独立演化出同一套"准 OS"机制（权限、工作区、上下文压缩、sub-agent），Cowork 类产品把同一套原语带给非开发者——功能收敛意味着抽象已被验证，缺的只是跨宿主、跨租户的统一治理层。
 
 ## 本章小结
 
@@ -155,6 +181,7 @@ Agent OS 的兴起不是偶然，而是由以下趋势共同推动：
 - 学术界提出 AIOS、LLM as OS、Agent libOS、Quine 等方向，把 OS 抽象引入 Agent 世界。
 - 工业界需要 Agent OS 来管理成百上千个 Agent 的生命周期、权限、成本与可观测性；Microsoft、Salesforce、ServiceNow、阿里云等正在把 Agent 控制面做成平台产品。
 - MCP Host（2026-07-28 无状态规范 + OAuth 2.1）与 Governed MCP 代表了 Agent OS 在工具/能力治理方向的关键实践；Firecracker microVM 成为 Agent 沙箱的事实标准。
+- CLI Agent Runtime（Claude Code、Codex、Gemini CLI、Qwen Code）在 2025–2026 年收敛出同一套"准 OS"机制，Cowork 类产品将其消费者化；跨宿主、跨租户的统一治理仍缺一层独立的 Agent OS。
 - OWASP ASI:2026 给出了 Agentic 系统的十大风险基线，Agent OS 的策略引擎与沙箱是对应控制措施的主要落地载体。
 
 **参考来源**
@@ -167,4 +194,8 @@ Agent OS 的兴起不是偶然，而是由以下趋势共同推动：
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
 - [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
+- [Claude Code 官方文档](https://code.claude.com/docs/en/overview)
+- [OpenAI Codex CLI](https://github.com/openai/codex)
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+- [Qwen Code](https://github.com/QwenLM/qwen-code)
 - [Continuum: Multi-Turn LLM Agent Scheduling with KV Cache Time-to-Live](https://arxiv.org/abs/2511.02230)

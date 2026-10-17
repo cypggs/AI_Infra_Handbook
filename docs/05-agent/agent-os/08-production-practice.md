@@ -60,6 +60,15 @@ graph TB
 - 执行面（Sandbox、Agent Runtime）分布在 K8s Pod、容器或边缘节点。
 - 适合大型企业与边缘协同场景。
 
+### 宿主式：CLI Runtime 舰队治理
+
+2026 年越来越多企业的 Agent 负载跑在员工本机的 Claude Code、Codex CLI、Gemini CLI、Qwen Code 等宿主内（含云端 session 与 Routines 定时任务），形成"影子 Agent 舰队"。此时 Agent OS 的职责退化为**跨宿主治理面**：
+
+- 统一身份：把每个宿主会话映射为工作负载身份（SPIFFE SVID / Entra ID Agent 主体），拒绝匿名会话访问企业资源。
+- 策略下发：通过 `CLAUDE.md`/AGENTS.md、远端 Hooks、MCP 网关把组织的 Intent Gate 与工具白名单注入每个宿主。
+- 成本与审计汇聚：聚合各宿主的上报（token 消耗、工具调用、HITL 事件）到中心 Observer，否则单用户宿主的支出完全不可见。
+- 托管衔接：Anthropic Managed Agents（2026-04 公测）、Codex 云端任务等托管形态出现时，治理面要同时覆盖"本机 spawn"与"云端 spawn"两类进程。
+
 ## 多租户
 
 ### 隔离维度
@@ -110,6 +119,7 @@ graph TB
 - 为每个 Agent/任务/租户设置 Token 预算。
 - 实时统计输入/输出 Token，接近阈值时告警或减速。
 - 对异常消耗（如循环调用）触发熔断。
+- 把**上下文窗口**纳入预算体系：为每个进程（含 sub-agent）设置上下文 token 上限，溢出时触发压缩策略（系统侧摘要/截断）或交回 Agent 自主外置，避免主上下文被中间过程撑爆；上下文压缩策略应按任务可配置，压缩事件写入审计日志。
 
 ### 优先级与抢占
 
@@ -264,7 +274,7 @@ OWASP Agentic AI Top 10（2025-12-09 发布，配套《State of Agentic AI Secur
 ## 本章小结
 
 - 生产级 Agent OS 需要综合考虑部署拓扑、多租户隔离、沙箱策略、调度、可观测、安全、成本、升级与恢复。
-- Kubernetes 原生式适合强隔离，服务式适合快速迭代，混合式适合大型企业。
+- Kubernetes 原生式适合强隔离，服务式适合快速迭代，混合式适合大型企业；当 Agent 跑在员工本机 CLI 宿主内时，Agent OS 退化为跨宿主治理面（身份、策略、成本、审计）。
 - 可观测应覆盖 trace、metrics、logs、reasoning path；安全应以 MCP Host 为策略执行点，以 OWASP ASI:2026 为风险基线，以"SPIFFE/WIMSE + OAuth 2.1/事务令牌"两层模型落地 Agent 身份。
 - 成本核算需要按 Token、工具调用、计算、存储、网络多维度拆分。
 

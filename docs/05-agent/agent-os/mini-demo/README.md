@@ -26,10 +26,11 @@ mini-demo/
 ├── agent_os_mini/
 │   ├── __init__.py
 │   ├── kernel.py         # spawn, schedule, terminate, registry
-│   ├── process.py        # AgentProcess lifecycle and state
+│   ├── process.py        # AgentProcess lifecycle and state (with private context)
 │   ├── scheduler.py      # round-robin / priority schedulers
 │   ├── sandbox.py        # capability/policy enforcement
 │   ├── workspace.py      # shared + per-process blackboard
+│   ├── context.py        # per-process token-budgeted context with compaction
 │   ├── message_bus.py    # inbox/outbox IPC
 │   ├── observer.py       # event trace
 │   └── demo.py           # run_demo() entry point
@@ -71,6 +72,10 @@ pytest tests/ -q
   limited to two calls. Exceeding the budget raises `PolicyViolation`.
 - **Scheduler**: the default is round-robin; a priority scheduler is also
   provided for comparison.
+- **Context engineering**: every process owns a private `ContextBuffer` with a
+  hard token budget; appends beyond the budget trigger deterministic
+  compaction that keeps the oldest instructions and newest state. Token counts
+  are passed in explicitly so behavior is fully reproducible.
 - **Determinism**: execution order and output are fully deterministic.
 
 ## License

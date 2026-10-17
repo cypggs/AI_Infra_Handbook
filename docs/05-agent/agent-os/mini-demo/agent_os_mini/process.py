@@ -5,6 +5,8 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import Any, Callable
 
+from .context import ContextBuffer
+
 
 class ProcessState(Enum):
     """Process lifecycle states."""
@@ -19,7 +21,8 @@ class AgentProcess:
     """A lightweight agent process managed by the kernel.
 
     Each process has a unique ID, a role, private state, a reference to the
-    shared workspace and message bus, and an execution step function.
+    shared workspace and message bus, an execution step function, and a
+    private context buffer (its "address space" of token budget).
     """
 
     def __init__(
@@ -31,6 +34,7 @@ class AgentProcess:
         bus: Any,
         observer: Any,
         priority: int = 0,
+        context: ContextBuffer | None = None,
     ) -> None:
         self.pid = pid
         self.role = role
@@ -39,6 +43,7 @@ class AgentProcess:
         self.bus = bus
         self.observer = observer
         self.priority = priority
+        self.context = context if context is not None else ContextBuffer()
         self.state = ProcessState.READY
         self.result: Any = None
         self.metadata: dict[str, Any] = {}

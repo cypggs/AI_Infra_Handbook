@@ -1,6 +1,6 @@
 # 源码分析
 
-> 一句话理解：**AIOS、Agent libOS、Quine、AgentRM/HiveMind、MCP Host、OpenAI Agents SDK Runner、AutoGen Runtime 与开源 AgentOS 项目代表了 Agent OS 的多种实现路径：内核式、库式、进程式、调度式、协议式与框架式。**
+> 一句话理解：**AIOS、Agent libOS、Quine、AgentRM/HiveMind、MCP Host、OpenAI Agents SDK Runner、AutoGen Runtime、Claude Code、Letta 与开源 AgentOS 项目代表了 Agent OS 的多种实现路径：内核式、库式、进程式、调度式、协议式、宿主式与框架式。**
 
 ## 1. AIOS：LLM Agent Operating System
 
@@ -424,7 +424,40 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 
 2026-04 的更新版把 OWASP ASI:2026 十大风险映射到具体控制：能力沙箱、MCP 安全网关、身份策略，代表”治理框架 + 风险基线”的整合方向。
 
+### Letta（MemGPT 后继）：状态化 Agent 服务器
+
+MemGPT（arXiv:2310.08560）提出把 LLM 上下文当作"虚拟内存"做分页管理，是上下文工程的思想源头之一。其后继项目 **Letta**（Apache-2.0，活跃开发已迁至 [letta-ai/letta-code](https://github.com/letta-ai/letta-code)）把这一思想产品化为**状态化 Agent 服务器**：
+
+- Agent 状态（含长期记忆）由服务端持有，客户端可随时断线重连——本质上是把"进程持久化 + 上下文分页"做成了托管服务。
+- 提供终端 UI、桌面/Web、Slack/Telegram 等 channel 与多语言 SDK；Letta Cloud 负责跨设备同步记忆与身份。
+
+与本主题的对照：Letta 相当于"Memory Manager + Storage Manager"的独立商用实现，而完整 Agent OS 还需要调度、沙箱、策略、消息总线等其余原语。
+
 这些项目代表了 Agent OS 从”调度运行时”向”治理平台”演进的工业实践。
+
+## 11. Claude Code：装机量最大的"准 Agent OS"参照
+
+**来源**：[Claude Code 官方文档](https://code.claude.com/docs/en/overview)
+
+Claude Code 从未自称 Agent OS，但它 2025–2026 年在终端、IDE、桌面、Web、移动五个 surface 上沉淀的机制，与本主题的核心模块几乎一一对应，是目前装机量最大的"准 Agent OS"参照实现：
+
+| Claude Code 机制 | 对应 Agent OS 模块 |
+|---|---|
+| 权限确认模式（允许列表/询问/plan 模式） | Capability Manager + Policy Engine |
+| `CLAUDE.md` / auto memory | per-process 配置 + Workspace |
+| Skills / Plugins | Registry + 包管理（技能、命令、MCP Server 的分发与版本） |
+| Hooks（编辑/提交等事件前后执行 shell 命令） | 系统调用拦截器（Security Monitor） |
+| sub-agents（Task 工具）+ Agent View 并行会话 | Process Manager（进程树 + 独立上下文地址空间） |
+| Agent SDK + `claude -p` headless | 系统调用门面（把引擎开放给外部编排） |
+| Routines / 云端 session / teleport | Scheduler + checkpoint/resume（跨设备状态迁移） |
+
+**设计启示**：
+
+- **上下文隔离先于能力隔离**：sub-agent 的首要价值是独立上下文窗口（进程地址空间），其次才是并行加速——这印证了第 11 节"上下文工程"的进程级抽象。
+- **Hooks 是治理的最低成本落点**：不改 Agent 行为，只在事件边界插入校验，与 Intent Gate"执行前拦截"的思路一致。
+- **同引擎多 surface**：同一 Claude Code 引擎跑在终端/桌面/Web/移动，验证了"控制面-数据面分离 + 状态可迁移"的架构；2026-09 Cowork 并入统一 Claude 体验后，Chat 与 Code 双模式共享同一套底层原语。
+
+来源：[Claude Code Skills](https://code.claude.com/docs/en/skills)、[Claude Code Hooks](https://code.claude.com/docs/en/hooks)、[Claude Code Sub-agents](https://code.claude.com/docs/en/sub-agents)、[Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)
 
 ## 设计取舍对比表
 
@@ -440,6 +473,8 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 | OpenAI Agents SDK Runner | Runner | 单 Agent | 低 | 无 | Guardrails | 单 Agent 应用 |
 | AutoGen Runtime | 消息驱动 | 消息路由 | 低 | 无 | 基础 | Multi-Agent 协作 |
 | Bedrock AgentCore | 模块化托管服务 | 有 | 会话级 microVM | 有 | 强（Policy/Registry） | 企业级托管治理 |
+| Claude Code | CLI/桌面宿主 | Routines/云端 session | 工作目录约束 | CLAUDE.md/auto memory | 权限模式+Hooks | 个人与团队编码宿主 |
+| Letta（letta-code） | 状态化 Agent 服务器 | 服务端调度 | 进程级 | 强（分页记忆） | 基础 | 长记忆对话型 Agent |
 | 开源 AgentOS | 治理平台 | 有 | 中/高 | 有 | 强 | 企业治理 |
 
 ## 选型建议
@@ -453,6 +488,8 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 | 标准化工具接入 | MCP Host（2026-07-28 无状态规范） |
 | 单 Agent 应用快速开发 | OpenAI Agents SDK Runner |
 | 多 Agent 协作原型 | AutoGen Runtime |
+| 学习"准 OS"机制的最佳样本 | Claude Code（Skills/Hooks/sub-agents 对照十大原语） |
+| 长记忆、可断线重连的对话 Agent | Letta（letta-code） |
 | 企业级托管 Agent OS | Amazon Bedrock AgentCore |
 | 企业级 Agent 治理 | Microsoft Agent Governance Toolkit、Framers AgentOS、ServiceNow AI Control Tower |
 
@@ -463,6 +500,7 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 - MCP Host 是 Agent OS 在协议层的关键入口；2026-07-28 规范无状态化后，会话状态上移到 OS 层，Host 可以更纯粹地做策略执行点。
 - OpenAI Agents SDK Runner 与 AutoGen Runtime 是 Runtime/Multi-Agent 层的优秀实现，Agent OS 在其之上提供调度、隔离与治理。
 - Amazon Bedrock AgentCore 代表了”模块对齐十大原语 + 治理闭环”的托管式工业实现；开源项目正从”运行时”向”治理平台”演进。
+- Claude Code 是装机量最大的"准 Agent OS"参照：权限模式、Hooks、Skills/Plugins、sub-agent 与本主题模块一一对应；Letta 则代表"Memory Manager + Storage Manager"独立商用化的路线。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
@@ -479,3 +517,8 @@ Framers AgentOS 面向企业级 Agent 管理，强调：
 - [Framers AgentOS](https://www.framers.ai/)
 - [Microsoft Agent Governance Toolkit](https://www.microsoft.com/en-us/security/blog/2025/05/06/introducing-the-microsoft-agent-governance-toolkit/)
 - [agiresearch/AIOS GitHub](https://github.com/agiresearch/AIOS)
+- [Claude Code 官方文档](https://code.claude.com/docs/en/overview)
+- [Claude Code Sub-agents](https://code.claude.com/docs/en/sub-agents)
+- [Letta（letta-ai/letta）](https://github.com/letta-ai/letta)
+- [Letta Code（letta-ai/letta-code）](https://github.com/letta-ai/letta-code)
+- [MemGPT: Towards LLMs as Operating Systems](https://arxiv.org/abs/2310.08560)

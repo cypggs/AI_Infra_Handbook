@@ -74,6 +74,7 @@ graph TB
 - **Planning Engine**：任务分解、计划生成、重规划。
 - **Multi-Agent Framework**：多 Agent 协作、角色分配、团队协调。
 - **Tool Use / MCP Client**：单次工具调用、MCP Client 实现。
+- **CLI Agent Runtime**：Claude Code、Codex CLI、Gemini CLI、Qwen Code 等终端宿主——它们自带"准 OS"机制（权限、工作区、上下文压缩、sub-agent），但作为应用层消费者使用 OS 服务；单实例的启动方式见 [Agent Runtime 主题](/05-agent/agent-runtime/)。
 
 应用层不直接管理资源，而是通过 Agent OS 服务层申请进程、调度、存储、通信等服务。
 
@@ -239,13 +240,14 @@ Agent OS 可以表现为不同形态：
 | 服务式 | 独立进程/服务，Agent Runtime 通过 RPC 调用 | 企业级、多语言、多租户 |
 | 内核扩展式 | 与容器/K8s 结合，Agent 以 Pod/容器运行 | 强隔离、云原生 |
 | POSIX 进程式 | Agent 作为原生进程，如 Quine | 与现有 Unix/Linux 生态集成 |
+| 宿主式（hosted） | Agent 跑在 Claude Code / Cowork / Codex 等 CLI-桌面宿主内，OS 层只做跨宿主治理与审计 | 个人生产力、影子 IT 治理、混合办公 |
 
 ## 本章小结
 
 - Agent OS 分为应用层、服务层、内核层、基础设施层，每层职责清晰。
 - 控制面负责决策，数据面负责状态流转，两者应解耦。
 - 与 Runtime、Memory、Planning、MCP、Multi-Agent、Tool Use 的边界必须明确，避免职责耦合。
-- Agent OS 可以是库式、服务式、内核扩展式或 POSIX 进程式，选型取决于隔离与集成需求。
+- Agent OS 可以是库式、服务式、内核扩展式、POSIX 进程式或宿主式，选型取决于隔离与集成需求。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)

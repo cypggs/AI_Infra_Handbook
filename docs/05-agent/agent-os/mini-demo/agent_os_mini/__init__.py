@@ -12,6 +12,7 @@ from .sandbox import Sandbox, PolicyViolation
 from .workspace import Workspace
 from .message_bus import MessageBus
 from .observer import Observer
+from .context import ContextBuffer, ContextEntry, ContextOverflow
 from .demo import run_demo
 
 __all__ = [
@@ -25,5 +26,8 @@ __all__ = [
     "Workspace",
     "MessageBus",
     "Observer",
+    "ContextBuffer",
+    "ContextEntry",
+    "ContextOverflow",
     "run_demo",
 ]

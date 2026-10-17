@@ -53,6 +53,17 @@
 - [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
   - 面向多跳委托链的可验证授权：IBCT + Biscuit 令牌；IETF 侧对应 AIMS/WIMSE/Transaction Tokens 草案。
 
+### 上下文工程与 Agent 层级（2026 新方向）
+
+- [Awesome-Agent-Context-Compression（YerbaPage）](https://github.com/YerbaPage/Awesome-Agent-Context-Compression)
+  - 长程 Agent 上下文压缩综述（EMNLP 2026 接收）的配套仓库：按"压缩什么 / 怎么压缩 / 谁来决策"三轴整理，并系统归纳 failure modes。
+- [Optimizing Context Compression for Long-horizon LLM Agents](https://arxiv.org/abs/2510.00615)
+  - 面向长程任务的上下文压缩优化：压缩策略要按任务阶段与成功率评估，而非单轮指标。
+- [Autonomous Memory Management in LLM Agents](https://arxiv.org/abs/2601.07190)
+  - Agent 自主管理自身上下文（读/写/删除/归档），代表 agent-controlled 压缩路线。
+- [A harness for every task: dynamic workflows in Claude Code](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code)
+  - Anthropic 工程博客：用动态工作流同时编排数十个 subagent，orchestrator-worker 模式的工程化范本。
+
 ## 规范与协议
 
 - [Model Context Protocol Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
@@ -68,7 +79,7 @@
 - [Agent Identity Protocol（IETF draft）](https://www.ietf.org/archive/id/draft-prakash-aip-01.html)
   - 跨 MCP/A2A 的可验证委托草案，与 WIMSE、Transaction Tokens 等 IETF OAuth 草案互为参照。
 
-## 开源项目
+## 开源项目与宿主
 
 - [agiresearch/AIOS](https://github.com/agiresearch/AIOS)
   - AIOS 论文的开源实现，提供 Agent 调度、记忆、工具管理等功能。
@@ -76,6 +87,18 @@
   - OpenAI 的 Agent SDK，包含 Runner、handoff、guardrails、tracing。
 - [AutoGen](https://microsoft.github.io/autogen/stable/)
   - Microsoft 的多 Agent 对话框架，包含 Runtime、Group Chat、Human-in-the-Loop。
+- [Claude Code 官方文档](https://code.claude.com/docs/en/overview)
+  - 装机量最大的"准 Agent OS"参照：CLAUDE.md、Skills、Plugins、Hooks、sub-agents、Agent SDK、Routines 全 surface 机制。
+- [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview)
+  - 把 Claude Code 引擎开放给自定义编排的 SDK。
+- [OpenAI Codex CLI](https://github.com/openai/codex)
+  - Apache-2.0 的本地编码 Agent CLI，与 Codex 云端任务共享账号体系；本地+云同构路线的代表。
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+  - Google 的开源终端 Agent（Apache-2.0）；2026-06-18 起免费层迁移到 Antigravity CLI，转向企业（Vertex AI / Code Assist）定位。
+- [Qwen Code](https://github.com/QwenLM/qwen-code)
+  - 从 Gemini CLI fork 后独立发展的多协议、多平台开源编码 Agent，支持本地模型（Ollama/vLLM）。
+- [Letta](https://github.com/letta-ai/letta) / [Letta Code](https://github.com/letta-ai/letta-code)
+  - MemGPT 后继：Apache-2.0 状态化 Agent 服务器，服务端持有 Agent 记忆与状态，客户端可断线重连。
 - [Rivet](https://rivet.gg/)
   - 可视化 Agent 构建与部署平台，提供 agentOS 概念。
 - [Framers AgentOS](https://www.framers.ai/)
@@ -122,11 +145,12 @@
 3. **调度**：读 [AgentRM](https://arxiv.org/abs/2603.13110)、[HiveMind](https://arxiv.org/abs/2604.17111) 与 [Continuum](https://arxiv.org/abs/2511.02230)，掌握任务级（MLFQ/Token）与推理引擎级（KV Cache TTL）两层调度。
 4. **隔离与恢复**：读 [AgentSys](https://arxiv.org/abs/2602.07398) 与 [DeltaBox](https://arxiv.org/abs/2605.22781)，再用 E2B 或 Bedrock AgentCore 跑一个带快照 pause/resume 的沙箱会话。
 5. **治理**：读 [Governed MCP](https://arxiv.org/abs/2604.16870)、[ProbeLogits](https://arxiv.org/abs/2604.11943) 与 [OWASP ASI:2026](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)，理解 Host 层与模型层的双重治理；再读 [AIP](https://arxiv.org/abs/2603.24775) 了解多跳委托的未解难题。
-6. **实践**：跑通 [agiresearch/AIOS](https://github.com/agiresearch/AIOS) 与本主题的 Mini Demo，再对照 [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) 的模块划分检查自己的实现缺了哪些原语。
+6. **上下文与层级**：读 [上下文压缩综述仓库](https://github.com/YerbaPage/Awesome-Agent-Context-Compression) 建立"压缩什么/怎么压缩/谁来决策"的框架，再对照 [Claude Code sub-agents](https://code.claude.com/docs/en/sub-agents) 与 [dynamic workflows 博客](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code) 看 orchestrator-worker 的工程落地。
+7. **实践**：跑通 [agiresearch/AIOS](https://github.com/agiresearch/AIOS) 与本主题的 Mini Demo，再对照 [Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) 的模块划分检查自己的实现缺了哪些原语。
 
 ## 本章小结
 
-- 论文覆盖 Agent OS 基础、变体、调度、隔离恢复、安全治理五大方向。
+- 论文覆盖 Agent OS 基础、变体、调度、隔离恢复、安全治理、上下文工程六大方向。
 - 规范与协议以 MCP 和 A2A 为核心。
-- 开源项目代表不同实现路径：AIOS（研究原型）、OpenAI Agents SDK/AutoGen（Runtime/Multi-Agent）、Rivet/Framers/Microsoft（企业治理）。
-- 推荐按“基础 → 协议 → 调度 → 隔离 → 治理 → 实践”的顺序学习。
+- 开源项目代表不同实现路径：AIOS（研究原型）、OpenAI Agents SDK/AutoGen（Runtime/Multi-Agent）、Claude Code/Codex CLI/Gemini CLI/Qwen Code（CLI 宿主）、Letta（状态化记忆服务器）、Rivet/Framers/Microsoft（企业治理）。
+- 推荐按"基础 → 协议 → 调度 → 隔离 → 治理 → 上下文与层级 → 实践"的顺序学习。

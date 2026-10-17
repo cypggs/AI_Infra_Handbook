@@ -277,9 +277,50 @@ Agent OS 需要面对 Agent 失败后的恢复：
 - **Escalation**：失败无法自动恢复时升级给人类或其他 Agent。
 - **Circuit Breaker**：对连续失败的工具/服务熔断，避免级联故障。
 
+## 11. Context Engineering：上下文工程与 Agent 层级
+
+2026 年"context engineering（上下文工程）"从 prompt 技巧升级为 Agent OS 的**一等公民**：上下文窗口是和 Token、KV Cache 并列的第三类稀缺资源，需要预算、隔离、压缩、淘汰一整套机制。
+
+### 上下文作为 per-process 资源
+
+类比进程的独立地址空间：**每个 Agent 进程应拥有私有上下文，互相隔离**——这正是 sub-agent（Claude Code 的 Task 工具、Agent SDK 的并行 agent）的设计动机：lead agent 派生并行子 Agent 时，子 Agent 携带自己的上下文窗口执行任务，只把最终结果回传主上下文，避免主上下文被中间过程撑爆。OS 层需要负责：
+
+- **上下文预算**：为每个进程设置 token 上限，写入前校验（类比内存配额）。
+- **上下文生命周期**：spawn 时初始化、pause 时序列化到 checkpoint、terminate 时按策略归档或销毁。
+- **上下文压缩（compaction）**：接近上限时触发压缩，而非硬性截断。
+
+### 系统控制 vs Agent 控制的压缩
+
+2026 年的研究把压缩按"谁来决策"分为两类（见 EMNLP 2026 接收的 [上下文压缩综述](https://github.com/YerbaPage/Awesome-Agent-Context-Compression)及其整理的 failure modes）：
+
+- **系统控制（system-controlled）**：框架在后台做截断/摘要/检索外置（externalization），Agent 无感知；实现简单但容易丢掉 Agent 后续需要的细节。
+- **Agent 控制（agent-controlled）**：Agent 自主决定读写、删除、归档哪些上下文（如 MEMENTO、Active Context Compression），token 可省约 20%+，但要求模型具备自我管理能力，且失败模式更隐蔽。
+
+工程上的共识是混合式：OS 层保底（预算硬约束、溢出保护），Agent 层优化（自主外置低价值中间结果）。[长程 Agent 上下文压缩优化](https://arxiv.org/abs/2510.00615)与[自主记忆管理](https://arxiv.org/abs/2601.07190)代表了后一路线的近期进展。
+
+### Agent 层级（Agent Hierarchy）与 orchestrator-worker
+
+sub-agent 普及之后，Agent 系统自然形成层级：
+
+```mermaid
+graph TB
+    O[Orchestrator<br/>主上下文：目标与汇总] --> W1[Worker A<br/>独立上下文]
+    O --> W2[Worker B<br/>独立上下文]
+    O --> W3[Worker C<br/>独立上下文]
+    W1 -->|结果摘要| O
+    W2 -->|结果摘要| O
+    W3 -->|结果摘要| O
+```
+
+- **Orchestrator-worker 模式**：orchestrator 只做分解、派发、合并，worker 在隔离上下文里干脏活；这是 2026 年并行 Agent 编排的主流范式（Anthropic 工程博客称之为"dynamic workflows"，用动态工作流同时编排数十个 subagent）。
+- **OS 视角**：层级就是**进程树**。派生 sub-agent = fork（共享环境快照、独立地址空间）；回收 = 子进程 terminate 并把退出码（结果摘要）传给父进程。因此 OS 层的进程管理、预算继承（子进程预算从父进程配额中扣除）、trace 父子关联，都要按进程树语义设计。
+
+本主题的 Mini Demo 已包含最小实现：每个进程有私有上下文缓冲（`context.py`），写入受 token 预算约束、溢出时确定性压缩，见 [工程实践章节](07-mini-demo)。
+
 ## 本章小结
 
 - Agent OS 的十大核心思想：Agent as Process、Scheduler、Sandbox、Capability Model、Workspace、Registry、Messaging/IPC、Security/Governance、HITL、Observability、Recovery。
+- 2026 年新增第 11 条：Context Engineering——上下文是 per-process 稀缺资源，需要预算、隔离与压缩；orchestrator-worker 的 Agent 层级本质上是进程树，sub-agent 独立上下文就是进程的独立地址空间。
 - 这些思想借鉴传统 OS，但针对 LLM Agent 的 Token 预算、工具调用、长程执行、安全治理等特点做了适配；2026 年起调度资源进一步扩展到 KV Cache，沙箱收敛到 Firecracker microVM 标准，身份治理收敛到"SPIFFE/WIMSE + OAuth"两层模型。
 - 下一章将把这些思想组织成具体的分层架构。
 
@@ -293,5 +334,9 @@ Agent OS 需要面对 Agent 失败后的恢复：
 - [Governed MCP: From Technical Specifications to Multi-Agent Governance](https://arxiv.org/abs/2604.16870)
 - [ProbeLogits: Probing LLM Logits for Safety and Governance](https://arxiv.org/abs/2604.11943)
 - [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
+- [Awesome-Agent-Context-Compression（EMNLP 2026 综述配套）](https://github.com/YerbaPage/Awesome-Agent-Context-Compression)
+- [Optimizing Context Compression for Long-horizon LLM Agents](https://arxiv.org/abs/2510.00615)
+- [Autonomous Memory Management in LLM Agents](https://arxiv.org/abs/2601.07190)
+- [A harness for every task: dynamic workflows in Claude Code](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code)
 - [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
 - [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)

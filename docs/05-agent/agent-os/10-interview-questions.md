@@ -171,11 +171,27 @@
 - 多跳委托难题：Agent A 代表用户调用 B、B 再调用工具 C 时，需要证明 B 的权限是 A 当时授权的子集（权限衰减）；Transaction Tokens、RFC 8693 Token Exchange、AIP 的 Biscuit 委托链都在尝试解决，但截至 2026-10 尚无定稿标准。
 - 工程保守策略：敏感链路每跳显式审批；用调用链上下文做端到端审计；令牌绑定 audience 防重放。
 
+### 18. 为什么 orchestrator-worker 模式要求 sub-agent 持有独立上下文？Agent OS 需要提供什么？
+
+**参考答案要点**：
+
+- 类比进程地址空间：worker 的中间过程（工具输出、探索轨迹）不应污染 orchestrator 的主上下文，只回传结果摘要——否则主上下文被撑爆，且多个并行 worker 的输出会互相干扰。
+- OS 需要提供：进程树语义（spawn/fork 子进程、预算从父进程配额扣除、terminate 回收）、子进程上下文隔离与独立预算、trace 父子关联、子进程失败时的重派或升级策略。
+- 生产参照：Claude Code 的 Task sub-agents、Agent SDK 并行 agent 都是这一模式；调度上 worker 可并行，但共享资源（工具配额、KV Cache）需要 OS 层协调。
+
+### 19. 上下文压缩应该由系统控制还是 Agent 自主控制？各自的权衡是什么？
+
+**参考答案要点**：
+
+- **系统控制**（框架自动截断/摘要）：确定性、可审计、实现简单；但可能丢掉 Agent 后续需要的细节，压缩时机不感知任务语义。
+- **Agent 控制**（模型自主删除/外置/归档）：省 token 更精准（研究显示可省 20%+），能按任务语义取舍；但依赖模型自我管理能力，失败模式隐蔽（悄悄丢掉关键状态），且更难审计。
+- **工程共识是分层**：OS 层做硬预算与溢出保护（兜底），默认策略保守（保留头部指令+尾部状态），Agent 层负责优化（主动外置低价值结果）；压缩事件必须入审计日志。评估压缩质量要用长程任务成功率而非单轮指标（过度压缩反而会拖慢 Agent）。
+
 ## 本章小结
 
 - 初级题聚焦概念：Agent OS 与 Runtime 的区别、进程抽象、Sandbox、Workspace、MCP Host。
 - 中级题聚焦设计：调度器、多租户隔离、Policy Engine、可观测体系、MCP 无状态化的架构影响。
-- 高级题聚焦架构与难点：AIOS/libOS/Quine 对比、死循环处理、一致性调度、Governed MCP/ProbeLogits、企业级模块划分、身份与多跳委托。
+- 高级题聚焦架构与难点：AIOS/libOS/Quine 对比、死循环处理、一致性调度、Governed MCP/ProbeLogits、企业级模块划分、身份与多跳委托、orchestrator-worker 的进程树语义、上下文压缩的控制权权衡。
 
 **参考来源**
 - [AIOS: LLM Agent Operating System](https://arxiv.org/abs/2403.16971)
@@ -189,3 +205,6 @@
 - [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A](https://arxiv.org/abs/2603.24775)
 - [OWASP Top 10 for Agentic Applications（ASI:2026）](https://www.promptfoo.dev/docs/red-team/owasp-agentic-ai/)
 - [MCP Specification（2026-07-28）](https://modelcontextprotocol.io/specification/2026-07-28/architecture)
+- [Claude Code Sub-agents](https://code.claude.com/docs/en/sub-agents)
+- [A harness for every task: dynamic workflows in Claude Code](https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code)
+- [Awesome-Agent-Context-Compression](https://github.com/YerbaPage/Awesome-Agent-Context-Compression)

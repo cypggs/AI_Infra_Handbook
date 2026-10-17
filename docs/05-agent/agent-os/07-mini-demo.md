@@ -35,10 +35,11 @@ docs/05-agent/agent-os/mini-demo/
 ├── agent_os_mini/
 │   ├── __init__.py
 │   ├── kernel.py         # spawn、schedule、terminate、registry
-│   ├── process.py        # AgentProcess 生命周期与状态机
+│   ├── process.py        # AgentProcess 生命周期与状态机（含私有 context）
 │   ├── scheduler.py      # RoundRobin / Priority 调度器
 │   ├── sandbox.py        # 能力/策略执行沙箱
 │   ├── workspace.py      # 共享 + per-process blackboard
+│   ├── context.py        # per-process 上下文缓冲：token 预算 + 确定性压缩
 │   ├── message_bus.py    # inbox/outbox IPC
 │   ├── observer.py       # 事件 trace
 │   └── demo.py           # run_demo() 入口
@@ -241,6 +242,31 @@ class Workspace:
         return dict(self._shared)
 ```
 
+### context.py：per-process 上下文预算与压缩
+
+对应"上下文工程作为一等公民"（见[核心思想第 11 节](02-core-ideas)）：每个进程拥有私有 `ContextBuffer`（类比进程地址空间），写入受硬 token 预算约束，溢出时触发**确定性压缩**——保留最旧的指令性条目与最新的状态条目，丢弃中间的早期条目，并插入一个压缩标记：
+
+```python
+class ContextBuffer:
+    def __init__(self, max_tokens=64, reserve_ratio=0.5):
+        self.max_tokens = max_tokens      # 硬预算
+        self.reserve_ratio = reserve_ratio
+        self._entries = []
+        self.compactions = 0
+
+    def append(self, content, tokens=1):
+        # 超预算时先 compact(required_tokens=tokens) 腾出空间；
+        # 单条超过预算则抛 ContextOverflow（类似 OS 拒绝不可能成功的分配）
+        ...
+
+    def compact(self, required_tokens=0):
+        # 以 max_tokens - required_tokens 为目标，
+        # 保留 head（旧指令）+ tail（新状态），其余早期条目折叠为标记
+        ...
+```
+
+为了完全确定性，demo 中 token 数由调用方显式传入，不做任何估算；两个进程各自持有独立缓冲，互相不可见。
+
 ### message_bus.py：消息总线
 
 ```python
@@ -358,7 +384,7 @@ def run_demo(a=2, b=3, c=4):
 
 ## 测试结果
 
-运行 `pytest tests/ -q` 可看到对 kernel、process、scheduler、sandbox、workspace、message_bus、observer 的覆盖。
+运行 `pytest tests/ -q` 可看到对 kernel、process、scheduler、sandbox、workspace、context、message_bus、observer 的覆盖（40 个用例）。
 
 示例输出：
 
@@ -405,6 +431,7 @@ Final answer: 20
 | 隔离 | 同一 Python 进程内的对象 | 容器/VM/cgroups、网络隔离、Secret 管理 |
 | 能力管理 | 内存 allowlist + 调用预算 | Registry、版本、命名空间、MCP Server 动态发现 |
 | 工作区 | 内存字典 | 分布式 KV/对象存储、配额、ACL、持久化 |
+| 上下文 | per-process token 预算 + 确定性 head/tail 压缩 | 模型化 token 计数、语义压缩/摘要、检索外置、agent 自主管理 |
 | 消息总线 | 内存 inbox/outbox | A2A/MCP 兼容、持久化、死信队列、跨网络路由 |
 | 可观测 | 内存事件列表 | OpenTelemetry、Prometheus、结构化日志、长期保留 |
 | 恢复 | 无 checkpoint/rollback | 状态快照、分级恢复、circuit breaker |
@@ -413,8 +440,8 @@ Final answer: 20
 
 ## 本章小结
 
-- Mini Agent OS 通过 8 个文件演示了 Agent OS 的最小闭环：Kernel spawn → Scheduler 调度 → Sandbox 策略执行 → Workspace/MessageBus 协作 → Observer 记录 → Kernel terminate。
-- 场景虽小，但覆盖了进程状态机、调度策略、能力白名单、共享黑板、IPC、事件 trace 等核心抽象。
+- Mini Agent OS 通过 9 个文件演示了 Agent OS 的最小闭环：Kernel spawn → Scheduler 调度 → Sandbox 策略执行 → Workspace/MessageBus 协作 → ContextBuffer 上下文预算 → Observer 记录 → Kernel terminate。
+- 场景虽小，但覆盖了进程状态机、调度策略、能力白名单、共享黑板、per-process 上下文隔离与压缩、IPC、事件 trace 等核心抽象。
 - Demo 与生产系统的差距主要在 LLM 集成、隔离强度、调度复杂度、Registry 持久化、消息总线可靠性、可观测后端与恢复机制。
 
 **参考来源**

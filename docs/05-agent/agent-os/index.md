@@ -12,7 +12,7 @@
 2. 说明 Agent OS 与 Agent Runtime、Memory、Planning、Tool Use、MCP、Multi-Agent 的边界与协作关系。
 3. 画出 Agent OS 的分层架构，并说明 Process Manager、Scheduler、Sandbox、Capability Manager、Workspace、Registry、Message Bus、Policy Engine、Observer 等核心模块的职责。
 4. 描述 Agent 从 spawn、schedule、execute、observe、checkpoint/rollback 到 terminate 的完整生命周期。
-5. 对比 AIOS、Agent libOS、Quine、AgentRM、HiveMind、Continuum、MCP Host、Bedrock AgentCore、OpenAI Agents SDK Runner 等代表性实现的设计取舍。
+5. 对比 AIOS、Agent libOS、Quine、AgentRM、HiveMind、Continuum、MCP Host、Bedrock AgentCore、OpenAI Agents SDK Runner、Claude Code、Letta 等代表性实现的设计取舍。
 6. 理解 Mini Demo 的设计意图、目录结构与运行方式，识别其与生产系统的关键差距。
 7. 回答生产环境中关于多租户隔离、沙箱策略、调度策略、可观测、成本核算、升级与恢复的面试问题。
 
@@ -33,11 +33,11 @@
 ## 本章结构
 
 1. [背景](01-background) — 从单 Agent 脚本到多 Agent 生产系统，为什么需要 Agent OS。
-2. [核心思想](02-core-ideas) — Agent as process、生命周期、调度、沙箱、能力、工作区、注册表、消息、HITL、恢复。
+2. [核心思想](02-core-ideas) — Agent as process、生命周期、调度、沙箱、能力、工作区、注册表、消息、HITL、恢复、上下文工程与 Agent 层级。
 3. [架构设计](03-architecture) — 分层架构、控制面/数据面、与相邻主题的边界。
 4. [Agent OS 工作流程](04-agent-os-workflow) — 从 spawn 到 terminate 的完整生命周期。
 5. [核心模块](05-core-modules) — Process Manager、Scheduler、Sandbox、Capability Manager、Workspace/Store、Registry、Message Bus、Policy Engine、Observer、Recovery/Human Gate。
-6. [源码分析](06-source-analysis) — AIOS、Agent libOS、Quine、AgentRM/HiveMind/Continuum、MCP Host（2026-07-28 无状态规范）、Bedrock AgentCore、OpenAI Agents SDK Runner、AutoGen Runtime、开源 AgentOS 项目对比。
+6. [源码分析](06-source-analysis) — AIOS、Agent libOS、Quine、AgentRM/HiveMind/Continuum、MCP Host（2026-07-28 无状态规范）、Bedrock AgentCore、OpenAI Agents SDK Runner、AutoGen Runtime、Claude Code、Letta、开源 AgentOS 项目对比。
 7. [工程实践：Mini Demo](07-mini-demo) — Mini Demo 的设计、目录、运行方式与生产差异。
 8. [企业生产实践](08-production-practice) — 部署拓扑、多租户、沙箱、调度、可观测、安全、成本、升级、恢复。
 9. [最佳实践](09-best-practices) — 清单与反模式。
