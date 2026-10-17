@@ -18,6 +18,8 @@ Block 是 KV Cache 分页管理的基本单位，通常包含固定数量的 tok
 - `block_hash`：块内容哈希，用于 prefix caching
 - `ref_cnt`：引用计数，支持 Copy-on-Write 和跨请求共享
 
+2025 年后出现的**混合架构模型**（full attention + sliding window + Mamba/线性注意力叠加，如 Qwen3-Next、DeepSeek-V4、Kimi-K3 等）对 Block 管理提出了新要求：不同层类型的 KV 状态形状和复用规则完全不同。vLLM V1 的 `KVCacheManager` 以 token 坐标为统一视角管理这些异构状态（hybrid KV cache），同一份调度与前缀缓存逻辑可以覆盖多种层类型的组合，无需为每种混合架构单独实现缓存模块。
+
 ### 3. Block Table（块表）
 
 Block Table 记录了每个 Sequence 的逻辑 Block 到物理 Block 的映射关系。它类似操作系统中的页表，是 PagedAttention 的核心数据结构。在 vLLM V1 中，`BlockTable` 使用二维 buffer 存储：`[max_num_reqs, max_num_blocks_per_req]`，配合 `num_blocks_per_row` 记录每个请求实际使用的块数。
@@ -84,6 +86,7 @@ PagedAttention 的洞察是：
 | 物理页帧 | GPU 显存中的物理 Block |
 | 按需分页（Demand Paging） | 按需分配 Block |
 | Copy-on-Write Fork | Block 共享 + 引用计数 |
+| 页换出到磁盘（Swap） | KV Cache Offloading 到 CPU/NVMe/S3/远端节点（2026 年分层 offloading） |
 
 ## 本章小结
 

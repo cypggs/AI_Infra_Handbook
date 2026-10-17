@@ -1,6 +1,6 @@
 # 6. 源码分析
 
-本章基于 vLLM GitHub 源码，分析其目录结构、模块划分、入口函数与调用链。截至 2026 年中，vLLM 主分支已默认使用 V1 引擎，`vllm/engine/async_llm_engine.py` 中的 `AsyncLLMEngine` 已作为 `vllm.v1.engine.async_llm.AsyncLLM` 的别名重新导出。因此源码分析需要同时理解经典引擎（V0）和 V1 引擎两条路径。
+本章基于 vLLM GitHub 源码，分析其目录结构、模块划分、入口函数与调用链。截至 2026 年 10 月（v0.31.0），vLLM 主分支已默认使用 V1 引擎，且 **Model Runner V2 自 v0.29.0 起成为默认执行层**（MRV1 计划在 v0.32 移除）；`vllm/engine/async_llm_engine.py` 中的 `AsyncLLMEngine` 已作为 `vllm.v1.engine.async_llm.AsyncLLM` 的别名重新导出。因此源码分析需要同时理解经典引擎（V0）和 V1 引擎两条路径，并关注 MRV2 带来的执行层变化。
 
 ## 仓库结构
 
@@ -22,12 +22,15 @@ vllm/
 │   │   │   └── llm_engine.py # LLMEngine 包装
 │   │   ├── core/
 │   │   │   ├── scheduler.py  # V1 统一调度器
-│   │   │   └── kv_cache_manager.py # KVCacheManager
+│   │   │   └── kv_cache_manager.py # KVCacheManager（支持 hybrid 模型）
 │   │   ├── worker/
 │   │   │   ├── gpu_worker.py # GPU Worker 进程
-│   │   │   ├── gpu_model_runner.py # Model Runner
+│   │   │   ├── gpu_model_runner.py # Model Runner（V2 自 v0.29 为默认）
 │   │   │   └── block_table.py # BlockTable
+│   │   ├── structured_output/ # 结构化输出（xgrammar 为默认后端）
 │   │   └── executor/
+│   ├── distributed/
+│   │   └── kv_transfer/      # KV Connector：NIXL / Mooncake / LMCache / Offloading
 │   ├── core/                 # V0 核心数据结构与调度
 │   │   ├── scheduler.py
 │   │   ├── block_manager.py
@@ -76,11 +79,20 @@ V1 支持 batch queue，允许在 pipeline parallelism 场景下异步调度与�
 
 ### 4. `GPUWorker.execute_model`
 
-执行模型 forward，由 `GPUModelRunner` 实际运行。
+执行模型 forward，由 `GPUModelRunner` 实际运行。v0.29.0 起默认走 Model Runner V2 路径（CPU 开销更低、支持 PP 下推测解码与双 batch 重叠）。
 
 ### 5. `GPUModelRunner.forward`
 
 组织 attention、MLP、sampler 调用，维护 `InputBatch`。
+
+### 6. KV Connector 回调
+
+PD 分离与 offloading 场景下，调度器与 Worker 在以下时机触发 Connector 回调（`vllm/distributed/kv_transfer/`）：
+
+- prefill 实例：KV 逐层计算完成后通过 `save_kv_layer` / `wait_for_save` 异步发送；
+- decode 实例：`start_load_kv` / `wait_for_layer_load` 在调度前等待 KV 就位；
+- 调度协商：`get_num_new_matched_tokens` 让调度器知道 decode 侧能复用多少已传输前缀，据此决定何时开始调度该请求；
+- offloading：block 驱逐时异步写入主机内存与次级层，命中时按需回填，未就绪期间调度器跳过该请求。
 
 ## 调用链（V1）
 

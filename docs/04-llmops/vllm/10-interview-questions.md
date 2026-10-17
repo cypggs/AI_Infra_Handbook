@@ -80,6 +80,8 @@ Continuous Batching（也称 iteration-level scheduling）允许在每个 iterat
 
 - **Tensor Parallelism（TP）**：把模型层的计算切分到多个 GPU，适合单节点多 GPU。通信密集，但延迟较低。
 - **Pipeline Parallelism（PP）**：把模型按层切分到多个 GPU，适合跨节点大模型。会有 pipeline bubble。
+- **Expert Parallelism（EP）**：把 MoE 的专家切分到不同 GPU，配合 EPLB 均衡负载，是大 MoE 模型 decode 阶段的主流选择。
+- **Data Parallelism（DP）**：每卡完整模型副本处理不同请求；MoE 场景常与 EP 组合（DP Attention + EP MoE）。
 
 ---
 
@@ -144,3 +146,30 @@ Prefix Caching 缓存共享前缀（如系统 prompt）的 KV Cache。当多个�
 - **SGLang**：强调结构化生成和编程式交互，适合复杂 Agent、多轮对话、需要控制流的场景。
 
 选择时会综合考虑：性能要求、团队能力、模型支持、生态锁定、部署复杂度。
+
+---
+
+### Q14: 什么是 PD（Prefill-Decode）分离？为什么它能提升集群整体效率？
+
+**参考答案：**
+
+PD 分离把计算密集的 prefill 与带宽密集的 decode 拆到不同实例：
+
+- 两类阶段的资源画像不同：prefill 是突发计算型，decode 是常驻带宽型，混部时互相干扰（prefill 抬高 TTFT，decode 拉低吞吐）。
+- 分离后可以独立扩缩容：按 prompt 流量扩 prefill 池，按并发数扩 decode 池。
+- 实现关键是 KV 传输层：vLLM 通过 KV Connector（NixlConnector GPU P2P 直传、MooncakeStore 分布式 KV 池等）在实例间交接 KV，并与 llm-d 等路由器配合做缓存感知调度。
+- 代价是架构复杂度：多一跳路由、传输与计算需要重叠，否则 TTFT 反而变差。
+
+---
+
+### Q15: 分层 KV Cache Offloading 解决了什么问题？设计上有什么关键点？
+
+**参考答案：**
+
+长上下文/多轮会话超过 GPU 显存后，传统做法是把旧 KV 丢弃、需要时重算，代价极高。分层 offloading 把驱逐的 KV 保留到低速层：
+
+- 层级：GPU HBM → CPU 内存（真正的 LRU/ARC 缓存）→ 文件系统 / S3 / P2P 远端节点。
+- 关键点 1：所有数据经主机内存中转，显存在数据到达主机内存后立即释放，reload 时按需回填。
+- 关键点 2：异步 DMA 与调度解耦，数据未就绪时调度器先跳过该请求。
+- 关键点 3：统一的跨层字节布局，使不同 TP 配置的节点可以共享同一份缓存数据。
+- 收益：官方基准中，长会话负载超过 HBM 容量后，分层 offloading 相比丢弃重算吞吐提升一倍以上。

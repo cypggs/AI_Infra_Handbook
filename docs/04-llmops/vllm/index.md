@@ -1,6 +1,6 @@
 # vLLM
 
-[vLLM](https://github.com/vllm-project/vllm) 是当前最主流的开源大语言模型推理引擎之一，以 **PagedAttention** 和 **Continuous Batching** 为核心创新，显著提升了 GPU 显存利用率与推理吞吐。
+[vLLM](https://github.com/vllm-project/vllm) 是当前最主流的开源大语言模型推理引擎之一，以 **PagedAttention** 和 **Continuous Batching** 为核心创新，显著提升了 GPU 显存利用率与推理吞吐。2025–2026 年的重点演进包括 Prefill-Decode 分离、分层 KV Cache Offloading、推测解码生产化，以及与 RL 训练的深度打通。
 
 ## 一句话理解
 

@@ -204,6 +204,7 @@ V1 的 `KVCacheManager` 接口更统一，便于接入新的 attention backend�
 
 - 维护 `InputBatch`，根据 `SchedulerOutput` 每轮重新构造输入张量。
 - 调用 `attention` 模块与 `sampler`。
+- 自 v0.29.0（2026-09-09）起，**Model Runner V2** 成为默认执行层：CPU 侧单步开销更低，支持 PP 下的 MTP/EAGLE 推测解码与 prefill/decode 双 batch 重叠；MRV1 计划在 v0.32 移除。
 
 ### 输入
 
@@ -233,20 +234,71 @@ V1 的 `KVCacheManager` 接口更统一，便于接入新的 attention backend�
 
 提供高效的注意力计算实现。
 
-### 实现选项
+### 实现选项（2026 年）
 
-- FlashAttention
+- FlashAttention / FlashAttention-3
 - FlashInfer
-- XFormers
-- PagedAttention（vLLM 自定义 CUDA kernel）
+- FlashMLA（DeepSeek MLA 模型专用，v0.31.0 中为 DeepSeek-V4.1-Flash 引入 mega attention 融合 kernel）
+- Triton、CUTLASS 等通用后端
 
 ### 选择逻辑
 
-根据 GPU 架构、模型类型、是否使用 prefix caching / chunked prefill 自动选择。
+根据 GPU 架构（Ampere / Hopper / Blackwell）、模型注意力类型（GQA / MLA / 混合架构）、是否使用 prefix caching / chunked prefill 自动选择。
 
 ---
 
-## 8. Tokenizer
+## 8. KV Connector / KV Cache Offloading
+
+### 职责
+
+插件化管理 KV Cache 的实例间传输与跨层卸载，是 PD 分离与分层缓存的基础设施。
+
+### 主要实现
+
+| Connector | 用途 |
+|---|---|
+| `NixlConnector` | PD 分离，GPU 显存 P2P / RDMA 直传（NVIDIA NIXL） |
+| `MooncakeStoreConnector` | 接入 Mooncake 分布式 KV 池（生产验证见 Moonshot Kimi K2） |
+| `LMCacheConnector` | LMCache 生态的 CPU/磁盘/远程缓存 |
+| `OffloadingConnector` | 本机 CPU / NVMe 卸载 |
+| `MultiConnector` | 串联多个 Connector（如 NIXL + Mooncake Store） |
+
+### 分层 Offloading（v0.22+）
+
+原生分层卸载管线：所有 KV 数据经 CPU 内存（真正的 LRU/ARC 缓存）中转，再级联到文件系统、S3 与 P2P 远端；加速卡显存在数据到达主机内存后立即释放，reload 时按需回填。同一请求的不同 chunk 可以由不同层服务。配合 KV Events 上报给路由器做缓存感知调度。
+
+---
+
+## 9. Structured Output（结构化输出）
+
+### 职责
+
+约束模型输出符合 JSON Schema、正则或 EBNF 文法，是 Agent / Function Calling 场景的基础设施。
+
+### 实现
+
+- 代码位于 `vllm/v1/structured_output/`，默认后端为 **xgrammar**：把文法编译为 token 级掩码，逐 token 屏蔽非法选择，兼容 CUDA Graph，增量开销接近零（一次性文法编译约 20–50ms）。
+- 可选后端：guidance、outlines、lm-format-enforcer。
+- API 层支持 `guided_json` / `guided_regex` / `guided_grammar` 参数与 OpenAI Structured Outputs 兼容模式。
+
+---
+
+## 10. Speculative Decoding（推测解码）
+
+### 职责
+
+用草稿（draft）模型快速提出候选 token，目标模型批量验证，在带宽受限的 decode 阶段换取更低 TPOT。
+
+### 2025–2026 进展
+
+- 草稿来源：独立小模型、**MTP**（Multi-Token Prediction，部分大模型自带预测头）、**EAGLE / EAGLE-3**（特征级外推草稿）。
+- **Adaptive Speculative Decoding**：根据在线接受率动态调整草稿长度，v0.29.0 起 OpenAI API 响应返回逐请求接受率统计，便于观测与调参。
+- MRV2 支持流水线并行下的 MTP/EAGLE 推测解码（v0.30.0）。
+- 注意：与异步 KV offloading、某些量化格式组合时可能存在兼容性限制，需查阅对应版本的 release notes。
+
+---
+
+## 11. Tokenizer
 
 ### 职责
 
@@ -297,4 +349,4 @@ graph LR
 
 ## 本章小结
 
-vLLM 的模块划分清晰，每个模块只负责一个明确的职责。V1 引擎通过 EngineCore 将调度与执行紧密整合，Scheduler 与 KVCacheManager 是 vLLM 性能优势的核心来源。
+vLLM 的模块划分清晰，每个模块只负责一个明确的职责。V1 引擎通过 EngineCore 将调度与执行紧密整合，Scheduler 与 KVCacheManager 是 vLLM 性能优势的核心来源；KV Connector 与结构化输出则是 2025–2026 年支撑 PD 分离和 Agent 负载的关键新增模块。

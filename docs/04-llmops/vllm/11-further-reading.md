@@ -10,6 +10,20 @@
 ## 论文
 
 - [PagedAttention: Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/abs/2309.06180) — SOSP 2023
+- [Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving](https://arxiv.org/abs/2407.00079) — FAST 2025 最佳论文，PD 分离与 KV 池的生产级参考实现
+- [DeepSeek-V3 Technical Report](https://arxiv.org/abs/2412.19437) — MTP 与 EPLB（专家负载均衡）的出处
+- [EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty](https://arxiv.org/abs/2401.15077) 与 EAGLE-3 — 推测解码主流草稿方案
+
+## 官方博客（2025–2026 精选，均可在 [vLLM 官方博客](https://vllm.ai/blog)按标题检索）
+
+- Tiered KV Cache Offloading in vLLM — 分层 KV 卸载设计与实测（2026-09-10），另见 [直接链接](https://vllm-project.github.io/2026/09/10/tiered-kv-offloading.html)
+- Taking vLLM Apart: A Practical Guide to Disaggregated Serving — PD 分离部署指南（2026-09-29）
+- vLLM Large Scale Serving: DeepSeek @ 2.2k tok/s/H200 with Wide-EP — 宽 EP 大规模 serving（2025-12-17）
+- Zero-Reload Model Switching with vLLM Sleep Mode — Sleep Mode（2025-10-26）
+- Native RL APIs in vLLM — RL rollout 集成（2026-05-28）
+- Kimi K3 Performance Optimizations in vLLM: The Road to 2.8× Throughput — 大模型专项优化案例（2026-09-13）
+- Structured Decoding in vLLM: a gentle introduction — xgrammar 结构化输出原理（2025-01-14）
+- No More Train-Inference Mismatch: Bitwise Consistent On-Policy Reinforcement Learning with vLLM and TorchTitan（2025-11-10）
 
 ## 官方博客
 
@@ -37,6 +51,7 @@
 ## 相关章节
 
 - [LLMOps 概述](/04-llmops/)
+- [RL Post-Training 基础设施详解](/04-llmops/rl-post-training/) — vLLM 是 RL rollout 的事实标准引擎（Native RL API、`sharded_rdt` 权重同步），本主题补全训练侧视角。
 - [SGLang 详解](/04-llmops/sglang/)
 - [TensorRT-LLM 详解](/04-llmops/tensorrt-llm/)
 - [Triton Inference Server 详解](/04-llmops/triton/)

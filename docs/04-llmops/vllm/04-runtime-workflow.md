@@ -93,6 +93,35 @@ V1 调度器不再显式区分 prefill 和 decode。每个请求只有“还需�
 
 V1 引擎进一步将 prefill 与 decode 统一调度，使 GPU 在每个 iteration 都能保持高利用率，并自然支持 chunked prefill、prefix caching 和 speculative decoding。
 
+## PD 分离场景下的请求路径（2025–2026 生产主流）
+
+在 Prefill-Decode 分离部署中，请求的生命周期会跨越两个（类）实例，vLLM 通过 **KV Connector** 完成状态交接：
+
+```mermaid
+sequenceDiagram
+    participant R as Router (llm-d 等)
+    participant P as Prefill 实例
+    participant KV as KV 传输层 (NIXL / Mooncake / LMCache)
+    participant D as Decode 实例
+
+    R->>P: 新请求（prompt）
+    P->>P: 执行 chunked prefill
+    P->>KV: 流式传输 KV blocks（计算与传输重叠）
+    P-->>R: prefill 完成 + KV 位置信息
+    R->>D: 调度请求（携带 kv_transfer_params）
+    D->>KV: 拉取 / 接收 KV blocks
+    KV-->>D: KV 加载到 GPU
+    loop 每轮 iteration
+        D->>D: decode 一步
+    end
+```
+
+关键机制：
+
+- **传输与计算重叠**：chunked prefill 边算边传，避免"算完再传"的 TTFT 空窗；vLLM 博客（2026-10-12）还介绍了多轮 Agentic 负载下的双向 KV 传输优化。
+- **P2P 直传**：NIXL 支持 GPU 显存经 RDMA 的点到点直传，绕开 CPU 拷贝。
+- **缓存感知路由**：KV Events 让上层路由器知道"哪个实例已缓存该前缀"，把请求路由到缓存命中的节点，提升全局命中率。
+
 ## 本章小结
 
 vLLM 的运行时可以概括为：`接入 → 调度 → 执行 → 输出 → 状态更新` 的循环。V1 引擎通过 EngineCore 统一调度与执行，消除了 prefill/decode 的显式边界，是实现高吞吐与低延迟的关键。

@@ -72,9 +72,10 @@ vLLM 适合以下场景：
 
 当前 vLLM 支持的量化方式包括：
 
-- **FP8**：在 H100/H200 等支持 FP8 的硬件上性能最好，可使用 `llm-compressor` 进行校准
+- **FP8**：在 H100/H200 等支持 FP8 的硬件上性能最好，可使用 `llm-compressor` 进行校准；FP8 KV cache 与注意力量化的实践可参考 vLLM 官方博客（2026-04-22）
 - **AWQ / GPTQ**：4-bit 权重量化，显著降低显存占用
-- **INT8 / INT4 / GGUF / compressed-tensors**：更多量化后端
+- **NVFP4 / MXFP4**：面向 Blackwell 等新架构的低精度格式（v0.29.0 为 Kimi-K3 引入融合 MXFP4 top-k kernel）
+- **INT8 / GGUF / compressed-tensors**：更多量化后端
 
 选择建议：
 
@@ -84,6 +85,26 @@ vLLM 适合以下场景：
 | 极致显存压缩 | AWQ / GPTQ 4-bit |
 | 快速部署预量化模型 | GGUF / compressed-tensors |
 
+### MoE 模型的并行选择
+
+- 大 MoE 模型优先 **EP + EPLB + DP Attention**，而非单纯堆 TP：decode 阶段专家计算占比高，EP 的 all2all 通信在 NVLink/RDMA 下可承受，且能避免 TP 的冗余 attention 计算。
+- 参考 vLLM 官方 DeepSeek 宽 EP 大规模 serving 实践（博客 2025-12-17）。
+
+### 长上下文与 Agentic 负载
+
+- 多轮会话场景开启 **分层 KV cache offloading**（v0.22+）：GPU 满了之后把 KV 保留在 CPU/文件系统/S3，官方基准显示长会话超内存后吞吐可提升一倍以上。
+- Agent 场景开启 **structured output**（xgrammar 默认后端），约束输出格式，避免后处理解析失败重试。
+
+### 推测解码
+
+- 带宽受限、延迟敏感的 decode 场景，优先使用模型自带 **MTP 头**或 **EAGLE-3** 做草稿，接受率优于独立小模型。
+- 生产环境用 v0.29.0+ 的逐请求接受率统计评估收益，不要只看离线基准。
+
+### 版本升级注意
+
+- v0.29.0 起 Model Runner V2 为默认（v0.32 计划移除 MRV1），升级后需回归验证吞吐与数值行为。
+- 发布节奏约每两周一个版本，生产环境建议锁定版本并阅读对应 release notes 的 Breaking Changes（如 v0.29.0 移除 10 个废弃模型架构、v0.30.0 的 scale-out 端点改为 opt-in）。
+
 ## 常见陷阱
 
 1. **默认参数不适合所有模型**：不同模型的显存占用差异很大，需要实测调整。
@@ -91,7 +112,8 @@ vLLM 适合以下场景：
 3. **过度依赖量化**：量化虽降低显存，但可能损害模型能力；需评估 perplexity 和业务指标。
 4. **不做监控**：没有 TTFT/TPOT 指标，就无法优化。
 5. **单实例部署**：生产环境应使用 LLM Gateway + 多实例。
-6. **混淆 V0 与 V1 引擎**：V1 引擎调度器与 V0 不同，部分参数和行为有差异；升级前阅读 [V1 Guide](https://docs.vllm.ai/en/stable/usage/v1_guide)。
+6. **混淆 V0 与 V1 引擎**：V1 引擎调度器与 V0 不同，部分参数和行为有差异；V1 自 2025 年起为默认，Model Runner V2 自 v0.29.0 起为默认。升级前阅读对应版本的 [V1 Guide](https://docs.vllm.ai/en/stable/usage/v1_guide) 与 release notes。
+7. **忽略运维特性**：`vllm preload` 权重缓存（v0.30.0+）和 Sleep Mode 能显著缩短重启与模型切换时间，多模型/高频发版场景值得开启。
 
 ## Trade-off 总结
 
@@ -101,7 +123,9 @@ vLLM 适合以下场景：
 | 量化 | 更低显存、更高吞吐 | 可能精度下降 |
 | TP/PP | 支持更大模型 | 通信 overhead |
 | Prefix Caching | 降低重复计算 | 增加显存管理复杂度 |
-| Speculative Decoding | 降低 TPOT | 需要额外 draft model |
+| Speculative Decoding | 降低 TPOT | 需要额外 draft 开销，接受率依赖任务 |
+| 分层 KV Offloading | 长会话吞吐稳定、显存容错 | 引入传输开销与命中率管理 |
+| PD 分离 | 全局利用率与 TTFT 同时改善 | 架构与运维复杂度显著增加 |
 
 ## 本章小结
 
