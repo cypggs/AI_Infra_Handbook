@@ -11,9 +11,15 @@
 | PyTorch TorchScript | `kserve-pytorchserver` 或 Triton | 灵活 |
 | ONNX | Triton / `kserve-mlserver` | ONNX Runtime 优化 |
 | 多 backend 混合 | Triton | 一个 runtime 服务多种格式 |
-| LLM（通用） | `kserve-huggingfaceserver`（vLLM） | OpenAI-compatible、PagedAttention |
+| LLM（生产首选） | `LLMInferenceService` + vLLM | KV-Cache 路由、PD 分离、LoRA、金丝雀（v0.17+；vLLM 自 v0.20 起为一等 runtime） |
+| LLM（传统 IS 路径） | `kserve-huggingfaceserver`（vLLM） | OpenAI-compatible、PagedAttention，无 EPP 智能路由 |
 | LLM（NVIDIA 优化） | Triton TensorRT-LLM backend | 极致吞吐 |
 | 自定义逻辑 | custom runtime + `kserve` Python SDK | 完全可控 |
+
+两点 2026 年的提醒：
+
+- **SGLang**：llmisvc 目前主要面向 vLLM；SGLang/trtllm-serve 支持在路线图上（[kserve#5669](https://github.com/kserve/kserve/issues/5669)），落地前确认所用版本是否已合入。
+- **不要选 ModelMesh**：项目已归档（2026-04），新需求用 RawDeployment + LocalModelCache 组合。
 
 ### 自定义 runtime  checklist
 
@@ -153,22 +159,38 @@ resources:
 | 金丝雀测试 | 小流量切流 + 输出 diff |
 | 混沌测试 | 随机 kill Pod，验证自动恢复 |
 
-## 9.9 避免过度规划
+## 9.9 LLM 冷启动与模型缓存最佳实践
+
+- **一律评估 LocalModelCache**（v0.15+）：大模型先把权重缓存到 GPU 节点本地 NVMe，加载从 15-20 分钟降到约 1 分钟；`LocalModelNodeGroup.local.path` 必须与 agent DaemonSet hostPath 一致。
+- **多轮/RAG 负载开 KV-Cache 卸载**：LMCache（v0.15）或 v0.20 的二级文件系统 KV-Cache 分层卸载，显著降低 TTFT。
+- **缩到零的黄金组合**：LocalModelCache + KEDA（按 vLLM 请求数）+ 合理的唤醒缓冲（网关排队/客户端重试）；没有缓存时不要对 LLM 开 scale-to-zero。
+- **预热策略**：对延迟敏感的常驻服务，在缩容事件后保留 1 个副本或定时预热。
+
+## 9.10 版本升级纪律
+
+- 锁定 KServe 与 runtime 镜像版本，升级走测试集群 → 金丝雀生产。
+- **v0.16 → v0.17 是破坏性升级**（三分组件 + Helm chart 重组），必须按官方升级指南，不能直接 `helm upgrade`。
+- 关注每个版本的 CVE 修复（如 v0.21 的 canary 瞬时 503 修复、RBAC 加固）。
+
+## 9.11 避免过度规划
 
 KServe 能做的事情很多，但不要因为能做得多就全做：
 
 - 单模型 poc 不需要 `InferenceGraph`。
 - 小团队不需要自研 runtime。
 - 没有多框架需求时不需要 Triton。
+- 没有前缀缓存命中收益（单轮短请求为主）时，llmisvc + EPP 的额外一跳可能不值。
 
 **从简单开始，只在痛点出现时引入复杂度。**
 
 ## 本章小结
 
-- **Runtime 选型**：按模型类型选，复杂场景用 Triton，LLM 用 vLLM/TRT-LLM。
-- **协议统一**：新项目 V2，LLM OpenAI-compatible。
+- **Runtime 选型**：传统 ML 按格式选；LLM 生产首选 llmisvc + vLLM；ModelMesh 已归档勿选。
+- **协议统一**：新项目 V2，LLM OpenAI-compatible（responses/messages 按需）。
 - **请求/响应**：避免超大 body，LLM 用 streaming。
 - **超时/重试**：分层设置，幂等才重试。
+- **冷启动**：LocalModelCache + KV-Cache 卸载是标准答案。
+- **升级**：v0.16→v0.17 必须走迁移指南。
 - **错误处理**：标准 HTTP code + 统一错误体 + 清晰 status condition。
 - **安全**：可信镜像、IAM 拉模型、TLS/mTLS、限流。
 - **资源**：GPU requests=limits；CPU 合理预留。
@@ -178,5 +200,7 @@ KServe 能做的事情很多，但不要因为能做得多就全做：
 **参考来源**
 
 - [KServe — Best Practices](https://kserve.github.io/website/docs/modelserving/)
+- [KServe — LocalModelCache 文档](https://kserve.github.io/website/docs/0.17/model-serving/generative-inference/modelcache/localmodel)
+- [KServe v0.17 发布公告（升级注意事项）](https://kserve.github.io/website/blog/kserve-0.17-release)
 - [Open Inference Protocol](https://github.com/kserve/open-inference-protocol)
 - [vLLM Production Tips](https://docs.vllm.ai/en/latest/serving/production.html)

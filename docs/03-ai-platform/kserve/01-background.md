@@ -39,11 +39,11 @@ spec:
 
 ## 1.2 KServe 是什么
 
-KServe（原名 KFServing）是一个 Kubernetes 上的**标准化模型服务平台**，CNCF 孵化项目。它的定位可以概括为三层：
+KServe（原名 KFServing）是一个 Kubernetes 上的**标准化模型服务平台**，2025 年 11 月正式从 CNCF Sandbox 升级为 **CNCF Incubating 项目**（v0.16 时期）。它的定位可以概括为三层：
 
-1. **控制平面**：`kserve-controller-manager` 运行一组 Operator，管理 `InferenceService`、`ServingRuntime`、`ClusterServingRuntime`、`InferenceGraph` 等 CRD。
+1. **控制平面**：`kserve-controller-manager` 运行一组 Operator，管理 `InferenceService`、`ServingRuntime`、`ClusterServingRuntime`、`InferenceGraph` 等 CRD；从 v0.17 起安装拆分为 `kserve`（核心）、`llmisvc`（LLM 控制器）、`localmodel`（模型缓存）三个独立组件。
 2. **数据平面**：一组 model server runtime（vLLM、Triton、TorchServe、TensorFlow Serving、sklearnserver、huggingfaceserver 等）+ KServe 自己的 queue-proxy/agent。
-3. **流量/网关层**：把外部请求路由到具体模型 Pod，支持 canary、A/B、ensemble、transformer/explainer 链。
+3. **流量/网关层**：把外部请求路由到具体模型 Pod，支持 canary、A/B、ensemble、transformer/explainer 链；2025 年起基于 Kubernetes Gateway API Inference Extension 支持 KV-Cache 感知的智能路由。
 
 用一个比喻：
 
@@ -112,10 +112,28 @@ KServe 是这一层里承上启下的关键：
 
 更重要的是，它是**K8s-native**的——你已有的 K8s 技能（Operator、CRD、RBAC、Ingress、HPA）全部复用。
 
+## 1.6 2025-2026 的转向：从"模型服务平台"到"LLM 推理平台"
+
+LLM 爆火之后，传统 `InferenceService` 模型暴露出三个新痛点：
+
+| 新痛点 | 传统 IS 的不足 | KServe 的新答案（v0.15 → v0.21） |
+|---|---|---|
+| 大模型加载慢，冷启动不可接受 | 每次从对象存储拉几十 GB 权重 | `LocalModelCache`（v0.15）：节点本地 NVMe 缓存 + 守护 agent，加载时间从 15-20 分钟降到约 1 分钟 |
+| 朴素轮询路由浪费 KV-Cache | kube-proxy round-robin，前缀缓存命中率低 | `LLMInferenceService` + Gateway API Inference Extension（v0.17 生产可用）：Endpoint Picker（EPP）按前缀缓存打分调度 |
+| PD 不分、多卡大模型部署难 | 一个 predictor Pod 塞不下 405B 模型 | prefill/decode 分离（KV-Cache 经 NixlConnector + RoCE/RDMA 传输）、LeaderWorkerSet 多节点并行（v0.17/v0.18）、免 Ray 的 vLLM mp 多节点后端（v0.18） |
+
+这条演进线有两个标志性节点：
+
+- **2025-11**：KServe 进入 CNCF Incubating，`LLMInferenceService` 在 v0.16 以 v1alpha1 实验性引入。
+- **2026-03 v0.17**：`LLMInferenceService` 宣布生产可用，基于 [llm-d](https://llm-d.ai/) 框架构建，安装拆分为 `kserve` / `llmisvc` / `localmodel` 三个组件；v0.18-v0.21 又陆续加入多节点推理、OpenAI Responses API、Anthropic Messages 路由、KV-Cache 分层卸载、llmisvc 金丝雀切分、KEDA 直接扩缩等能力。
+
+同时要注意一个**生态变化**：多模型高密度 serving 子项目 **ModelMesh 已于 2026-04-14 归档**（仓库只读），Red Hat OpenShift AI 也弃用了 ModelMesh 与 Serverless 部署模式，官方方向是把用户迁移到 RawDeployment（Standard 模式）+ LocalModelCache + LLMInferenceService 这条主线上。
+
 ## 本章小结
 
 - **痛点**：裸推理引擎在模型增多、团队变多、需要灰度/弹性/协议统一时，重复工程爆炸。
-- **定位**：KServe 是 K8s 上的标准化模型服务平台，核心抽象是 `InferenceService` + `ServingRuntime` + `InferenceGraph`。
+- **定位**：KServe 是 K8s 上的标准化模型服务平台，核心抽象是 `InferenceService` + `ServingRuntime` + `InferenceGraph`；2025-11 起为 CNCF Incubating 项目。
+- **演进**：v0.15 LocalModelCache / v0.16 LLMInferenceService 实验引入 / v0.17 生产可用并拆分安装 / v0.18-v0.21 多节点推理、Responses API、KV-Cache 卸载、llmisvc 金丝雀——正在从"模型服务平台"变成"LLM 推理平台"。
 - **对比**：比裸引擎多一层 Operator；比自研网关标准化；比 Ray Serve 更 K8s-native；不替代 runtime，而是编排 runtime。
 - **价值**：把"发布一个模型"从工程任务变成声明式操作，是 AI 平台从 poc 走向生产的关键层。
 
@@ -124,4 +142,7 @@ KServe 是这一层里承上启下的关键：
 - [KServe 官网 — What is KServe?](https://kserve.github.io/website/docs/)
 - [KServe GitHub](https://github.com/kserve/kserve)
 - [KFServing 改名 KServe 的博客](https://blog.kubeflow.org/kfserving-becomes-kserve/)
+- [KServe 成为 CNCF 孵化项目（2025-11）](https://www.cncf.io/blog/2025/11/11/kserve-becomes-a-cncf-incubating-project/)
+- [Announcing KServe v0.15（CNCF 博客，2025-06）](https://www.cncf.io/blog/2025/06/18/announcing-kserve-v0-15-advancing-generative-ai-model-serving/)
+- [Announcing KServe v0.17（2026-03）](https://kserve.github.io/website/blog/kserve-0.17-release)
 - 本手册 [Operator 模式](../../02-cloud-native/operator/)（KServe 就是 Operator）、[vLLM](../../04-llmops/vllm/)、[Triton](../../04-llmops/triton/)。

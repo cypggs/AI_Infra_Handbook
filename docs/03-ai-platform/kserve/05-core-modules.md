@@ -160,6 +160,13 @@ KServe controller 直接创建：
 
 - 基于事件源（Kafka queue、SQS、Prometheus metrics）扩缩。
 - 适合异步推理、批处理队列。
+- v0.15 起官方支持按 LLM 指标（如 vLLM 请求数）扩缩；v0.21 起 llmisvc 可直接以 KEDA 作为扩缩后端，无需再经 HPA 中转。
+
+### WVA（Workload Variant Autoscaler，llmisvc 专用）
+
+- 来自 llm-d 生态，v0.17 随 llmisvc 引入，可按 prefill/decode 池配置不同扩缩 variant。
+- 后端可选 HPA 或 KEDA；多节点副本组可借助 LeaderWorkerSet 整体缩扩（v0.18）。
+- v0.19 起把 HPA/KEDA 的扩缩状态回写到 llmisvc 的 status conditions，SRE 可以统一观测。
 
 ### 选型建议
 
@@ -167,6 +174,7 @@ KServe controller 直接创建：
 |---|---|
 | CPU 小模型、流量波动大 | KPA（Serverless） |
 | GPU/LLM、冷启动不可接受 | HPA（RawDeployment） |
+| LLM + PD 分离/多节点 | WVA（llmisvc，HPA/KEDA 后端） |
 | 异步队列 | KEDA |
 | 高并发低延迟 | 预热 + HPA |
 
@@ -213,7 +221,7 @@ Knative 注入的 sidecar，职责：
 KServe agent 职责视场景而定：
 
 - RawDeployment：可选，辅助 storage/modelmesh。
-- ModelMesh：核心组件，负责模型加载调度。
+- ModelMesh：曾是核心组件，负责模型加载调度；**ModelMesh 项目已于 2026-04 归档，此路径不要用于新部署**。
 
 ## 5.8 Metrics 与可观测模块
 
@@ -260,6 +268,7 @@ status:
 
 - Pod 日志：runtime、storage-initializer、queue-proxy。
 - Tracing：通过 Istio / OpenTelemetry 注入 trace header。
+- llmisvc（v0.20+）：提供分布式 tracing API，可在 Gateway→EPP→vLLM 全链路追踪请求。
 
 ## 5.9 模块协作图
 
@@ -287,20 +296,61 @@ status:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## 5.10 LLMInferenceService Controller 与 EPP（v0.16+）
+
+### LLMInferenceService Controller
+
+随 `llmisvc` 组件安装的独立 controller，reconcile 目标与传统 IS 不同：
+
+1. 解析 `spec.model.uri`（支持 HuggingFace URI、S3、OCI）与 deployments/pools 拓扑。
+2. 创建 Gateway API 资源：`Gateway`（managed 或 referenced）、`HTTPRoute`、`InferencePool`、`InferenceModel`。
+3. 部署/更新 **EPP Scheduler Pod**（llm-d Endpoint Picker），配置 scorer 管线（v0.17 起插件化：EndpointPickerConfig）。
+4. 创建 vLLM Pod 池：单 pool 用 Deployment，多节点用 LeaderWorkerSet + headless Service（注入并行度环境变量）。
+5. 把 WVA 扩缩状态、路由拓扑、应用配置回写 status。
+
+### EPP（Endpoint Picker）
+
+- 订阅 vLLM Pod 的 ZMQ KV-Cache 事件，维护前缀缓存索引。
+- 请求到来时按 scorer 权重打分（prefix-cache 2.0 + load-aware 1.0 + queue scorer），返回目标 Pod。
+- v0.17 起支持高可用；v0.20 加入 LoRA affinity scorer；v0.21 支持金丝雀比例切分下的分流。
+- trade-off：多一跳延迟，换来缓存命中率与负载均衡的显著提升——对多轮对话/RAG 类负载 TTFT 收益最大。
+
+## 5.11 LocalModelCache 模块（v0.15+）
+
+随 `localmodel` 组件安装，解决"模型下载慢"：
+
+```mermaid
+flowchart LR
+    LMC[LocalModelCache CR<br/>声明要缓存的模型] --> LMCG[LocalModelNodeGroup CR<br/>目标节点组 + 本地PV规格]
+    LMCG --> AGENT[localmodel node agent DaemonSet<br/>逐节点下载/校验/清理]
+    AGENT --> LMN[LocalModelNode CR<br/>每节点缓存状态]
+    AGENT --> NVMe[节点本地 NVMe]
+    NVMe -. 挂载/加载 .-> POD[InferenceService / LLMInferenceService Pod]
+```
+
+运维要点：
+
+- `LocalModelNodeGroup.spec.local.path` 必须与 agent DaemonSet 的 hostPath 一致（Helm 默认 `/mnt/models`，Kustomize 默认 `/models`），否则会出现重复下载 job 和权限错误（见 [kserve#5156](https://github.com/kserve/kserve/issues/5156)）。
+- 官方口径：加载时间从 15-20 分钟降到约 1 分钟。
+- v0.19 起 llmisvc 可引用 LocalModelCache；namespace 级多租户可用 namespace 维度的缓存策略。
+
 ## 本章小结
 
 - **IS Controller**：核心控制器，负责把 IS spec 渲染成底层资源。
 - **Webhook**：defaulting/validating/mutating，降低用户配置错误。
 - **Runtime Manager**：维护 modelFormat → runtime 映射，支持自定义扩展。
-- **Ingress/Gateway Manager**：Serverless 靠 Knative，RawDeployment 靠 KServe 自建。
-- **Autoscaler 集成**：KPA（并发、缩零）、HPA（资源）、KEDA（事件）。
-- **Storage Initializer**：统一模型下载，支持多协议。
-- **Agent/Queue-Proxy**：Serverless 请求缓冲与扩缩信号；RawDeployment/ModelMesh 辅助。
-- **Metrics**：runtime `/metrics`、controller metrics、status conditions、logs/traces。
+- **Ingress/Gateway Manager**：Serverless 靠 Knative，RawDeployment 靠 KServe 自建，LLM 靠 Gateway API + EPP。
+- **Autoscaler 集成**：KPA（并发、缩零）、HPA（资源）、KEDA（事件、LLM 指标）、WVA（llmisvc variant 级扩缩）。
+- **Storage Initializer**：统一模型下载，支持多协议；LocalModelCache 是 LLM 冷启动的标准搭档。
+- **Agent/Queue-Proxy**：Serverless 请求缓冲与扩缩信号；ModelMesh 路径已归档。
+- **Metrics**：runtime `/metrics`、controller metrics、status conditions、logs/traces；llmisvc 有全链路 tracing。
 
 **参考来源**
 
 - [KServe — Controller Architecture](https://kserve.github.io/website/docs/concepts/architecture/)
+- [KServe — LLMInferenceService 架构深入](https://kserve.github.io/website/docs/next/concepts/architecture/control-plane-llmisvc)
+- [KServe — LocalModelCache 文档](https://kserve.github.io/website/docs/0.17/model-serving/generative-inference/modelcache/localmodel)
 - [KServe — ServingRuntime](https://kserve.github.io/website/docs/concepts/resources/servingruntime/)
 - [KServe — Autoscaling](https://kserve.github.io/website/docs/modelserving/autoscaling/)
 - [KServe — Storage URI](https://kserve.github.io/website/docs/modelserving/storage/)
+- [llm-d ModelService 提案](https://llm-d.ai/docs/0.7/proposals/modelservice)

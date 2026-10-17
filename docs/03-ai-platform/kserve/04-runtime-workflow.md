@@ -122,7 +122,7 @@ Controller 用 runtime 模板生成容器：
 ```yaml
 containers:
   - name: kserve-container
-    image: kserve/sklearnserver:v0.13.0
+    image: kserve/sklearnserver:v0.21.0
     args:
       - --model_name=sklearn-iris
       - --model_dir=/mnt/models
@@ -136,7 +136,7 @@ containers:
 ```yaml
 initContainers:
   - name: storage-initializer
-    image: kserve/storage-initializer:v0.13.0
+    image: kserve/storage-initializer:v0.21.0
     args:
       - gs://kfserving-examples/models/sklearn/1.0/model-1
       - /mnt/models
@@ -355,20 +355,70 @@ status:
 **冷启动成本**：
 
 - 小模型（sklearn/xgboost）：几秒。
-- 大模型（LLM 几十 GB）：几十秒到几分钟。
+- 大模型（LLM 几十 GB）：几十秒到几分钟；未缓存时从对象存储拉权重可达 15-20 分钟。
 - 因此 GPU/LLM 生产环境通常用 RawDeployment（minReplicas >= 1）。
+
+**缓解手段（2025 年后）**：`LocalModelCache`（v0.15）把模型预缓存到节点本地 NVMe，加载时间降到约 1 分钟，llmisvc 从 v0.19 起也支持；`LMCache` KV-Cache 卸载（v0.15）降低多轮对话/RAG 的 TTFT；v0.20 进一步支持 KV-Cache 分层卸载到二级文件系统。上了缓存之后，部分对延迟不敏感的 LLM 场景可以重新评估"缩到零 + 快速唤醒"的可行性。
+
+## 4.6 LLMInferenceService 的请求调度链路（v0.17+）
+
+LLM 场景走另一条数据面路径，核心区别是**路由决策点在 EPP，而不是 kube-proxy**：
+
+```mermaid
+sequenceDiagram
+    participant C as 客户端
+    participant G as Gateway/HTTPRoute
+    participant P as InferencePool
+    participant E as EPP Scheduler
+    participant PF as Prefill Pod
+    participant D as Decode Pod
+    C->>G: POST /openai/v1/chat/completions
+    G->>P: 按 HTTPRoute 转发
+    P->>E: 请求"哪个 Pod 来服务？"
+    E->>E: prefix-cache-scorer + load-aware-scorer 打分
+    alt 新会话（缓存未命中）
+        E-->>P: 选 decode Pod（其路由容器会转发 prefill）
+        P->>D: 请求
+        D->>PF: 转发提示词
+        PF->>D: KV-Cache 经 NixlConnector + RoCE/RDMA
+        D-->>C: 逐 token 生成（SSE）
+    else 多轮续写（缓存命中 decode Pod）
+        E-->>P: 直接选持有该前缀缓存的 decode Pod
+        P->>D: 请求（跳过 prefill）
+        D-->>C: 直接生成，TTFT 显著降低
+    end
+```
+
+背后的持续同步：vLLM Pod 通过 ZMQ 事件（`BlockStored`/`BlockRemoved`）把 KV-Cache 块变化推给 EPP，EPP 维护"模型名 + 前缀哈希 → Pod"索引。这带来两个工程要点：
+
+1. **EPP 是新的单点隐患**：v0.17 起支持 EPP 高可用部署；调度器升级时注意观察金丝雀指标。
+2. **金丝雀语义不同**：v0.21 起 llmisvc 支持原生金丝雀流量切分和 `rolloutStrategy` 滚动更新，EPP 会按切分比例分流；而传统 IS 的 canary 是网关层 weight。
+
+## 4.7 多节点推理的启动链路（v0.18+）
+
+大模型跨节点时的启动顺序与普通 IS 不同：
+
+1. Controller 解析 `parallelism`（tensor/data/expert）注解，计算节点数与每节点 GPU 数。
+2. 创建 headless Service（worker DNS 发现）+ 注入 `PIPELINE_PARALLEL_SIZE`/`TENSOR_PARALLEL_SIZE`/`WORKER_SVC` 环境变量。
+3. executor backend 二选一：
+   - `ray`（默认）：先起 Ray head 再拉 worker；
+   - `mp`（v0.18+）：vLLM 原生 multiprocessing，免 Ray 依赖，运维面更干净。
+4. 多副本场景由 LeaderWorkerSet 整体缩扩（v0.18 起作为 autoscaling target）。
 
 ## 本章小结
 
 - 完整链路：**apply IS → controller reconcile → 选 runtime → 渲染 workload → 创建网关 → 更新 status → Pod ready → 请求路由**。
+- LLM 链路：**apply llmisvc → 创建 Gateway/HTTPRoute/InferencePool → 部署 EPP 与 vLLM 池 → ZMQ 同步 KV-Cache → EPP 打分路由**。
 - Reconcile 是幂等的：反复执行结果一致，status 更新不影响 generation。
 - 两种模式在 workload 创建上有本质差异：Serverless 用 Knative Service，RawDeployment 用原生 K8s 资源。
-- 金丝雀通过 traffic split 实现；失败通过 status conditions + workqueue 退避暴露。
-- 冷启动是 Serverless 的核心 trade-off，GPU 场景慎用。
+- 金丝雀通过 traffic split 实现（llmisvc 由 v0.21 起原生支持比例切分）；失败通过 status conditions + workqueue 退避暴露。
+- 冷启动是 Serverless 的核心 trade-off；LocalModelCache + LMCache 是 2025 年后的标准解法。
 
 **参考来源**
 
 - [KServe — First InferenceService](https://kserve.github.io/website/docs/get_started/first_isvc/)
 - [KServe — Canary Rollout](https://kserve.github.io/website/docs/modelserving/v1beta1/rollout/canary/)
 - [KServe — RawDeployment](https://kserve.github.io/website/docs/modelserving/v1beta1/serving_runtime/)
+- [KServe — LLMInferenceService 架构深入](https://kserve.github.io/website/docs/next/concepts/architecture/control-plane-llmisvc)
+- [KServe v0.18 发布公告：多节点推理](https://kserve.github.io/website/blog/kserve-0.18-release)
 - [Knative — How Knative Services Work](https://knative.dev/docs/serving/)

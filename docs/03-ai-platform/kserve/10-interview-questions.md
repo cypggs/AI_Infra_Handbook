@@ -92,9 +92,21 @@
 - 金丝雀 + HPA + PodDisruptionBudget。
 - 定期备份 etcd / CRD。
 
+### 16. LLMInferenceService 和普通 InferenceService 的本质区别是什么？
+
+**答**：传统 IS 是"一个模型一个端点"，路由靠 kube-proxy 轮询；llmisvc 面向 LLM，数据面基于 Gateway API Inference Extension：HTTPRoute 后端指向 `InferencePool`，由 EPP（llm-d Endpoint Picker）根据 KV-Cache 前缀命中和负载打分选择 Pod，还支持 prefill/decode 分离（KV-Cache 经 NixlConnector + RoCE 传输）、LoRA 热加载、LeaderWorkerSet 多节点并行和 WVA 扩缩。它 v0.16 以 v1alpha1 引入，v0.17 宣布生产可用。
+
+### 17. EPP 的 KV-Cache 感知路由是怎么工作的？有什么代价？
+
+**答**：vLLM Pod 通过 ZMQ 事件（BlockStored/BlockRemoved）把 KV-Cache 块变化实时推给 EPP，EPP 维护"模型名+前缀哈希→Pod"索引；请求到来时按 scorer 管线打分（prefix-cache 权重 2.0、load-aware 权重 1.0），选最高分 Pod。代价是多一跳调度延迟和 EPP 本身的高可用运维，收益是多轮对话/RAG 场景的 TTFT 显著下降和更好的负载均衡。
+
+### 18. KServe 如何解决大模型冷启动？ModelMesh 现在还能用吗？
+
+**答**：三个手段：LocalModelCache（v0.15，节点本地 NVMe 缓存，加载 15-20 分钟降到约 1 分钟，llmisvc v0.19 起支持）；LMCache / KV-Cache 分层卸载（v0.15/v0.20，降 TTFT）；配合 KEDA/WVA 做有缓存支撑的快速扩容。ModelMesh 已于 2026-04 归档，不能用于新部署，迁移方向是 RawDeployment + LocalModelCache。
+
 ## 编码/设计题
 
-### 16. 写一个 `ClusterServingRuntime`，让 KServe 支持一个自定义 Python runtime。
+### 19. 写一个 `ClusterServingRuntime`，让 KServe 支持一个自定义 Python runtime。
 
 ```yaml
 apiVersion: serving.kserve.io/v1alpha1
@@ -116,7 +128,7 @@ spec:
         - --port=8080
 ```
 
-### 17. 写一个 `InferenceService`，用 RawDeployment 部署一个 HuggingFace LLM，HPA 按 CPU 60% 扩缩。
+### 20. 写一个 `InferenceService`，用 RawDeployment 部署一个 HuggingFace LLM，HPA 按 CPU 60% 扩缩。
 
 ```yaml
 apiVersion: serving.kserve.io/v1beta1
@@ -146,5 +158,5 @@ spec:
 
 - 初级题聚焦概念：KServe 是什么、核心 CRD、部署模式、协议。
 - 中级题聚焦流程：reconcile 链路、金丝雀、runtime 扩展、controller/webhook。
-- 高级题聚焦生产：排查、HA、trade-off、InferenceGraph。
+- 高级题聚焦生产与新架构：排查、HA、trade-off、InferenceGraph、llmisvc/EPP、冷启动与 ModelMesh 归档。
 - 编码题考察对 YAML spec 和 runtime 抽象的掌握。

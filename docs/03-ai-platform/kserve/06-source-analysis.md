@@ -334,17 +334,33 @@ IS status 不是底层资源 status 的简单复制，而是经过语义聚合�
 6. `pkg/webhook/admission/inferenceservice/` —— webhook 逻辑。
 7. `config/manager/` —— Kustomize 部署配置。
 
+## 6.11 2025-2026 新增模块速览（v0.15 → v0.21）
+
+0.15 之后仓库围绕"GenAI 推理平台"大幅扩展，读源码时除了传统 IS 链路，还应关注：
+
+| 模块 | 大致位置（随版本演进，以 `find pkg -type d` 为准） | 关注点 |
+|---|---|---|
+| LocalModelCache 控制面 | `pkg/controller/v1alpha1/localmodel*` 及 CRD 定义 | `LocalModelCache`/`LocalModelNodeGroup`/`LocalModelNode` 的 reconcile 与 status 聚合 |
+| localmodel node agent | 独立 DaemonSet 组件（localmodel 安装组件） | 节点上模型下载、校验、清理循环 |
+| LLMInferenceService 控制面 | `pkg/controller/v1alpha1/llminferenceservice*` 一带（llmisvc 组件） | Gateway/HTTPRoute/InferencePool/InferenceModel 的渲染逻辑、EPP Deployment 生命周期 |
+| EPP / Scheduler | 随 llm-d 版本 vendored 或引用的调度器镜像与配置 | EndpointPickerConfig 插件管线、ZMQ KV-Cache 事件订阅 |
+| WVA 集成 | llmisvc 的 autoscaling 子 reconciler | HPA/KEDA 后端选择、variant 配置、状态回写 |
+| Storage | `storage-initializer` 与 OCI/multiple `storageUris` 支持（v0.19+） | 多种 storageUri 的解析与并行下载 |
+
+阅读建议：先看 `pkg/apis/serving/v1alpha1` 下的 LocalModelCache/LLMInferenceService 类型定义，再对照 v0.17 发布博客理解"为什么安装要拆成三个组件"。
+
 ## 本章小结
 
-- **仓库结构**：`cmd/manager` 入口、`pkg/apis` CRD、`pkg/controller` 控制器、`pkg/webhook` webhook、`python/kserve` SDK。
+- **仓库结构**：`cmd/manager` 入口、`pkg/apis` CRD、`pkg/controller` 控制器、`pkg/webhook` webhook、`python/kserve` SDK；v0.15+ 新增 localmodel 与 llmisvc 两条控制面。
 - **主 reconcile 链路**：Get IS → finalizer → init conditions → 子 reconciler → update status。
-- **子 reconciler**：predictor、transformer、explainer、ingress、autoscaler 各司其职。
+- **子 reconciler**：predictor、transformer、explainer、ingress、autoscaler 各司其职；llmisvc 则是 Gateway/Pool/EPP/Pod 池的组合渲染。
 - **runtime 选择**：`RuntimeResolver` 扫描 ServingRuntime，按 modelFormat + autoSelect + priority 匹配。
-- **Pod 渲染**：`PodSpecBuilder` 注入 runtime container + storage-initializer + sidecar。
+- **Pod 渲染**：`PodSpecBuilder` 注入 runtime container + storage-initializer + sidecar；LocalModelCache 路径改注入本地缓存卷。
 - **模式**：子 reconciler 组合、deployment mode 策略、runtime 模板化、status 聚合。
 
 **参考来源**
 
 - [KServe GitHub — kserve/kserve](https://github.com/kserve/kserve)
 - [KServe — Python SDK](https://kserve.github.io/website/sdk_docs/sdk_doc/)
+- [KServe v0.17 发布公告（安装拆分背景）](https://kserve.github.io/website/blog/kserve-0.17-release)
 - controller-runtime 设计模式（本手册 [Operator 模式](../../02-cloud-native/operator/)）
