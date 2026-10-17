@@ -19,9 +19,10 @@ flowchart TD
 | 方式 | 优点 | 缺点 |
 |---|---|---|
 | 同步 | 简单、强一致 | 训练阻塞时间长 |
-| 异步 | 训练几乎不阻塞 | 需要额外内存/显存缓冲区，恢复逻辑复杂 |
+| 线程异步 | 训练几乎不阻塞 | 与训练线程争 GIL，checkpoint 后 TPS 仍下跌 |
+| 进程异步（2025 后主流） | 几乎无 GIL 竞争、可缓存 save plan | 需要额外 CPU 内存缓冲 |
 
-大规模训练通常采用**异步 checkpoint**：在 GPU 上保留一份状态副本，后台线程把副本写入存储。
+大规模训练的标准做法已是**两阶段异步 checkpoint + 独立写盘进程**：GPU→CPU 拷贝只阻塞约 1 秒，真正的写盘由后台进程完成。1856 张 H200 实测，后台处理从约 436s 优化到约 67s，因此可以把 checkpoint 频率提高数倍而不损失有效训练时间（来源：[PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)）。
 
 ### 8.2.2 checkpoint 频率
 
@@ -90,6 +91,19 @@ initContainers:
 - 使用 JuiceFS/Alluxio 把对象存储挂载为带缓存的文件系统；
 - 热门模型预加载到节点镜像中。
 
+### 8.4.3 推理 KV Cache 的存储实践（2025 后）
+
+PD 分离架构下，KV Cache 成为推理集群最大的"存储消费者"：
+
+| 实践 | 说明 |
+|---|---|
+| 分布式 KV Cache 池 | 用 Mooncake Store / LMCache 把各实例的 KV 块池化，跨实例复用前缀 |
+| DRAM 优先、SSD 兜底 | 热点 KV 驻留 CPU 内存，温数据下沉 NVMe，避免全部挤占显存 |
+| RDMA 直传 | 用 Mooncake Transfer Engine / NIXL 做 GPU 显存间直拷，不走文件系统 |
+| CXL 内存池（探索中） | 20-100 TiB 级共享内存池作为 KV 温层，比 SSD 方案 TTFT 低一个数量级 |
+
+Kimi K2 生产环境（128 张 H200）用 Mooncake 支撑了 224k tok/s prefill 与 288k tok/s decode；agentic 负载下跨实例 KV 命中率从约 1.7% 提升到约 92%（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)）。
+
 ## 8.5 成本治理
 
 ### 8.5.1 对象存储成本优化
@@ -100,6 +114,8 @@ initContainers:
 | 合并小对象 | 减少 LIST/HEAD 开销 |
 | 删除过期 artifact | 避免无限增长 |
 | 跨区域复制按需开启 | 避免不必要流量 |
+| 热数据用目录桶/低延迟桶 | checkpoint、热数据集放 S3 Express One Zone 类低延迟层，避免买整集群并行 FS |
+| 数据湖用 QLC 大容量盘 | 122TB 级 QLC SSD 单盘密度约 4PB/U，功耗远低于 HDD 阵列，适合"写一次读多次"的训练数据集 |
 
 ### 8.5.2 存储容量规划
 

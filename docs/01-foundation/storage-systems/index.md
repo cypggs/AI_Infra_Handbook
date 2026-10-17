@@ -4,8 +4,9 @@
 
 如果你已经理解了 Linux 系统调优和计算机网络，下一步就该把目光投向存储。AI 平台上的大量性能问题，最终都会追溯到存储：
 
-- 分布式训练 checkpoint 保存一次要几分钟，可能是本地 NVMe 吞吐不足、对象存储 multipart 并发不够，或 page cache 回写策略不当；
+- 分布式训练 checkpoint 保存一次要几分钟，可能是本地 NVMe 吞吐不足、对象存储 multipart 并发不够，或还在用同步保存而没有上两阶段异步 checkpoint；
 - 模型服务冷启动慢，可能是模型权重文件太大、对象存储下载带宽受限、或本地缓存未命中；
+- 长上下文推理把显存撑爆，可能需要分布式 KV Cache 池（Mooncake/LMCache）或 CXL 内存池这类"显存与 NVMe 之间"的新存储层；
 - Kubernetes Pod 一直 `ContainerCreating`，可能是 CSI 卷 provision/attach 慢、PVC 绑定失败、StorageClass 配置错误；
 - 对象存储账单暴涨，可能是生命周期策略没配、海量小对象未合并、或低频数据未转冷存。
 
@@ -18,11 +19,12 @@
 1. 解释块、文件、对象三种存储语义，以及它们各自的优缺点和适用场景；
 2. 理解存储抽象栈（应用 → 文件系统 → 卷 → 块 → 设备）与 DAS/NAS/SAN/对象存储/并行文件系统分类；
 3. 理解一致性模型（强一致、最终一致、读写一致）和耐久性机制（复制 vs 纠删码）；
-4. 理解 AI 工作负载的存储特征：突发大写、TB 级顺序文件、海量小对象、热/温/冷分层；
-5. 理解 Kubernetes 存储抽象 PV/PVC/StorageClass/CSI 背后的原理与选型逻辑；
-6. 理解 AI 训练 checkpoint、模型权重、artifact 的存储最佳实践；
-7. 掌握基础存储性能工具：fio、dd、iostat、s3 benchmark、Lustre/WEKA 监控；
-8. 与 Linux 系统调优、Kubernetes、案例研究、AI 平台主题形成知识闭环。
+4. 理解 AI 工作负载的存储特征：突发大写、TB 级顺序文件、海量小对象、单次读取（缓存失效）、KV Cache 高并发、热/温/冷分层；
+5. 理解 AI 训练侧的存算分离架构（3FS 式存储资源池）与推理侧的 KV Cache 池架构（Mooncake、CXL 内存池）；
+6. 理解 Kubernetes 存储抽象 PV/PVC/StorageClass/CSI 背后的原理与选型逻辑；
+7. 理解两阶段异步 checkpoint（`async_save`、进程化写盘、save plan 缓存）与模型权重、artifact 的存储最佳实践；
+8. 掌握基础存储性能工具：fio、dd、iostat、s3 benchmark、Lustre/WEKA 监控；
+9. 与 Linux 系统调优、Kubernetes、案例研究、AI 平台主题形成知识闭环。
 
 ## 本章与手册其他主题的关系
 
@@ -43,7 +45,7 @@
 1. [背景](01-background) — 为什么 AI Infra 工程师必须懂存储
 2. [核心思想](02-core-ideas) — 块/文件/对象、一致性、耐久性、延迟/吞吐/IOPS
 3. [架构设计](03-architecture) — DAS/NAS/SAN/对象存储/并行文件系统/K8s 存储架构
-4. [存储数据流](04-storage-workflow) — checkpoint、模型加载、CSI 挂卷三条链路
+4. [存储数据流](04-storage-workflow) — checkpoint、模型加载、CSI 挂卷、KV Cache 流转四条链路
 5. [核心模块](05-core-modules) — 本地/网络/对象/并行文件系统、K8s CSI、缓存分层、数据管理
 6. [源码分析](06-source-analysis) — PyTorch Distributed Checkpoint 或 EBS CSI driver 链路
 7. [工程实践](07-mini-demo) — CPU 可运行存储机制模拟器

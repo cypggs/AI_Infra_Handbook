@@ -9,10 +9,11 @@
 | 检查项 | 建议 |
 |---|---|
 | checkpoint 目标 | 本地 NVMe 作为热缓冲，异步上传到并行 FS/对象存储 |
+| 保存方式 | 优先两阶段异步 checkpoint（`async_save` + 进程化写盘），缓存 save plan |
 | 写入模式 | 大文件顺序写，开启 direct I/O 或合理设置 page cache 回写阈值 |
 | 一致性 | 保存完成后写入 manifest/元数据，确认可读后再删除旧 checkpoint |
 | 容错 | 至少保留最近 2-3 个可用 checkpoint |
-| 频率 | 根据硬件故障率和存储带宽权衡，通常 5-15 分钟 |
+| 频率 | 异步保存把阻塞降到秒级后，万卡集群可提高到 5 分钟以内 |
 
 ### 9.1.2 推理场景
 
@@ -20,6 +21,7 @@
 |---|---|
 | 模型权重 | 使用对象存储 + Init Container 或共享 PVC |
 | 缓存 | 节点级本地缓存，热门模型预加载 |
+| KV Cache | PD 分离场景部署分布式 KV Cache 池（Mooncake/LMCache），DRAM 优先、SSD 兜底 |
 | 冷启动 | 设置合理的 readiness probe 和 HPA 预热策略 |
 | 多版本 | 对象存储版本控制 + 路由切换 |
 
@@ -84,8 +86,11 @@ warp mixed --duration=5m --obj.size=10MiB --bucket=benchmark --access-key=$KEY -
 |---|---|
 | 把对象存储当文件系统用 | 对象存储适合大对象，海量小文件应合并或使用文件系统 |
 | 忽视 metadata 开销 | 海量小对象 LIST/HEAD 开销巨大，需要预聚合或索引 |
+| 给训练数据堆读缓存 | 训练数据每个 epoch 只读一遍，缓存命中率趋近于零；优先裸带宽（3FS 思路）或直接上 QLC 数据湖 |
+| checkpoint 用同步保存 | 同步保存一次阻塞数分钟；用两阶段异步 + 进程化写盘把阻塞压到秒级 |
 | checkpoint 只存一份 | 至少保留多份，异地/跨可用区备份 |
 | 所有数据都用最高性能存储 | 按访问频率分层，冷热分离 |
+| KV Cache 只放显存 | 长上下文/Agent 场景显存放不下；用 DRAM 池 + SSD 分层，跨实例复用 |
 
 ## 9.6 一句话总结
 

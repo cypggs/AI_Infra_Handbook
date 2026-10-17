@@ -119,3 +119,43 @@
 - Pod 声明 Local PV，训练代码写入本地路径；
 - 异步 sidecar 或训练框架将 checkpoint 上传到对象存储；
 - Job 完成后清理或保留关键 checkpoint。
+
+## 10.5 2025-2026 前沿题
+
+### 21. DeepSeek 3FS 为什么"几乎不做读缓存"？它的架构有什么特点？
+
+**参考答案要点**：
+- AI 训练数据每个 epoch 只读一遍，传统读缓存命中率趋近于零，缓存反而引入一致性和内存开销；
+- 架构：存算分离的 Chunk 引擎聚合千级 NVMe SSD + RDMA 网络的裸带宽；无状态元数据服务基于 FoundationDB；CRAQ 链复制保证强一致；
+- 效果：180 节点集群聚合读带宽 6.6 TiB/s，单节点 KV Cache 查找读带宽 40+ GiB/s（来源：[3FS](https://github.com/deepseek-ai/3fs)）。
+
+### 22. 推理 PD 分离架构下，KV Cache 存储层要解决什么问题？
+
+**参考答案要点**：
+- Prefill 与 Decode 在不同 GPU 上执行，KV Cache 需要跨节点高速传输；
+- 用分布式 KV Cache 池（Mooncake Store：CPU DRAM + SSD + RDMA）按块寻址、跨实例复用前缀；
+- 用 RDMA/Transfer Engine 做 GPU 显存直拷；分层驻留（DRAM 热、SSD 温）；
+- 更进一步的 CXL 内存池把 KV 温层从 SSD 提到内存总线级，TTFT 可再降一个数量级；
+- 实测：agentic 负载跨实例命中率从约 1.7% 提升到约 92%（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)）。
+
+### 23. PyTorch 异步 checkpoint 的实现原理是什么？为什么还要"进程化"？
+
+**参考答案要点**：
+- 两阶段：阶段一 GPU→CPU 页锁定内存（训练只在此阻塞约 1 秒），阶段二后台写盘不影响训练；
+- 线程化后台写盘会与训练线程争抢 Python GIL，造成 checkpoint 结束后 TPS 持续下跌，改成独立进程后消除；
+- 缓存 save plan 避免每次保存都重复全局 collective（planner 只需第一次计算）；
+- 实测 1856 H200 / Llama3-70B：后台处理 436s→67s，约 6.5 倍提升（来源：[PyTorch Blog](https://pytorch.org/blog/6x-faster-async-checkpointing/)）。
+
+### 24. CXL 内存扩展会给 AI 存储层级带来什么变化？
+
+**参考答案要点**：
+- 在 GPU HBM 与 NVMe SSD 之间新增"可池化内存层"，延迟约 500ns 级，带宽 64-128 GB/s；
+- 杀手级场景是推理 KV Cache 温层：比 SSD 快一个数量级、比 HBM 便宜一个数量级，且可跨节点共享；
+- 2025-2026 进展：OCP 2025 上 XConn+MemVerge 演示 100 TiB CXL 内存池跑 NVIDIA Dynamo；Azure 2025-11 推出首批 CXL 云实例；CXL 4.0（2025-11）带宽翻倍到 128 GT/s；
+- 代价：软件栈（内存分层、QoS、故障隔离）还不成熟，生产部署案例少。
+
+### 25. QLC NAND 大容量 SSD 适合 AI 场景的哪些层级？有什么坑？
+
+**参考答案要点**：
+- 适合：数据湖、训练数据集、对象存储温层等"写一次读多次"场景；122TB 单盘（Solidigm D5-P5336）密度约 4PB/U，功耗远低于 HDD 阵列；
+- 坑：随机写 IOPS 比 TLC 低约两个数量级（1.9 万 vs 90 万），耐久性（DWPD）低，不适合 checkpoint 热缓冲和高频覆写层（来源：[StorageReview 评测](https://www.storagereview.com/review/solidigm-122-88tb-d5-p5336-review-high-capacity-storage-meets-operational-efficiency)）。

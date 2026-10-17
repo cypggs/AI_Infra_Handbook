@@ -15,6 +15,9 @@
 - Lustre — 面向 HPC 的并行文件系统。
 - Alluxio — 内存/SSD 虚拟分布式存储层。
 - JuiceFS — 基于对象存储的 POSIX 文件系统。
+- Mooncake (USENIX FAST '25) — "Trading more storage for less computation"：以 KV Cache 为中心的推理服务架构，PD 分离 + 分布式 KV 池。
+- 3FS / Fire-Flyer File System (2025) — DeepSeek 的 AI 原生并行文件系统，CRAQ 强一致 + FoundationDB 元数据。
+- ByteCheckpoint (2024) / DataStates-LLM — 大规模训练 checkpoint 系统与惰性异步 checkpointing。
 
 ## 11.3 官方文档
 
@@ -22,9 +25,13 @@
 - [MinIO Documentation](https://min.io/docs/minio/linux/index.html)
 - [Ceph Documentation](https://docs.ceph.com/)
 - [Lustre Documentation](https://www.lustre.org/)
+- [DeepSeek 3FS](https://github.com/deepseek-ai/3fs) — 6.6 TiB/s 聚合读带宽的 AI 存储
+- [Mooncake](https://github.com/kvcache-ai/Mooncake/) — 分布式 KV Cache 池与 Transfer Engine
+- [Amazon S3 Vectors](https://aws.amazon.com/s3/vectors/) — 对象存储内原生向量检索（2025-12 GA）
 - [Kubernetes Storage Concepts](https://kubernetes.io/docs/concepts/storage/)
 - [Kubernetes CSI Spec](https://github.com/container-storage-interface/spec)
 - [PyTorch Distributed Checkpoint](https://pytorch.org/docs/stable/distributed.checkpoint.html)
+- [PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)
 - [fsspec Documentation](https://filesystem-spec.readthedocs.io/)
 - [Google Orbax / Zarr3](https://orbax.readthedocs.io/)
 

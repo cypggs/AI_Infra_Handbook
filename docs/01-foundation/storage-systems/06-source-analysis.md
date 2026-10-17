@@ -88,7 +88,41 @@ load_state_dict(
 | 与并行策略解耦 | FSDP/TP/PP 变化后仍能加载 |
 | fsspec 后端 | 本地 NVMe、S3、GCS 统一接口 |
 
-## 6.6 备选：EBS CSI driver
+## 6.6 异步保存：2025 年的关键演进
+
+DCP 从 2.4 起支持 `async_save`，把保存拆成两阶段：
+
+```python
+from torch.distributed.checkpoint import AsyncCheckpointerType
+from torch.distributed.checkpoint.state_dict_saver import async_save
+
+# 阶段 1：GPU → CPU（训练仅在此短暂阻塞，1856 GPU 实测约 0.78s）
+# 阶段 2：后台进程把 CPU 缓冲写入存储（训练继续跑）
+fut = async_save(
+    state_dict,
+    storage_writer=FileSystemWriter("/path/to/checkpoint"),
+    async_checkpointer_type=AsyncCheckpointerType.PROCESS,  # 独立进程，消除 GIL 竞争
+)
+fut.result()  # 需要确认持久化完成时（如训练收尾）再等待
+```
+
+2025 年 4 月 Meta/Crusoe 在 1856 张 H200 上实测 Llama3-70B 训练，两个优化把后台处理时间从约 436 秒压到约 67 秒（约 6.5 倍）：
+
+| 优化 | 解决的问题 |
+|---|---|
+| 进程化异步 checkpoint（`AsyncCheckpointerType.PROCESS`） | 后台写盘线程与训练线程争抢 Python GIL，导致 checkpoint 完成后训练 TPS 仍持续下跌 |
+| save plan 缓存（`DefaultSavePlanner(enable_plan_caching=True)`） | 每次保存都重新做全局 plan collective；实际只有数据在变，plan 可以复用 |
+
+来源：[PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)、[Reducing Model Checkpointing Times by Over 10x](https://pytorch.org/blog/reducing-checkpointing-times/)。
+
+```mermaid
+flowchart LR
+    A[async_save] -- GPU→CPU 0.78s --> B[训练继续]
+    A -- 后台进程写盘 --> C[本地 NVMe]
+    C -- 异步 --> D[S3 / 并行 FS]
+```
+
+## 6.7 备选：EBS CSI driver
 
 如果想深入 K8s 存储，可以研究 AWS EBS CSI driver 的 gRPC 调用链：
 
@@ -102,6 +136,6 @@ flowchart LR
 
 这套调用链是理解 `PVC → PV → attach → mount` 的绝佳入口。
 
-## 6.7 一句话总结
+## 6.8 一句话总结
 
-**PyTorch DCP 把 checkpoint 从“单文件、全 rank 竞争”变成“分片、独立写入、元数据驱动加载”，是支撑大模型分布式训练的关键存储优化。**
+**PyTorch DCP 把 checkpoint 从"单文件、全 rank 竞争"变成"分片、独立写入、元数据驱动加载"，再叠加上两阶段异步保存与进程化写盘，把训练阻塞从分钟级压到秒级，是支撑大模型分布式训练的关键存储优化。**

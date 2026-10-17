@@ -10,7 +10,10 @@
 |---|---|---|---|---|
 | HDD | 数 ms | 100-200 MB/s | 高（大容量） | 冷存、归档 |
 | SATA SSD | 百 μs | 500 MB/s | 中 | 普通应用 |
-| NVMe SSD | 十 μs | 数 GB/s | 中-高 | checkpoint、缓存 |
+| NVMe SSD（TLC） | 十 μs | 数 GB/s | 中-高 | checkpoint、缓存 |
+| NVMe SSD（QLC 大容量） | 十 μs | 顺序读约 7 GB/s、写约 3 GB/s | 随机写弱 | 数据湖、温数据（如 Solidigm D5-P5336 122TB） |
+
+> QLC（四层单元）NAND 用容量换耐久性：单盘可达 122TB（ roadmap 指向 245TB 级），顺序读性能接近 TLC，但随机写 IOPS 低一个数量级（4K 随机读约 90 万 IOPS vs 随机写仅约 1.9 万）。它最适合 AI 数据湖、训练数据集这类"写入一次、读取多次"的场景，用单盘 4PB/U 的密度和比 HDD 低得多的功耗重塑温层（来源：[Solidigm D5-P5336](https://www.solidigm.com/products/data-center/d5/p5336.html)、[StorageReview 评测](https://www.storagereview.com/review/solidigm-122-88tb-d5-p5336-review-high-capacity-storage-meets-operational-efficiency)）。
 
 ### RAID
 
@@ -86,7 +89,8 @@ flowchart LR
 - **AWS S3 / GCS / Azure Blob**：托管对象存储；
 - **MinIO**：兼容 S3 的开源对象存储；
 - **Ceph RADOS**：分布式对象存储，支持块/文件/对象；
-- **S3 Express / Express One Zone**：低延迟对象存储，适合高吞吐 AI 工作负载。
+- **S3 Express One Zone**：低延迟对象存储（目录桶），ms 级延迟，适合高吞吐 AI 工作负载；
+- **S3 Vectors**：2025-12 GA 的原生向量检索，向量直接存在对象存储里做 ANN 查询，服务 RAG 场景（每索引 20 亿向量、每 bucket 1 万个索引）。
 
 ## 5.4 并行文件系统
 
@@ -98,8 +102,23 @@ flowchart LR
 | GPFS / Spectrum Scale | IBM 商用，强一致性 | 企业级 |
 | BeeGFS | 开源、易部署 | 中小型集群 |
 | WEKA | 高性能 NVMe 原生 | 低延迟 AI 工作负载 |
+| 3FS (Fire-Flyer) | 2025-02 DeepSeek 开源；NVMe+RDMA 全带宽利用、几乎放弃读缓存、元数据基于 FoundationDB、CRAQ 强一致 | AI 训练/推理，180 节点聚合读 6.6 TiB/s |
 
-### 关键组件
+### 3FS 架构要点
+
+```mermaid
+flowchart LR
+    A[客户端 FUSE / USRBIO] --> B[无状态元数据服务<br/> backed by FoundationDB]
+    A -- 数据面 --> C[Chunk 引擎<br/>千级 SSD 聚合]
+    C -- CRAQ 链复制 --> C
+```
+
+- **存算分离的 Chunk 引擎**：把集群里所有 SSD 聚合成一个资源池，应用以"位置无关"的方式访问任意一块盘；
+- **无状态元数据服务**：状态全部放在 FoundationDB 这类事务型 KV 存储里，元数据服务本身可以水平扩展和快速 failover；
+- **CRAQ（Chain Replication with Apportioned Queries）**：链式复制的改进版，读可以从链上任意节点进行，在保证强一致的同时提高读并发；
+- **KVCache 支持**：单节点 KV 查找读带宽可达 40+ GiB/s，直接把推理 KV Cache 存在文件系统里（来源：[DeepSeek 3FS](https://github.com/deepseek-ai/3fs)）。
+
+### 传统并行文件系统关键组件
 
 ```mermaid
 flowchart LR
@@ -162,7 +181,9 @@ flowchart LR
 
 - **Alluxio**：内存/SSD 缓存层，挂载在对象存储之上；
 - **JuiceFS**：基于对象存储的 POSIX 文件系统，带本地缓存；
-- **FUSE**：用户态文件系统，常用于把对象存储挂载为本地路径。
+- **FUSE**：用户态文件系统，常用于把对象存储挂载为本地路径；
+- **Mooncake Store / LMCache**：2025 年后兴起的**推理 KV Cache 池**，缓存单元不是文件而是 KV 块，配合 RDMA 在 GPU 实例间共享，把跨实例前缀复用率从个位数百分比提升到 90%+；
+- **CXL 内存池**：XConn/MemVerge、KIOXIA XL1、Liqid 等 2025-2026 年的 CXL 方案把退役 DDR4/DDR5 聚合成 20-100 TiB 级共享内存池，作为 KV Cache 的"温层"（延迟约 460-500ns，远高于 SSD），Azure 于 2025-11 推出首批 CXL 云实例（来源：[OCP 2025 CXL KV Cache](https://www.storagenewsletter.com/2025/10/16/ocp-global-summit-2025-xconn-technologies-and-memverge-demonstrate-cxl-memory-pool-for-kv-cache/)）。
 
 ## 5.7 数据管理
 

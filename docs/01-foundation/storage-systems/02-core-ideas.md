@@ -103,19 +103,29 @@ AI 训练通常追求**高吞吐的顺序读写**，而模型服务更关注**�
 
 数据局部性原则：**把经常访问的数据放在离计算更近、更快的地方。**
 
+2025 年之后的 AI 集群，存储层级因为推理 KV Cache 的爆炸而多出了两层——**CXL 内存**和**分布式 KV Cache 池**，它们插在"本地 NVMe"与"GPU 显存"之间：
+
 ```mermaid
 flowchart LR
-    A[GPU 显存] --> B[本地 NVMe]
-    B --> C[并行文件系统]
-    C --> D[对象存储]
-    D --> E[冷存/归档]
+    A[GPU 显存 HBM] --> B[CXL 内存池<br/>KV Cache 温层]
+    B --> C[CPU DRAM<br/>分布式 KV Cache 池]
+    C --> D[本地 NVMe]
+    D --> E[并行文件系统 / 3FS]
+    E --> F[对象存储]
+    F --> G[冷存/归档]
     style A fill:#f9f,stroke:#333
-    style B fill:#bbf,stroke:#333
+    style B fill:#fda,stroke:#333
+    style C fill:#fca,stroke:#333
 ```
 
 - **热层**：GPU 显存、本地 NVMe，容量小、速度快、贵；
-- **温层**：并行文件系统、对象存储，容量大、速度中等；
-- **冷层**：归档存储（Glacier、OSS 归档），容量极大、速度慢、便宜。
+- **温层**：CXL 内存池与 CPU DRAM（用于推理 KV Cache 共享，如 Mooncake）、并行文件系统、对象存储，容量大、速度中等；
+- **冷层**：归档存储（Glacier、OSS 归档）、QLC 大容量 SSD 数据湖，容量极大、速度慢、便宜。
+
+两个 AI 时代特有的分层事实：
+
+1. **训练侧"缓存失效"**：训练数据每个 epoch 只读一遍，传统读缓存命中率趋近于零。3FS 因此几乎不做读缓存，而是直接用 NVMe + RDMA 提供 6.6 TiB/s 的聚合随机读带宽（[DeepSeek 3FS](https://github.com/deepseek-ai/3fs)）。缓存不再万能，"裸带宽"成了新的王道。
+2. **推理侧"缓存即产品"**：PD 分离架构下，KV Cache 的跨节点复用能把命中率从约 1.7% 提升到 92%（Mooncake 在 agentic 负载上的实测，来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)）。缓存从优化手段变成了推理系统的核心模块。
 
 ## 2.8 快照、克隆与瘦置备
 

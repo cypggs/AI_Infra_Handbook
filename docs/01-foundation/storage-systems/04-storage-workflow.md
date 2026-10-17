@@ -1,10 +1,10 @@
 # 4. 存储数据流
 
-理解存储系统最好的方式，是跟踪一个真实数据包的完整旅程。本章分析三条 AI 场景中最常见的链路。
+理解存储系统最好的方式，是跟踪一个真实数据包的完整旅程。本章分析 AI 场景中最常见的四条链路：训练 checkpoint 保存、模型服务加载权重、Kubernetes CSI 卷挂载，以及 2025 年后兴起的推理 KV Cache 流转。
 
 ## 4.1 链路一：训练 checkpoint 保存
 
-分布式训练中，所有 rank 需要协同保存 checkpoint。典型路径如下：
+分布式训练中，所有 rank 需要协同保存 checkpoint。传统同步保存路径如下：
 
 ```mermaid
 flowchart LR
@@ -19,11 +19,24 @@ flowchart LR
 2. **低阻塞**：保存到本地后训练可以更快恢复；
 3. **容错**：本地文件作为缓冲区，后续异步上传到持久存储。
 
+### 异步 checkpoint：两阶段流水线
+
+2025 年之后的主流做法是 PyTorch DCP 的**异步 checkpoint**，把保存拆成两个阶段，训练只在第一阶段被短暂阻塞：
+
+```mermaid
+flowchart LR
+    A[GPU 状态] -- 阶段1: GPU→CPU<br/>训练阻塞约1秒 --> B[CPU 页锁定内存]
+    B -- 阶段2: 后台进程异步写盘<br/>训练不受影响 --> C[本地 NVMe / 并行 FS / 对象存储]
+```
+
+实测数据非常可观：1856 张 H200 训练 Llama3-70B，GPU 阻塞时间仅约 0.78 秒，而后台写盘从约 436 秒优化到约 67 秒（缓存 save plan + 进程化异步写盘，合计约 6.5 倍提升；来源：[PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)）。更早的测试中，7B 模型单次 checkpoint 从约 148.8 秒降到约 6.3 秒。
+
 ### 异步上传的注意事项
 
 - 需要保证上传完成前，不能删除本地 checkpoint；
 - 需要记录 manifest，说明哪些文件属于同一个 checkpoint；
-- 上传到对象存储时，通常使用 multipart 上传以提高大文件吞吐。
+- 上传到对象存储时，通常使用 multipart 上传以提高大文件吞吐；
+- 后台写盘线程与训练线程共享 CPU/GIL，2025 年后的解法是把写盘放到独立进程（消除 GIL 竞争）并缓存 save plan（消除重复 collective）。
 
 ## 4.2 链路二：模型服务加载权重
 
@@ -44,6 +57,7 @@ flowchart LR
 | 镜像预热 | 把常用模型打包进节点镜像或容器镜像层 |
 | 并行下载 | 使用 multipart 或多线程提高带宽利用率 |
 | 共享 PVC | 多副本 Pod 挂载同一个只读 PVC |
+| 分层加载 | 先用 safetensors 元数据映射显存，再按需拉取权重分片，降低 TTFB |
 
 ## 4.3 链路三：Kubernetes CSI 卷挂载
 
@@ -70,14 +84,35 @@ flowchart TD
 
 任何一个阶段失败，Pod 都会卡在 `ContainerCreating`。
 
-## 4.4 三条链路的共性
+## 4.4 链路四：推理 KV Cache 的写入与复用
+
+PD 分离架构下，KV Cache 成为一条独立的存储数据流：
+
+```mermaid
+flowchart LR
+    A[Prefill GPU 计算 KV] -- RDMA 直写 --> B[Mooncake Store 等<br/>DRAM+SSD 池]
+    B -- 命中 --> C[Decode GPU 直接读取]
+    B -- 复用 --> D[其他实例的同前缀请求]
+    D -- 跳过重复计算 --> C
+```
+
+关键机制：
+
+- **按块寻址**：KV 块以 token 区间为单位编址，前缀相同即可复用，天然适合 Agent 多轮调用的 system prompt 共享；
+- **分层驻留**：热点 KV 驻留 CPU DRAM，温数据下沉本地 SSD，远快于从远端存储重算 prefill；
+- **传输引擎**：Mooncake Transfer Engine、NVIDIA NIXL 等用 RDMA/GPUDirect 把 GPU 显存直接对拷，绕开 CPU 和文件系统。
+
+Mooncake 在 agentic 负载上把跨实例 KV Cache 命中率从约 1.7% 提升到约 92%，这是"用存储换计算"的典型胜利（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)）。
+
+## 4.5 四条链路的共性
 
 | 链路 | 核心关注点 |
 |---|---|
-| checkpoint 保存 | 写入带宽、一致性、manifest 管理、异步上传 |
+| checkpoint 保存 | 写入带宽、两阶段异步、save plan 缓存、manifest 管理 |
 | 模型加载 | 读取带宽、本地缓存、冷启动时间、并发下载 |
 | CSI 挂卷 | 控制面延迟、attach/stage/publish 成功率、多节点共享 |
+| KV Cache 流转 | 传输延迟（RDMA）、块级寻址、分层驻留、跨实例复用 |
 
-## 4.5 一句话总结
+## 4.6 一句话总结
 
 **存储数据流的关键不是“数据存在哪里”，而是“数据在什么时候以什么带宽、经过哪些控制面、到达哪里”。**
