@@ -44,10 +44,13 @@ PTX 的好处是**向前兼容**：老程序可以在新 GPU 上运行。坏处�
 
 ```bash
 nvcc -arch=sm_90 -o program program.cu
-# sm_90 对应 Hopper H100
-# sm_89 对应 Ada Lovelace RTX 4090
 # sm_80 对应 Ampere A100
+# sm_90 对应 Hopper H100，sm_90a 额外启用 WGMMA/TMA 等专属指令
+# sm_100 对应 Blackwell B200/GB200
+# sm_107 对应 Rubin（CUDA 13.4+）
 ```
+
+CUDA 13 起工具链不再支持 Maxwell/Pascal/Volta（sm_75 以下），PTX ISA 已演进至 9.x。老卡集群需要锁定 CUDA 12.x 工具链。
 
 ## 6.2 PyTorch CUDA 调用栈
 
@@ -175,7 +178,16 @@ def add_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     tl.store(output_ptr + offsets, x + y, mask=mask)
 ```
 
-Triton 会自动处理 tiling、shared memory、coalescing 等细节，让研究者用 Python 就能写出接近手写 CUDA 性能的 kernel。PyTorch 2.0 的 `torch.compile` 也大量依赖 Triton 生成 fusion kernel。
+Triton 会自动处理 tiling、shared memory、coalescing 等细节，让研究者用 Python 就能写出接近手写 CUDA 性能的 kernel。
+
+到 2025-2026 年，这个趋势已经成型：
+
+- `torch.compile`（Inductor 后端大量生成 Triton kernel）成为 PyTorch 的默认优化路径，AOTI 进一步把编译产物固化成可独立部署的推理二进制；
+- Triton 不再绑定 NVIDIA，AMD ROCm、Intel GPU 均有后端，“写一次 Triton，多处可跑”成为跨厂商移植的现实路径；
+- 社区涌现出 FlashInfer、Liger-kernel 等 Triton 系算子库，持续侵蚀传统手写 CUDA 的空间；
+- NVIDIA 的回应是 CUDA 13 的 **cuTile**——官方的 tile 级 Python DSL（见编程模型章节）。
+
+手写 CUDA 的阵地收缩到：极致性能关键路径（FlashAttention-3、MoE grouped GEMM）、通信-计算重叠、以及新硬件特性（TMA、NVFP4）的头批利用者。
 
 ## 6.6 本节小结
 
@@ -185,6 +197,6 @@ Triton 会自动处理 tiling、shared memory、coalescing 等细节，让研究
 2. **PyTorch 的 CUDA 调用栈**：Python → ATen → c10 CUDA stream/allocator → cuBLAS/cuDNN → CUDA Driver → GPU；
 3. **显存分配器有缓存池机制**，`nvidia-smi` 和 `torch.cuda.memory_allocated()` 含义不同；
 4. **Flash Attention 快的本质是减少 HBM 访问**，通过 tiling 和 online softmax 实现；
-5. **Triton 降低了写高性能 kernel 的门槛**，正在改变 AI kernel 开发方式。
+5. **Triton/torch.compile 已接管大多数 kernel 开发**，手写 CUDA 退守极致性能场景；CUDA 13 的 cuTile 是官方入场券。
 
 下一节，我们用一个 CPU 可运行的 Mini Demo，把前面的概念变成可触摸的代码。

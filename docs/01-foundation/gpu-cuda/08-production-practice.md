@@ -15,7 +15,7 @@ GPU 是 AI 基础设施中最昂贵的组件之一。生产环境中的每一个
 | NVLink / NVSwitch | 决定多卡通信效率 |
 | 能效比 | 决定长期电费 |
 
-**推荐**：H100 SXM（主流）、H200（长上下文/大 batch）、B200/GB200（下一代大规模训练）。
+**推荐**：H100 SXM（存量主流）、H200（长上下文/大 batch）、B200/GB200 NVL72（新建大规模训练，机柜级全互联）。
 
 ### 推理场景
 
@@ -28,7 +28,7 @@ GPU 是 AI 基础设施中最昂贵的组件之一。生产环境中的每一个
 | 显存容量 | KV Cache 占用巨大 |
 | 单卡成本 | 推理通常需要大量卡 |
 
-**推荐**：H100/H200（高并发）、B200（FP4 低延迟）、L40S/RTX 4090（低成本离线推理）。
+**推荐**：H100/H200（高并发）、B200/GB200（FP4/NVFP4 低延迟、大 KV Cache）、Vera Rubin（2026 H2 起新装机）、L40S/RTX 4090（低成本离线推理）。
 
 ## 8.2 GPU 虚拟化技术对比
 
@@ -155,7 +155,30 @@ nsys profile -o report python train.py
 ncu -o kernel_report python train.py
 ```
 
-## 8.9 本节小结
+## 8.9 2025-2026 的供应链与格局变化
+
+GPU 运维的边界正在超出“卡”本身，扩展到机柜、供电与供应链。
+
+### HBM 成为战略资源
+
+- 三星、SK 海力士、美光均已量产 HBM4 并通过 NVIDIA 认证；SK 海力士拿下 2026 年约 54% 的 HBM4 份额且产能售罄；
+- 显存成本已占高端 AI 服务器 BOM 的很大比例，“买不到 HBM”比“买不到 GPU”更先成为约束。
+
+### 机柜级系统的运维新课题
+
+- **液冷成为标配**：GB200 NVL72 单柜约 120 kW，Rubin 时代的 Kyber NVL576 机柜将达约 600 kW，传统风冷完全无法承载；
+- **供电架构升级**：800V 直流供电开始落地；Rubin 机柜还引入机柜级供电平滑，平均功耗降约 10%、50 ms 峰值降约 20%；
+- **网络进机柜**：NVLink 全互联替代传统 PCIe 拓扑，跨柜互联开始引入共封装光学（CPO）。
+
+### 代际节奏
+
+- 2026 年部署主力仍是 H100/H200（存量）与 B200/GB200（新建）；
+- Vera Rubin 首个机柜 2026 年 GTC 时已在 Microsoft Azure 运行，2026 年下半年量产（OEM 首批如 Dell PowerEdge XE9812 已交付 CoreWeave）；
+- 据 SemiAnalysis 报道，NVIDIA 与 Groq 达成约 200 亿美元的授权与人才协议，将 LPU 推理芯片技术纳入 Vera Rubin 生态（来源：[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)、[Micron HBM4 量产公告](https://www.streetinsider.com/Corporate+News/Micron+starts+high-volume+production+of+HBM4+memory+for+NVIDIA+Vera+Rubin/26167911.html)）。
+
+对采购与容量规划的含义：**不要只盯 GPU 单价，要把 HBM 供给、液冷改造、供电容量和机柜网络一起纳入规划**。
+
+## 8.10 本节小结
 
 生产 GPU 管理的核心：
 
@@ -163,6 +186,7 @@ ncu -o kernel_report python train.py
 2. **MIG/MPS/Time-slicing 按隔离性需求选择**；
 3. **DCGM + Prometheus/Grafana 是监控基座**；
 4. **Xid 错误码是硬件健康的重要信号**；
-5. **OOM 和 NCCL 超时是最常见的两类故障**，需要系统化排查。
+5. **OOM 和 NCCL 超时是最常见的两类故障**，需要系统化排查；
+6. **2026 年起，GPU 生产管理的单位从“卡”变成“机柜”**：液冷、供电、HBM 供给与网络都进入运维半径。
 
 下一节，我们总结写高效 CUDA kernel 和运维 GPU 集群的最佳实践。

@@ -17,7 +17,7 @@ GPU/CUDA 是 AI Infra 的**底层分水岭**。它不像 Kubernetes 那样看得
 1. 用一句话向非技术人员解释 GPU 和 CPU 的设计差异；
 2. 画出 NVIDIA GPU 的层级结构：GPU → GPC → SM → Warp → Thread；
 3. 理解 CUDA 编程模型中的 Grid/Block/Thread、内存层次、合并访问、bank conflict、warp divergence；
-4. 知道 H100/H200/B200/GB200 的关键差异，以及 Tensor Core、NVLink、HBM 在 AI 中的作用；
+4. 知道 H100/H200/B200/GB200/Vera Rubin 的关键差异，Tensor Core、NVLink、HBM 在 AI 中的作用，以及 CUDA 13 带来的编程模型变化；
 5. 在生产环境中初步判断：CUDA OOM、NCCL 超时、Xid 错误、低 occupancy 问题的根因；
 6. 与 Kubernetes GPU 调度、TensorRT-LLM、分布式训练、案例研究主题形成知识闭环。
 
@@ -39,7 +39,7 @@ GPU/CUDA 是 AI Infra 的**底层分水岭**。它不像 Kubernetes 那样看得
 
 1. [背景](01-background) — 为什么 AI 离不开 GPU
 2. [核心思想](02-core-ideas) — SIMT、Warp、Latency Hiding、计算密度
-3. [架构设计](03-architecture) — 从 Fermi 到 Blackwell 的 GPU 演进
+3. [架构设计](03-architecture) — 从 Fermi 到 Rubin 的 GPU 演进
 4. [CUDA 编程模型](04-cuda-programming-model) — Grid/Block/Thread、内存、kernel
 5. [核心模块](05-core-modules) — CUDA Runtime、cuBLAS、NCCL、DCGM 等
 6. [源码分析](06-source-analysis) — nvcc 编译链路、PyTorch CUDA 调用栈

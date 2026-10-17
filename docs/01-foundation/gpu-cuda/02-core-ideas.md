@@ -51,6 +51,9 @@ flowchart TD
 | A100 | Ampere | 108 | 64 FP32 CUDA Core, 4 Tensor Core |
 | H100 SXM | Hopper | 132 | 128 FP32 CUDA Core, 4 Tensor Core |
 | B200 | Blackwell | ~160 | 更多 Tensor Core，第二代 Transformer Engine |
+| Vera Rubin | Rubin | 224（双 die） | 896 Tensor Core，第三代 Transformer Engine，HBM4 22 TB/s |
+
+Rubin 把两颗计算 die 用 NV-HBI 高速接口封装在一起，对外表现为一整块 GPU（来源：[NVIDIA Rubin 架构博客](https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/)）。
 
 ## 2.4 Thread Block 与 Grid
 
@@ -173,4 +176,4 @@ GPU 快的秘密可以总结为：
 3. **显存带宽极高**，但延迟也高，需要高并发 warp 和合并访问；
 4. **计算密度决定瓶颈**，矩阵乘是计算瓶颈，element-wise 是内存瓶颈。
 
-下一节，我们把镜头拉近，看 NVIDIA GPU 架构从 Fermi 到 Blackwell 的演进。
+下一节，我们把镜头拉近，看 NVIDIA GPU 架构从 Fermi 到 Rubin 的演进。

@@ -35,6 +35,8 @@ PyTorch、TensorFlow 等框架通常调用 Runtime API。Driver API 主要用于
 
 PyTorch 的 `torch.matmul`、TensorFlow 的 `tf.matmul`，底层很多都是 cuBLAS。
 
+CUDA 13.x 时代，cuBLAS 还新增了两个面向大模型的能力：**grouped GEMM API**（把 MoE 中多个专家的矩阵乘合批提交，实验性）和 **FP64 模拟**（用 Ozaki 方案在 Blackwell 上以低精度单元模拟双精度，B200 上 DGEMM 可达 175 TFLOPS）。
+
 ### 为什么 cuBLAS 比手写 kernel 快
 
 cuBLAS 团队针对每一代 GPU 架构做了大量手工优化：
@@ -146,26 +148,56 @@ DCGM Exporter 可以把指标暴露给 Prometheus，在 Grafana 中展示。这�
 
 这两个组件属于 Kubernetes GPU Operator 生态，详细调度逻辑在 [Kubernetes 主题](/02-cloud-native/kubernetes/) 中讨论。
 
-## 5.10 软件栈选择建议
+## 5.10 CUDA 13 与异构生态：ROCm、昇腾、寒武纪
+
+### CUDA 13.x：工具链的 2025-2026 演进
+
+CUDA 13.0 于 2025 年 11 月发布，到 2026 年 9 月的 13.4 已支持 Rubin 架构（compute capability 10.7）。对 AI Infra 工程师最重要的变化：
+
+- **统一工具链**：服务器（Arm/x86）与 Jetson 嵌入式共用同一套 toolkit，不再分叉；
+- **架构断代**：正式放弃 Maxwell/Pascal/Volta（sm_75 以下的老卡不再受支持），最低要求 Turing；
+- **Green Context** 完善、**cuTile** Python DSL 转正（见上一节）；
+- 最低驱动要求 r575+，PTX ISA 演进至 9.x（来源：[CUDA 13.0 Release Notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html)、[CUDA 13.4 Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html)）。
+
+老集群升级时这是一个现实约束：**H100 之前的卡（V100 等）将无法使用 CUDA 13 工具链**，要么留在 12.x，要么借机换代。
+
+### AMD ROCm：最接近 CUDA 的挑战者
+
+- **ROCm 7.x**（2025 年 10 月起）持续收敛，安装体验和算子覆盖大幅改善；
+- PyTorch 官方原生支持 ROCm，`torch` 在很多 AMD 卡上可以“开箱即用”；
+- HIP 提供接近 CUDA 的编程接口，大量 CUDA 代码可以较低成本移植；
+- 硬件上 MI325X（256 GB HBM3E）与 MI355X（CDNA 4，288 GB HBM3E，8 TB/s）主打大显存推理与“买得到”。
+
+### 国产芯片：软件栈是主战场
+
+- **华为昇腾**：CANN 软件栈 + `torch_npu`（PyTorch 适配层）+ MindSpore；系统层面用 CloudMatrix 384 超节点（384 颗昇腾 910C 通过统一总线互联）对标 NVL72，走“以系统补单芯片”的路线；
+- **寒武纪**：Neuware 软件栈 + 思元 590 系列，互联网大厂推理份额增长明显；
+- **摩尔线程、壁仞等**：MUSA / BIRENSUPA 等自有软件栈，通过 CUDA 兼容层降低迁移成本。
+
+共同规律：**这些竞争的本质不是硬件参数，而是软件生态**。CUDA 三十年的积累（库、工具、人才、框架适配）才是真正的护城河；上层的 PyTorch/Triton 抽象层越统一，后进者的迁移成本越低——这也是 NVIDIA 如此警惕 Triton 中立性的原因。
+
+## 5.11 软件栈选择建议
 
 | 场景 | 推荐栈 | 说明 |
 |---|---|---|
 | 训练大模型 | PyTorch + cuBLAS + cuDNN + NCCL | 生态最成熟 |
 | 推理优化 | TensorRT-LLM / vLLM / SGLang + cuBLAS + NCCL | 引擎层已高度优化 |
-| 自定义算子 | CUDA C++ / Triton（OpenAI）/ CUTLASS | 根据复杂度选择 |
+| 自定义算子 | CUDA C++ / Triton / cuTile / CUTLASS | 根据复杂度选择；Triton/cuTile 适合快速迭代 |
+| AMD/国产 GPU 环境 | ROCm / CANN + torch_npu | 迁移成本主要在算子覆盖与调优工具链 |
 | 集群调度 | Kubernetes + GPU Operator + Device Plugin + DCGM | 生产标准 |
 | 性能分析 | Nsight Compute + Nsight Systems + DCGM | 见下一节 |
 
-## 5.11 本节小结
+## 5.12 本节小结
 
 NVIDIA 软件栈的核心层次：
 
-1. **CUDA Runtime/Driver**：管理 GPU、内存、kernel 启动；
+1. **CUDA Runtime/Driver**：管理 GPU、内存、kernel 启动（CUDA 13 起进入新工具链时代）；
 2. **cuBLAS/cuDNN**：高性能线性代数和深度学习原语；
 3. **NCCL**：多 GPU 集合通信；
-4. **CUTLASS**：可定制的高性能 kernel 模板库；
+4. **CUTLASS / Triton / cuTile**：三层可定制 kernel 手段，门槛从高到低；
 5. **DCGM / Nsight**：监控与性能分析；
-6. **nvidia-container-toolkit / GPU Operator**：容器化与编排。
+6. **nvidia-container-toolkit / GPU Operator**：容器化与编排；
+7. **生态面**：ROCm 与国产软件栈在追赶，PyTorch/Triton 抽象层是共同的迁移桥梁。
 
 AI Infra 工程师不一定要精通每一层，但要能在问题发生时判断：**是硬件、驱动、通信、框架，还是应用代码。**
 

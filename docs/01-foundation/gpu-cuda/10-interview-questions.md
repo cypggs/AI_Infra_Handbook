@@ -135,6 +135,26 @@
 - Time-slicing：时间片轮转，适合开发测试；
 - 选择依据：隔离性要求、开销、成本。
 
+### Q16：Rubin 相比 Blackwell 的主要变化是什么？（2026 年高频题）
+
+**要点**：
+
+- HBM4：288 GB / 22 TB/s，约为 Blackwell 的 2.8 倍——直接回应推理的带宽瓶颈；
+- NVLink 6：每 GPU 3.6 TB/s，NVL72 整柜聚合 260 TB/s；
+- 第三代 Transformer Engine：NVFP4 推理 50 PFLOPS，矩阵 B 支持 3-bit 查表格式，Attention 结构化稀疏；
+- 双 die NV-HBI 封装（224 SM / 896 Tensor Core），对外是单 GPU；
+- 机柜级细粒度同步：tile-level triggering、counted writes、供电平滑——竞争单位从单卡变成机柜；
+- 后续：Rubin Ultra / NVL576（Kyber，2027），再下一代 Feynman。
+
+### Q17：为什么 2025-2026 年 Triton / torch.compile 越来越流行？手写 CUDA 还有价值吗？
+
+**要点**：
+
+- `torch.compile`（Inductor → Triton）成为 PyTorch 默认优化路径，自动融合、自动 tiling，开发效率远超手写；
+- AOTI 把编译产物固化部署；Triton 可移植到 AMD/Intel，成为跨厂商抽象层；
+- NVIDIA 官方以 cuTile（CUDA 13）回应，说明 tile 级 DSL 已是主流方向；
+- 手写 CUDA 的保留阵地：极致性能关键路径（FlashAttention-3、MoE grouped GEMM）、通信-计算重叠、新硬件特性的首批利用。
+
 ## 10.4 本节小结
 
 GPU/CUDA 面试的核心考察点：
@@ -142,6 +162,7 @@ GPU/CUDA 面试的核心考察点：
 1. **基础概念**：SIMT、Warp、内存层次、合并访问；
 2. **编程能力**：能分析 kernel 性能瓶颈、知道怎么优化；
 3. **架构理解**：Tensor Core、NVLink、HBM、架构演进；
-4. **生产经验**：OOM、NCCL、Xid、MIG/MPS、监控。
+4. **生产经验**：OOM、NCCL、Xid、MIG/MPS、监控；
+5. **行业动态（2026）**：Rubin 架构要点、CUDA 13 变化、Triton/torch.compile 对 kernel 开发方式的重塑。
 
 建议面试前结合 Mini Demo 和 Nsight Compute 实际跑几个 kernel，把概念落到数字上。

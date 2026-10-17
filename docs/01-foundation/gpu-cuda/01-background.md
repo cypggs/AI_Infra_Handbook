@@ -45,8 +45,9 @@ GPU 最初不是为 AI 设计的。
 - Ampere（2020）：TF32、稀疏性加速、MIG。
 - Hopper（2022）：Transformer Engine、FP8、NVLink 4。
 - Blackwell（2024-2025）：FP4、第二代 Transformer Engine、NVLink 5、GB200 全互联架构。
+- Rubin（2026）：HBM4、NVLink 6、第三代 Transformer Engine，把重心进一步压向推理与 Agentic AI（详见架构章节）。
 
-可以说，**现代 NVIDIA GPU 的每一次重大架构更新，都是在回答一个问题：怎么让 AI 模型更快、更省、更大。**
+可以说，**现代 NVIDIA GPU 的每一次重大架构更新，都是在回答一个问题：怎么让 AI 模型更快、更省、更大。** 2026 年 GTC 上，NVIDIA 公开了以 Rubin GPU + Vera CPU 为核心的下一代平台，并宣布 Vera Rubin 首个机柜已在 Microsoft Azure 运行、2026 年下半年量产——GPU 的竞争已经从“单卡算力”进入了“机柜级系统”时代（来源：[NVIDIA Rubin 架构博客](https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/)、[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)）。
 
 ## 1.4 AI 工作负载的两大特征
 

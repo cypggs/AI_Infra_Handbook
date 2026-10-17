@@ -1,6 +1,6 @@
-# 3. 架构设计：从 Fermi 到 Blackwell
+# 3. 架构设计：从 Fermi 到 Rubin
 
-理解 GPU 架构演进，不是为了背年份，而是为了明白：**为什么 H100 比 A100 更适合大模型？为什么 B200 强调 FP4 和 Transformer Engine？为什么 NVLink 比 PCIe 重要得多？**
+理解 GPU 架构演进，不是为了背年份，而是为了明白：**为什么 H100 比 A100 更适合大模型？为什么 B200 强调 FP4 和 Transformer Engine？为什么 Rubin 把 288 GB HBM4 当成最大卖点？为什么 NVLink 比 PCIe 重要得多？**
 
 ## 3.1 架构演进时间线
 
@@ -15,6 +15,7 @@
 | Ampere | 2020 | A100 / RTX 3090 | 第三代 Tensor Core、TF32、稀疏加速、MIG |
 | Hopper | 2022 | H100 / H200 | 第四代 Tensor Core、FP8、Transformer Engine、NVLink 4 |
 | Blackwell | 2024-2025 | B200 / GB200 | 第五代 Tensor Core、FP4、第二代 Transformer Engine、NVLink 5、解耦架构 |
+| Rubin | 2026 | Vera Rubin / NVL72 | HBM4（288 GB / 22 TB/s）、NVLink 6、第三代 Transformer Engine、NVFP4、双 die NV-HBI 封装 |
 
 每一代架构的更新，几乎都围绕三个方向：
 
@@ -50,6 +51,7 @@ Tensor Core 是专门做 **矩阵乘累加（Matrix Multiply Accumulate, MMA）*
 - Ampere A100：支持 TF32、BF16、FP16、INT8。
 - Hopper H100：支持 FP8，引入 **Transformer Engine**（动态在 FP16/BF16 和 FP8 之间切换精度）。
 - Blackwell B200：支持 FP4，第二代 Transformer Engine，第五代 Tensor Core。
+- Rubin：第三代 Transformer Engine，引入 **NVFP4**（带微缩放的 4-bit 浮点），并对 Attention 做结构化 2:4 稀疏化加速。
 
 Tensor Core 是 AI 加速的“秘密武器”。它让矩阵乘法的有效吞吐，比单纯用 CUDA Core 高出数倍到数十倍。
 
@@ -77,9 +79,10 @@ C = A × B + C
 | BF16 | 16 bit | 训练与推理，动态范围接近 FP32 |
 | FP16 | 16 bit | 推理、混合精度训练 |
 | FP8 | 8 bit | H100/H200 推理、部分训练（DeepSeek-V3） |
+| MXFP8 / NVFP4 | 8 / 4 bit（微缩放） | Blackwell 起：权重/KV Cache 压缩；Rubin 推理主力 |
 | FP4 | 4 bit | B200 推理量化 |
 
-精度越低，同样功耗和面积下算力越高，但数值稳定性越差。Transformer Engine 的核心价值就是：**在需要稳定的地方用 FP16/BF16，在允许损失的地方自动切到 FP8/FP4。**
+精度越低，同样功耗和面积下算力越高，但数值稳定性越差。Transformer Engine 的核心价值就是：**在需要稳定的地方用 FP16/BF16，在允许损失的地方自动切到 FP8/FP4。** Blackwell 引入的 **微缩放（Micro-tensor Scaling）** 把缩放因子细化到小矩阵块，让 NVFP4 这类超低精度也能保持可用精度，这正是 Rubin 把 4-bit 推向推理主力的前提。
 
 ## 3.4 HBM：GPU 的“主粮仓”
 
@@ -91,21 +94,23 @@ GPU 显存主要用 **HBM（High Bandwidth Memory）**，因为它能提供极�
 | H100 SXM | HBM3 | 80 GB | 3,350 GB/s |
 | H200 SXM | HBM3e | 141 GB | 4.8 TB/s |
 | B200 | HBM3e | 180-192 GB | ~8 TB/s |
+| Vera Rubin | HBM4 | 288 GB | 22 TB/s |
 
-HBM 通过把多层 DRAM 芯片堆叠起来，用硅通孔（TSV）连接，实现高带宽、低功耗，但成本极高。
+HBM 通过把多层 DRAM 芯片堆叠起来，用硅通孔（TSV）连接，实现高带宽、低功耗，但成本极高。进入 HBM4 时代后，竞争焦点进一步转向供给：2026 年三星、SK 海力士、美光均已通过 NVIDIA 认证并量产 HBM4（美光 36GB 12 层堆叠单颗超 2.8 TB/s），SK 海力士拿下了 2026 年约 54% 的 HBM4 份额且产能售罄——**显存供给已经开始像先进制程一样成为战略资源**（来源：[Micron HBM4 量产公告](https://www.streetinsider.com/Corporate+News/Micron+starts+high-volume+production+of+HBM4+memory+for+NVIDIA+Vera+Rubin/26167911.html)、[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)）。
 
 ## 3.5 NVLink 与 NVSwitch：GPU 之间的高速公路
 
 单卡 GPU 不够用，需要多卡通信。PCIe 带宽太低（PCIe 4.0 x16 约 32 GB/s，PCIe 5.0 x16 约 64 GB/s），成为瓶颈。
 
-**NVLink** 是 NVIDIA 的芯片间高速互联：
+**NVLink** 是 NVIDIA 的芯片间高速互联。下表为每 GPU 聚合带宽（双向）：
 
-| 代际 | 每链路带宽 | 典型配置 |
+| 代际 | 每 GPU 带宽 | 典型配置 |
 |---|---|---|
-| NVLink 2 | 25 GB/s | V100 |
-| NVLink 3 | 50 GB/s | A100 |
-| NVLink 4 | 100 GB/s | H100 |
-| NVLink 5 | 100 GB/s+ | B200/GB200 |
+| NVLink 2 | 300 GB/s | V100 |
+| NVLink 3 | 600 GB/s | A100 |
+| NVLink 4 | 900 GB/s | H100 |
+| NVLink 5 | 1.8 TB/s | B200/GB200 |
+| NVLink 6 | 3.6 TB/s | Vera Rubin（NVL72 整柜聚合 260 TB/s） |
 
 **NVSwitch** 是芯片级交换机，让一台机器里的所有 GPU 以全互联方式通信。DGX H100 有 8 块 GPU，通过 NVSwitch 实现任意两块 GPU 之间 900 GB/s 双向带宽。
 
@@ -123,14 +128,16 @@ flowchart LR
 
 在多机训练中，NVLink + NVSwitch 构成了 node 内部的高速网络；跨机则通常用 InfiniBand 或 RoCE。
 
-## 3.6 2025-2026 年的主流 GPU 对比
+## 3.6 2026 年的主流 GPU 对比
 
-| GPU | 架构 | FP8 稠密算力 | 显存 | 显存带宽 | 典型定位 |
+| GPU | 架构 | 低精度算力 | 显存 | 显存带宽 | 典型定位 |
 |---|---|---|---|---|---|
-| H100 SXM | Hopper | 3,958 TFLOPS | 80 GB | 3.35 TB/s | 训练主力 |
-| H200 SXM | Hopper | 3,958 TFLOPS | 141 GB | 4.8 TB/s | 长上下文推理 |
-| B200 | Blackwell | ~9,000 TFLOPS | 180-192 GB | ~8 TB/s | 下一代训练/推理 |
-| GB200 NVL72 | Blackwell | 72 GPU 全互联 | ~1.3 TB 总显存 | 通过 NVLink 5 全互联 | 万亿参数模型训练 |
+| H100 SXM | Hopper | FP8 稠密 1,979 TFLOPS | 80 GB | 3.35 TB/s | 训练主力（存量最大） |
+| H200 SXM | Hopper | FP8 稠密 1,979 TFLOPS | 141 GB | 4.8 TB/s | 长上下文推理 |
+| B200 | Blackwell | FP8 稠密 ~4.5 PFLOPS，FP4 ~9 PFLOPS | 180-192 GB | ~8 TB/s | 训练/推理主力新装机 |
+| GB200 NVL72 | Blackwell | 72 GPU 全互联，FP4 推理 ~1.4 EFLOPS | ~13.4 TB 总显存 | NVLink 5 全互联 | 万亿参数 MoE 训练/推理 |
+| Vera Rubin | Rubin | NVFP4 推理 50 PFLOPS | 288 GB HBM4 | 22 TB/s | 2026 H2 起量，下一代主力 |
+| Vera Rubin NVL72 | Rubin | 72 GPU 全互联 | ~20 TB 总显存 | NVLink 6 全互联 | 单机柜 Agentic AI 推理 |
 
 ## 3.7 Blackwell 的革新
 
@@ -152,23 +159,64 @@ GB200 把两颗 B200 GPU 和一颗 Grace CPU 封装在一起（GB200 Grace Black
 
 GB200 NVL72 机柜把 72 颗 GPU 用 NVLink 全互联，形成“一台超大 GPU”，特别适合万亿参数 MoE 模型。
 
-## 3.8 GPU 架构与 AI 工作负载的匹配
+## 3.8 下一站 Rubin：2026 年的架构格局
+
+2026 年 GTC（3 月，圣何塞）上，NVIDIA 正式公开了 **Vera Rubin 平台**：Rubin GPU + Vera CPU + NVLink 6 + Kyber 机柜的组合（来源：[NVIDIA Rubin 架构博客](https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/)、[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)）。它的设计重点已经不是单纯堆峰值算力，而是**在机柜级系统里持续喂饱推理吞吐**：
+
+### 双 die NV-HBI 封装
+
+Rubin 把两颗“光罩极限”计算 die 用 NVIDIA 高带宽接口（NV-HBI）封装成一颗 GPU：3,360 亿晶体管、224 个 SM、896 个 Tensor Core，对外表现为单一 GPU。Blackwell 首创的双 die 思路在 Rubin 上成为标准形态。
+
+### HBM4 与 NVLink 6：带宽再次翻倍
+
+- 288 GB HBM4，峰值 22 TB/s，约为 Blackwell 的 2.8 倍；
+- NVLink 6 每 GPU 3.6 TB/s，NVL72 整柜聚合 260 TB/s；
+- NVLink-C2C 提供 1.8 TB/s 的 CPU-GPU 一致性互联（配 Vera CPU）。
+
+推理（尤其是 Decode 阶段）是纯粹的带宽瓶颈，Rubin 用 22 TB/s 直接回应这个问题。
+
+### 第三代 Transformer Engine
+
+- NVFP4 推理算力 50 PFLOPS；
+- 矩阵 B 支持 3-bit 查表格式：权重存储和搬运更少，精度接近 MXFP8；
+- Attention 引入结构化 2:4 稀疏与压缩 MMA，Softmax 的 FP32 吞吐翻倍。
+
+### 面向机柜级的细粒度同步
+
+- **Tile-level triggering**：依赖 kernel 之间以更细的 tile 粒度触发，而不是整 kernel 级别的粗同步；
+- **Counted writes**：通过 NVLink 的计数写替代传统的 barrier + 原子标志，降低 GPU 间同步开销；
+- 机柜级供电平滑：平均功耗约降 10%，50 ms 峰值功耗降约 20%——在 600 kW 级机柜里，供电波动本身就是设计约束。
+
+### 产品节奏与前瞻
+
+- 2026 年 GTC 时，首个 Vera Rubin 机柜已在 Microsoft Azure 运行，2026 年下半年量产出货；
+- **Rubin Ultra / NVL576（Kyber 机柜，2027）**：四 die 封装、单封装约 1 TB HBM4e、约 32 TB/s 带宽、NVFP4 约 100 PFLOPS，配合共封装光学（CPO）与 800V 直流供电；
+- 再下一代 **Feynman** 已在路线图上（NVL1152 多机柜）。
+
+### 2026 年的竞争格局简述
+
+- **AMD**：MI355X（CDNA 4，288 GB HBM3E，8 TB/s）2025 年底起量，ROCm 7.x 持续收敛，主打“够用 + 可得性”；
+- **国产**：华为昇腾 CloudMatrix 384 超节点对标 NVL72，走“以系统补单芯片”的路线（详见软件栈章节）；
+- 据 SemiAnalysis 报道，NVIDIA 还与 Groq 达成了约 200 亿美元的授权与人才协议，把 LPU 推理芯片技术纳入 Vera Rubin 生态——推理市场的争夺已进入“架构 + 授权 + 生态”的综合战。
+
+## 3.9 GPU 架构与 AI 工作负载的匹配
 
 | AI 场景 | 对 GPU 的关键需求 | 推荐选择 |
 |---|---|---|
-| 大模型训练 | FP8/FP16 高算力、NVLink、大显存、高 MFU | H100/H200/B200/GB200 |
-| 长上下文推理 | 大显存、高带宽 | H200、B200 |
-| 低延迟推理 | 高频率、低精度 FP8/FP4 | B200、H100 |
+| 大模型训练 | FP8/FP16 高算力、NVLink、大显存、高 MFU | H100/H200/B200/GB200/Vera Rubin |
+| 长上下文推理 | 大显存、高带宽 | H200、B200、Vera Rubin |
+| 低延迟推理 | 高频率、低精度 FP8/FP4/NVFP4 | B200、Vera Rubin |
 | 多租户云 | MIG、MPS、显存隔离 | A100/H100 |
 | 边缘/消费级 | 低功耗、低成本 | RTX 4090、Jetson |
 
-## 3.9 本节小结
+## 3.10 本节小结
 
 GPU 架构演进史，就是一部“让矩阵乘法更快、让显存更大、让 GPU 之间连得更紧”的历史：
 
 - **Fermi → Pascal**：通用计算成熟，NVLink 诞生；
 - **Volta → Ampere**：Tensor Core 出现并成熟，TF32/MIG 加入；
 - **Hopper**：FP8 + Transformer Engine，面向大模型训练；
-- **Blackwell**：FP4 + 第二代 Transformer Engine + GB200 全互联，面向下一代万亿参数模型。
+- **Blackwell**：FP4 + 第二代 Transformer Engine + GB200 全互联，面向万亿参数模型；
+- **Rubin（2026）**：HBM4 22 TB/s + NVLink 6 + 第三代 Transformer Engine，竞争单位从单卡变成机柜，重心压向推理与 Agentic AI。
 
 下一节，我们从硬件回到软件，看 CUDA 编程模型如何把这些硬件能力暴露给程序员。

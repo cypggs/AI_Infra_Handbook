@@ -20,6 +20,14 @@
   - CUDA kernel 深度性能分析工具。
 - [Nsight Systems](https://docs.nvidia.com/nsight-systems/)
   - 系统级性能分析工具。
+- [What's New in CUDA Toolkit 13.x](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html)
+  - CUDA 13.x 各版本 Release Notes（green context、cuTile、Rubin 支持等）。
+- [Inside NVIDIA Rubin GPU Architecture](https://developer.nvidia.com/blog/inside-nvidia-rubin-gpu-architecture-powering-the-era-of-agentic-ai/)
+  - Rubin 架构官方解析：HBM4、NVLink 6、第三代 Transformer Engine。
+- [AMD ROCm Documentation](https://rocm.docs.amd.com/)
+  - AMD GPU 计算栈的官方文档。
+- [华为昇腾 CANN 社区](https://www.hiascend.com/software/cann)
+  - 国产 AI 芯片软件栈的代表。
 
 ## 11.2 开源库与代码
 
@@ -43,11 +51,13 @@
 - [FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning](https://arxiv.org/abs/2307.08691)
   - Flash Attention 第二代。
 - [FlashAttention-3](https://arxiv.org/abs/2407.08608)
-  - 针对 Hopper 的进一步优fast attention。
+  - 针对 Hopper 的进一步优化，大量运用 warp specialization 与 TMA。
 - [Mixed Precision Training](https://arxiv.org/abs/1710.03740)
   - FP16 混合精度训练经典论文。
 - [A Guide to Hopper FP8 Training](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html)
   - Transformer Engine 官方指南。
+- [SemiAnalysis: The Inference Kingdom Expands（GTC 2026）](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)
+  - 2026 年 GTC 深度纪要：Vera Rubin、Rubin Ultra NVL576、CPO 与机柜级竞争格局。
 
 ## 11.4 视频与课程
 

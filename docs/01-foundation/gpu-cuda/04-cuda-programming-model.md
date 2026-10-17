@@ -207,7 +207,26 @@ __global__ void matmul(const float *A, const float *B, float *C, int N) {
 
 优化版本会引入 shared memory tiling，把 A 和 B 的小块读到 shared memory，复用多次计算。Mini Demo 会详细演示这一过程。
 
-## 4.10 本节小结
+## 4.10 2025-2026：编程模型本身也在演进
+
+上面的 Grid/Block/Thread 模型是 CUDA 的根基，但近两年硬件和工具链都在给它“加新楼层”：
+
+### Thread Block Cluster 与 TMA（Hopper 起）
+
+- **Thread Block Cluster**：多个 Block 可以组成 Cluster，跨 SM 共享分布式 shared memory（DSMEM），突破单 Block 只能驻留一个 SM 的限制；
+- **TMA（Tensor Memory Accelerator）**：专门的异步拷贝引擎，按描述符整块搬运张量到 shared memory，把地址计算从 SM 上卸载下来；
+- **Warp Specialization**：一个 Block 内的 warp 分工（有的负责加载、有的负责计算、有的负责通信），配合异步屏障流水线化执行。FlashAttention-3、CUTLASS 3.x/4.x 的重头戏都建立在它之上。
+
+### Green Context 与 cuTile（CUDA 13）
+
+- **Green Context**（CUDA 12.4 引入、13.x 完善）：在单个 GPU 上划分 SM、显存带宽等资源，做成软件级的“轻量隔离域”，比 MIG 更灵活、比 MPS 隔离更强，适合多租户推理混部；
+- **cuTile**（CUDA 13.1 实验、13.2 稳定）：官方推出的 tile 级 Python DSL，让程序员以“块”为单位描述计算，而非逐线程写循环——可以看作 NVIDIA 对 Triton 的正面回应（来源：[CUDA 13.2 Release Notes](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-toolkit-release-notes/index.html)、[What's New in CUDA 13.0](https://developer.nvidia.com/blog/whats-new-and-important-in-cuda-toolkit-13-0/)）。
+
+### “手写 kernel”正在变成少数派
+
+随着 `torch.compile`（Inductor 后端大量生成 Triton kernel）、AOTI、Triton 在 AMD/Intel GPU 上可移植，以及 cuBLAS/cuDNN 覆盖越来越全，**普通工程师直接写 CUDA C++ 的场景在 2025-2026 年继续萎缩**。手写 kernel 的价值集中在：极致性能的关键路径（如 FlashAttention-3、MoE 分组 GEMM）、通信-计算重叠、以及新硬件特性的第一时间利用。
+
+## 4.11 本节小结
 
 CUDA 编程模型的核心可以概括为：
 
@@ -216,6 +235,7 @@ CUDA 编程模型的核心可以概括为：
 3. **硬件以 Warp（32 线程）为单位执行**，避免 warp divergence；
 4. **内存分层**，Register/Shared/Global 速度和作用域不同；
 5. **合并访问**和**避免 bank conflict** 是内存优化的关键；
-6. **Occupancy** 是 hiding 延迟的手段，不是唯一目标。
+6. **Occupancy** 是 hiding 延迟的手段，不是唯一目标；
+7. 新时代加一层：**Cluster/TMA/warp specialization 是 Hopper+ 性能密码，cuTile/green context 是 CUDA 13 的新接口，而 Triton/torch.compile 正在接管大多数 kernel 开发。**
 
 下一节，我们看 NVIDIA 的软件栈：CUDA Runtime、cuBLAS、NCCL、DCGM 等。

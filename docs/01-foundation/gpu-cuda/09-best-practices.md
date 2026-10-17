@@ -58,7 +58,7 @@ Block size 影响 warp 数量、occupancy 和 shared memory 使用。
 - Flash Attention 把 attention 的多个步骤融合；
 - LayerNorm + Activation + Gemm 融合成一个 kernel。
 
-PyTorch 2.0 的 `torch.compile` 会自动做大量 fusion，底层通过 Triton 生成 kernel。
+PyTorch 2.x 的 `torch.compile` 会自动做大量 fusion，底层通过 Triton 生成 kernel。推理服务（vLLM、TensorRT-LLM、SGLang）则普遍配合 **CUDA Graph**：把整个解码 step 的几十个 kernel 录制下来一次性提交，消除 per-kernel launch 开销——在小 batch 低延迟场景下，这一步往往比任何单 kernel 优化都值钱。
 
 ## 9.6 混合精度：FP16/BF16/FP8/FP4
 
@@ -68,7 +68,8 @@ PyTorch 2.0 的 `torch.compile` 会自动做大量 fusion，底层通过 Triton 
 | BF16 | 训练首选，动态范围大，稳定性好 |
 | FP16 | 推理、混合精度训练 |
 | FP8 | H100+ 推理，部分训练（需 Transformer Engine） |
-| FP4 | B200+ 推理量化 |
+| MXFP8 / NVFP4 | Blackwell+ 权重与 KV Cache 压缩；微缩放让 4-bit 保持可用精度 |
+| FP4 / NVFP4 | B200/Rubin 推理量化，Rubin 起成为推理主力精度 |
 
 **原则**：
 
@@ -84,9 +85,9 @@ PyTorch 2.0 的 `torch.compile` 会自动做大量 fusion，底层通过 Triton 
 | 卷积/Attention | cuDNN、Flash Attention |
 | 多卡通信 | NCCL |
 | 通用并行算法 | Thrust |
-| 自定义融合算子 | Triton、CUTLASS |
+| 自定义融合算子 | 先 torch.compile / Triton / cuTile，再考虑 CUDA C++ / CUTLASS |
 
-**原则**：手写 CUDA kernel 是最后手段。先确认 cuBLAS/cuDNN 没有满足需求的实现。
+**原则**：手写 CUDA kernel 是最后手段。先确认 cuBLAS/cuDNN 没有满足需求的实现，再确认 torch.compile/Triton 生成的 kernel 不够快。
 
 ## 9.8 Profile 驱动优化
 
