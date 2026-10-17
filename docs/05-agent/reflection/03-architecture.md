@@ -251,6 +251,11 @@ DeepSeek-R1 之后，Generator / Critic 的底层模型普遍自带长链自我�
 
 固定 threshold + max_iter 的策略正在被自适应策略补充：根据任务类型、模型置信度、历史收敛曲线动态分配“反思预算”（哪一步该反思、花多少 token 反思）。学术侧则出现直接训练反思策略的工作（如长程反思训练的 AREX-2、从轨迹反思构建启发式池的 ERL），让反思策略本身成为可学习的对象，而不是手写规则。
 
+2026 年下半年，这两条路线都有了具体的落地参照：
+
+- **训练无关的有界反思**：EvoResearcher（2026-08，arXiv:2608.18884）在单个冻结模型上实现推理时“生成—自批判—修订”循环，用批判输出的 "CONFIRMED" 哨兵做隐式提前终止；在 BBH/GSM8K/MATH 上 82~88% 的样本在等精度（95% Wilson 区间内）的情况下提前结束，平均每题约 2.1 次生成——不训练模型也能拿到“有预算的反思”。
+- **批判文本作为训练信号**：CAFT（2026-10，arXiv:2610.19367）让专家在轨迹上为每个错误动作同时给出修正动作和**自然语言批判**，用“批判增强监督”微调学生 agent，比只蒸馏修正动作平均高 8%，且 CAFT checkpoint 是更好的 RL 冷启动点。反思控制器由此从“手写 if-else”走向“可学习的预算分配器”。
+
 ## 本章小结
 
 Agent Reflection 的架构核心是“生成—批判—评估—修订”的闭环。Generator、Critic、Evaluator 是执行层，Revision Controller 和 Policy 是编排层，Workspace 和 Reflection Memory 是状态层，Observer 和 Human Gate 是可观测与兜底层。控制面负责策略与终止条件，数据面负责高并发的生成与批判。部署形态可以是库、独立服务、Sidecar 或托管，选择取决于延迟、隔离和可扩展需求。2025-2026 年的趋势是：内隐反思下沉到模型、状态层走向演化、控制器走向自适应与学习化。
@@ -264,6 +269,8 @@ Agent Reflection 的架构核心是“生成—批判—评估—修订”的闭
 - [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
 - [Self-Improvements in Modern Agentic Systems: A Survey](https://arxiv.org/abs/2607.13104)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
+- [Beyond Corrected Actions: Training LLM Agents on Textual Critiques (CAFT)](https://arxiv.org/abs/2610.19367)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

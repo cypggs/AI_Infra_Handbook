@@ -134,6 +134,16 @@ Multi-Agent 提供通信与协调机制，Reflection 提供“批判—修订”
 
 取舍原则：错误可逆、可重试的任务用回顾式（反馈真实具体）；高风险、长链路、失败代价高的任务加前瞻式（成本低但依赖预判质量）。成熟系统两者结合：执行前前瞻批判、执行中动态重规划、失败后回顾式沉淀。
 
+### Q18：为什么 LLM 很难纠正自己的错误？2026 年的研究有什么新解释？
+
+《The Self-Correction Illusion》（2026-06，v2 修订于 2026-07，arXiv:2606.05976）的核心发现是：模型难以显式标记自己推理链中的错误，**很大程度是 chat template 角色标注的 artifact，而非能力缺陷**。同一条错误主张，出现在模型自己的 `<thought>` 里几乎不会被标记；改标为用户消息、工具返回或 `<memory>` 记忆块后，显式纠错率提升 23~93 个百分点（12 组设置中 10 组显著）。
+
+工程含义有三层：
+
+1. **Critic 要外部化**：给 Critic 独立角色与独立上下文，不要指望模型在自己的推理痕迹里“顺手”改错——这是零训练成本的可靠性杠杆。
+2. **与 SCoRe 一脉相承**：自纠错能力主要靠训练获得（ACT、ICRL、CAFT 等把批判能力或批判收益训进模型），而非 prompt 技巧。
+3. **角色设计是校准的一部分**：最优角色标签随领域变化（多数数学测试里 `<memory>` 最佳，逻辑推理里用户消息最佳），生产上应把 Critic 的角色/上下文格式纳入 A/B 调优范围。
+
 ## 本章小结
 
 Reflection 面试题从概念到架构、从模块设计到生产实践层层递进。回答时抓住三个核心：
@@ -151,6 +161,9 @@ Reflection 面试题从概念到架构、从模块设计到生产实践层层递
 - [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL](https://arxiv.org/abs/2501.12948)
 - [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
 - [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
+- [Agentic Critical Training](https://arxiv.org/abs/2603.08706)
+- [ICRL: Learning to Internalize Self-Critique with Reinforcement Learning](https://arxiv.org/abs/2605.15224)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)
 - [OpenAI o1 / Reasoning Models](https://openai.com/index/learning-to-reason-with-llms/)

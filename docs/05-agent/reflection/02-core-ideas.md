@@ -52,6 +52,8 @@ flowchart TB
 生产系统中，内部反馈与外部反馈通常混合使用：内部反馈快速定位表面问题，外部反馈验证关键事实与约束。
 
 > 2025-2026 年的研究进一步强化了“外部反馈优先”的共识：SCoRe（ICLR 2025）证明仅靠模型自评做自我纠正基本无效，甚至会把对的改错；推理模型内部的反思也大多是确认性的（arXiv:2510.08308）。因此，没有外部工具接地的纯内部 Critic，只适合风格、结构等主观维度，关键正确性必须靠工具验证。
+>
+> 机制层面，《The Self-Correction Illusion》（arXiv:2606.05976，v2 修订于 2026-07）给出了更细的解释：模型难以标记自己推理链中的错误，很大程度是 chat template 角色标注的 artifact——同一条错误主张，出现在模型自己的 `<thought>` 里几乎不会被标记，改标为用户消息、工具返回或 `<memory>` 记忆块后，显式纠错率提升 23~93 个百分点。这给“独立 Critic、外部化反馈”提供了免费杠杆：Critic 的上下文角色设计本身就是校准手段。
 
 ## 3. 行动反思 vs 计划反思
 
@@ -203,5 +205,6 @@ Agent Reflection 的核心思想是把单轮生成扩展为“生成—批判—
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
 - [SCoRe: Training Language Models to Self-Correct via Reinforcement Learning](https://arxiv.org/abs/2409.12917)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)

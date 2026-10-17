@@ -131,6 +131,10 @@ OpenAI o1（2024-09）和 DeepSeek-R1（2025-01）证明了：用强化学习（
 - **SCoRe**（Kumar et al., ICLR 2025）：仅靠 prompt 要求模型自我纠正基本无效，甚至会让正确答案改错；只有用多轮 on-policy RL 才能训出真正的自纠错能力（MATH +15.6%、HumanEval +9.1%）。
 - **《Revisiting the Role of Reflection in Reasoning Models》**（2025-10）：对 8 个 reasoning model、5 个数学数据集的 rollouts 分析发现，推理模型内部的“反思”大多是**确认性**的——模型很少真正改变自己的初始答案；反思型训练数据主要提升的是**首次作答**正确率，而非纠错率。
 
+2026 年，SCoRe 开创的“训练式反思”路线收敛为几条可操作的工程方案：Agentic Critical Training（ACT，2026-03）用 RLVR 训练模型直接判断两个候选动作孰优（平均比模仿学习高 5.85 分）；ICRL（2026-05）从共享基座同时训练 solver 与 critic，把自我批判的收益**内化**进 solver 本体（比 GRPO 平均高 6.4 分，8B critic 以更少 token 比肩 32B）；ReflexiCoder（2026-03）在代码生成上验证了 RL 训练“自反思 + 自纠错”的闭环。
+
+同期一项机制研究给出了“为什么同一模型自批判效果差”的解释：**《The Self-Correction Illusion》**（2026-06，v2 修订于 2026-07）发现，模型难以标记自己推理链中的错误，很大程度上是 chat template 角色标注的产物，而非纯能力缺陷——把同一条错误主张从模型自己的 `<thought>` 改标为用户消息、工具返回或 `<memory>` 记忆块，显式纠错率提升 23~93 个百分点（12 组设置中 10 组显著），且最优角色标签随领域变化。这从机制层面解释了独立 Critic、外部化反馈为什么有效。
+
 结论：对前沿推理模型，单纯再加一层“请你检查一遍”的 prompt 循环，收益已经很薄；显式反思的剩余价值集中在**外部工具接地**（编译器、检索、执行反馈）和**跨任务经验沉淀**这两件事上。
 
 ### 转向二：从回顾式到前瞻式反思
@@ -148,7 +152,7 @@ Reflexion 把反思写成自然语言塞进记忆，但记忆本身不会生长�
 
 ## 本章小结
 
-Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播问题。人类元认知提供了“生成—批判—评估—修订”的直觉框架。工程上，Reflection 从 prompt 级反思逐步演进到 Self-Refine、Reflexion、CRITIC、群体反思与 reasoning models 的内隐反思，并在 2025-2026 年进一步走向状态化记忆（A-Mem、ACE）、前瞻式反思（PreFlect）与 RL 训练式自纠错（SCoRe、DeepSeek-R1）。它在代码、写作、规划、工具使用、数学推理等需要高正确率的场景中尤为关键。
+Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播问题。人类元认知提供了“生成—批判—评估—修订”的直觉框架。工程上，Reflection 从 prompt 级反思逐步演进到 Self-Refine、Reflexion、CRITIC、群体反思与 reasoning models 的内隐反思，并在 2025-2026 年进一步走向状态化记忆（A-Mem、ACE）、前瞻式反思（PreFlect）与 RL 训练式自纠错（SCoRe、ACT、ICRL）；2026 年的机制研究（Self-Correction Illusion）与有界推理时反思（EvoResearcher）则分别从“为什么自批判失效”和“如何让反思有界可控”两端补全了图景。它在代码、写作、规划、工具使用、数学推理等需要高正确率的场景中尤为关键。
 
 **参考来源**
 
@@ -164,4 +168,9 @@ Reflection 的背景可以追溯到单轮 LLM 的幻觉与 ReAct 的错误传播
 - [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models](https://arxiv.org/abs/2510.04618)
 - [Search-R1: Training LLMs to Reason and Leverage Search Engines with RL](https://arxiv.org/abs/2503.09516)
+- [Agentic Critical Training](https://arxiv.org/abs/2603.08706)
+- [ICRL: Learning to Internalize Self-Critique with Reinforcement Learning](https://arxiv.org/abs/2605.15224)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
+- [Beyond Corrected Actions: Training LLM Agents on Textual Critiques (CAFT)](https://arxiv.org/abs/2610.19367)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

@@ -29,6 +29,7 @@ Critic 的 prompt 应直接引用这些 criteria，减少自由发挥。
 - **按优先级排序**：major 问题先修，minor 问题可以留到后续轮次。
 - **给出具体位置**：指出问题出现在 draft 的哪一段、哪一行、哪个函数。
 - **提供修改建议**：不仅说“错在哪里”，还说“可以怎么改”。
+- **用“外部角色”承载被审对象**：《The Self-Correction Illusion》（2026-06/07，arXiv:2606.05976）发现，让模型标记自己推理链中的错误极难，但把同一条主张改标为用户消息 / 工具返回 / 记忆块后，显式纠错率提升 23~93 个百分点。Critic 调用中把 draft 作为外部输入呈现，而不是让模型回头检讨自己的 `<thought>`，是零训练成本的可靠性提升。
 
 示例：
 
@@ -156,6 +157,7 @@ Reflection 是手段，不是目的。在引入 Reflection 前，先问自己：
 - **critique budget 控制在 1~3 轮**：生产 runbook 的通行上限，超出即降级或升级人工。
 - **token 硬顶独立于 max_iter**：reasoning models 的内隐反思会消耗大量 token，必须有每任务预算。
 - **允许跳过确认性反思**：模型高置信且无外部验证信号时，不必每轮都跑 Critic（2025-10 研究显示提前截断确认性反思可省约 24.5% token、精度损失不足 2.9%）。
+- **给 Critic 一个“停”的出口**：EvoResearcher（2026-08，arXiv:2608.18884）用 "CONFIRMED" 哨兵做训练无关的提前终止，82~88% 的样本在等精度情况下提前结束（平均每题约 2.1 次生成）；与其跑满固定轮数，不如让 Critic 有权宣布收敛。
 - **按领域配置**：数学、代码多给预算；翻译、润色等收益不稳定的领域少给。
 
 ## 13. 反思写记忆要做“卫生管理”
@@ -168,7 +170,7 @@ Reflection 沉淀经验的同时也在制造风险：错误反思会被反复检
 
 ## 本章小结
 
-Agent Reflection 的最佳实践可以总结为：criteria-first、Critic 聚焦、循环有界、保留最佳版本、人工兜底、结果持久化、策略版本化、外部验证优先、按任务配置、持续监控。2025-2026 年新增两条：给反思设预算（轮数、token、按领域分配、允许提前终止），以及反思记忆的卫生管理（写入门槛、版本演化、污染审计）。遵循这些原则，可以避免 Reflection 变成“多轮生成却不见效”的形式主义，真正发挥自我纠错的价值。
+Agent Reflection 的最佳实践可以总结为：criteria-first、Critic 聚焦、循环有界、保留最佳版本、人工兜底、结果持久化、策略版本化、外部验证优先、按任务配置、持续监控。2025-2026 年新增两条：给反思设预算（轮数、token、按领域分配、允许提前终止、给 Critic 哨兵式收敛出口），以及反思记忆的卫生管理（写入门槛、版本演化、污染审计）；同时 2026 年的机制研究表明，用“外部角色”承载被审对象本身就是免费校准。遵循这些原则，可以避免 Reflection 变成“多轮生成却不见效”的形式主义，真正发挥自我纠错的价值。
 
 **参考来源**
 
@@ -176,6 +178,8 @@ Agent Reflection 的最佳实践可以总结为：criteria-first、Critic 聚焦
 - [Reflexion: Self-Reflective Agents](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
 - [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)

@@ -40,6 +40,7 @@ Critic 是 Reflection 系统的“质量守门人”，其选型直接影响反�
 3. **小模型 Critic 需要微调**：用人工标注的 critique 数据微调 7B~13B 模型，可在低成本下获得不错效果。
 4. **多 Critic 用于高风险场景**：如代码安全审查、医疗建议，可使用 3 个 Critic 投票。
 5. **Reasoning model 时代重排优先级**：如果底层已是 o1/R1 级模型，其内隐自检已覆盖大量表面问题，外部 Critic 应聚焦工具验证和业务规则，而不是重复“通读检查”。注意内隐反思不可观测，关键链路仍需外部验证兜底。
+6. **用“外部角色”呈现被审对象**：2026 年的《The Self-Correction Illusion》（arXiv:2606.05976）发现，模型标记自己推理链中的错误很难，但把同一条错误主张改标为用户消息、工具返回或记忆块后，显式纠错率提升 23~93 个百分点。即便 Critic 与 Generator 是同一个模型，给 Critic 独立角色与独立上下文（不沿用生成时的推理痕迹）也是零成本的可靠性提升。
 
 ## 评分校准
 
@@ -90,6 +91,7 @@ Evaluator 的 score 必须与人感知的质量一致，否则 Reflection Loop �
 - **确认性反思可提前截断**：arXiv:2510.08308 显示 reasoning models 的反思多为确认性、很少改变答案，提前截断可省约 24.5% token、精度损失不足 2.9%。
 - **收益按领域分配**：NeurIPS 2025 Efficient Reasoning Workshop 的《Finding the Sweet Spot》表明反思收益强依赖领域与模型——数学推理收益明显，翻译、本地化等任务收益不稳定，应按领域配置预算而非全局统一。
 - **token 硬顶**：除 max_iter 外再设每任务反思 token 上限，防止 reasoning model 的长链内隐反思失控拉高成本。
+- **给 Critic 一个“停”的出口**：EvoResearcher（2026-08，arXiv:2608.18884）用 "CONFIRMED" 哨兵实现训练无关的提前终止，82~88% 的样本在等精度（95% Wilson 区间内）提前结束、平均每题约 2.1 次生成——生产循环里“Critic 有权宣布收敛”优于“跑满固定轮数”。
 
 ## 记忆卫生（Memory Hygiene）
 
@@ -207,7 +209,7 @@ Reflection 产生的数据是 Memory 的宝贵输入：
 
 ## 本章小结
 
-生产级 Agent Reflection 需要综合考虑 Critic 模型选型、评分校准、在线/离线模式、与 Runtime 和 Memory 的集成、评测基准、人工兜底和成本延迟优化。它不是万能药，应在错误成本较高、评估标准明确、延迟可接受的场景启用，并通过持续监控和校准保证反思结果真正提升输出质量。2025-2026 年的增量共识：给反思设预算（critique budget 1~3 轮 + token 硬顶 + 提前终止）、做记忆卫生（写入门槛、版本、衰减、污染监控）、评测补轨迹级与 Pass^k 可靠性指标，并在 reasoning model 之上把外部 Critic 聚焦到工具验证与业务规则。
+生产级 Agent Reflection 需要综合考虑 Critic 模型选型、评分校准、在线/离线模式、与 Runtime 和 Memory 的集成、评测基准、人工兜底和成本延迟优化。它不是万能药，应在错误成本较高、评估标准明确、延迟可接受的场景启用，并通过持续监控和校准保证反思结果真正提升输出质量。2025-2026 年的增量共识：给反思设预算（critique budget 1~3 轮 + token 硬顶 + Critic 哨兵式提前终止）、做记忆卫生（写入门槛、版本、衰减、污染监控）、评测补轨迹级与 Pass^k 可靠性指标，并在 reasoning model 之上把外部 Critic 聚焦到工具验证与业务规则——同时用“外部角色”呈现被审对象，把角色设计本身当作免费校准手段。
 
 **参考来源**
 
@@ -215,6 +217,8 @@ Reflection 产生的数据是 Memory 的宝贵输入：
 - [Reflexion: Self-Reflective Agents](https://arxiv.org/abs/2303.11366)
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
 - [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)

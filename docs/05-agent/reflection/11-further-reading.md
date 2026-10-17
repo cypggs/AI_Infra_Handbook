@@ -18,6 +18,11 @@
 | **A-Mem: Agentic Memory for LLM Agents** | Zettelkasten 式 agentic 记忆：笔记动态构建、自主链接、随反思演化（NeurIPS 2025） | [arXiv](https://arxiv.org/abs/2502.12110) |
 | **Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models** | 把上下文当作持续生长的 playbook，生成—反思—精选循环带来约 +10.6% agent 基准提升 | [arXiv](https://arxiv.org/abs/2510.04618) |
 | **Search-R1: Training LLMs to Reason and Leverage Search Engines with RL** | RL 训练推理与检索交错，涌现出“下结论前多检索一轮自验证”的行为 | [arXiv](https://arxiv.org/abs/2503.09516) |
+| **Agentic Critical Training (ACT)** | RLVR 训练模型判断两个候选动作孰优，比模仿学习平均高 5.85 分（2026-03，v2 2026-10） | [arXiv](https://arxiv.org/abs/2603.08706) |
+| **ICRL: Learning to Internalize Self-Critique with RL** | 共享基座同训 solver 与 critic，把批判收益内化进本体，比 GRPO 平均高 6.4 分（2026-05） | [arXiv](https://arxiv.org/abs/2605.15224) |
+| **The Self-Correction Illusion** | 机制研究：自纠错失败多为 chat template 角色标注 artifact；外部角色改标 +23~93pp（2026-06，v2 2026-07） | [arXiv](https://arxiv.org/abs/2606.05976) |
+| **Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)** | "CONFIRMED" 哨兵提前终止：82~88% 样本等精度提前结束，每题约 2.1 次生成（2026-08） | [arXiv](https://arxiv.org/abs/2608.18884) |
+| **Beyond Corrected Actions: Training LLM Agents on Textual Critiques (CAFT)** | 文本批判作监督信号微调 agent，比动作蒸馏平均高 8%，更好的 RL 冷启动（2026-10） | [arXiv](https://arxiv.org/abs/2610.19367) |
 | **Self-Improvements in Modern Agentic Systems: A Survey** | 2026 综述：自生成演示、评估反馈、探索轨迹与 prompt/记忆改进的统一分类 | [arXiv](https://arxiv.org/abs/2607.13104) |
 
 ## 框架与官方文档
@@ -56,10 +61,11 @@
 1. **先读论文**：Self-Refine → Reflexion → CRITIC，理解三种典型反思范式。
 2. **再读 2025-2026 新范式**：DeepSeek-R1（反思能力的 RL 涌现）→ SCoRe（训练式自纠错）→ 《Revisiting the Role of Reflection》（对 prompt 级反思的现实检验）。
 3. **然后看演进方向**：PreFlect（前瞻式）与 A-Mem / ACE（状态化记忆），理解反思从“循环”走向“预判 + 生长”。
-4. **再看框架**：LangGraph Reflection Tutorial 动手跑一遍代码。
-5. **结合本主题**：阅读本主题 01~07 章，理解架构与 Mini Demo。
-6. **深入学习**：结合 Agent Runtime、Memory、Multi-Agent 主题，思考 Reflection 在整个 Agent 系统中的位置。
-7. **动手实践**：在真实任务中尝试构建一个最小 Reflection 系统，用真实 LLM 替换 Demo 中的 MockLLMClient。
+4. **补上 2026 年收敛态**：The Self-Correction Illusion（机制：角色标注 artifact）→ EvoResearcher（有界推理时反思）→ ACT / ICRL / CAFT（批判能力的训练化）。
+5. **再看框架**：LangGraph Reflection Tutorial 动手跑一遍代码。
+6. **结合本主题**：阅读本主题 01~07 章，理解架构与 Mini Demo。
+7. **深入学习**：结合 Agent Runtime、Memory、Multi-Agent 主题，思考 Reflection 在整个 Agent 系统中的位置。
+8. **动手实践**：在真实任务中尝试构建一个最小 Reflection 系统，用真实 LLM 替换 Demo 中的 MockLLMClient。
 
 ## Mini Demo 本地入口
 
@@ -84,6 +90,11 @@ Agent Reflection 的延伸阅读覆盖了理论基础、工程框架、相关主
 - [A-Mem: Agentic Memory for LLM Agents](https://arxiv.org/abs/2502.12110)
 - [Agentic Context Engineering: Evolving Contexts for Self-Improving LMs](https://arxiv.org/abs/2510.04618)
 - [Search-R1: Training LLMs to Reason and Leverage Search Engines with RL](https://arxiv.org/abs/2503.09516)
+- [Agentic Critical Training](https://arxiv.org/abs/2603.08706)
+- [ICRL: Learning to Internalize Self-Critique with Reinforcement Learning](https://arxiv.org/abs/2605.15224)
+- [The Self-Correction Illusion: Role Relabeling Gates Explicit Error Flagging in LLMs](https://arxiv.org/abs/2606.05976)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
+- [Beyond Corrected Actions: Training LLM Agents on Textual Critiques (CAFT)](https://arxiv.org/abs/2610.19367)
 - [Self-Improvements in Modern Agentic Systems: A Survey](https://arxiv.org/abs/2607.13104)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [AutoGen Reflection](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/reflection.html)

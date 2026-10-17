@@ -228,10 +228,11 @@ stateDiagram-v2
 - **按领域分配预算**：可客观验证的任务（代码、数学）多给预算，主观任务少给。
 - **置信度触发**：Generator 自评置信度高且无外部验证信号时，跳过或压缩 Critic 轮次。
 - **token 预算硬顶**：除 max_iter 外，再设每任务反思 token 上限，防止 reasoning model 的长链反思失控。
+- **给 Critic 一个“停”的出口**：EvoResearcher（2026-08，arXiv:2608.18884）用训练无关的 "CONFIRMED" 哨兵实现提前终止——批判输出该哨兵即停止循环。在 BBH/GSM8K/MATH 上，82~88% 的样本在等精度（95% Wilson 区间内）的情况下提前结束，平均每题约 2.1 次生成；相比“跑满固定轮数”，让 Critic 有权说“已经够了”是低成本高收益的改造。
 
 ## 本章小结
 
-反思循环是 Agent Reflection 的执行核心，按照“生成 → 批判 → 评估 → 修订 → 终止”的顺序反复运转。终止条件包括质量达标、最大迭代次数、改进饱和、外部验证通过和人工批准。max_iter 是必须配置的硬护栏，HITL 是高风险场景的安全网。实际运行中需要警惕 Critic 过严/过松、Generator 不改、越改越差等失败模式。2025-2026 年的两个重要变体是：把批判前移到执行之前的前瞻式循环，以及按领域、置信度和 token 预算动态分配的自适应反思预算。
+反思循环是 Agent Reflection 的执行核心，按照“生成 → 批判 → 评估 → 修订 → 终止”的顺序反复运转。终止条件包括质量达标、最大迭代次数、改进饱和、外部验证通过和人工批准。max_iter 是必须配置的硬护栏，HITL 是高风险场景的安全网。实际运行中需要警惕 Critic 过严/过松、Generator 不改、越改越差等失败模式。2025-2026 年的两个重要变体是：把批判前移到执行之前的前瞻式循环，以及按领域、置信度和 token 预算动态分配的自适应反思预算——后者已被 EvoResearcher 的哨兵式提前终止（82~88% 样本等精度提前结束）验证为低成本高收益的工程改造。
 
 **参考来源**
 
@@ -240,5 +241,6 @@ stateDiagram-v2
 - [CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)
 - [PreFlect: From Retrospective to Prospective Reflection in LLM Agents](https://arxiv.org/abs/2602.07187)
 - [Revisiting the Role of Reflection in Reasoning Models](https://arxiv.org/abs/2510.08308)
+- [Training-Free Inference-Time Self-Reflection and Cost-Bounded Early Stopping (EvoResearcher)](https://arxiv.org/abs/2608.18884)
 - [LangGraph Reflection Tutorial](https://langchain-ai.github.io/langgraph/tutorials/reflection/reflection/)
 - [LangGraph Blog — Reflection Agents](https://blog.langchain.dev/reflection-agents/)
