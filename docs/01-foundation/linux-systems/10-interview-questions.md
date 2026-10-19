@@ -83,7 +83,7 @@ HugePages 减少页表项数量和 TLB miss。大模型访问的内存地址空�
 
 ### Q16：什么是 sched_ext？为什么它重要？
 
-sched_ext 是 6.12 合入主线的可扩展调度类：内核把调度决策导出为一组 BPF 回调，用户编写的 BPF 调度器可以热加载、热替换，无需重启或改内核代码。重要性在于：延迟敏感的 AI 推理混部场景，可以用 scx_layered 之类的 BPF 调度器给推理任务独占 CPU 分组，把“调度调优”从内核开发问题变成应用配置问题。2025-2026 年它持续加入 cgroup 带宽控制、SCHED_DEADLINE server、层级子调度器等能力。
+sched_ext 是 6.12 合入主线的可扩展调度类：内核把调度决策导出为一组 BPF 回调，用户编写的 BPF 调度器可以热加载、热替换，无需重启或改内核代码。重要性在于：延迟敏感的 AI 推理混部场景，可以用 scx_layered 之类的 BPF 调度器给推理任务独占 CPU 分组，把“调度调优”从内核开发问题变成应用配置问题。2026 年它快速完整化：7.0 落地 SCHED_DEADLINE server，7.1/7.2 铺入 sub-scheduler 基础设施，7.3（2026-10）完成 per-cgroup sub-scheduler——不同 cgroup/租户可以运行各自的 BPF 调度器。
 
 ### Q17：io_uring 和 epoll 有什么区别？
 

@@ -267,7 +267,7 @@ struct sched_ext_ops {
 };
 ```
 
-BPF 程序实现这些回调，框架负责与 CFS 运行队列、负载均衡、cgroup 的交互。这个“框架在内核、策略在 BPF”的分层，是理解现代内核可扩展性设计的一个好例子。
+BPF 程序实现这些回调，框架负责与 CFS 运行队列、负载均衡、cgroup 的交互。这个“框架在内核、策略在 BPF”的分层，是理解现代内核可扩展性设计的一个好例子。2026 年这个框架继续演进：7.0 加入 deadline server，7.1/7.2 铺入 sub-scheduler 基础设施，7.3 完成 per-cgroup sub-scheduler（`kernel/sched/ext.c` 的相关代码值得对照版本阅读）。
 
 ## 6.6 阅读内核源码的建议
 

@@ -11,7 +11,7 @@
 
 ## 版本与动态
 
-- [KernelNewbies — Linux 6.17](https://kernelnewbies.org/Linux_6.17) / [Linux 6.18](https://kernelnewbies.org/Linux_6.18) — 每个大版本的新特性盘点（6.18 是 2025-11 发布的最新 LTS）。
+- [KernelNewbies — Linux 6.17](https://kernelnewbies.org/Linux_6.17) / [Linux 6.18](https://kernelnewbies.org/Linux_6.18) / [Linux 6.19](https://kernelnewbies.org/Linux_6.19) / [Linux 7.0](https://kernelnewbies.org/Linux_7.0) / [Linux 7.1](https://kernelnewbies.org/Linux_7.1) / [Linux 7.2](https://kernelnewbies.org/Linux_7.2) / [Linux 7.3](https://kernelnewbies.org/Linux_7.3) — 每个大版本的新特性盘点（6.18 是 2025-11 发布的 LTS，2026 年 10 月主线已到 7.3-rc）。
 - [LWN.net](https://lwn.net/) — 高质量 Linux 内核深度文章，CFS、cgroup v2、memory management、sched_ext 等主题必读。
 - [Phoronix Kernel / BPF 板块](https://www.phoronix.com/search/BPF) — 内核开发动态追踪。
 

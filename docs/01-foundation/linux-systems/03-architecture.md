@@ -88,7 +88,7 @@ Linux 的进程调度器决定：在任意时刻，哪个进程在哪个 CPU 上
 
 CFS 是绝大多数 AI 程序的调度类。它的核心思想是：**尽量让每个进程获得公平的 CPU 时间**。它用红黑树维护进程的 `vruntime`（虚拟运行时间），总是选择 vruntime 最小的进程运行。
 
-sched_ext 是 2024 年底合入主线、2025-2026 年快速成熟的新机制：调度决策被导出为一组 BPF 回调（`ops.select_cpu`、`ops.enqueue`、`ops.dispatch` 等），社区已经出现 scx_rusty、scx_layered、Google 的 BPF-CCX 等生产级 BPF 调度器，用于负载分层、缓存亲和和大核/小核分配等场景。
+sched_ext 是 2024 年底合入主线、2025-2026 年快速成熟的新机制：调度决策被导出为一组 BPF 回调（`ops.select_cpu`、`ops.enqueue`、`ops.dispatch` 等），社区已经出现 scx_rusty、scx_layered、Google 的 BPF-CCX 等生产级 BPF 调度器，用于负载分层、缓存亲和和大核/小核分配等场景。2026 年的三个关键里程碑：**7.0 落地 SCHED_DEADLINE server**（sched_ext 任务也能获得 deadline 保证）；**7.1/7.2 逐步铺入 sub-scheduler 基础设施**；**7.3（2026-10 发布）完成 per-cgroup sub-scheduler**——不同 cgroup 可以运行不同的 BPF 调度器，并支持基于 capability 的 CPU 委派。此外 7.2 让主调度器具备了 LLC 缓存感知（尽量把共享数据的任务放在同一缓存域）。
 
 ## 3.5 内存管理子系统
 
@@ -159,9 +159,11 @@ flowchart LR
 - **内核轮询（SQPOLL）**：高 IOPS 场景下连系统调用都可以省掉；
 - **multishot poll/recv**（5.13 起）：一次注册，多次收割，替代 epoll 监听；
 - **NVMe uring_cmd 透传**：绕过块层直接向 NVMe 设备发命令，被 FAST'24 论文验证为高效的 I/O 路径；
+- **zcrx 零拷贝 socket**（6.19 起持续增强）：把零拷贝收发推进到内核默认网络路径；
+- **struct_ops 可编程事件循环**（7.1）：可以用 BPF 定制 `io_uring_enter` 的执行逻辑，把“事件循环”也变成可扩展点；
 - 安全持续加固：2026 年修复了 multishot recv 丢失 EOF（CVE-2026-23473）、FUSE io_uring 门控（CVE-2026-90095）等问题。
 
-今天的高性能推理网关（如部分 vLLM 前后置代理）、数据库（PostgreSQL 17+ 提供 io_uring 实验选项 `io_method`）和存储组件都在向 io_uring 迁移。liburing 2.8 是当前稳定用户态库。
+今天的高性能推理网关（如部分 vLLM 前后置代理）、数据库（PostgreSQL 17+ 提供 io_uring 实验选项 `io_method`）和存储组件都在向 io_uring 迁移。liburing 2.15（2026-06）是当前稳定用户态库。
 
 ## 3.8 中断与软中断
 

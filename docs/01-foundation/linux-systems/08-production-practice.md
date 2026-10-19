@@ -57,7 +57,7 @@
 | CPU 隔离 | `isolcpus=8-15` + taskset | 避免其他任务干扰 |
 | 禁用 CPU limit 或提高 limit | K8s `resources.limits.cpu` | 减少 throttle |
 | 实时调度 | `SCHED_FIFO` 慎用 | 降低被抢占概率 |
-| **BPF 调度器（sched_ext）** | scx_layered 等：给推理任务独占一组核 | **内核 6.12+，无需重启即可生效，比 RT 调度更可控** |
+| **BPF 调度器（sched_ext）** | scx_layered 等：给推理任务独占一组核 | **内核 6.12+，无需重启即可生效，比 RT 调度更可控；7.3 起可按 cgroup 为不同租户运行不同 BPF 调度器** |
 | 中断绑定 | `/proc/irq/<n>/smp_affinity` | 把网卡中断绑定到非业务 CPU |
 | 使用 HugePages | `hugetlbfs` / THP | 减少 TLB miss |
 | 减少系统调用 | `vLLM` 的 zero-copy、batching、io_uring | 降低内核态开销 |
@@ -168,7 +168,7 @@ Kubernetes 1.25+ 默认 cgroup v2。迁移时需要注意：
 
 1. 先在监控体系里加 PSI 指标（`node_pressure_*`），成本几乎为零；
 2. 再对延迟敏感服务启用 Beyla 类零代码埋点，拿到 RED 指标；
-3. 深度排障时再用 bpftrace 写 ad-hoc 脚本，例如查看 off-cpu 时间：
+3. 深度排障时再用 bpftrace 写 ad-hoc 脚本（当前稳定版 0.27，2026-09 发布），例如查看 off-cpu 时间：
 
 ```bash
 # 统计各进程的运行队列延迟（runqueue latency）分布

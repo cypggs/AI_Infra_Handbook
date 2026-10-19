@@ -64,7 +64,9 @@ flowchart TD
 | scx_bpfland | vruntime 优先 + 交互式提升 | 桌面/低延迟服务 |
 | Google BPF-CCX | 针对 AMD Zen 核心复合体（CCX）优化放置 | 云厂商超大规模部署 |
 
-2026 年 sched_ext 的主线方向是为它加上 SCHED_DEADLINE server 和层级 cgroup 子调度器（可按租户定制调度），同时大量安全加固（6.17 支持了 cgroup 带宽控制接口，并能在 BPF 调度器卡死时自动将其弹出）。
+2026 年 sched_ext 的主线进展：**7.0 落地 SCHED_DEADLINE server**（sched_ext 任务也能享受 deadline 保证）；**7.1/7.2 逐步加入 sub-scheduler 基础设施**，并在 7.2 让主调度器具备 **LLC 缓存感知**（尽量把共享数据的任务放在同一缓存域，降低跨核缓存抖动）；**7.3（2026-10 发布）完成 per-cgroup sub-scheduler**——不同 cgroup 可以运行各自的 BPF 调度器，支持 capability 级 CPU 委派和带宽受限的 rescue 执行，安全机制也在持续加固（6.17 起支持 cgroup 带宽控制接口，并能在 BPF 调度器卡死时自动将其弹出）。
+
+另一个 2026 年的 GPU 相关变化：**7.2 重写了 DRM GPU 调度器**，用类 CFS 的公平调度取代纯 FIFO，避免重负载 GPU 任务饿死交互式客户端；**7.3 新增 dmem cgroup**，开始把 GPU 显存域纳入 cgroup 管理视野（显存紧张时优先驱逐未受保护的 buffer）。
 
 ## 5.2 内存管理
 
@@ -154,7 +156,7 @@ AI 负载让内存管理多出一条主线：**GPU 显存（HBM）和主机内�
 | **GDRCopy** | CPU↔显存低延迟零拷贝（用于控制面小数据、KV-cache 元数据） | 显存映射到用户空间 |
 | **drm_gpusvm** | 主线通用 GPU Shared Virtual Memory 框架，统一 GPU/CPU 共享虚拟内存管理 | DRM/GEM、mm 子系统（2026 年持续完善中，AMD 已有原型实现） |
 
-2025-2026 年的行业基线是 **GDS + GDRCopy + HugePages + NUMA 本地 NVMe/RDMA**：NVIDIA 在 2025 年 11 月进一步提出 SCADA 倡议，试图把存储控制路径也卸载到 GPU，彻底移除 I/O 中的 CPU 参与。对 AI Infra 工程师而言，这意味着“GPU 利用率低”的排查清单上要加一条：**数据是否还在经过 CPU 内存中转**。
+2025-2026 年的行业基线是 **GDS + GDRCopy + HugePages + NUMA 本地 NVMe/RDMA**：NVIDIA 在 2025 年 11 月进一步提出 SCADA 倡议，试图把存储控制路径也卸载到 GPU，彻底移除 I/O 中的 CPU 参与；内核侧，**7.3 新增 dmem cgroup**，把 GPU 显存域纳入 cgroup 管理（显存紧张时优先驱逐未受保护的 buffer），显存也开始像 CPU 内存一样被内核“看见”。对 AI Infra 工程师而言，这意味着“GPU 利用率低”的排查清单上要加一条：**数据是否还在经过 CPU 内存中转**。
 
 ## 5.3 文件系统
 
@@ -170,7 +172,7 @@ VFS 提供统一接口：`open`、`read`、`write`、`close`、`mmap`、`fsync`�
 | xfs | 大文件、高并发 I/O 性能好，适合 AI 训练数据 |
 | btrfs | Copy-on-Write，快照功能强，但大文件性能一般 |
 
-AI 训练数据通常是很多大文件，xfs 往往更受欢迎。2025-2026 年另一个值得关注的点是：大模型权重加载和 KV-cache offload 场景下，**GPUDirect Storage** 依赖文件系统支持 `O_DIRECT` 语义的裸设备路径，存储选型时需要确认 GDS 兼容性。
+AI 训练数据通常是很多大文件，xfs 往往更受欢迎。2025-2026 年另一个值得关注的点是：大模型权重加载和 KV-cache offload 场景下，**GPUDirect Storage**（2026-09 最新 v1.19.x）依赖文件系统支持 `O_DIRECT` 语义的裸设备路径，存储选型时需要确认 GDS 兼容性。
 
 ### Direct I/O 与 Buffered I/O
 
@@ -299,7 +301,7 @@ systemd unit 可以和 cgroup 资源限制结合，也可以配置日志、依�
 | sar | 历史性能数据 |
 | pidstat | 每个进程的 CPU/内存/I/O |
 | perf | 采样性能分析，火焰图 |
-| bpftrace / bcc | 动态追踪内核/用户态事件 |
+| bpftrace / bcc | 动态追踪内核/用户态事件；bpftrace 0.27（2026-09）是当前稳定版，支持宏、命名参数、用户态 DWARF 栈展开等现代特性 |
 | strace | 跟踪系统调用 |
 | numactl / numastat | NUMA 信息和绑定 |
 | sysctl | 查看/修改内核参数 |

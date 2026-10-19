@@ -74,7 +74,7 @@ vruntime += delta_exec * (NICE_0_LOAD / weight)
 
 ### sched_ext：可以热替换的调度器
 
-6.12 合入主线的 **sched_ext** 把调度器本身变成了可扩展点：一个 BPF 程序实现 `select_cpu`、`enqueue`、`dispatch` 等回调，就能完全接管普通进程的调度决策，且可以运行时加载/卸载，无需重启。2026 年的主线开发重点包括 SCHED_DEADLINE server（让 sched_ext 任务也能享受 deadline 保证）、层级 cgroup 子调度器（按租户/优先级分层调度）和大量安全加固。对 AI 平台而言，它意味着“给推理进程更多 CPU”这件事可以做成一个 50 行的 BPF 调度器，而不是升级整个内核。
+6.12 合入主线的 **sched_ext** 把调度器本身变成了可扩展点：一个 BPF 程序实现 `select_cpu`、`enqueue`、`dispatch` 等回调，就能完全接管普通进程的调度决策，且可以运行时加载/卸载，无需重启。2026 年的主线进展把它推向完整：**7.0 落地 SCHED_DEADLINE server**（让 sched_ext 任务也能享受 deadline 保证），**7.1/7.2 铺入 sub-scheduler 基础设施**，**7.3（2026-10）完成 per-cgroup sub-scheduler**——不同 cgroup/租户可以运行各自的 BPF 调度器，加上 capability 级的 CPU 委派和带宽受限的 rescue 执行。对 AI 平台而言，它意味着“给推理进程更多 CPU”这件事可以做成一个 50 行的 BPF 调度器，而不是升级整个内核。
 
 ### CPU 亲和性
 

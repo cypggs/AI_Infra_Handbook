@@ -86,10 +86,10 @@ Kubernetes 的 CPU limit 通过 cgroup quota 实现，过低的 limit 会导致 
 
 eBPF 让你可以安全地在内核里运行小程序，动态追踪事件。到 2026 年，这条技术线已经高度成熟：
 
-- **bpftrace**：脚本式追踪，适合 ad-hoc 排障；
+- **bpftrace**：脚本式追踪，适合 ad-hoc 排障（2026-09 发布 0.27 稳定版，支持宏、命名参数、用户态 DWARF 栈展开）；
 - **bcc / libbpf-tools**：开箱即用的诊断脚本（runqlat、offcputime、tcpretrans）；
 - **CO-RE（Compile Once, Run Everywhere）**：基于 BTF 的类型信息，BPF 程序一次编译到处运行，不再绑定内核版本——这是 2022 年后 BPF 工具能大规模分发的前提；
-- **签名 BPF 程序**：6.18 开始支持，BPF 程序可以像内核模块一样被签名和审计，为生产环境“受控开放 BPF”铺路；
+- **签名 BPF 程序**：6.18 开始支持，BPF 程序可以像内核模块一样被签名和审计，为生产环境“受控开放 BPF”铺路；7.2 起签名裁决结果对用户空间可见；
 - **平台化工具**：Grafana Beyla（已捐赠 OpenTelemetry）、Pixie、Pyroscope、Cilium Hubble、Kepler 等把 eBPF 包装成零侵入的持续观测平台。
 
 常用工具：
