@@ -96,7 +96,7 @@ GPU 显存主要用 **HBM（High Bandwidth Memory）**，因为它能提供极�
 | B200 | HBM3e | 180-192 GB | ~8 TB/s |
 | Vera Rubin | HBM4 | 288 GB | 22 TB/s |
 
-HBM 通过把多层 DRAM 芯片堆叠起来，用硅通孔（TSV）连接，实现高带宽、低功耗，但成本极高。进入 HBM4 时代后，竞争焦点进一步转向供给：2026 年三星、SK 海力士、美光均已通过 NVIDIA 认证并量产 HBM4（美光 36GB 12 层堆叠单颗超 2.8 TB/s），SK 海力士拿下了 2026 年约 54% 的 HBM4 份额且产能售罄——**显存供给已经开始像先进制程一样成为战略资源**（来源：[Micron HBM4 量产公告](https://www.streetinsider.com/Corporate+News/Micron+starts+high-volume+production+of+HBM4+memory+for+NVIDIA+Vera+Rubin/26167911.html)、[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)）。
+HBM 通过把多层 DRAM 芯片堆叠起来，用硅通孔（TSV）连接，实现高带宽、低功耗，但成本极高。进入 HBM4 时代后，竞争焦点进一步转向供给：美光已于 2026 年 3 月（GTC 2026 期间）官宣 HBM4 36GB 12 层高带宽内存进入大规模量产，单颗带宽超 2.8 TB/s、引脚速率超 11 Gbps，专为 Vera Rubin 设计；三星、SK 海力士也已通过 NVIDIA 认证——三供格局成形。SK 海力士拿下了 2026 年约 54% 的 HBM4 份额且产能售罄——**显存供给已经开始像先进制程一样成为战略资源**（来源：[Micron HBM4 量产官方公告](https://investors.micron.com/news/press-release/2026/Micron-in-High-Volume-Production-of-HBM4-Designed-for-NVIDIA-Vera-Rubin-PCIe-Gen6-SSD-and-SOCAMM2-03-16-2026/default.aspx)、[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)）。
 
 ## 3.5 NVLink 与 NVSwitch：GPU 之间的高速公路
 
@@ -195,7 +195,8 @@ Rubin 把两颗“光罩极限”计算 die 用 NVIDIA 高带宽接口（NV-HBI�
 
 ### 2026 年的竞争格局简述
 
-- **AMD**：MI355X（CDNA 4，288 GB HBM3E，8 TB/s）2025 年底起量，ROCm 7.x 持续收敛，主打“够用 + 可得性”；
+- **AMD**：MI355X（CDNA 4，288 GB HBM3E，8 TB/s）2025 年底起量，ROCm 7.x 持续收敛，主打“够用 + 可得性”；下一代 **MI400 系列（CDNA 5，含 432 GB HBM4 的 MI455X 与 72 GPU 的 Helios 机柜）** 已于 CES 2026 公布、计划 2026 年下半年出货（报道，来源：[ServeTheHome: AMD MI400 at Hot Chips 2026](https://www.servethehome.com/amd-mi400-gpu-at-hot-chips-2026/)）；
+- **云厂商自研芯片**：AWS **Trainium 3** 于 2025 年底公布、2026 年初开始交付（144 GB HBM3e，Trn3 UltraServer 单机柜 144 芯片），并拿到 Anthropic 的百亿美元级采购承诺，自研芯片从“省钱备选”升级为“谈判筹码”（报道，来源：[Trainium News 2026](https://thebriefscript.com/trainium-news-2026/)）；Google TPU 继续保持年度迭代节奏，但公开细节远少于 NVIDIA；
 - **国产**：华为昇腾 CloudMatrix 384 超节点对标 NVL72，走“以系统补单芯片”的路线（详见软件栈章节）；
 - 据 SemiAnalysis 报道，NVIDIA 还与 Groq 达成了约 200 亿美元的授权与人才协议，把 LPU 推理芯片技术纳入 Vera Rubin 生态——推理市场的争夺已进入“架构 + 授权 + 生态”的综合战。
 

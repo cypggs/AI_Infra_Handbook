@@ -35,7 +35,7 @@ PyTorch、TensorFlow 等框架通常调用 Runtime API。Driver API 主要用于
 
 PyTorch 的 `torch.matmul`、TensorFlow 的 `tf.matmul`，底层很多都是 cuBLAS。
 
-CUDA 13.x 时代，cuBLAS 还新增了两个面向大模型的能力：**grouped GEMM API**（把 MoE 中多个专家的矩阵乘合批提交，实验性）和 **FP64 模拟**（用 Ozaki 方案在 Blackwell 上以低精度单元模拟双精度，B200 上 DGEMM 可达 175 TFLOPS）。
+CUDA 13.x 时代，cuBLAS 还新增了两个面向大模型的能力：**grouped GEMM API**（把 MoE 中多个专家的矩阵乘合批提交，实验性）和 **FP64 模拟**（用 Ozaki 方案以低精度单元模拟双精度，B200 上 DGEMM 可达 175 TFLOPS；cuBLAS 13.4 起 Rubin 上进一步到 212 TFLOPS）。
 
 ### 为什么 cuBLAS 比手写 kernel 快
 
@@ -152,12 +152,12 @@ DCGM Exporter 可以把指标暴露给 Prometheus，在 Grafana 中展示。这�
 
 ### CUDA 13.x：工具链的 2025-2026 演进
 
-CUDA 13.0 于 2025 年 11 月发布，到 2026 年 9 月的 13.4 已支持 Rubin 架构（compute capability 10.7）。对 AI Infra 工程师最重要的变化：
+CUDA 13.0 于 2025 年 8 月发布，到 2026 年的 13.4（13.4 Update 2 为当前最新）已支持 Rubin 架构（compute capability 10.7）。对 AI Infra 工程师最重要的变化：
 
 - **统一工具链**：服务器（Arm/x86）与 Jetson 嵌入式共用同一套 toolkit，不再分叉；
 - **架构断代**：正式放弃 Maxwell/Pascal/Volta（sm_75 以下的老卡不再受支持），最低要求 Turing；
-- **Green Context** 完善、**cuTile** Python DSL 转正（见上一节）；
-- 最低驱动要求 r575+，PTX ISA 演进至 9.x（来源：[CUDA 13.0 Release Notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html)、[CUDA 13.4 Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html)）。
+- **Green Context** 持续完善（cuBLAS 13.3 起原生支持，13.3 还加入了 MPS 错误隔离与 Green Context 默认流）、**cuTile** 逐步转正（见上一节）；
+- 最低驱动要求 **R580**（13.4 对应 R615 分支，且 13.4 起 Linux 版 toolkit 不再捆绑驱动），PTX ISA 已演进至 9.4（来源：[What's New in CUDA 13.0](https://developer.nvidia.com/blog/whats-new-and-important-in-cuda-toolkit-13-0/)、[CUDA 13.x Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html)、[CUDA 13.3 发布博客](https://developer.nvidia.com/blog/nvidia-cuda-13-3-enhances-gpu-development-with-tile-programming-in-c-compiler-autotuning-and-python-updates/)）。
 
 老集群升级时这是一个现实约束：**H100 之前的卡（V100 等）将无法使用 CUDA 13 工具链**，要么留在 12.x，要么借机换代。
 

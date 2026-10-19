@@ -161,7 +161,7 @@ GPU 运维的边界正在超出“卡”本身，扩展到机柜、供电与供�
 
 ### HBM 成为战略资源
 
-- 三星、SK 海力士、美光均已量产 HBM4 并通过 NVIDIA 认证；SK 海力士拿下 2026 年约 54% 的 HBM4 份额且产能售罄；
+- 美光 HBM4（36GB 12 层，单颗 >2.8 TB/s）已于 2026 年 3 月官宣大规模量产，三星、SK 海力士、美光三家全部通过 NVIDIA Vera Rubin 认证；SK 海力士拿下 2026 年约 54% 的 HBM4 份额且产能售罄；
 - 显存成本已占高端 AI 服务器 BOM 的很大比例，“买不到 HBM”比“买不到 GPU”更先成为约束。
 
 ### 机柜级系统的运维新课题
@@ -174,7 +174,7 @@ GPU 运维的边界正在超出“卡”本身，扩展到机柜、供电与供�
 
 - 2026 年部署主力仍是 H100/H200（存量）与 B200/GB200（新建）；
 - Vera Rubin 首个机柜 2026 年 GTC 时已在 Microsoft Azure 运行，2026 年下半年量产（OEM 首批如 Dell PowerEdge XE9812 已交付 CoreWeave）；
-- 据 SemiAnalysis 报道，NVIDIA 与 Groq 达成约 200 亿美元的授权与人才协议，将 LPU 推理芯片技术纳入 Vera Rubin 生态（来源：[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)、[Micron HBM4 量产公告](https://www.streetinsider.com/Corporate+News/Micron+starts+high-volume+production+of+HBM4+memory+for+NVIDIA+Vera+Rubin/26167911.html)）。
+- 据 SemiAnalysis 报道，NVIDIA 与 Groq 达成约 200 亿美元的授权与人才协议，将 LPU 推理芯片技术纳入 Vera Rubin 生态（来源：[SemiAnalysis GTC 2026 纪要](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)、[Micron HBM4 量产官方公告](https://investors.micron.com/news/press-release/2026/Micron-in-High-Volume-Production-of-HBM4-Designed-for-NVIDIA-Vera-Rubin-PCIe-Gen6-SSD-and-SOCAMM2-03-16-2026/default.aspx)）。
 
 对采购与容量规划的含义：**不要只盯 GPU 单价，要把 HBM 供给、液冷改造、供电容量和机柜网络一起纳入规划**。
 

@@ -37,6 +37,8 @@
   - Flash Attention 的官方实现。
 - [openai/triton](https://github.com/openai/triton)
   - 用 Python 写高性能 GPU kernel 的语言与编译器。
+- [NVIDIA/cutile-python](https://github.com/nvidia/cutile-python)
+  - CUDA 13.1 起官方的 tile 级 Python 编程模型（cuTile），Triton 的官方对标物。
 - [pytorch/pytorch](https://github.com/pytorch/pytorch) 的 `aten/src/ATen/cuda` 和 `c10/cuda`
   - 理解 PyTorch 如何调用 CUDA。
 - [NVIDIA/k8s-device-plugin](https://github.com/NVIDIA/k8s-device-plugin)
@@ -56,6 +58,8 @@
   - FP16 混合精度训练经典论文。
 - [A Guide to Hopper FP8 Training](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html)
   - Transformer Engine 官方指南。
+- [NVIDIA CUDA 13.3 发布博客](https://developer.nvidia.com/blog/nvidia-cuda-13-3-enhances-gpu-development-with-tile-programming-in-c-compiler-autotuning-and-python-updates/)
+  - CUDA Tile C++（nvcc --enable-tile）、CompileIQ 自动调优与 CUDA Python 1.0。
 - [SemiAnalysis: The Inference Kingdom Expands（GTC 2026）](https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands)
   - 2026 年 GTC 深度纪要：Vera Rubin、Rubin Ultra NVL576、CPO 与机柜级竞争格局。
 

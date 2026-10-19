@@ -220,7 +220,7 @@ __global__ void matmul(const float *A, const float *B, float *C, int N) {
 ### Green Context 与 cuTile（CUDA 13）
 
 - **Green Context**（CUDA 12.4 引入、13.x 完善）：在单个 GPU 上划分 SM、显存带宽等资源，做成软件级的“轻量隔离域”，比 MIG 更灵活、比 MPS 隔离更强，适合多租户推理混部；
-- **cuTile**（CUDA 13.1 实验、13.2 稳定）：官方推出的 tile 级 Python DSL，让程序员以“块”为单位描述计算，而非逐线程写循环——可以看作 NVIDIA 对 Triton 的正面回应（来源：[CUDA 13.2 Release Notes](https://docs.nvidia.com/cuda/archive/13.2.0/cuda-toolkit-release-notes/index.html)、[What's New in CUDA 13.0](https://developer.nvidia.com/blog/whats-new-and-important-in-cuda-toolkit-13-0/)）。
+- **cuTile**（CUDA 13.1 首发 Python DSL `cuda.tile`，最初仅支持 Blackwell；13.2 扩展到 Ampere/Ada；13.3 加入 C++ 接口 `nvcc --enable-tile` 与 Hopper 支持，并附带 CompileIQ 编译器自动调优框架）：官方推出的 tile 级编程模型，让程序员以“块”为单位描述计算，而非逐线程写循环——可以看作 NVIDIA 对 Triton 的正面回应（来源：[CUDA 13.3 发布博客](https://developer.nvidia.com/blog/nvidia-cuda-13-3-enhances-gpu-development-with-tile-programming-in-c-compiler-autotuning-and-python-updates/)、[NVIDIA/cutile-python](https://github.com/nvidia/cutile-python)）。
 
 ### “手写 kernel”正在变成少数派
 
