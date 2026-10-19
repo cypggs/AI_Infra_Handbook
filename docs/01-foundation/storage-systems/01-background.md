@@ -34,7 +34,7 @@ MountVolume.SetUp failed for volume "pvc-xxx" : rpc error: code = DeadlineExceed
 
 ### 痛点 5：对象存储成本失控
 
-AI 流水线会产生大量日志、指标、中间 artifact、旧版本模型。如果没有生命周期管理、分层存储和对象合并策略，对象存储账单会快速增长。随着数据湖规模向 PB 级演进，QLC 大容量 SSD（单盘 122TB 级）和低成本对象存储的组合成为新的成本优化焦点。
+AI 流水线会产生大量日志、指标、中间 artifact、旧版本模型。如果没有生命周期管理、分层存储和对象合并策略，对象存储账单会快速增长。随着数据湖规模向 PB 级演进，QLC 大容量 SSD 和低成本对象存储的组合成为新的成本优化焦点——2026 年 5 月 Micron 245TB 6600 ION 已开始出货，单盘容量比 2025 年的 122TB 级又翻了一倍，厂商宣称同等容量下机架数比 HDD 方案少 82%、功耗约为一半（来源：[Micron 245TB 6600 ION 出货公告](https://www.nasdaq.com/press-release/industry-leading-245tb-micron-6600-ion-data-center-ssd-now-shipping-2026-05-05)）。
 
 ## 1.2 AI 工作负载的存储特征
 

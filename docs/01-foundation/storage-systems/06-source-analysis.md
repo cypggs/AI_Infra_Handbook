@@ -122,6 +122,8 @@ flowchart LR
     C -- 异步 --> D[S3 / 并行 FS]
 ```
 
+2026 年的研究进一步追问：阶段一的 GPU→CPU 拷贝为什么还要阻塞？GoCkpt 的思路是把这次传输拆散到约 7 个训练步中，与梯度传输共用 PCIe 带宽，并把梯度一起传到 CPU 维持部分 checkpoint 的一致性，训练中断时间再降约 86.7%（来源：[GoCkpt, arXiv:2511.07035](https://arxiv.org/html/2511.07035)）。换言之，DCP 解决了"怎么写"，异步化解决了"何时写"，多步重叠正在解决"还要不要停"。
+
 ## 6.7 备选：EBS CSI driver
 
 如果想深入 K8s 存储，可以研究 AWS EBS CSI driver 的 gRPC 调用链：

@@ -18,15 +18,22 @@
 - Mooncake (USENIX FAST '25) — "Trading more storage for less computation"：以 KV Cache 为中心的推理服务架构，PD 分离 + 分布式 KV 池。
 - 3FS / Fire-Flyer File System (2025) — DeepSeek 的 AI 原生并行文件系统，CRAQ 强一致 + FoundationDB 元数据。
 - ByteCheckpoint (2024) / DataStates-LLM — 大规模训练 checkpoint 系统与惰性异步 checkpointing。
+- GoCkpt (arXiv:2511.07035, 2026) — 梯度辅助的多步重叠 checkpoint，把 GPU→CPU 传输拆进多个训练步。
 
 ## 11.3 官方文档
 
 - [AWS S3 Documentation](https://docs.aws.amazon.com/s3/)
 - [MinIO Documentation](https://min.io/docs/minio/linux/index.html)
 - [Ceph Documentation](https://docs.ceph.com/)
-- [Lustre Documentation](https://www.lustre.org/)
+- [Lustre 2.17.0 Release](https://www.opensfs.org/lustre-2-17-0-released/) — 2025-12 GA：Hybrid IO、动态 LNet NID、动态 nodemap
 - [DeepSeek 3FS](https://github.com/deepseek-ai/3fs) — 6.6 TiB/s 聚合读带宽的 AI 存储
 - [Mooncake](https://github.com/kvcache-ai/Mooncake/) — 分布式 KV Cache 池与 Transfer Engine
+- [vLLM Blog: Mooncake Store](https://vllm-project.github.io/blog/2026-05-06-mooncake-store/) — KV Connector 集成与 GB200 实测
+- [WEKApod 3 / NeuralMesh 6](https://www.weka.io/news/wekapod-3-densest-ai-storage-memory-system) — 2026-07 发布的单柜 EB 级 AI 存储
+- [Google Cloud Next '26 Storage Announcements](https://cloud.google.com/blog/products/storage-data-transfer/next26-storage-announcements) — Managed Lustre 10 TB/s 与 Cloud Storage Rapid
+- [JuiceFS 1.4 Release Notes](https://juicefs.com/en/blog/release-notes/juicefs-1-4-tiered-storage-faster-metadata) — 文件/目录级分层存储（2026-07 GA）
+- [Alluxio Enterprise AI 3.5](https://www.alluxio.io/blog/new-features-in-alluxio-enterprise-ai-3-5) — CACHE_ONLY checkpoint 写模式
+- [Micron 6600 ION 245TB 出货公告](https://www.nasdaq.com/press-release/industry-leading-245tb-micron-6600-ion-data-center-ssd-now-shipping-2026-05-05) — 2026-05 量产
 - [Amazon S3 Vectors](https://aws.amazon.com/s3/vectors/) — 对象存储内原生向量检索（2025-12 GA）
 - [Kubernetes Storage Concepts](https://kubernetes.io/docs/concepts/storage/)
 - [Kubernetes CSI Spec](https://github.com/container-storage-interface/spec)

@@ -21,6 +21,10 @@ flowchart TD
 | 同步 | 简单、强一致 | 训练阻塞时间长 |
 | 线程异步 | 训练几乎不阻塞 | 与训练线程争 GIL，checkpoint 后 TPS 仍下跌 |
 | 进程异步（2025 后主流） | 几乎无 GIL 竞争、可缓存 save plan | 需要额外 CPU 内存缓冲 |
+| 多步重叠（2026 研究方向） | GPU→CPU 传输拆进约 7 个训练步，中断再降约 86.7% | 实现复杂，需框架级支持（GoCkpt） |
+| 缓存吸收（Alluxio 等企业方案） | checkpoint 只写缓存层、后台落盘，创建提速约 3 倍 | 依赖商业存储层，耐久性靠后端保障 |
+
+（多步重叠与缓存吸收来源：[GoCkpt, arXiv:2511.07035](https://arxiv.org/html/2511.07035)、[Alluxio 3.5 发布](https://www.alluxio.io/blog/new-features-in-alluxio-enterprise-ai-3-5)。）
 
 大规模训练的标准做法已是**两阶段异步 checkpoint + 独立写盘进程**：GPU→CPU 拷贝只阻塞约 1 秒，真正的写盘由后台进程完成。1856 张 H200 实测，后台处理从约 436s 优化到约 67s，因此可以把 checkpoint 频率提高数倍而不损失有效训练时间（来源：[PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)）。
 
@@ -102,7 +106,7 @@ PD 分离架构下，KV Cache 成为推理集群最大的"存储消费者"：
 | RDMA 直传 | 用 Mooncake Transfer Engine / NIXL 做 GPU 显存间直拷，不走文件系统 |
 | CXL 内存池（探索中） | 20-100 TiB 级共享内存池作为 KV 温层，比 SSD 方案 TTFT 低一个数量级 |
 
-Kimi K2 生产环境（128 张 H200）用 Mooncake 支撑了 224k tok/s prefill 与 288k tok/s decode；agentic 负载下跨实例 KV 命中率从约 1.7% 提升到约 92%（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)）。
+Kimi K2 生产环境（128 张 H200）用 Mooncake 支撑了 224k tok/s prefill 与 288k tok/s decode；agentic 负载下跨实例 KV 命中率从约 1.7% 提升到约 92%。2026 年这套实践开始标准化：vLLM v0.31（2026-05）内置 Mooncake Store connector，12 张 GB200 实测吞吐提升 3.8 倍、P50 TTFT 降低 46 倍，并可在 60 张 GPU 上近线性扩展；WEKApod 3 这类"闪存 + KV 卸载"一体机则把同一思路做成了存储产品（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)、[vLLM Blog: Mooncake Store](https://vllm-project.github.io/blog/2026-05-06-mooncake-store/)）。
 
 ## 8.5 成本治理
 
@@ -114,8 +118,8 @@ Kimi K2 生产环境（128 张 H200）用 Mooncake 支撑了 224k tok/s prefill 
 | 合并小对象 | 减少 LIST/HEAD 开销 |
 | 删除过期 artifact | 避免无限增长 |
 | 跨区域复制按需开启 | 避免不必要流量 |
-| 热数据用目录桶/低延迟桶 | checkpoint、热数据集放 S3 Express One Zone 类低延迟层，避免买整集群并行 FS |
-| 数据湖用 QLC 大容量盘 | 122TB 级 QLC SSD 单盘密度约 4PB/U，功耗远低于 HDD 阵列，适合"写一次读多次"的训练数据集 |
+| 热数据用目录桶/低延迟桶 | checkpoint、热数据集放 S3 Express One Zone / GCS Rapid Bucket 类低延迟高吞吐层，避免买整集群并行 FS（Rapid Bucket 宣称 checkpoint 写快 3.2 倍、恢复快 5 倍） |
+| 数据湖用 QLC 大容量盘 | 245TB 级 QLC SSD（Micron 6600 ION，2026-05 出货）单盘容量两年翻两倍、功耗远低于 HDD 阵列，适合"写一次读多次"的训练数据集 |
 
 ### 8.5.2 存储容量规划
 

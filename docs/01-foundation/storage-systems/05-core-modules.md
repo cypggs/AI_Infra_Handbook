@@ -11,9 +11,9 @@
 | HDD | 数 ms | 100-200 MB/s | 高（大容量） | 冷存、归档 |
 | SATA SSD | 百 μs | 500 MB/s | 中 | 普通应用 |
 | NVMe SSD（TLC） | 十 μs | 数 GB/s | 中-高 | checkpoint、缓存 |
-| NVMe SSD（QLC 大容量） | 十 μs | 顺序读约 7 GB/s、写约 3 GB/s | 随机写弱 | 数据湖、温数据（如 Solidigm D5-P5336 122TB） |
+| NVMe SSD（QLC 大容量） | 十 μs | 顺序读约 7-14 GB/s | 随机写弱 | 数据湖、温数据（Solidigm D5-P5336 122TB；Micron 6600 ION 245TB，2026-05 出货） |
 
-> QLC（四层单元）NAND 用容量换耐久性：单盘可达 122TB（ roadmap 指向 245TB 级），顺序读性能接近 TLC，但随机写 IOPS 低一个数量级（4K 随机读约 90 万 IOPS vs 随机写仅约 1.9 万）。它最适合 AI 数据湖、训练数据集这类"写入一次、读取多次"的场景，用单盘 4PB/U 的密度和比 HDD 低得多的功耗重塑温层（来源：[Solidigm D5-P5336](https://www.solidigm.com/products/data-center/d5/p5336.html)、[StorageReview 评测](https://www.storagereview.com/review/solidigm-122-88tb-d5-p5336-review-high-capacity-storage-meets-operational-efficiency)）。
+> QLC（四层单元）NAND 用容量换耐久性：2026 年 5 月 Micron 245TB 6600 ION（G9 QLC、PCIe Gen5）已开始出货，把单盘容量从 2025 年的 122TB 级又翻了一倍；顺序读性能接近 TLC（约 14 GB/s），但随机写 IOPS 低一个数量级。厂商定位非常明确：AI 数据湖与"写一次读多次"的训练数据集——1 EB 容量下比 HDD 方案少 82% 机架、功耗约为一半。同期 Samsung BM1743 做到 122.88TB（E3.S），Kioxia、SK hynix 也披露了 245TB 级产品，SanDisk 路线图指向 2026 年 256TB、2027 年 512TB（来源：[Micron 6600 ION 出货公告](https://www.nasdaq.com/press-release/industry-leading-245tb-micron-6600-ion-data-center-ssd-now-shipping-2026-05-05)、[Tom's Hardware 报道](https://www.tomshardware.com/pc-components/ssds/microns-industry-first-pci-6-0-ssd-promises-sequential-reads-up-to-28-000-mb-s-245-tb-ssd-also-coming-for-those-who-need-capacity-more-than-cutting-edge-speed)）。旧数据点参考：122TB 级 QLC 的 4K 随机读约 90 万 IOPS vs 随机写仅约 1.9 万（[StorageReview 评测](https://www.storagereview.com/review/solidigm-122-88tb-d5-p5336-review-high-capacity-storage-meets-operational-efficiency)）。
 
 ### RAID
 
@@ -98,10 +98,11 @@ flowchart LR
 
 | 产品 | 特点 | 适用 |
 |---|---|---|
-| Lustre | 开源、HPC 生态成熟、高吞吐 | 大规模训练 |
-| GPFS / Spectrum Scale | IBM 商用，强一致性 | 企业级 |
-| BeeGFS | 开源、易部署 | 中小型集群 |
-| WEKA | 高性能 NVMe 原生 | 低延迟 AI 工作负载 |
+| Lustre | 开源、HPC 生态成熟、超算 TOP500 最常用；2.17（2025-12 GA）带来 Hybrid IO 大 I/O 自动优化、动态 LNet NID 配置、动态 nodemap 多租户，2.18 规划文件级纠删码与客户端压缩 | 大规模训练 |
+| GPFS / IBM Storage Scale | IBM 商用，5.2.x 系列集成 NVIDIA GPUDirect Storage，通过 DGX BasePOD 认证 | 企业级 |
+| BeeGFS | 开源、易部署，2026 稳定版 8.3.x | 中小型集群 |
+| WEKA | 高性能 NVMe 原生；2026-07 发布 WEKApod 3 + NeuralMesh 6：单柜 1.1 EB 有效容量、10.2 TB/s 吞吐、2.1 亿 IOPS，面向 agentic 推理 KV Cache 卸载 | 低延迟 AI 工作负载 |
+| Google Managed Lustre | 托管 Lustre（基于 DDN EXAScaler），2026-04 单实例 10 TB/s、checkpoint 快 2.6 倍 | 云上大规模训练/推理 |
 | 3FS (Fire-Flyer) | 2025-02 DeepSeek 开源；NVMe+RDMA 全带宽利用、几乎放弃读缓存、元数据基于 FoundationDB、CRAQ 强一致 | AI 训练/推理，180 节点聚合读 6.6 TiB/s |
 
 ### 3FS 架构要点
@@ -147,6 +148,9 @@ flowchart LR
 - Lustre CSI driver
 - NFS CSI driver
 - Local PV static provisioner
+- 裸金属本地盘：csi-lvm、DirectPV、TopoLVM、OpenEBS Local LVM
+
+> 协议进展：CSI spec v1.13.0（2026-07-27）新增了 VolumeHealth（卷健康度）RPC 和快照拓扑（Snapshot Topology，均为 alpha）；面向对象存储的 COSI（Container Object Storage Interface）到 2026 年仍未 GA，生产上仍以各厂商自研 provisioner/sidecar 为主（来源：[CSI Spec Releases](https://github.com/container-storage-interface/spec/releases)）。
 
 ### K8s 存储选型
 
@@ -179,11 +183,11 @@ flowchart LR
 
 ### 常见缓存产品
 
-- **Alluxio**：内存/SSD 缓存层，挂载在对象存储之上；
-- **JuiceFS**：基于对象存储的 POSIX 文件系统，带本地缓存；
+- **Alluxio**：内存/SSD 缓存层，挂载在对象存储之上；企业版 3.5 引入 CACHE_ONLY、3.6 引入 ASYNC 两种 checkpoint 写模式（checkpoint 只写缓存、后台异步落盘），MLPerf Storage v3.0 上跑出 147 GiB/s 的 Llama 3 405B checkpoint 写入带宽；
+- **JuiceFS**：基于对象存储的 POSIX 文件系统，带本地缓存；1.4（2026-07-14 GA，新 LTS）把存储类别做进文件语义——支持文件/目录级分层存储（目录级设置可被子目录继承）、批量删除/批量克隆（数据集版本管理）、元数据 changelog 与断点续传的 `juicefs sync`；企业版 5.x 引入 RDMA 并支持单卷 5000 亿+ 文件（来源：[JuiceFS 1.4 Release Notes](https://juicefs.com/en/blog/release-notes/juicefs-1-4-tiered-storage-faster-metadata)）；
 - **FUSE**：用户态文件系统，常用于把对象存储挂载为本地路径；
-- **Mooncake Store / LMCache**：2025 年后兴起的**推理 KV Cache 池**，缓存单元不是文件而是 KV 块，配合 RDMA 在 GPU 实例间共享，把跨实例前缀复用率从个位数百分比提升到 90%+；
-- **CXL 内存池**：XConn/MemVerge、KIOXIA XL1、Liqid 等 2025-2026 年的 CXL 方案把退役 DDR4/DDR5 聚合成 20-100 TiB 级共享内存池，作为 KV Cache 的"温层"（延迟约 460-500ns，远高于 SSD），Azure 于 2025-11 推出首批 CXL 云实例（来源：[OCP 2025 CXL KV Cache](https://www.storagenewsletter.com/2025/10/16/ocp-global-summit-2025-xconn-technologies-and-memverge-demonstrate-cxl-memory-pool-for-kv-cache/)）。
+- **Mooncake Store / LMCache**：2025 年后兴起的**推理 KV Cache 池**，缓存单元不是文件而是 KV 块，配合 RDMA 在 GPU 实例间共享，把跨实例前缀复用率从个位数百分比提升到 90%+；2026-05 vLLM v0.31 内置 Mooncake Store connector，12 张 GB200 实测吞吐 3.8 倍、P50 TTFT 降至 1/46，命中率在 Codex agentic 轨迹上达 92.2%（来源：[vLLM Blog: Mooncake Store](https://vllm-project.github.io/blog/2026-05-06-mooncake-store/)）；
+- **CXL 内存池**：XConn/MemVerge、KIOXIA XL1、Liqid 等 2025-2026 年的 CXL 方案把退役 DDR4/DDR5 聚合成 20-100 TiB 级共享内存池，作为 KV Cache 的"温层"（延迟约 460-500ns，远高于 SSD），Azure 于 2025-11 推出首批 CXL 云实例；CXL 4.0 规范 2025-11 发布（128 GT/s），2026 年生产部署以 CXL 2.0/3.x 扩展与早期池化为主，机架级池化预计 2027 年后普及（来源：[OCP 2025 CXL KV Cache](https://www.storagenewsletter.com/2025/10/16/ocp-global-summit-2025-xconn-technologies-and-memverge-demonstrate-cxl-memory-pool-for-kv-cache/)、[Synopsys CXL 4.0 解读](https://www.synopsys.com/blogs/chip-design/cxl-4-ip-solution-ai-memory-connectivity.html)）。
 
 ## 5.7 数据管理
 

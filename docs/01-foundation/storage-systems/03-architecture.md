@@ -72,15 +72,17 @@ flowchart TB
 | S3 Express One Zone | 低延迟对象存储 | 单可用区目录桶，ms 级延迟，适合 checkpoint/热数据 |
 | S3 Vectors | 向量检索 | 2025-12 GA，对象存储内原生向量索引（每索引 20 亿向量），面向 RAG 语义检索 |
 | GCS / Azure Blob | 对象存储 | 类似 S3，各有定价和一致性模型 |
+| Google Managed Lustre | 托管并行文件系统 | 2026-04 起单实例吞吐达 10 TB/s（一年提升 10 倍），checkpoint 读写较其他 GCP 存储快 2.6 倍 |
 
 选型时要考虑：延迟、吞吐、IOPS、容量、成本、可用区、与计算资源的网络距离。
 
 ### 3.3.1 对象存储的 AI 化演进
 
-2025-2026 年对象存储出现了两个明显的 AI 化方向：
+2025-2026 年对象存储出现了三个明显的 AI 化方向：
 
 1. **低延迟化**：S3 Express One Zone 用目录桶（directory bucket）把热数据放进单一可用区，延迟从数十 ms 降到个位数 ms，开始逼近并行文件系统的使用场景（大规模 checkpoint、训练热数据）。
 2. **语义化**：S3 Vectors（2025-12 GA）在对象存储里内建向量索引，支持 metadata 过滤的近似最近邻查询，频繁查询延迟约 100ms 级，让 RAG 管线可以直接在"数据的存放处"做检索，省掉单独维护向量数据库的搬运成本（来源：[StorageNewsletter: S3 Vectors GA](https://www.storagenewsletter.com/2025/12/05/aws-reinvent-2025-amazon-s3-vectors-is-now-generally-available-with-40-times-the-scale-of-preview/)）。
+3. **高吞吐化**：2026-04 Google Cloud 发布 Cloud Storage Rapid Bucket（构建在 Colossus 之上），单个可用区级桶提供 **>15 TB/s 带宽、2000 万请求/秒、亚毫秒延迟**，并给出原生 PyTorch/JAX 集成；官方数据是 checkpoint 写入快 3.2 倍、恢复快 5 倍，配套 Rapid Cache 支持写入即入缓存（ingest-on-write），checkpoint 恢复再快 2.2 倍。对象存储第一次在生产级 SLA 上逼近并行文件系统的 checkpoint 场景（来源：[Google Cloud Next '26 Storage Announcements](https://cloud.google.com/blog/products/storage-data-transfer/next26-storage-announcements)）。
 
 ## 3.4 推理侧的存储架构：KV Cache 池
 
@@ -102,7 +104,7 @@ flowchart LR
     KVStore -- RDMA 直读 --> D1
 ```
 
-代表系统是月之暗面开源的 **Mooncake**：CPU DRAM + SSD + RDMA 组成的分布式 KV Cache 池，配合 Transfer Engine 在 GPU 之间搬运 KV 块。它在 Kimi K2 生产环境（128 张 H200）支撑了 224k tok/s 的 prefill 吞吐，并在 vLLM/SGLang/TensorRT-LLM 中成为标准 KV Connector（2025-12 起直接集成进 vLLM v1；2026-02 加入 PyTorch Ecosystem）。更进一步，CXL 内存池（如 XConn + MemVerge 在 OCP 2025 展示的 100 TiB 方案、阿里云 Beluga）正在把 KV Cache 的"温层"从 SSD 上移到可池化共享的内存总线上，TTFT 可再降一个数量级（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)、[OCP 2025 CXL KV Cache 演示](https://www.storagenewsletter.com/2025/10/16/ocp-global-summit-2025-xconn-technologies-and-memverge-demonstrate-cxl-memory-pool-for-kv-cache/)）。
+代表系统是月之暗面开源的 **Mooncake**：CPU DRAM + SSD + RDMA 组成的分布式 KV Cache 池，配合 Transfer Engine 在 GPU 之间搬运 KV 块。它在 Kimi K2 生产环境（128 张 H200）支撑了 224k tok/s 的 prefill 吞吐，并在 vLLM/SGLang/TensorRT-LLM 中成为标准 KV Connector（2025-12 起直接集成进 vLLM v1；2026-02 加入 PyTorch Ecosystem；2026-05 vLLM v0.31 内置 Mooncake Store connector，12 张 GB200 上实测吞吐提升 3.8 倍、P50 TTFT 降低 46 倍，命中率逼近 95%，并可近线性扩展到 60 张 GPU）。2026 年的新动向是"KV 存储池 + 大容量闪存"做成一体机：WEKA 2026-07 发布的 WEKApod 3（NeuralMesh 6 软件）单柜有效容量 1.1 EB、吞吐 10.2 TB/s、2.1 亿 IOPS，其 Augmented Memory Grid 把 KV Cache 卸载到 NVMe 闪存，宣称同等 GPU  footprint 下并发用户提升 10 倍；WEKA 与 OCI 的联合实测（72 张 H100、100K 上下文）显示长上下文推理吞吐提升 10 倍（来源：[Mooncake](https://github.com/kvcache-ai/Mooncake/)、[vLLM Blog: Mooncake Store](https://vllm-project.github.io/blog/2026-05-06-mooncake-store/)、[WEKApod 3 发布](https://www.weka.io/news/wekapod-3-densest-ai-storage-memory-system)、[WEKA × OCI 实测](https://www.weka.io/news/weka-and-oracle-cloud-infrastructure-validate-10x-throughput-gains)）。更进一步，CXL 内存池（如 XConn + MemVerge 在 OCP 2025 展示的 100 TiB 方案、阿里云 Beluga）正在把 KV Cache 的"温层"从 SSD 上移到可池化共享的内存总线上，TTFT 可再降一个数量级；2026 年生产部署仍以 CXL 2.0/3.x 扩展和早期池化为主，CXL 4.0 规范已于 2025-11 发布（128 GT/s），机架级池化预计 2027 年后进入主流（来源：[OCP 2025 CXL KV Cache 演示](https://www.storagenewsletter.com/2025/10/16/ocp-global-summit-2025-xconn-technologies-and-memverge-demonstrate-cxl-memory-pool-for-kv-cache/)、[Synopsys CXL 4.0 解读](https://www.synopsys.com/blogs/chip-design/cxl-4-ip-solution-ai-memory-connectivity.html)）。
 
 ## 3.5 Kubernetes 存储架构
 

@@ -152,10 +152,25 @@
 - 在 GPU HBM 与 NVMe SSD 之间新增"可池化内存层"，延迟约 500ns 级，带宽 64-128 GB/s；
 - 杀手级场景是推理 KV Cache 温层：比 SSD 快一个数量级、比 HBM 便宜一个数量级，且可跨节点共享；
 - 2025-2026 进展：OCP 2025 上 XConn+MemVerge 演示 100 TiB CXL 内存池跑 NVIDIA Dynamo；Azure 2025-11 推出首批 CXL 云实例；CXL 4.0（2025-11）带宽翻倍到 128 GT/s；
+- 2026 年现实：生产部署仍以 CXL 2.0/3.x 扩展与早期池化为主，机架级池化预计 2027 年后进入主流；
 - 代价：软件栈（内存分层、QoS、故障隔离）还不成熟，生产部署案例少。
 
 ### 25. QLC NAND 大容量 SSD 适合 AI 场景的哪些层级？有什么坑？
 
 **参考答案要点**：
-- 适合：数据湖、训练数据集、对象存储温层等"写一次读多次"场景；122TB 单盘（Solidigm D5-P5336）密度约 4PB/U，功耗远低于 HDD 阵列；
-- 坑：随机写 IOPS 比 TLC 低约两个数量级（1.9 万 vs 90 万），耐久性（DWPD）低，不适合 checkpoint 热缓冲和高频覆写层（来源：[StorageReview 评测](https://www.storagereview.com/review/solidigm-122-88tb-d5-p5336-review-high-capacity-storage-meets-operational-efficiency)）。
+- 适合：数据湖、训练数据集、对象存储温层等"写一次读多次"场景；2026-05 Micron 245TB 6600 ION 已出货，1 EB 容量下比 HDD 少 82% 机架、功耗约一半；
+- 坑：随机写 IOPS 比 TLC 低约两个数量级，耐久性（DWPD）低，不适合 checkpoint 热缓冲和高频覆写层（来源：[Micron 6600 ION 出货公告](https://www.nasdaq.com/press-release/industry-leading-245tb-micron-6600-ion-data-center-ssd-now-shipping-2026-05-05)）。
+
+### 26. 2026 年对象存储为什么开始"抢"并行文件系统的 checkpoint 场景？
+
+**参考答案要点**：
+- 传统短板是延迟和元数据吞吐；S3 Express One Zone 用单可用区目录桶把延迟压到个位数 ms；
+- 2026-04 Google Cloud Storage Rapid Bucket 单可用区桶做到 >15 TB/s、2000 万请求/秒、亚毫秒延迟，原生 PyTorch/JAX 集成，官方数据 checkpoint 写快 3.2 倍、恢复快 5 倍；
+- 含义：云上中小规模训练可以"对象存储 + 低延迟桶"替代自建并行 FS 来存 checkpoint，成本结构完全不同；超大规模共享数据集场景 Lustre/3FS 仍有优势（来源：[Google Cloud Next '26 Storage Announcements](https://cloud.google.com/blog/products/storage-data-transfer/next26-storage-announcements)）。
+
+### 27. 除了 Mooncake，2026 年推理 KV Cache 存储还有哪些新形态？
+
+**参考答案要点**：
+- 框架集成标准化：vLLM v0.31 内置 Mooncake Store connector（GPUDirect RDMA，12 张 GB200 吞吐 3.8 倍、P50 TTFT 降 46 倍），TensorRT-LLM 在 KVCMv2 中内置支持；
+- 产品化：WEKApod 3 + NeuralMesh 6（2026-07）单柜 1.1 EB、10.2 TB/s，Augmented Memory Grid 把 KV 卸载到闪存；WEKA × OCI 实测 72 张 H100 长上下文吞吐提升 10 倍；
+- 分层下探：CXL 内存池把 KV 温层从 SSD 提到内存总线级，2026 年仍以 CXL 2.0/3.x 为主（来源：[vLLM Blog: Mooncake Store](https://vllm-project.github.io/blog/2026-05-06-mooncake-store/)、[WEKApod 3 发布](https://www.weka.io/news/wekapod-3-densest-ai-storage-memory-system)）。

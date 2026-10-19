@@ -8,7 +8,7 @@
 
 | 检查项 | 建议 |
 |---|---|
-| checkpoint 目标 | 本地 NVMe 作为热缓冲，异步上传到并行 FS/对象存储 |
+| checkpoint 目标 | 本地 NVMe 作为热缓冲，异步上传到并行 FS/对象存储；云上优先低延迟桶（S3 Express One Zone / GCS Rapid Bucket） |
 | 保存方式 | 优先两阶段异步 checkpoint（`async_save` + 进程化写盘），缓存 save plan |
 | 写入模式 | 大文件顺序写，开启 direct I/O 或合理设置 page cache 回写阈值 |
 | 一致性 | 保存完成后写入 manifest/元数据，确认可读后再删除旧 checkpoint |

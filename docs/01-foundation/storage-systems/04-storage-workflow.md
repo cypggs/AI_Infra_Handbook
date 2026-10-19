@@ -31,6 +31,8 @@ flowchart LR
 
 实测数据非常可观：1856 张 H200 训练 Llama3-70B，GPU 阻塞时间仅约 0.78 秒，而后台写盘从约 436 秒优化到约 67 秒（缓存 save plan + 进程化异步写盘，合计约 6.5 倍提升；来源：[PyTorch Blog: 6x faster Async Checkpointing](https://pytorch.org/blog/6x-faster-async-checkpointing/)）。更早的测试中，7B 模型单次 checkpoint 从约 148.8 秒降到约 6.3 秒。
 
+2026 年的研究方向是**多步重叠 checkpoint**：GoCkpt 把 GPU→CPU 的传输拆散到约 7 个训练步里，与梯度传输共用 PCIe 带宽，并把梯度一并传到 CPU 保证部分 checkpoint 的一致性，训练中断时间比已有最优传输方案再降约 86.7%、端到端吞吐最高提升约 38.4%（来源：[GoCkpt, arXiv:2511.07035](https://arxiv.org/html/2511.07035)）。工业界的另一条路线是**存储侧吸收写压力**：Alluxio 企业版从 3.5 起支持 CACHE_ONLY 写模式（checkpoint 只写缓存层、后台异步落盘，checkpoint 创建提速至 3 倍）、3.6 起支持 ASYNC 写模式；其分布式缓存在 MLPerf Storage v3.0 基准中跑出 147 GiB/s 的 Llama 3 405B checkpoint 写入带宽（来源：[Alluxio 3.5 发布](https://www.alluxio.io/blog/new-features-in-alluxio-enterprise-ai-3-5)、[MLPerf Storage v3.0 Alluxio 结果](https://www.alluxio.com.cn/mlperf-storage-v3-0%EF%BC%9Aalluxio%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98%E5%AE%9E%E7%8E%B0147gib-s-llama-3%E5%A4%A7%E6%A8%A1%E5%9E%8Bcheckpoint%E5%86%99%E5%85%A5%E6%80%A7%E8%83%BD/)）。云上则可以反过来选择更快的桶：Google Cloud Storage Rapid Bucket 宣称 checkpoint 写入快 3.2 倍、恢复快 5 倍（来源：[Google Cloud Next '26](https://cloud.google.com/blog/products/storage-data-transfer/next26-storage-announcements)）。
+
 ### 异步上传的注意事项
 
 - 需要保证上传完成前，不能删除本地 checkpoint；
